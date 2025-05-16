@@ -252,17 +252,14 @@ def edit_sleep_scores(sleep_scores, df):
 
 
 def postprocess_sleep_scores(mat, return_table=False):
-    sleep_scores = mat.get("sleep_scores").flatten()
-    emg_frequency = mat.get(
-        "eeg_frequency"
-    ).item()  # eeg and emg have the same frequency
-    emg = mat.get("emg").flatten()
+    sleep_scores = mat.get("sleep_scores")
+    emg_frequency = mat.get("eeg_frequency")  # eeg and emg have the same frequency
+    emg = mat.get("emg")
     ne = mat.get("ne")
     ne_frequency = None
     if ne is not None:
-        ne = ne.flatten()
         if len(ne) > 1:
-            ne_frequency = mat.get("ne_frequency").item()
+            ne_frequency = mat.get("ne_frequency")
 
     df = get_sleep_segments(sleep_scores)
     df = modify_Wake(df, emg, emg_frequency)

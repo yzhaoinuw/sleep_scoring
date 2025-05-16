@@ -48,10 +48,8 @@ TEMP_PATH = os.path.join(tempfile.gettempdir(), "sleep_scoring_app_data")
 if not os.path.exists(TEMP_PATH):
     os.makedirs(TEMP_PATH)
 
-# VIDEO_DIR = "./assets/videos/"
-VIDEO_DIR = str(Path(__file__).parent / "assets" / "videos")
-if not os.path.exists(VIDEO_DIR):
-    os.makedirs(VIDEO_DIR)
+VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
+VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 components = Components()
 app.layout = components.home_div
@@ -85,7 +83,7 @@ def reset_cache(cache, filename):
     prev_filename = cache.get("filename")
 
     # attempt for salvaging unsaved annotations
-    if prev_filename is None or prev_filename.split("_sdreamer")[0] != filename:
+    if prev_filename is None or prev_filename != filename:
         cache.set("sleep_scores_history", deque(maxlen=4))
 
     cache.set("filename", filename)
@@ -103,6 +101,29 @@ def reset_cache(cache, filename):
     cache.set("video_name", "")
     cache.set("video_path", "")
     cache.set("fig_resampler", None)
+
+
+def fill_cache(mat):
+    eeg = mat.get("eeg")
+    start_time = mat.get("start_time")
+    eeg_freq = mat.get("eeg_frequency")
+    duration = math.ceil(
+        (eeg.size - 1) / eeg_freq
+    )  # need to round duration to an int for later
+    end_time = duration + start_time
+    video_start_time = mat.get("video_start_time")
+    video_path = mat.get("video_path", np.array([]))
+    video_name = mat.get("video_name", np.array([]))
+    cache.set("start_time", start_time)
+    cache.set("end_time", end_time)
+    if video_start_time is not None:
+        cache.set("video_start_time", video_start_time)
+    if video_path.size != 0:
+        video_path = video_path.item()
+        cache.set("video_path", video_path)
+    if video_name.size != 0:
+        video_name = video_name.item()
+        cache.set("video_name", video_name)
 
 
 # %% client side callbacks below
@@ -276,9 +297,15 @@ def generate_prediction(n_clicks, net_annotation_count):
         mat,
         postprocess=config["postprocess"],
         output_path=temp_mat_path,
-        save_inference=True,
     )
+
+    sleep_scores_history = cache.get("sleep_scores_history")
+    # new_sleep_scores = mat.get("sleep_scores")
+    new_sleep_scores = get_padded_sleep_scores(mat)
+    sleep_scores_history.append(new_sleep_scores.astype(float))
+    cache.set("sleep_scores_history", sleep_scores_history)
     net_annotation_count += 1
+
     # it is necessary to set cache again here because the output file
     # which includes prediction has a new name (old_name + "_sdreamer"),
     # it is this file that should be used for the subsequent visualization.
@@ -298,15 +325,17 @@ def generate_prediction(n_clicks, net_annotation_count):
 )
 def read_mat_vis(status):
     # clean TEMP_PATH regularly by deleting temp files written there
-    mat_file = status.latest_file
-    filename = os.path.basename(mat_file)
-    for temp_file in os.listdir(TEMP_PATH):
-        if temp_file.endswith(".mat") or temp_file.endswith(".xlsx"):
-            if temp_file == filename:
-                continue
-            os.remove(os.path.join(TEMP_PATH, temp_file))
+    mat_file = Path(status.latest_file)
+    filename = mat_file.stem
 
-    reset_cache(cache, filename)
+    temp_dir = Path(TEMP_PATH)
+    for temp_file in temp_dir.iterdir():
+        if temp_file.suffix in [".mat", ".xlsx"]:
+            if temp_file.stem == filename:
+                continue
+            temp_file.unlink()
+
+    reset_cache(cache, mat_file.name)
     message = (
         "File uploaded. Creating visualizations... This may take up to 30 seconds."
     )
@@ -335,6 +364,8 @@ def create_visualization(ready):
     if not validated:
         return message
 
+    fill_cache(mat)
+
     # salvage unsaved annotations
     sleep_scores_history = cache.get("sleep_scores_history")
     if sleep_scores_history:
@@ -344,22 +375,6 @@ def create_visualization(ready):
         sleep_scores_history.append(sleep_scores)
 
     fig = create_fig(mat, mat_name)
-    video_start_time = mat.get("video_start_time")
-    video_path = mat.get("video_path", np.array([]))
-    video_name = mat.get("video_name", np.array([]))
-    time_ax = fig["data"][0]["x"]
-    eeg_start_time, eeg_end_time = time_ax[0], time_ax[-1]
-    cache.set("start_time", eeg_start_time)
-    cache.set("end_time", eeg_end_time)
-    if video_start_time is not None:
-        cache.set("video_start_time", video_start_time)
-    if video_path.size != 0:
-        video_path = video_path.item()
-        cache.set("video_path", video_path)
-    if video_name.size != 0:
-        video_name = video_name.item()
-        cache.set("video_name", video_name)
-
     cache.set("fig_resampler", fig)
     cache.set("sleep_scores_history", sleep_scores_history)
     components.graph.figure = fig
@@ -783,8 +798,8 @@ def show_hide_save_undo_button(net_annotation_count):
     undo_button_style = {"visibility": "hidden"}
     if net_annotation_count > 0:
         save_button_style = {"visibility": "visible"}
-    if len(sleep_scores_history) > 1:
-        undo_button_style = {"visibility": "visible"}
+        if len(sleep_scores_history) > 1:
+            undo_button_style = {"visibility": "visible"}
     return save_button_style, undo_button_style, len(sleep_scores_history)
 
 
@@ -805,15 +820,15 @@ def save_annotations(n_clicks):
     if sleep_scores_history:
         # replace any None or nan in sleep scores to -1 before saving, otherwise results in save error
         # make a copy first because we don't want to convert any nan in the cache
-        updated_sleep_scores = sleep_scores_history[-1]
+        sleep_scores = sleep_scores_history[-1]
         np.place(
-            updated_sleep_scores, updated_sleep_scores == None, [-1]
+            sleep_scores, sleep_scores == None, [-1]
         )  # convert None to -1 for scipy's savemat
-        updated_sleep_scores = np.nan_to_num(
-            updated_sleep_scores, nan=-1
+        sleep_scores = np.nan_to_num(
+            sleep_scores, nan=-1
         )  # convert np.nan to -1 for scipy's savemat
 
-        mat["sleep_scores"] = updated_sleep_scores
+        mat["sleep_scores"] = sleep_scores
     savemat(temp_mat_path, mat)
 
     # export sleep bout spreadsheet only if the manual scoring is complete

@@ -27,11 +27,7 @@ def run_inference(
 ):
     # num_class = 3
     ne = mat.get("ne")
-    ne_tag = ""
-    post_tag = ""
-    # print(model_path)
     if ne is not None and len(ne) != 0:
-        ne_tag = "_ne"
         predictions, confidence = run_inference_ne.infer(mat, model_path)
     else:
         predictions, confidence = run_inference_sdreamer.infer(mat, model_path)
@@ -39,16 +35,12 @@ def run_inference(
     mat["sleep_scores"] = predictions
     mat["confidence"] = confidence
     if postprocess:
-        post_tag = "_post"
         predictions = postprocess_sleep_scores(mat)
         mat["sleep_scores"] = predictions
 
     if output_path is not None:
-        output_path = (
-            os.path.splitext(output_path)[0] + f"_sdreamer{ne_tag}{post_tag}.mat"
-        )
-        if save_inference:
-            savemat(output_path, mat)
+        output_path = os.path.splitext(output_path)[0] + ".mat"
+        savemat(output_path, mat)
     return mat, output_path
 
 
