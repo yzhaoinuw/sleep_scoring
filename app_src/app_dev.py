@@ -372,6 +372,7 @@ def create_visualization(ready):
         mat["sleep_scores"] = sleep_scores_history[-1]
     else:
         sleep_scores = get_padded_sleep_scores(mat)
+        np.place(sleep_scores, sleep_scores == -1, [np.nan])
         sleep_scores_history.append(sleep_scores)
 
     fig = create_fig(mat, mat_name)
