@@ -79,7 +79,7 @@ def create_fig(mat, mat_name, default_n_shown_samples=2048):
     return fig
 
 
-def reset_cache(cache, filename):
+def initialize_cache(cache, filename):
     prev_filename = cache.get("filename")
 
     # attempt for salvaging unsaved annotations
@@ -103,15 +103,15 @@ def reset_cache(cache, filename):
     cache.set("fig_resampler", None)
 
 
-def fill_cache(mat):
+def update_cache(mat):
     eeg = mat.get("eeg")
-    start_time = mat.get("start_time")
+    start_time = mat.get("start_time", 0)
     eeg_freq = mat.get("eeg_frequency")
     duration = math.ceil(
         (eeg.size - 1) / eeg_freq
     )  # need to round duration to an int for later
     end_time = duration + start_time
-    video_start_time = mat.get("video_start_time")
+    video_start_time = mat.get("video_start_time", 0)
     video_path = mat.get("video_path", np.array([]))
     video_name = mat.get("video_name", np.array([]))
     cache.set("start_time", start_time)
@@ -309,7 +309,7 @@ def generate_prediction(n_clicks, net_annotation_count):
     # it is necessary to set cache again here because the output file
     # which includes prediction has a new name (old_name + "_sdreamer"),
     # it is this file that should be used for the subsequent visualization.
-    reset_cache(cache, os.path.basename(output_path))
+    #initialize_cache(cache, os.path.basename(output_path))
     return "The prediction has been generated.", "pred", net_annotation_count
 
 
@@ -335,7 +335,7 @@ def read_mat_vis(status):
                 continue
             temp_file.unlink()
 
-    reset_cache(cache, mat_file.name)
+    initialize_cache(cache, mat_file.name)
     message = (
         "File uploaded. Creating visualizations... This may take up to 30 seconds."
     )
@@ -364,7 +364,7 @@ def create_visualization(ready):
     if not validated:
         return message
 
-    fill_cache(mat)
+    update_cache(mat)
 
     # salvage unsaved annotations
     sleep_scores_history = cache.get("sleep_scores_history")
