@@ -193,8 +193,13 @@ video_modal = dbc.Modal(
     id="video-modal",
     size="lg",
     is_open=False,
+    scrollable=True,
     backdrop="static",  # the user must clicks the "x" to exit
     centered=True,
+)
+
+reselect_video_button = html.Button(
+    "Upload a different video", id="reselect-video-button"
 )
 
 backend_div = html.Div(
@@ -238,6 +243,7 @@ class Components:
         self.visualization_div = visualization_div
         self.vis_upload_box = vis_upload_box
         self.video_upload_box = video_upload_box
+        self.reselect_video_button = reselect_video_button
 
     def configure_du(self, app, folder):
         du.configure_upload(app, folder, use_upload_id=True)

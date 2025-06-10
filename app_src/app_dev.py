@@ -306,10 +306,6 @@ def generate_prediction(n_clicks, net_annotation_count):
     cache.set("sleep_scores_history", sleep_scores_history)
     net_annotation_count += 1
 
-    # it is necessary to set cache again here because the output file
-    # which includes prediction has a new name (old_name + "_sdreamer"),
-    # it is this file that should be used for the subsequent visualization.
-    #initialize_cache(cache, os.path.basename(output_path))
     return "The prediction has been generated.", "pred", net_annotation_count
 
 
@@ -433,10 +429,25 @@ def prepare_video(n_clicks, is_open):
 
     # if original avi has not been uploaded, ask for it
     video_path = cache.get("video_path")
-    message = "Please upload the original video (an avi file) above."
+    message = "Please upload the original video above."
     if video_path:
         message += f" You may find it at {video_path}."
     return (not is_open), dash.no_update, components.video_upload_box, message
+
+
+@app.callback(
+    Output("video-path-store", "data", allow_duplicate=True),
+    Output("video-container", "children", allow_duplicate=True),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("reselect-video-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reselect_video(n_clicks):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise dash.exceptions.PreventUpdate
+
+    message = "Please upload the original video above."
+    return dash.no_update, components.video_upload_box, message
 
 
 @du.callback(
@@ -527,7 +538,7 @@ def show_clip(clip_name):
         height="100%",
     )
 
-    return player, ""
+    return player, components.reselect_video_button
 
 
 @app.callback(
