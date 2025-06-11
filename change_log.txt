@@ -1,3 +1,13 @@
+#### v0.14.0-beta
+1. Removed the starting page of selecting between visualization and prediction. Instead, after the user has chosen a file, the app enters visualization. To run the automated sleep scoring, switch to Annotation mode, then look for the Generate Predictions button (if available, see the next note) to the upper right of the figure.
+2. Removed Generating Predictions by default. The user can install it by placing the folder "torch" inside "_internal" folder.
+3. Added precise annotation (thinner sections) while in zoomed-out view. To do this, first switch to Annotation mode, then click the point of interest in a subplot. A thin box will appear around that point to indicate the section selected. Then annotate as usual. Note: the width of the thin box will automatically adjust based on the current zoom level. 
+4. Made the spectrogram the first (integrated) subplot. It will now be in sync with the other subplots when zooming or panning. The Confidence subplot is removed.
+5. Added a button to allow reselecting the video for a .mat file. The reselecting button is found under the video clip when in the video viewing page.
+6. Fixed video playing issues such as skipping of frames, long wait when viewing a clip. The app now also accommodates popular video formats such as mp4, in addition to avi. 
+7. Added a simple emergency recovery mechanism. When the user has made annotations for a .mat file but did not save it due to power loss or other reasons, the user can recover the progress IF opening the same .mat file the first thing when the user opens the app again. Note: the user MUST open the SAME .mat file first in order to recover the lost progress. If the user opens ANY OTHER .mat file, the previous progress is lost for good.
+8. Changed SWS to NREM in sleep score labels.   
+
 #### v0.13.0
 1. Added Check Video.
 2. Flipped Theta/Delta ratio calculation.
