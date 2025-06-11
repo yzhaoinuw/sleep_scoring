@@ -127,56 +127,6 @@ home_div = html.Div(
 
 # %% visualization div
 
-utility_div = html.Div(
-    style={
-        "display": "flex",
-        "marginLeft": "10px",
-        "marginTop": "5px",
-        "marginBottom": "0px",
-        "justifyContent": "flex-start",
-        "width": "100%",
-        "alignItems": "center",
-        "flexWrap": "nowrap",  # prevent wrap during transition
-        "whiteSpace": "nowrap",
-        "paddingRight": "30px",
-        "boxSizing": "border-box",
-    },
-    children=[
-        html.Div(
-            style={"display": "flex", "marginLeft": "10px", "gap": "10px"},
-            children=[
-                html.Div(["Sampling Level"]),
-                dcc.Dropdown(
-                    options=["x1", "x2", "x4"],
-                    value="x1",
-                    id="n-sample-dropdown",
-                    searchable=False,
-                    clearable=False,
-                ),
-                html.Div(
-                    [
-                        html.Button(
-                            "Check Video",
-                            id="video-button",
-                            style={"visibility": "hidden"},
-                        )
-                    ]
-                ),
-            ],
-        ),
-        html.Div(
-            [
-                html.Button(
-                    "Generate Predictions",
-                    id="pred-button",
-                    style={"visibility": "hidden"},
-                )
-            ],
-            style={"marginLeft": "auto"},  # keep the button to the right edge
-        ),
-    ],
-)
-
 graph = dcc.Graph(
     id="graph",
     config={
@@ -222,25 +172,90 @@ backend_div = html.Div(
     ]
 )
 
-visualization_div = html.Div(
-    children=[
-        utility_div,
-        video_modal,
-        html.Div(
-            children=[graph],
-            style={"marginTop": "1px", "marginLeft": "20px", "marginRight": "15px"},
-        ),
-        backend_div,
-    ],
-)
+
+def make_utility_div(pred_disabled=True):
+    # enable or disable pred button depending on availability of pytorch
+    pred_button = html.Button(
+        "Generate Predictions",
+        id="pred-button",
+        style={"visibility": "hidden"},
+    )
+    if pred_disabled:
+        pred_button = html.Button(
+            "Generate Predictions",
+            id="pred-button",
+            style={"visibility": "hidden"},
+            disabled=True,
+            title="Add Torch to generate predictions.",
+        )
+    utility_div = html.Div(
+        style={
+            "display": "flex",
+            "marginLeft": "10px",
+            "marginTop": "5px",
+            "marginBottom": "0px",
+            "justifyContent": "flex-start",
+            "width": "100%",
+            "alignItems": "center",
+            "flexWrap": "nowrap",  # prevent wrap during transition
+            "whiteSpace": "nowrap",
+            "paddingRight": "30px",
+            "boxSizing": "border-box",
+        },
+        children=[
+            html.Div(
+                style={"display": "flex", "marginLeft": "10px", "gap": "10px"},
+                children=[
+                    html.Div(["Sampling Level"]),
+                    dcc.Dropdown(
+                        options=["x1", "x2", "x4"],
+                        value="x1",
+                        id="n-sample-dropdown",
+                        searchable=False,
+                        clearable=False,
+                    ),
+                    html.Div(
+                        [
+                            html.Button(
+                                "Check Video",
+                                id="video-button",
+                                style={"visibility": "hidden"},
+                            )
+                        ]
+                    ),
+                ],
+            ),
+            html.Div(
+                [pred_button],
+                style={"marginLeft": "auto"},  # keep the button to the right edge
+            ),
+        ],
+    )
+    return utility_div
+
+
+def make_visualization_div(pred_disabled=True):
+    utility_div = make_utility_div(pred_disabled)
+    visualization_div = html.Div(
+        children=[
+            utility_div,
+            video_modal,
+            html.Div(
+                children=[graph],
+                style={"marginTop": "1px", "marginLeft": "20px", "marginRight": "15px"},
+            ),
+            backend_div,
+        ],
+    )
+    return visualization_div
 
 
 # %%
 class Components:
-    def __init__(self):
+    def __init__(self, pred_disabled=True):
         self.home_div = home_div
         self.graph = graph
-        self.visualization_div = visualization_div
+        self.visualization_div = make_visualization_div(pred_disabled)
         self.vis_upload_box = vis_upload_box
         self.video_upload_box = video_upload_box
         self.reselect_video_button = reselect_video_button

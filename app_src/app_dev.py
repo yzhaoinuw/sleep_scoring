@@ -8,7 +8,6 @@ Created on Fri Oct 20 15:45:29 2023
 import os
 import math
 
-# import time
 import tempfile
 import webbrowser
 from pathlib import Path
@@ -29,7 +28,6 @@ from scipy.io import loadmat, savemat
 from app_src import VERSION, config
 from app_src.make_mp4 import make_mp4_clip
 from app_src.components_dev import Components
-from app_src.inference import run_inference
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 
 from app_src.postprocessing import get_sleep_segments, get_pred_label_stats
@@ -51,7 +49,13 @@ if not os.path.exists(TEMP_PATH):
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
-components = Components()
+try:
+    from app_src.inference import run_inference
+
+    components = Components(pred_disabled=False)
+except ImportError:
+    components = Components()
+
 app.layout = components.home_div
 du = components.configure_du(app, TEMP_PATH)
 
@@ -798,13 +802,11 @@ def undo_annotation(n_clicks, figure, net_annotation_count):
 @app.callback(
     Output("save-button", "style"),
     Output("undo-button", "style"),
-    Output("debug-message", "children"),
+    # Output("debug-message", "children"),
     Input("net-annotation-count-store", "data"),
-    # State("net-annotation-count-store", "data"),
     prevent_initial_call=True,
 )
 def show_hide_save_undo_button(net_annotation_count):
-    # time.sleep(10)
     sleep_scores_history = cache.get("sleep_scores_history")
     save_button_style = {"visibility": "hidden"}
     undo_button_style = {"visibility": "hidden"}
@@ -812,7 +814,10 @@ def show_hide_save_undo_button(net_annotation_count):
         save_button_style = {"visibility": "visible"}
         if len(sleep_scores_history) > 1:
             undo_button_style = {"visibility": "visible"}
-    return save_button_style, undo_button_style, len(sleep_scores_history)
+    return (
+        save_button_style,
+        undo_button_style,
+    )  # len(sleep_scores_history)
 
 
 @app.callback(
