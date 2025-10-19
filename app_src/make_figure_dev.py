@@ -87,6 +87,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     eeg_end_time = duration + start_time
     # Create the time sequences
     time_eeg = np.linspace(start_time, eeg_end_time, eeg.size)
+    time_emg = np.linspace(start_time, eeg_end_time, emg.size)
     eeg_end_time = math.ceil(time_eeg[-1])
     eeg_lower_range, eeg_upper_range = np.nanquantile(
         eeg, 1 - RANGE_QUANTILE
@@ -186,7 +187,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
             mode="lines+markers",
             hovertemplate="<b>time</b>: %{x:.2f}" + "<br><b>y</b>: %{y}<extra></extra>",
         ),
-        hf_x=time_eeg,
+        hf_x=time_emg,
         hf_y=emg,
         row=3,
         col=1,
@@ -351,7 +352,7 @@ if __name__ == "__main__":
 
     io.renderers.default = "browser"
     data_path = "../user_test_files/"
-    mat_file = "35_app13.mat"
+    mat_file = "202509_63_Opto_Temp_1.mat"
     mat = loadmat(os.path.join(data_path, mat_file), squeeze_me=True)
     # mat_file = "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/box1_COM18_RZ10_2_1_2024-06-03_09-04-56-902_sdreamer_3class.mat"
     # mat = loadmat(mat_file)
