@@ -393,17 +393,19 @@ def get_pred_label_stats(df_sleep_segments: pd.DataFrame):
 
 # %%
 if __name__ == "__main__":
-    data_path = ".\\user_test_files\\"
-    mat_file = "aud_403_sdreamer_3class.mat"
+    data_path = "..\\user_test_files\\"
+    mat_file = "788_bin1_gs_sdreamer_ne_3class.mat"
     filename = os.path.splitext(os.path.basename(mat_file))[0]
-    mat = loadmat(os.path.join(data_path, mat_file))
+    mat = loadmat(os.path.join(data_path, mat_file), squeeze_me=True)
     sleep_scores_post, df = postprocess_sleep_scores(mat=mat, return_table=True)
     # df.to_excel(os.path.join(data_path, f"{filename}_table.xlsx"))
 
     # write two sheets in one xlsx file
     df_stats = get_pred_label_stats(df)
+    """
     with pd.ExcelWriter(os.path.join(data_path, f"{filename}_table.xlsx")) as writer:
         df.to_excel(writer, sheet_name="Sleep_bouts")
         df_stats.to_excel(writer, sheet_name="Sleep_stats")
         worksheet = writer.sheets["Sleep_stats"]
         worksheet.set_column(0, 0, 20)
+    """

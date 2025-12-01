@@ -116,17 +116,15 @@ def update_cache(mat):
     )  # need to round duration to an int for later
     end_time = duration + start_time
     video_start_time = mat.get("video_start_time", 0)
-    video_path = mat.get("video_path", np.array([]))
-    video_name = mat.get("video_name", np.array([]))
+    video_path = mat.get("video_path", "")
+    video_name = mat.get("video_name", "")
     cache.set("start_time", start_time)
     cache.set("end_time", end_time)
     if video_start_time is not None:
         cache.set("video_start_time", video_start_time)
-    if video_path.size != 0:
-        video_path = video_path.item()
+    if video_path:
         cache.set("video_path", video_path)
-    if video_name.size != 0:
-        video_name = video_name.item()
+    if video_name:
         cache.set("video_name", video_name)
 
 
@@ -258,6 +256,8 @@ def show_confirm_pred_modal(n_clicks, is_open):
     Output("data-upload-message", "children"),
     Output("prediction-ready-store", "data"),
     Output("annotation-message", "children", allow_duplicate=True),
+    Output("save-button", "style", allow_duplicate=True),
+    Output("undo-button", "style", allow_duplicate=True),
     Input("pred-confirm-button", "n_clicks"),
     State("pred-modal-confirm", "is_open"),
     prevent_initial_call=True,
@@ -281,7 +281,14 @@ def read_mat_pred(n_clicks, is_open):
         message += " NE data not detected."
 
     message += " Generating predictions... This may take up to 3 minutes. Check Terminal for the progress."
-    return ((not is_open), message, True, "")
+    return (
+        (not is_open),
+        message,
+        True,
+        "",
+        {"visibility": "hidden"},
+        {"visibility": "hidden"},
+    )
 
 
 @app.callback(
