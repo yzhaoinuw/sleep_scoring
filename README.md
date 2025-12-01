@@ -13,7 +13,7 @@ To open the app, double click **_run_app.exe_** and it will open the app's home 
 
 #### ↔️ Navigation
 Every time you open a new mat file, you are in the **navigation/panning mode** initially. When in this mode, 
-- Click-and-drag left/right on any plot to pan horizontally. You can also press 
+- Click-and-drag left/right on any plot to pan horizontally. You can also press ⬅️ or ➡️ on the keyboard to move horizontally. This may come especially handy when you are in annotation mode (see [Annotation](#%EF%B8%8F-annotation)) 
 - On the EEG and EMG plots, you may also drag up/down to pan vertically.
 
 > Note: The spectrogram and NE plots are vertically fixed, so they only allow horizontal panning.
@@ -54,7 +54,7 @@ While in annotation mode,
 Automatic scoring is no longer included by default. To enable it,
 - Download *torch.zip* from the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
 - Unzip it (ensure it does not remain nested inside another folder).
-- Place it directly inside _internal/ and **NOT** inside any subfolder (please review the [Installation Section](#Installation)).
+- Place it directly inside _internal/ and **NOT** inside any subfolder (please review the [Installation Section](#-installation)).
 - Reopen the app and it should be enabled automatically.
 
 After enabling:
