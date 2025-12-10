@@ -163,12 +163,15 @@ def update_cache(mat):
     video_name = mat.get("video_name", "")
     cache.set("start_time", start_time)
     cache.set("end_time", end_time)
-    if video_start_time is not None:
-        cache.set("video_start_time", video_start_time)
-    if video_path:
-        cache.set("video_path", video_path)
-    if video_name:
-        cache.set("video_name", video_name)
+    if not isinstance(mat.get("video_start_time"), int):
+        video_start_time = 0
+    if not isinstance(video_path, str):
+        video_path = ""
+    if not isinstance(video_name, str):
+        video_name = ""
+    cache.set("video_start_time", video_start_time)
+    cache.set("video_path", "")
+    cache.set("video_name", "")
 
 
 # %% client side callbacks below

@@ -8,7 +8,6 @@ Created on Fri Feb 14 00:11:39 2025
 import subprocess
 from pathlib import Path
 
-# from moviepy import VideoFileClip
 from imageio_ffmpeg import get_ffmpeg_exe
 
 
@@ -39,6 +38,10 @@ def make_mp4_clip(
         str(duration),
         "-c:v",
         "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "22",
         "-movflags",
         "+faststart",
         "-f",
@@ -48,61 +51,50 @@ def make_mp4_clip(
     subprocess.run(cmd, check=True)
 
 
-"""
-def make_mp4_clip(
-    video_path, start_time, end_time, save_path=None, save_dir=Path("./assets/videos/")
-):
-    duration = end_time - start_time
-    if save_path is None:
-        video_name = os.path.basename(video_path).split(".")[0]
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        mp4_file = video_name + f"_time_range_{start_time}-{end_time}" + ".mp4"
-        save_path = os.path.join(save_dir, mp4_file)
+def avi_to_mp4(src_path: Path, out_dir: Path) -> Path:
+    """Given a source video path, return a path to an MP4 version.
+    If src is already .mp4, just return it.
+    If not, convert once to MP4 (if needed) and return the mp4 path."""
+    src_path = Path(src_path)
+    if src_path.suffix.lower() == ".mp4":
+        return src_path
+
+    video_name = src_path.stem
+    out_path = Path(out_dir) / (video_name + ".mp4")
 
     ff = get_ffmpeg_exe()
     cmd = [
         ff,
-        "-y",  # overwrite output if it exists
-        "-ss",
-        str(start_time),  # seek to start time
+        "-y",
         "-i",
-        video_path,  # input file
-        "-t",
-        str(duration),  # clip duration
-        # "-c", "copy",  # copy all streams (no re-encode)
+        str(src_path),
         "-c:v",
-        "libx264",  # re-encode video to H.264
+        "libx264",  # Video quality settings
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "22",
+        "-c:a",
+        "aac",  # Audio settings
+        "-b:a",
+        "192k",
         "-movflags",
-        "+faststart",  # for better MP4 playback start
-        "-f",
-        "mp4",  # force MP4 container
-        save_path,
+        "+faststart",
+        str(out_path),
     ]
+
     subprocess.run(cmd, check=True)
 
+    return out_path
 
-def avi_to_mp4(
-    avi_path, start_time, end_time, save_path=None, save_dir="./assets/videos/"
-):
-    if save_path is None:
-        avi_name = os.path.basename(avi_path).split(".")[0]
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        mp4_file = avi_name + f"_time_range_{start_time}-{end_time}" + ".mp4"
-        save_path = os.path.join(save_dir, mp4_file)
-
-    clip = (
-        VideoFileClip(avi_path)
-        .subclipped(start_time=start_time, end_time=end_time)
-        .without_audio()
-    )
-    clip.write_videofile(save_path, audio=False, logger=None)
-    clip.close()
-    # return save_path, mp4_file
-"""
 
 if __name__ == "__main__":
+    import time
+
+    start_time = time.time()
     video_path = "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/35_ymaze_ymaze_Cam2.avi"
-    # avi_to_mp4(avi_path, start_time=1000000, end_time=1000000 + 80)
-    make_mp4_clip(video_path, start_time=849, end_time=871)
+    make_mp4_clip(video_path, start_time=800, end_time=1300)
+    # out_path = avi_to_mp4(video_path, "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/")
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Execution time: {elapsed_time:.4f} seconds")
