@@ -6,8 +6,8 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
+#import json
 import math
-
 import tempfile
 
 # import webbrowser
@@ -681,13 +681,13 @@ def update_fig(relayoutdata):
     # manually supply xaxis4.range[0] and xaxis4.range[1] after clicking
     # reset axes button because it only gives xaxis4.range. It seems
     # updating fig_resampler requires xaxis4.range[0] and xaxis4.range[1]
-    if (
-        relayoutdata.get("xaxis4.range") is not None
-        and relayoutdata.get("xaxis4.range[0]") is None
-    ):
-        relayoutdata["xaxis4.range[0]"], relayoutdata["xaxis4.range[1]"] = relayoutdata[
-            "xaxis4.range"
-        ]
+    #if (
+    #    relayoutdata.get("xaxis4.range") is not None
+    #    and relayoutdata.get("xaxis4.range[0]") is None
+    #):
+    #    relayoutdata["xaxis4.range[0]"], relayoutdata["xaxis4.range[1]"] = relayoutdata[
+    #        "xaxis4.range"
+    #    ]
     return fig.construct_update_data_patch(relayoutdata)
 
 
@@ -759,8 +759,7 @@ def read_box_select(box_select, figure, clickData):
         video_button_style,
     )
 
-
-"""
+'''
 @app.callback(
     Output("debug-message", "children"),
     Input("box-select-store", "data"),
@@ -769,9 +768,8 @@ def read_box_select(box_select, figure, clickData):
 )
 def debug_box_select(box_select, figure):
     #time_end = figure["data"][-1]["z"][0][-1]
-    return json.dumps(box_select, indent=2)
-"""
-
+    return json.dumps(figure["data"][-1]["z"], indent=2)
+'''
 
 @app.callback(
     # Output("debug-message", "children", allow_duplicate=True),
@@ -842,7 +840,6 @@ def read_click_select(clickData, figure):  # triggered only  if clicked within x
 
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
-    # Output("annotation-store", "data"),
     Output("annotation-message", "children", allow_duplicate=True),
     Output("video-button", "style", allow_duplicate=True),
     Output("net-annotation-count-store", "data", allow_duplicate=True),
@@ -882,14 +879,21 @@ def update_sleep_scores(
     cache.set("sleep_scores_history", sleep_scores_history)
     net_annotation_count += 1
 
+    new_sleep_scores = new_sleep_scores.tolist()
     patched_figure = Patch()
-    patched_figure["data"][-3]["z"][0] = new_sleep_scores
-    patched_figure["data"][-2]["z"][0] = new_sleep_scores
-    patched_figure["data"][-1]["z"][0] = new_sleep_scores
+    
+    for i in [-3, -2, -1]:
+        # Overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = [new_sleep_scores]
+    
+    #patched_figure["data"][-3]["z"][0] = new_sleep_scores
+    #patched_figure["data"][-2]["z"][0] = new_sleep_scores
+    #patched_figure["data"][-1]["z"][0] = new_sleep_scores
 
     # remove box or click select after an update is made
     patched_figure["layout"]["selections"] = None
     patched_figure["layout"]["shapes"] = None
+    
     return patched_figure, "", {"visibility": "hidden"}, net_annotation_count
 
 
@@ -913,11 +917,19 @@ def undo_annotation(n_clicks, figure, net_annotation_count):
     cache.set("sleep_scores_history", sleep_scores_history)
     prev_sleep_scores = sleep_scores_history[-1]
 
+    prev_sleep_scores = prev_sleep_scores.tolist()
+    
     # undo figure
     patched_figure = Patch()
+    for i in [-3, -2, -1]:
+        # Overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = [prev_sleep_scores]
+    
+    '''
     patched_figure["data"][-3]["z"][0] = prev_sleep_scores
     patched_figure["data"][-2]["z"][0] = prev_sleep_scores
     patched_figure["data"][-1]["z"][0] = prev_sleep_scores
+    '''
     return patched_figure, net_annotation_count
 
 
