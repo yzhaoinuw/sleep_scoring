@@ -5,7 +5,7 @@ Created on Fri Oct 20 16:27:03 2023
 @author: yzhao
 """
 
-import dash_uploader as du
+# import dash_uploader as du
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 from dash_extensions import EventListener
@@ -28,15 +28,10 @@ upload_box_style = {
     "padding": "0px",
 }
 
-# set up dash uploader
-vis_upload_box = du.Upload(
-    id="vis-data-upload",
-    text="Click here to select File",
-    text_completed="Completed loading",
-    cancel_button=True,
-    filetypes=["mat"],
-    upload_id="",
-    default_style=upload_box_style,
+mat_upload_button = html.Button(
+    "Click here to select a mat file",
+    id="mat-upload-button",
+    style=upload_box_style,
 )
 
 video_upload_box_style = {
@@ -53,16 +48,12 @@ video_upload_box_style = {
     "backgroundColor": "lightgrey",
 }
 
-video_upload_box = du.Upload(
-    id="video-upload",
-    text="Select avi File",
-    text_completed="Completed loading",
-    cancel_button=True,
-    filetypes=["avi"],
-    max_file_size=2048,
-    upload_id="",
-    default_style=video_upload_box_style,
+video_upload_button = html.Button(
+    "Click here to select a video file",
+    id="video-upload-button",
+    style=upload_box_style,
 )
+
 
 pred_modal_confirm = dbc.Modal(
     [
@@ -106,7 +97,7 @@ home_div = html.Div(
         html.Div(
             id="upload-container",
             style={"marginLeft": "15px", "marginTop": "15px"},
-            children=[vis_upload_box],
+            children=[mat_upload_button],
         ),
         html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
         html.Div(
@@ -149,7 +140,7 @@ video_modal = dbc.Modal(
 )
 
 reselect_video_button = html.Button(
-    "Upload a different video", id="reselect-video-button"
+    "Select a different video", id="reselect-video-button"
 )
 
 backend_div = html.Div(
@@ -256,10 +247,6 @@ class Components:
         self.home_div = home_div
         self.graph = graph
         self.visualization_div = make_visualization_div(pred_disabled)
-        self.vis_upload_box = vis_upload_box
-        self.video_upload_box = video_upload_box
+        self.mat_upload_button = mat_upload_button
+        self.video_upload_button = video_upload_button
         self.reselect_video_button = reselect_video_button
-
-    def configure_du(self, app, folder):
-        du.configure_upload(app, folder, use_upload_id=True)
-        return du

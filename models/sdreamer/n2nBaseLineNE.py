@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from einops import rearrange
-from timm.models.layers import trunc_normal_
+from timm.layers import trunc_normal_
 
 from .layers.transformer import Transformer
 

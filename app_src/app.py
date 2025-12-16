@@ -5,15 +5,17 @@ Created on Fri Oct 20 15:45:29 2023
 @author: yzhao
 """
 
-import os
+# import os
+# import json
 import math
-
 import tempfile
-import webbrowser
+
+# import webbrowser
 from pathlib import Path
 from collections import deque
 
 import dash
+import webview
 import dash_player
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
@@ -42,9 +44,9 @@ app = Dash(
     ],  # need this for the modal to work properly
 )
 
-TEMP_PATH = os.path.join(tempfile.gettempdir(), "sleep_scoring_app_data")
-if not os.path.exists(TEMP_PATH):
-    os.makedirs(TEMP_PATH)
+TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
+TEMP_PATH.mkdir(parents=True, exist_ok=True)
+
 
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
@@ -57,7 +59,7 @@ except ImportError:
     components = Components()
 
 app.layout = components.home_div
-du = components.configure_du(app, TEMP_PATH)
+# du = components.configure_du(app, TEMP_PATH)
 
 # Note: np.nan is converted to None when reading from cache
 cache = Cache(
@@ -74,22 +76,63 @@ cache = Cache(
 
 
 # %%
-def open_browser(port):
-    webbrowser.open_new(f"http://127.0.0.1:{port}/")
 
 
-def create_fig(mat, mat_name, default_n_shown_samples=2048):
-    fig = make_figure(mat, mat_name, default_n_shown_samples)
+def open_file_dialog(file_type):
+    """
+    Open a native file dialog (pywebview) with given file type filters.
+    Returns a single file path as a string, or None if canceled.
+
+    Parameters
+    ----------
+    file_type : tuple[str]
+        Example: "mat" or "video"
+
+    """
+    if not webview.windows:
+        return None
+
+    window = webview.windows[0]
+
+    if file_type == "mat":
+        file_types = ("MAT files (*.mat)",)
+    elif file_type == "video":
+        file_types = ("Videos (*.avi;*.mp4)",)
+    else:
+        raise ValueError("Hey, it's either mat or video.")
+
+    result = window.create_file_dialog(
+        webview.FileDialog.OPEN,
+        allow_multiple=False,
+        file_types=file_types,
+    )
+
+    return result[0] if result else None
+
+
+def create_fig(mat, filename, default_n_shown_samples=2048):
+    fig = make_figure(mat, filename, default_n_shown_samples)
     return fig
 
 
-def initialize_cache(cache, filename):
-    prev_filename = cache.get("filename")
+def clear_temp_dir(filename):
+    """clear mat and xlsx files written in temp"""
+    for temp_file in TEMP_PATH.iterdir():
+        if temp_file.suffix in [".mat", ".xlsx"]:
+            if temp_file.stem == filename:
+                continue
+            temp_file.unlink()
 
+
+def initialize_cache(cache, filepath):
+    cache.set("filepath", filepath)
+    prev_filename = cache.get("filename")
+    filename = Path(filepath).stem
     # attempt for salvaging unsaved annotations
     if prev_filename is None or prev_filename != filename:
         cache.set("sleep_scores_history", deque(maxlen=4))
 
+    clear_temp_dir(filename)
     cache.set("filename", filename)
     recent_files_with_video = cache.get("recent_files_with_video")
     if recent_files_with_video is None:
@@ -120,12 +163,15 @@ def update_cache(mat):
     video_name = mat.get("video_name", "")
     cache.set("start_time", start_time)
     cache.set("end_time", end_time)
-    if video_start_time is not None:
-        cache.set("video_start_time", video_start_time)
-    if video_path:
-        cache.set("video_path", video_path)
-    if video_name:
-        cache.set("video_name", video_name)
+    if not isinstance(mat.get("video_start_time"), int):
+        video_start_time = 0
+    if not isinstance(video_path, str):
+        video_path = ""
+    if not isinstance(video_name, str):
+        video_name = ""
+    cache.set("video_start_time", video_start_time)
+    cache.set("video_path", "")
+    cache.set("video_name", "")
 
 
 # %% client side callbacks below
@@ -267,8 +313,8 @@ def read_mat_pred(n_clicks, is_open):
         raise dash.exceptions.PreventUpdate
 
     message = ""
-    mat_name = cache.get("filename")
-    mat = loadmat(os.path.join(TEMP_PATH, mat_name), squeeze_me=True)
+    mat_path = cache.get("filepath")
+    mat = loadmat(mat_path, squeeze_me=True)
     eeg_freq = mat["eeg_frequency"]
     if round(eeg_freq) != 512:
         message += (
@@ -300,10 +346,10 @@ def read_mat_pred(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def generate_prediction(n_clicks, net_annotation_count):
-    mat_name = cache.get("filename")
-    mat = loadmat(os.path.join(TEMP_PATH, mat_name), squeeze_me=True)
+    mat_path = cache.get("filepath")
     filename = cache.get("filename")
-    temp_mat_path = os.path.join(TEMP_PATH, filename)
+    mat = loadmat(mat_path, squeeze_me=True)
+    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
     mat, output_path = run_inference(
         mat,
         postprocess=config["postprocess"],
@@ -320,33 +366,27 @@ def generate_prediction(n_clicks, net_annotation_count):
     return "The prediction has been generated.", "pred", net_annotation_count
 
 
-@du.callback(
-    output=[
-        Output("data-upload-message", "children", allow_duplicate=True),
-        Output("visualization-ready-store", "data", allow_duplicate=True),
-        Output("upload-container", "children", allow_duplicate=True),
-        Output("net-annotation-count-store", "data", allow_duplicate=True),
-        Output("annotation-message", "children", allow_duplicate=True),
-    ],
-    id="vis-data-upload",
+@app.callback(
+    Output("data-upload-message", "children", allow_duplicate=True),
+    Output("visualization-ready-store", "data", allow_duplicate=True),
+    Output("upload-container", "children", allow_duplicate=True),
+    Output("net-annotation-count-store", "data", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Input("mat-upload-button", "n_clicks"),
+    prevent_initial_call=True,
 )
-def read_mat_vis(status):
-    # clean TEMP_PATH regularly by deleting temp files written there
-    mat_file = Path(status.latest_file)
-    filename = mat_file.stem
+def choose_mat(n_clicks):
+    if not n_clicks:
+        raise PreventUpdate
 
-    temp_dir = Path(TEMP_PATH)
-    for temp_file in temp_dir.iterdir():
-        if temp_file.suffix in [".mat", ".xlsx"]:
-            if temp_file.stem == filename:
-                continue
-            temp_file.unlink()
+    selected_file_path = open_file_dialog(file_type="mat")
+    if selected_file_path is None:
+        raise PreventUpdate  # user canceled dialog
 
-    initialize_cache(cache, mat_file.name)
-    message = (
-        "File uploaded. Creating visualizations... This may take up to 30 seconds."
-    )
-    return message, "vis", components.vis_upload_box, 0, ""
+    # selected_file_path = Path(selected_file_path)
+    initialize_cache(cache, selected_file_path)
+    message = "Creating visualizations... This may take up to 30 seconds."
+    return message, "vis", components.mat_upload_button, 0, ""
 
 
 @app.callback(
@@ -356,8 +396,9 @@ def read_mat_vis(status):
     prevent_initial_call=True,
 )
 def create_visualization(ready):
-    mat_name = cache.get("filename")
-    mat = loadmat(os.path.join(TEMP_PATH, mat_name), squeeze_me=True)
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    mat = loadmat(mat_path, squeeze_me=True)
     eeg, emg = mat.get("eeg"), mat.get("emg")
 
     message = "Please double check the file selected."
@@ -382,7 +423,7 @@ def create_visualization(ready):
         np.place(sleep_scores, sleep_scores == -1, [np.nan])
         sleep_scores_history.append(sleep_scores)
 
-    fig = create_fig(mat, mat_name)
+    fig = create_fig(mat, filename)
     cache.set("fig_resampler", fig)
     cache.set("sleep_scores_history", sleep_scores_history)
     components.graph.figure = fig
@@ -399,15 +440,16 @@ def change_sampling_level(sampling_level):
         return dash.no_update
     sampling_level_map = {"x1": 2048, "x2": 4096, "x4": 8192}
     n_samples = sampling_level_map[sampling_level]
-    mat_name = cache.get("filename")
-    mat = loadmat(os.path.join(TEMP_PATH, mat_name), squeeze_me=True)
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    mat = loadmat(mat_path, squeeze_me=True)
 
     # copy modified (through annotation) sleep scores over
     sleep_scores_history = cache.get("sleep_scores_history")
     if sleep_scores_history:
         mat["sleep_scores"] = sleep_scores_history[-1]
 
-    fig = create_fig(mat, mat_name, default_n_shown_samples=n_samples)
+    fig = create_fig(mat, filename, default_n_shown_samples=n_samples)
     return fig
 
 
@@ -428,7 +470,7 @@ def prepare_video(n_clicks, is_open):
     if filename in recent_files_with_video:
         recent_files_with_video.remove(filename)
         video_info = file_video_record.get(filename)
-        if video_info is not None and os.path.isfile(video_info["video_path"]):
+        if video_info is not None and Path(video_info["video_path"]).is_file():
             file_unseen = False
 
     recent_files_with_video.append(filename)
@@ -443,7 +485,7 @@ def prepare_video(n_clicks, is_open):
     message = "Please upload the original video above."
     if video_path:
         message += f" You may find it at {video_path}."
-    return (not is_open), dash.no_update, components.video_upload_box, message
+    return (not is_open), dash.no_update, components.video_upload_button, message
 
 
 @app.callback(
@@ -457,39 +499,47 @@ def reselect_video(n_clicks):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise dash.exceptions.PreventUpdate
 
-    message = "Please upload the original video above."
-    return dash.no_update, components.video_upload_box, message
+    message = "Please upload the video above."
+    return dash.no_update, components.video_upload_button, message
 
 
-@du.callback(
-    output=[
-        Output("video-path-store", "data"),
-        Output("video-message", "children", allow_duplicate=True),
-    ],
-    id="video-upload",
+@app.callback(
+    Output("video-path-store", "data"),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("video-upload-button", "n_clicks"),
+    prevent_initial_call=True,
 )
-def upload_video(status):
-    avi_path = status.latest_file  # a WindowsPath
-    avi_path = str(avi_path)  # need to turn WindowsPath to str for the output
+def choose_video(n_clicks):
+    if not n_clicks:
+        raise PreventUpdate
+
+    selected_file_path = open_file_dialog(file_type="video")
+    if selected_file_path is None:
+        raise PreventUpdate  # user canceled dialog
+
+    avi_path = Path(
+        selected_file_path
+    )  # need to turn WindowsPath to str for the output
     filename = cache.get("filename")
     recent_files_with_video = cache.get("recent_files_with_video")
     file_video_record = cache.get("file_video_record")
     file_video_record[filename] = {
-        "video_path": avi_path,
-        "video_name": os.path.basename(avi_path),
+        "video_path": str(avi_path),
+        "video_name": avi_path.name,
     }
     if len(recent_files_with_video) > 3:
         filename_to_remove = recent_files_with_video.pop(0)
         if filename_to_remove in file_video_record:
-            avi_file_to_remove = file_video_record[filename_to_remove]["video_path"]
+            avi_file_to_remove = Path(
+                file_video_record[filename_to_remove]["video_path"]
+            )
             file_video_record.pop(filename_to_remove)
-            if os.path.isfile(avi_file_to_remove):
-                os.remove(avi_file_to_remove)
+            avi_file_to_remove.unlink(missing_ok=False)
 
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
 
-    return avi_path, "Preparing clip..."
+    return str(avi_path), "Preparing clip..."
 
 
 @app.callback(
@@ -508,7 +558,7 @@ def make_clip(video_path, box_select_range):
     # start_time = cache.get("start_time")
     start = start + video_start_time
     end = end + video_start_time
-    video_name = os.path.basename(video_path).split(".")[0]
+    video_name = Path(video_path).stem
     clip_name = video_name + f"_time_range_{start}-{end}" + ".mp4"
     save_path = VIDEO_DIR / clip_name
     if save_path.is_file():
@@ -540,10 +590,11 @@ def make_clip(video_path, box_select_range):
 def show_clip(clip_name):
     if not (VIDEO_DIR / clip_name).is_file():
         return "", "Video not ready yet. Please check again in a second."
-    clip_path = os.path.join("/assets/videos/", clip_name)
+    # clip_path = os.path.join("/assets/videos/", clip_name)
+    clip_path = Path("/assets/videos") / clip_name
     player = dash_player.DashPlayer(
         id="player",
-        url=clip_path,
+        url=str(clip_path),
         controls=True,
         width="100%",
         height="100%",
@@ -563,16 +614,6 @@ def update_fig(relayoutdata):
     if fig is None:
         return dash.no_update
 
-    # manually supply xaxis4.range[0] and xaxis4.range[1] after clicking
-    # reset axes button because it only gives xaxis4.range. It seems
-    # updating fig_resampler requires xaxis4.range[0] and xaxis4.range[1]
-    if (
-        relayoutdata.get("xaxis4.range") is not None
-        and relayoutdata.get("xaxis4.range[0]") is None
-    ):
-        relayoutdata["xaxis4.range[0]"], relayoutdata["xaxis4.range[1]"] = relayoutdata[
-            "xaxis4.range"
-        ]
     return fig.construct_update_data_patch(relayoutdata)
 
 
@@ -654,7 +695,7 @@ def read_box_select(box_select, figure, clickData):
 )
 def debug_box_select(box_select, figure):
     #time_end = figure["data"][-1]["z"][0][-1]
-    return json.dumps(box_select, indent=2)
+    return json.dumps(figure["data"][-1]["z"], indent=2)
 """
 
 
@@ -727,7 +768,6 @@ def read_click_select(clickData, figure):  # triggered only  if clicked within x
 
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
-    # Output("annotation-store", "data"),
     Output("annotation-message", "children", allow_duplicate=True),
     Output("video-button", "style", allow_duplicate=True),
     Output("net-annotation-count-store", "data", allow_duplicate=True),
@@ -766,15 +806,18 @@ def update_sleep_scores(
     sleep_scores_history.append(new_sleep_scores.astype(float))
     cache.set("sleep_scores_history", sleep_scores_history)
     net_annotation_count += 1
+    new_sleep_scores = new_sleep_scores.tolist()
 
     patched_figure = Patch()
-    patched_figure["data"][-3]["z"][0] = new_sleep_scores
-    patched_figure["data"][-2]["z"][0] = new_sleep_scores
-    patched_figure["data"][-1]["z"][0] = new_sleep_scores
+
+    for i in [-3, -2, -1]:
+        # overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = [new_sleep_scores]
 
     # remove box or click select after an update is made
     patched_figure["layout"]["selections"] = None
     patched_figure["layout"]["shapes"] = None
+
     return patched_figure, "", {"visibility": "hidden"}, net_annotation_count
 
 
@@ -798,11 +841,19 @@ def undo_annotation(n_clicks, figure, net_annotation_count):
     cache.set("sleep_scores_history", sleep_scores_history)
     prev_sleep_scores = sleep_scores_history[-1]
 
+    prev_sleep_scores = prev_sleep_scores.tolist()
+
     # undo figure
     patched_figure = Patch()
+    for i in [-3, -2, -1]:
+        # Overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = [prev_sleep_scores]
+
+    """
     patched_figure["data"][-3]["z"][0] = prev_sleep_scores
     patched_figure["data"][-2]["z"][0] = prev_sleep_scores
     patched_figure["data"][-1]["z"][0] = prev_sleep_scores
+    """
     return patched_figure, net_annotation_count
 
 
@@ -834,9 +885,10 @@ def show_hide_save_undo_button(net_annotation_count):
     prevent_initial_call=True,
 )
 def save_annotations(n_clicks):
-    mat_filename = cache.get("filename")
-    temp_mat_path = os.path.join(TEMP_PATH, mat_filename)
-    mat = loadmat(temp_mat_path, squeeze_me=True)
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
+    mat = loadmat(mat_path, squeeze_me=True)
 
     # replace None in sleep_scores
     sleep_scores_history = cache.get("sleep_scores_history")
@@ -863,7 +915,7 @@ def save_annotations(n_clicks):
         labels = labels.astype(int)
         df = get_sleep_segments(labels)
         df_stats = get_pred_label_stats(df)
-        temp_excel_path = os.path.splitext(temp_mat_path)[0] + "_table.xlsx"
+        temp_excel_path = str(temp_mat_path) + "_table.xlsx"
         with pd.ExcelWriter(temp_excel_path) as writer:
             df.to_excel(writer, sheet_name="Sleep_bouts")
             df_stats.to_excel(writer, sheet_name="Sleep_stats")
@@ -873,12 +925,3 @@ def save_annotations(n_clicks):
         return dcc.send_file(temp_mat_path), dcc.send_file(temp_excel_path)
 
     return dcc.send_file(temp_mat_path), dash.no_update
-
-
-if __name__ == "__main__":
-    from threading import Timer
-    from functools import partial
-
-    PORT = 8050
-    Timer(1, partial(open_browser, PORT)).start()
-    app.run_server(debug=False, port=PORT, dev_tools_hot_reload=False)

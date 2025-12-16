@@ -6,11 +6,10 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
-#import json
+# import json
 import math
 import tempfile
 
-# import webbrowser
 from pathlib import Path
 from collections import deque
 
@@ -29,9 +28,9 @@ from scipy.io import loadmat, savemat
 
 from app_src import VERSION, config
 from app_src.make_mp4 import make_mp4_clip
+from app_src.debug_tool import Debug_Counter
 from app_src.components_dev import Components
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
-
 from app_src.postprocessing import get_sleep_segments, get_pred_label_stats
 
 
@@ -44,10 +43,9 @@ app = Dash(
     ],  # need this for the modal to work properly
 )
 
+debug_counter = Debug_Counter()
 TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
-
-
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -59,7 +57,6 @@ except ImportError:
     components = Components()
 
 app.layout = components.home_div
-# du = components.configure_du(app, TEMP_PATH)
 
 # Note: np.nan is converted to None when reading from cache
 cache = Cache(
@@ -76,8 +73,6 @@ cache = Cache(
 
 
 # %%
-
-
 def open_file_dialog(file_type):
     """
     Open a native file dialog (pywebview) with given file type filters.
@@ -212,7 +207,7 @@ app.clientside_callback(
     State("graph", "figure"),
 )
 
-# pan_figures
+# pan_figure
 clientside_callback(
     """
     function(keyboard_nevents, keyboard_event, relayoutdata, figure) {
@@ -349,7 +344,9 @@ def generate_prediction(n_clicks, net_annotation_count):
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
     mat = loadmat(mat_path, squeeze_me=True)
-    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
+    temp_mat_path = (
+        TEMP_PATH / f"{filename}.mat"
+    )  # savemat automatically saves as .mat file
     mat, output_path = run_inference(
         mat,
         postprocess=config["postprocess"],
@@ -357,7 +354,6 @@ def generate_prediction(n_clicks, net_annotation_count):
     )
 
     sleep_scores_history = cache.get("sleep_scores_history")
-    # new_sleep_scores = mat.get("sleep_scores")
     new_sleep_scores = get_padded_sleep_scores(mat)
     sleep_scores_history.append(new_sleep_scores.astype(float))
     cache.set("sleep_scores_history", sleep_scores_history)
@@ -383,41 +379,9 @@ def choose_mat(n_clicks):
     if selected_file_path is None:
         raise PreventUpdate  # user canceled dialog
 
-    # selected_file_path = Path(selected_file_path)
     initialize_cache(cache, selected_file_path)
     message = "Creating visualizations... This may take up to 30 seconds."
     return message, "vis", components.mat_upload_button, 0, ""
-
-
-"""
-@du.callback(
-    output=[
-        Output("data-upload-message", "children", allow_duplicate=True),
-        Output("visualization-ready-store", "data", allow_duplicate=True),
-        Output("upload-container", "children", allow_duplicate=True),
-        Output("net-annotation-count-store", "data", allow_duplicate=True),
-        Output("annotation-message", "children", allow_duplicate=True),
-    ],
-    id="mat-upload-button",
-)
-def read_mat_vis(status):
-    # clean TEMP_PATH regularly by deleting temp files written there
-    mat_file = Path(status.latest_file)
-    filename = mat_file.stem
-
-    temp_dir = Path(TEMP_PATH)
-    for temp_file in temp_dir.iterdir():
-        if temp_file.suffix in [".mat", ".xlsx"]:
-            if temp_file.stem == filename:
-                continue
-            temp_file.unlink()
-
-    initialize_cache(cache, mat_file.name)
-    message = (
-        "File uploaded. Creating visualizations... This may take up to 30 seconds."
-    )
-    return message, "vis", components.mat_upload_button, 0, ""
-"""
 
 
 @app.callback(
@@ -459,6 +423,27 @@ def create_visualization(ready):
     cache.set("sleep_scores_history", sleep_scores_history)
     components.graph.figure = fig
     return components.visualization_div
+
+
+@app.callback(
+    Output("graph", "figure", allow_duplicate=True),
+    # Output("debug-message", "children"),
+    Input("graph", "relayoutData"),
+    prevent_initial_call=True,
+)
+def update_figure(relayoutdata):
+    if relayoutdata is None:
+        return dash.no_update
+
+    if "xaxis4.range[0]" not in relayoutdata and "xaxis4.range" not in relayoutdata:
+        return dash.no_update
+
+    fig = cache.get("fig_resampler")
+    if fig is None:
+        return dash.no_update
+
+    # debug_counter.increment()
+    return fig.construct_update_data_patch(relayoutdata)
 
 
 @app.callback(
@@ -573,39 +558,6 @@ def choose_video(n_clicks):
     return str(avi_path), "Preparing clip..."
 
 
-"""
-@du.callback(
-    output=[
-        Output("video-path-store", "data"),
-        Output("video-message", "children", allow_duplicate=True),
-    ],
-    id="video-upload-button",
-)
-def upload_video(status):
-    avi_path = status.latest_file  # a WindowsPath
-    avi_path = str(avi_path)  # need to turn WindowsPath to str for the output
-    filename = cache.get("filename")
-    recent_files_with_video = cache.get("recent_files_with_video")
-    file_video_record = cache.get("file_video_record")
-    file_video_record[filename] = {
-        "video_path": avi_path,
-        "video_name": os.path.basename(avi_path),
-    }
-    if len(recent_files_with_video) > 3:
-        filename_to_remove = recent_files_with_video.pop(0)
-        if filename_to_remove in file_video_record:
-            avi_file_to_remove = file_video_record[filename_to_remove]["video_path"]
-            file_video_record.pop(filename_to_remove)
-            if os.path.isfile(avi_file_to_remove):
-                os.remove(avi_file_to_remove)
-
-    cache.set("recent_files_with_video", recent_files_with_video)
-    cache.set("file_video_record", file_video_record)
-
-    return avi_path, "Preparing clip..."
-"""
-
-
 @app.callback(
     Output("clip-name-store", "data"),
     Output("video-message", "children", allow_duplicate=True),
@@ -668,30 +620,6 @@ def show_clip(clip_name):
 
 
 @app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Input("graph", "relayoutData"),
-    prevent_initial_call=True,
-    memoize=True,
-)
-def update_fig(relayoutdata):
-    fig = cache.get("fig_resampler")
-    if fig is None:
-        return dash.no_update
-
-    # manually supply xaxis4.range[0] and xaxis4.range[1] after clicking
-    # reset axes button because it only gives xaxis4.range. It seems
-    # updating fig_resampler requires xaxis4.range[0] and xaxis4.range[1]
-    #if (
-    #    relayoutdata.get("xaxis4.range") is not None
-    #    and relayoutdata.get("xaxis4.range[0]") is None
-    #):
-    #    relayoutdata["xaxis4.range[0]"], relayoutdata["xaxis4.range[1]"] = relayoutdata[
-    #        "xaxis4.range"
-    #    ]
-    return fig.construct_update_data_patch(relayoutdata)
-
-
-@app.callback(
     # Output("debug-message", "children"),
     Output("box-select-store", "data"),
     Output("graph", "figure", allow_duplicate=True),
@@ -710,15 +638,17 @@ def read_box_select(box_select, figure, clickData):
     if selections is None:
         raise PreventUpdate()
 
+    patched_figure = (
+        Patch()
+    )  # patial property update: https://dash.plotly.com/partial-properties#update
     # allow only at most one select box in all subplots
     if len(selections) > 1:
         selections.pop(0)
 
-    patched_figure = Patch()
     patched_figure["layout"][
         "selections"
-    ] = selections  # patial property update: https://dash.plotly.com/partial-properties#update
-    patched_figure["layout"]["shapes"] = None  # remove click select box
+    ] = selections  # hey! don't touch this line dude
+    patched_figure["layout"]["shapes"] = None  # remove existing click select box if any
 
     # take the min as start and max as end so that how the box is drawn doesn't matter
     start, end = min(selections[0]["x0"], selections[0]["x1"]), max(
@@ -759,7 +689,8 @@ def read_box_select(box_select, figure, clickData):
         video_button_style,
     )
 
-'''
+
+"""
 @app.callback(
     Output("debug-message", "children"),
     Input("box-select-store", "data"),
@@ -769,7 +700,8 @@ def read_box_select(box_select, figure, clickData):
 def debug_box_select(box_select, figure):
     #time_end = figure["data"][-1]["z"][0][-1]
     return json.dumps(figure["data"][-1]["z"], indent=2)
-'''
+"""
+
 
 @app.callback(
     # Output("debug-message", "children", allow_duplicate=True),
@@ -783,7 +715,7 @@ def debug_box_select(box_select, figure):
 )
 def read_click_select(clickData, figure):  # triggered only  if clicked within x-range
     patched_figure = Patch()
-    patched_figure["layout"]["shapes"] = None
+    patched_figure["layout"]["shapes"] = None  # remove existing select box if any
     video_button_style = {"visibility": "hidden"}
     dragmode = figure["layout"]["dragmode"]
     if clickData is None or dragmode == "pan":
@@ -850,7 +782,7 @@ def read_click_select(clickData, figure):  # triggered only  if clicked within x
     State("net-annotation-count-store", "data"),
     prevent_initial_call=True,
 )
-def update_sleep_scores(
+def add_annotation(
     box_select_range, keyboard_press, keyboard_event, figure, net_annotation_count
 ):
     """update sleep scores in fig and annotation history"""
@@ -870,7 +802,7 @@ def update_sleep_scores(
     sleep_scores_history = cache.get("sleep_scores_history")
     current_sleep_scores = sleep_scores_history[-1]  # np array
     new_sleep_scores = current_sleep_scores.copy()
-    new_sleep_scores[start:end] = np.array([label] * (end - start))
+    new_sleep_scores[start:end] = label
     # If the annotation does not change anything, don't add to history
     if (new_sleep_scores == current_sleep_scores).all():
         raise PreventUpdate
@@ -879,21 +811,19 @@ def update_sleep_scores(
     cache.set("sleep_scores_history", sleep_scores_history)
     net_annotation_count += 1
 
-    new_sleep_scores = new_sleep_scores.tolist()
+    new_sleep_scores = [
+        new_sleep_scores.tolist()
+    ]  # all numpy arrays to list for plotly 6.0 update
     patched_figure = Patch()
-    
+
     for i in [-3, -2, -1]:
-        # Overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"] = [new_sleep_scores]
-    
-    #patched_figure["data"][-3]["z"][0] = new_sleep_scores
-    #patched_figure["data"][-2]["z"][0] = new_sleep_scores
-    #patched_figure["data"][-1]["z"][0] = new_sleep_scores
+        # overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = new_sleep_scores
 
     # remove box or click select after an update is made
     patched_figure["layout"]["selections"] = None
     patched_figure["layout"]["shapes"] = None
-    
+
     return patched_figure, "", {"visibility": "hidden"}, net_annotation_count
 
 
@@ -915,21 +845,14 @@ def undo_annotation(n_clicks, figure, net_annotation_count):
 
     # undo cache
     cache.set("sleep_scores_history", sleep_scores_history)
-    prev_sleep_scores = sleep_scores_history[-1]
+    prev_sleep_scores = [sleep_scores_history[-1].tolist()]
 
-    prev_sleep_scores = prev_sleep_scores.tolist()
-    
     # undo figure
     patched_figure = Patch()
     for i in [-3, -2, -1]:
         # Overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"] = [prev_sleep_scores]
-    
-    '''
-    patched_figure["data"][-3]["z"][0] = prev_sleep_scores
-    patched_figure["data"][-2]["z"][0] = prev_sleep_scores
-    patched_figure["data"][-1]["z"][0] = prev_sleep_scores
-    '''
+        patched_figure["data"][i]["z"] = prev_sleep_scores
+
     return patched_figure, net_annotation_count
 
 
@@ -954,6 +877,23 @@ def show_hide_save_undo_button(net_annotation_count):
     )  # len(sleep_scores_history)
 
 
+"""
+@app.callback(
+    Output("debug-message", "children"),
+    Input("save-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+def save_annotations(n_clicks):
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
+    mat = loadmat(mat_path, squeeze_me=True)
+    return list(mat.keys())
+
+"""
+
+
 @app.callback(
     Output("download-annotations", "data"),
     Output("download-spreadsheet", "data"),
@@ -963,7 +903,9 @@ def show_hide_save_undo_button(net_annotation_count):
 def save_annotations(n_clicks):
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
-    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
+    temp_mat_path = (
+        TEMP_PATH / f"{filename}.mat"
+    )  # savemat automatically saves as .mat file
     mat = loadmat(mat_path, squeeze_me=True)
 
     # replace None in sleep_scores
@@ -981,7 +923,13 @@ def save_annotations(n_clicks):
         )  # convert np.nan to -1 for scipy's savemat
 
         mat["sleep_scores"] = sleep_scores
-    savemat(temp_mat_path, mat)
+
+    # Filter out the default keys
+    mat_filtered = {}
+    for key, value in mat.items():
+        if not key.startswith("_"):
+            mat_filtered[key] = value
+    savemat(temp_mat_path, mat_filtered)
 
     # export sleep bout spreadsheet only if the manual scoring is complete
     if mat.get("sleep_scores") is not None and -1 not in mat["sleep_scores"]:
@@ -991,7 +939,7 @@ def save_annotations(n_clicks):
         labels = labels.astype(int)
         df = get_sleep_segments(labels)
         df_stats = get_pred_label_stats(df)
-        temp_excel_path = str(temp_mat_path) + "_table.xlsx"
+        temp_excel_path = TEMP_PATH / f"{filename}_table.xlsx"
         with pd.ExcelWriter(temp_excel_path) as writer:
             df.to_excel(writer, sheet_name="Sleep_bouts")
             df_stats.to_excel(writer, sheet_name="Sleep_stats")

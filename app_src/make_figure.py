@@ -105,6 +105,9 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     if len(sleep_scores.shape) == 1:
         sleep_scores = np.expand_dims(sleep_scores, axis=0)
 
+    # all numpy arrays to list for plotly 6.0 update
+    sleep_scores = sleep_scores.tolist()
+
     fig = FigureResampler(
         make_subplots(
             rows=4,
@@ -352,10 +355,9 @@ if __name__ == "__main__":
 
     io.renderers.default = "browser"
     data_path = "../user_test_files/"
-    mat_file = "202509_63_Opto_Temp_1.mat"
+    mat_file = "35_app13.mat"
     mat = loadmat(os.path.join(data_path, mat_file), squeeze_me=True)
-    # mat_file = "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/box1_COM18_RZ10_2_1_2024-06-03_09-04-56-902_sdreamer_3class.mat"
-    # mat = loadmat(mat_file)
+
     mat_name = os.path.basename(mat_file)
     fig = make_figure(mat, plot_name=mat_name)
-    fig.show_dash(config={"scrollZoom": True})
+    fig.show_dash(mode="external", config={"scrollZoom": True})
