@@ -18,6 +18,7 @@ from plotly.subplots import make_subplots
 from plotly_resampler import FigureResampler
 from plotly_resampler.aggregation import MinMaxLTTB
 
+from app_src.config import FIX_NE_Y_RANGE
 from app_src.get_fft_plots import get_fft_plots
 
 # set up color config
@@ -321,7 +322,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
             ne_range * -(1 + RANGE_PADDING_PERCENT),
             ne_range * (1 + RANGE_PADDING_PERCENT),
         ],
-        fixedrange=True,
+        fixedrange=FIX_NE_Y_RANGE,
         row=4,
         col=1,
     )

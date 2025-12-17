@@ -6,5 +6,3 @@ Created on Mon Aug 12 11:50:57 2024
 """
 
 VERSION = "v0.15.0_dev"
-
-config = {"postprocess": True}

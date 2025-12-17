@@ -14,6 +14,8 @@ from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import hamming
 from scipy.ndimage import gaussian_filter, gaussian_filter1d
 
+from app_src.config import SPECTROGRAM_COLORSCALE, THETA_DELTA_RATIO_LINE_COLOR
+
 
 def get_fft_plots(
     eeg: np.ndarray,
@@ -56,7 +58,7 @@ def get_fft_plots(
         z=Sx_db,
         name="Spectrogram",
         hoverinfo="none",
-        colorscale="viridis",
+        colorscale=SPECTROGRAM_COLORSCALE,
         showlegend=False,
         showscale=True,
     )
@@ -68,7 +70,7 @@ def get_fft_plots(
         customdata=time / 3600,
         hovertemplate="<b>time</b>: %{customdata:.2f}h<extra></extra>",
         showlegend=False,
-        line=dict(color="white", width=1),
+        line=dict(color=THETA_DELTA_RATIO_LINE_COLOR, width=1),
         opacity=0.4,
     )
     return spectrogram, theta_delta_ratio

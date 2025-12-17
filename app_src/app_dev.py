@@ -26,7 +26,8 @@ import pandas as pd
 from flask_caching import Cache
 from scipy.io import loadmat, savemat
 
-from app_src import VERSION, config
+from app_src import VERSION
+from app_src.config import POSTPROCESS
 from app_src.make_mp4 import make_mp4_clip
 
 # from app_src.debug_tool import Debug_Counter
@@ -569,7 +570,7 @@ def generate_prediction(n_clicks, net_annotation_count):
     # )  # savemat automatically saves as .mat file
     mat, output_path = run_inference(
         mat,
-        postprocess=config["postprocess"],
+        postprocess=POSTPROCESS,
         # output_path=temp_mat_path,
     )
 
@@ -949,11 +950,11 @@ def choose_video(n_clicks):
     if len(recent_files_with_video) > 3:
         filename_to_remove = recent_files_with_video.pop(0)
         if filename_to_remove in file_video_record:
-            #avi_file_to_remove = Path(
+            # avi_file_to_remove = Path(
             #    file_video_record[filename_to_remove]["video_path"]
-            #)
+            # )
             file_video_record.pop(filename_to_remove)
-            #avi_file_to_remove.unlink(missing_ok=False)
+            # avi_file_to_remove.unlink(missing_ok=False)
 
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
