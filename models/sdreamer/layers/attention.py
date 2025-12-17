@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, einsum
 from einops import rearrange
-from timm.models.layers import DropPath
+from timm.layers import DropPath
 
 
 def exists(val):

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from einops import repeat
-from timm.models.layers import trunc_normal_
+from timm.layers import trunc_normal_
 
 from .patchEncoder import PatchEncoder
 from .head import SeqPooler2, init_weights

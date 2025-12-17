@@ -12,16 +12,16 @@ from app_src import VERSION
 
 
 datas=[
-    ('C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dist\\lib\\site-packages\\dash_player', 'dash_player'),
-    ('C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dist\\lib\\site-packages\\dash_extensions', 'dash_extensions'),
+    ('C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dash3.0_dist\\lib\\site-packages\\dash_player', 'dash_player'),
+    ('C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dash3.0_dist\\lib\\site-packages\\dash_extensions', 'dash_extensions'),
     ('C:\\Users\\yzhao\\python_projects\\sleep_scoring\\app_src\\assets', 'assets'),
-    ('C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dist\\lib\\site-packages\\scipy', 'scipy'),
+    ('C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dash3.0_dist\\lib\\site-packages\\scipy', 'scipy'),
 ]
 datas += collect_data_files('timm', include_py_files=True)
 
 a = Analysis(
-    ['main.py'],
-    pathex=['C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dist\\lib\\site-packages'],
+    ['run_desktop_app.py'],
+    pathex=['C:\\Users\\yzhao\\miniconda3\\envs\\sleep_scoring_dash3.0_dist\\lib\\site-packages'],
     binaries=[],
     datas=datas,
     hiddenimports=[],
@@ -43,7 +43,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='run_app',
+    name='run_desktop_app',
     debug=True,
     bootloader_ignore_signals=False,
     strip=False,
