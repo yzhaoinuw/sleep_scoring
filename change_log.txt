@@ -1,3 +1,9 @@
+#### v0.15.0
+1. Removed dash-uploader. Instead, use pywebview to open app and its file dialog to find selected files. This cuts the file upload and saves time.
+2. Updated to Dash 3.3.0. Made necessary changes due to the update. 
+3. Optimized callbacks to make app respond faster.
+4. Added figure customization.
+
 #### v0.14.0-beta
 1. Removed the starting page of selecting between visualization and prediction. Instead, after the user has chosen a file, the app enters visualization. To run the automated sleep scoring, switch to Annotation mode, then look for the Generate Predictions button (if available, see the next note) to the upper right of the figure.
 2. Removed Generating Predictions by default. The user can install it by placing the folder "torch" inside "_internal" folder.
