@@ -28,10 +28,18 @@ from scipy.io import loadmat, savemat
 
 from app_src import VERSION, config
 from app_src.make_mp4 import make_mp4_clip
-from app_src.debug_tool import Debug_Counter
+
+# from app_src.debug_tool import Debug_Counter
 from app_src.components_dev import Components
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 from app_src.postprocessing import get_sleep_segments, get_pred_label_stats
+
+try:
+    from app_src.inference import run_inference
+
+    components = Components(pred_disabled=False)
+except ImportError:
+    components = Components()
 
 
 app = Dash(
@@ -42,21 +50,13 @@ app = Dash(
         dbc.themes.BOOTSTRAP
     ],  # need this for the modal to work properly
 )
+app.layout = components.home_div
 
-debug_counter = Debug_Counter()
+# debug_counter = Debug_Counter()
 TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-
-try:
-    from app_src.inference import run_inference
-
-    components = Components(pred_disabled=False)
-except ImportError:
-    components = Components()
-
-app.layout = components.home_div
 
 # Note: np.nan is converted to None when reading from cache
 cache = Cache(
@@ -129,21 +129,17 @@ def write_metadata(mat):
     end_time = duration + start_time
     video_start_time = mat.get("video_start_time", 0)
     video_path = mat.get("video_path", "")
-    # video_name = mat.get("video_name", "")
 
     if not isinstance(mat.get("video_start_time"), int):
         video_start_time = 0
     if not isinstance(video_path, str):
         video_path = ""
-    # if not isinstance(video_name, str):
-    #    video_name = ""
 
     metadata = dict(
         [
             ("start_time", start_time),
             ("end_time", end_time),
             ("video_start_time", video_start_time),
-            # ("video_name", ""),
             ("video_path", ""),
         ]
     )
@@ -169,35 +165,6 @@ def initialize_cache(cache, filepath):
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
     cache.set("fig_resampler", None)
-    # cache.set("start_time", 0)
-    # cache.set("end_time", 0)
-    # cache.set("video_start_time", 0)
-    # cache.set("video_name", "")
-    # cache.set("video_path", "")
-
-
-def update_cache(mat):
-    eeg = mat.get("eeg")
-    start_time = mat.get("start_time", 0)
-    eeg_freq = mat.get("eeg_frequency")
-    duration = math.ceil(
-        (eeg.size - 1) / eeg_freq
-    )  # need to round duration to an int for later
-    end_time = duration + start_time
-    video_start_time = mat.get("video_start_time", 0)
-    video_path = mat.get("video_path", "")
-    video_name = mat.get("video_name", "")
-    cache.set("start_time", start_time)
-    cache.set("end_time", end_time)
-    if not isinstance(mat.get("video_start_time"), int):
-        video_start_time = 0
-    if not isinstance(video_path, str):
-        video_path = ""
-    if not isinstance(video_name, str):
-        video_name = ""
-    cache.set("video_start_time", video_start_time)
-    cache.set("video_path", "")
-    cache.set("video_name", "")
 
 
 # %% client side callbacks below
@@ -595,15 +562,15 @@ def read_mat_pred(n_clicks, is_open):
 )
 def generate_prediction(n_clicks, net_annotation_count):
     mat_path = cache.get("filepath")
-    filename = cache.get("filename")
+    # filename = cache.get("filename")
     mat = loadmat(mat_path, squeeze_me=True)
-    temp_mat_path = (
-        TEMP_PATH / f"{filename}.mat"
-    )  # savemat automatically saves as .mat file
+    # temp_mat_path = (
+    #    TEMP_PATH / f"{filename}.mat"
+    # )  # savemat automatically saves as .mat file
     mat, output_path = run_inference(
         mat,
         postprocess=config["postprocess"],
-        output_path=temp_mat_path,
+        # output_path=temp_mat_path,
     )
 
     sleep_scores_history = cache.get("sleep_scores_history")
@@ -661,7 +628,6 @@ def create_visualization(ready):
     if not validated:
         return message, metadata
 
-    # update_cache(mat)
     metadata = write_metadata(mat)
 
     # salvage unsaved annotations
@@ -722,150 +688,6 @@ def change_sampling_level(sampling_level):
 
     fig = create_fig(mat, filename, default_n_shown_samples=n_samples)
     return fig
-
-
-"""
-@app.callback(
-    Output("box-select-store", "data"),
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Input("graph", "selectedData"),
-    State("graph", "figure"),
-    State("graph", "clickData"),
-    State("mat-metadata-store", "data"),
-    prevent_initial_call=True,
-)
-def read_box_select(box_select, figure, clickData, metadata):
-    video_button_style = {"visibility": "hidden"}
-    selections = figure["layout"].get("selections")
-
-    # when selections is None, it means there's not box select in the graph
-    if selections is None:
-        raise PreventUpdate()
-
-    patched_figure = (
-        Patch()
-    )  # patial property update: https://dash.plotly.com/partial-properties#update
-    # allow only at most one select box in all subplots
-    if len(selections) > 1:
-        selections.pop(0)
-
-    patched_figure["layout"][
-        "selections"
-    ] = selections  # hey! don't touch this line dude
-    patched_figure["layout"]["shapes"] = None  # remove existing click select box if any
-
-    # take the min as start and max as end so that how the box is drawn doesn't matter
-    start, end = min(selections[0]["x0"], selections[0]["x1"]), max(
-        selections[0]["x0"], selections[0]["x1"]
-    )
-    #eeg_start_time = cache.get("start_time")
-    #eeg_end_time = cache.get("end_time")
-    eeg_start_time = metadata.get("start_time")
-    eeg_end_time = metadata.get("end_time")
-
-    if end < eeg_start_time or start > eeg_end_time:
-        return (
-            [],
-            patched_figure,
-            f"Out of range. Please select from {eeg_start_time} to {eeg_end_time}.",
-            video_button_style,
-        )
-
-    start_round, end_round = round(start), round(end)
-    start_round = max(start_round, eeg_start_time)
-    end_round = min(end_round, eeg_end_time)
-    if start_round == end_round:
-        if (
-            start_round - start > end - end_round
-        ):  # spanning over two consecutive seconds
-            end_round = math.ceil(start)
-            start_round = math.floor(start)
-        else:
-            end_round = math.ceil(end)
-            start_round = math.floor(end)
-
-    start, end = start_round - eeg_start_time, end_round - eeg_start_time
-    if 1 <= end - start <= 300:
-        video_button_style = {"visibility": "visible"}
-
-    return (
-        [start, end],
-        patched_figure,
-        f"You selected [{start}, {end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.",
-        video_button_style,
-    )
-
-
-@app.callback(
-    Output("box-select-store", "data", allow_duplicate=True),
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Input("graph", "clickData"),
-    State("graph", "figure"),
-    State("mat-metadata-store", "data"),
-    prevent_initial_call=True,
-)
-def read_click_select(clickData, figure, metadata):  # triggered only  if clicked within x-range
-    patched_figure = Patch()
-    patched_figure["layout"]["shapes"] = None  # remove existing select box if any
-    video_button_style = {"visibility": "hidden"}
-    dragmode = figure["layout"]["dragmode"]
-    if clickData is None or dragmode == "pan":
-        return [], patched_figure, "", video_button_style
-
-    # remove the select box if present
-    patched_figure["layout"]["selections"] = None
-
-    # Grab clicked x value
-    x_click = clickData["points"][0]["x"]
-
-    # Determine current x-axis visible range
-    x_min, x_max = figure["layout"]["xaxis4"]["range"]
-    total_range = x_max - x_min
-
-    # Decide neighborhood size: e.g., 1% of current view range
-    fraction = 0.005  # 0.5% (adjustable)
-    delta = total_range * fraction
-    #eeg_start_time = cache.get("start_time")
-    #eeg_end_time = cache.get("end_time")
-    eeg_start_time = metadata.get("start_time")
-    eeg_end_time = metadata.get("end_time")
-    x0, x1 = math.floor(x_click - delta / 2), math.ceil(x_click + delta / 2)
-    curve_index = clickData["points"][0]["curveNumber"]
-    trace = figure["data"][curve_index]
-    xref = trace.get("xaxis", "x4")  # x4 is the shared x-axis
-    yref = trace.get("yaxis", "y5")  # spectrogram has dual y-axis
-
-    if yref == "y2":  # use the left y-axis to avoid interfering with theta/delta curve
-        yref = "y1"
-
-    select_box = {
-        "type": "rect",
-        "xref": xref,
-        "yref": yref,
-        "x0": x0,
-        "x1": x1,
-        "y0": -20,
-        "y1": 20,
-        "line": {"width": 1, "dash": "dot"},
-    }
-
-    patched_figure["layout"]["shapes"] = [select_box]
-    start = max(x0, eeg_start_time)
-    end = min(x1, eeg_end_time)
-
-    if 1 <= end - start <= 300:
-        video_button_style = {"visibility": "visible"}
-    return (
-        [start, end],
-        patched_figure,
-        f"You selected [{start}, {end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.",
-        video_button_style,
-    )
-"""
 
 
 @app.callback(
@@ -1152,7 +974,6 @@ def make_clip(video_path, box_select_range, metadata):
         return dash.no_update, ""
 
     start, end = box_select_range
-    # video_start_time = cache.get("video_start_time")
     video_start_time = metadata.get("video_start_time")
     start = start + video_start_time
     end = end + video_start_time
@@ -1188,7 +1009,7 @@ def make_clip(video_path, box_select_range, metadata):
 def show_clip(clip_name):
     if not (VIDEO_DIR / clip_name).is_file():
         return "", "Video not ready yet. Please check again in a second."
-    # clip_path = os.path.join("/assets/videos/", clip_name)
+
     clip_path = Path("/assets/videos") / clip_name
     player = dash_player.DashPlayer(
         id="player",
