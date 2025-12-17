@@ -949,11 +949,11 @@ def choose_video(n_clicks):
     if len(recent_files_with_video) > 3:
         filename_to_remove = recent_files_with_video.pop(0)
         if filename_to_remove in file_video_record:
-            avi_file_to_remove = Path(
-                file_video_record[filename_to_remove]["video_path"]
-            )
+            #avi_file_to_remove = Path(
+            #    file_video_record[filename_to_remove]["video_path"]
+            #)
             file_video_record.pop(filename_to_remove)
-            avi_file_to_remove.unlink(missing_ok=False)
+            #avi_file_to_remove.unlink(missing_ok=False)
 
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
