@@ -448,8 +448,8 @@ app.clientside_callback(
             "yref": yref,
             "x0": x0,
             "x1": x1,
-            "y0": -20,
-            "y1": 20,
+            "y0": -30,
+            "y1": 30,
             "line": {"width": 1, "dash": "dot"}
         };
         
