@@ -119,6 +119,37 @@ def clear_temp_dir(filename):
             temp_file.unlink()
 
 
+def write_metadata(mat):
+    eeg = mat.get("eeg")
+    start_time = mat.get("start_time", 0)
+    eeg_freq = mat.get("eeg_frequency")
+    duration = math.ceil(
+        (eeg.size - 1) / eeg_freq
+    )  # need to round duration to an int for later
+    end_time = duration + start_time
+    video_start_time = mat.get("video_start_time", 0)
+    video_path = mat.get("video_path", "")
+    # video_name = mat.get("video_name", "")
+
+    if not isinstance(mat.get("video_start_time"), int):
+        video_start_time = 0
+    if not isinstance(video_path, str):
+        video_path = ""
+    # if not isinstance(video_name, str):
+    #    video_name = ""
+
+    metadata = dict(
+        [
+            ("start_time", start_time),
+            ("end_time", end_time),
+            ("video_start_time", video_start_time),
+            # ("video_name", ""),
+            ("video_path", ""),
+        ]
+    )
+    return metadata
+
+
 def initialize_cache(cache, filepath):
     cache.set("filepath", filepath)
     prev_filename = cache.get("filename")
@@ -137,12 +168,12 @@ def initialize_cache(cache, filepath):
         file_video_record = {}
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
-    cache.set("start_time", 0)
-    cache.set("end_time", 0)
-    cache.set("video_start_time", 0)
-    cache.set("video_name", "")
-    cache.set("video_path", "")
     cache.set("fig_resampler", None)
+    # cache.set("start_time", 0)
+    # cache.set("end_time", 0)
+    # cache.set("video_start_time", 0)
+    # cache.set("video_name", "")
+    # cache.set("video_path", "")
 
 
 def update_cache(mat):
@@ -178,23 +209,28 @@ app.clientside_callback(
         if (!keyboard_event || !figure) {
             return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
         }
-
+        
         var key = keyboard_event.key;
-
+        
         if (key === "m" || key === "M") {
-            let updatedFigure = JSON.parse(JSON.stringify(figure));
+            var patched_figure = new dash_clientside.Patch;
+            var predVisibility;
+            
             if (figure.layout.dragmode === "pan") {
-                updatedFigure.layout.dragmode = "select"
-                predVisibility = {"visibility": "visible"}
+                // Switch to select mode
+                patched_figure.assign(['layout', 'dragmode'], "select");
+                predVisibility = {"visibility": "visible"};
             } else if (figure.layout.dragmode === "select") {
-                updatedFigure.layout.selections = null;
-                updatedFigure.layout.shapes = null;
-                updatedFigure.layout.dragmode = "pan"
-                predVisibility = {"visibility": "hidden"}
+                // Switch to pan mode and clear selections
+                patched_figure.assign(['layout', 'selections'], null);
+                patched_figure.assign(['layout', 'shapes'], null);
+                patched_figure.assign(['layout', 'dragmode'], "pan");
+                predVisibility = {"visibility": "hidden"};
             }
-            return [updatedFigure, "", {"visibility": "hidden"}, predVisibility];
+            
+            return [patched_figure.build(), "", {"visibility": "hidden"}, predVisibility];
         }
-
+        
         return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
@@ -214,26 +250,34 @@ clientside_callback(
         if (!keyboard_event || !figure) {
             return [dash_clientside.no_update, dash_clientside.no_update];
         }
-
+        
         var key = keyboard_event.key;
         var xaxisRange = figure.layout.xaxis4.range;
         var x0 = xaxisRange[0];
         var x1 = xaxisRange[1];
         var newRange;
-
+        
         if (key === "ArrowRight") {
             newRange = [x0 + (x1 - x0) * 0.3, x1 + (x1 - x0) * 0.3];
         } else if (key === "ArrowLeft") {
             newRange = [x0 - (x1 - x0) * 0.3, x1 - (x1 - x0) * 0.3];
         }
-
+        
         if (newRange) {
-            relayoutdata['xaxis4.range[0]'] = newRange[0];
-            relayoutdata['xaxis4.range[1]'] = newRange[1];
-            figure.layout.xaxis4.range = newRange;
-            return [figure, relayoutdata];
+            // Use Patch for efficient partial update
+            var patched_figure = new dash_clientside.Patch;
+            patched_figure.assign(['layout', 'xaxis4', 'range'], newRange);
+            
+            // Create NEW object instead of mutating
+            var newRelayoutData = {
+                ...relayoutdata,  // Spread existing properties
+                'xaxis4.range[0]': newRange[0],
+                'xaxis4.range[1]': newRange[1]
+            };
+            
+            return [patched_figure.build(), newRelayoutData];
         }
-
+        
         return [dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
@@ -276,7 +320,216 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
+
+# read_box_select
+app.clientside_callback(
+    """
+    function(box_select, figure, clickData, metadata) {
+        // Return no_update for all outputs if conditions not met
+        const no_update = dash_clientside.no_update;
+        
+        if (!figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+        
+        const video_button_style = {"visibility": "hidden"};
+        const selections = figure.layout.selections;
+        
+        // When selections is None/undefined, prevent update
+        if (!selections || selections.length === 0) {
+            return [no_update, no_update, no_update, no_update];
+        }
+        
+        // Clone figure to avoid mutating state
+        var patched_figure = new dash_clientside.Patch;
+        
+        // Allow only at most one select box in all subplots
+        if (selections.length > 1) {
+            patched_figure.assign(['layout', 'selections'], [selections[selections.length - 1]]);
+        }
+        
+        // Remove existing click select box if any
+        patched_figure.assign(['layout', 'shapes'], null);
+        
+        const selection = selections[selections.length - 1];
+        
+        // Take the min as start and max as end
+        let start = Math.min(selection.x0, selection.x1);
+        let end = Math.max(selection.x0, selection.x1);
+        
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        
+        // Check if out of range
+        if (end < eeg_start_time || start > eeg_end_time) {
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+        
+        // Round start and end
+        let start_round = Math.round(start);
+        let end_round = Math.round(end);
+        
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+        
+        // Handle case where start_round equals end_round
+        if (start_round === end_round) {
+            if (start_round - start > end - end_round) {
+                // Spanning over two consecutive seconds
+                end_round = Math.ceil(start);
+                start_round = Math.floor(start);
+            } else {
+                end_round = Math.ceil(end);
+                start_round = Math.floor(end);
+            }
+        }
+        
+        // Adjust relative to eeg_start_time
+        const final_start = start_round - eeg_start_time;
+        const final_end = end_round - eeg_start_time;
+        
+        // Show video button if valid range
+        let final_video_button_style = {"visibility": "hidden"};
+        if (final_end - final_start >= 1 && final_end - final_start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+        
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected [${final_start}, ${final_end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data"),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph", "selectedData"),
+    State("graph", "figure"),
+    State("graph", "clickData"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+# read_click_select
+app.clientside_callback(
+    """
+    function(clickData, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+        
+        if (!figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+        
+        // Clone figure to avoid mutating state
+        var patched_figure = new dash_clientside.Patch;
+        
+        // Remove existing select box if any
+        patched_figure.assign(['layout', 'shapes'], null);
+        
+        const video_button_style = {"visibility": "hidden"};
+        const dragmode = figure.layout.dragmode;
+        
+        // If no click data or in pan mode, return defaults
+        if (!clickData || dragmode === "pan") {
+            return [[], patched_figure.build(), "", video_button_style];
+        }
+        
+        // Remove the box selection if present
+        patched_figure.assign(['layout', 'selections'], null);
+        
+        // Grab clicked x value
+        const x_click = clickData.points[0].x;
+        
+        // Determine current x-axis visible range
+        const x_min = figure.layout.xaxis4.range[0];
+        const x_max = figure.layout.xaxis4.range[1];
+        const total_range = x_max - x_min;
+        
+        // Decide neighborhood size: 0.5% of current view range
+        const fraction = 0.005;
+        const delta = total_range * fraction;
+        
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        
+        const x0 = Math.floor(x_click - delta / 2);
+        const x1 = Math.ceil(x_click + delta / 2);
+        
+        // Get curve information
+        const curve_index = clickData.points[0].curveNumber;
+        const trace = figure.data[curve_index];
+        const xref = trace.xaxis || "x4";  // x4 is the shared x-axis
+        let yref = trace.yaxis || "y5";    // spectrogram has dual y-axis
+        
+        // Use the left y-axis to avoid interfering with theta/delta curve
+        if (yref === "y2") {
+            yref = "y1";
+        }
+        
+        // Create select box
+        const select_box = {
+            "type": "rect",
+            "xref": xref,
+            "yref": yref,
+            "x0": x0,
+            "x1": x1,
+            "y0": -20,
+            "y1": 20,
+            "line": {"width": 1, "dash": "dot"}
+        };
+        
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+        
+        // Calculate final start and end
+        const start = Math.max(x0, eeg_start_time);
+        const end = Math.min(x1, eeg_end_time);
+        
+        // Show video button if valid range
+        let final_video_button_style = {"visibility": "hidden"};
+        if (end - start >= 1 && end - start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+        
+        return [
+            [start, end],
+            patched_figure.build(),
+            `You selected [${start}, ${end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph", "clickData"),
+    State("graph", "figure"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+
 # %% server side callbacks below
+
+"""
+@app.callback(
+    Output("debug-message", "children"),
+    Input("box-select-store", "data"),
+    State("graph", "figure"),
+    prevent_initial_call=True,
+)
+def debug_box_select(box_select, figure):
+    #time_end = figure["data"][-1]["z"][0][-1]
+    return json.dumps(figure["data"][-1]["z"], indent=2)
+"""
 
 
 @app.callback(
@@ -386,7 +639,7 @@ def choose_mat(n_clicks):
 
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
-    # Output("debug-message", "children"),
+    Output("mat-metadata-store", "data"),
     Input("visualization-ready-store", "data"),
     prevent_initial_call=True,
 )
@@ -396,6 +649,7 @@ def create_visualization(ready):
     mat = loadmat(mat_path, squeeze_me=True)
     eeg, emg = mat.get("eeg"), mat.get("emg")
 
+    metadata = {}
     message = "Please double check the file selected."
     validated = True
     if emg is None:
@@ -405,9 +659,10 @@ def create_visualization(ready):
         validated = False
         message = " ".join(["EEG data is missing.", message])
     if not validated:
-        return message
+        return message, metadata
 
-    update_cache(mat)
+    # update_cache(mat)
+    metadata = write_metadata(mat)
 
     # salvage unsaved annotations
     sleep_scores_history = cache.get("sleep_scores_history")
@@ -422,7 +677,7 @@ def create_visualization(ready):
     cache.set("fig_resampler", fig)
     cache.set("sleep_scores_history", sleep_scores_history)
     components.graph.figure = fig
-    return components.visualization_div
+    return components.visualization_div, metadata
 
 
 @app.callback(
@@ -469,158 +724,8 @@ def change_sampling_level(sampling_level):
     return fig
 
 
+"""
 @app.callback(
-    Output("video-modal", "is_open"),
-    Output("video-path-store", "data", allow_duplicate=True),
-    Output("video-container", "children", allow_duplicate=True),
-    Output("video-message", "children", allow_duplicate=True),
-    Input("video-button", "n_clicks"),
-    State("video-modal", "is_open"),
-    prevent_initial_call=True,
-)
-def prepare_video(n_clicks, is_open):
-    file_unseen = True
-    filename = cache.get("filename")
-    recent_files_with_video = cache.get("recent_files_with_video")
-    file_video_record = cache.get("file_video_record")
-    if filename in recent_files_with_video:
-        recent_files_with_video.remove(filename)
-        video_info = file_video_record.get(filename)
-        if video_info is not None and Path(video_info["video_path"]).is_file():
-            file_unseen = False
-
-    recent_files_with_video.append(filename)
-    cache.set("recent_files_with_video", recent_files_with_video)
-    if not file_unseen:
-        video_path = video_info["video_path"]
-        message = "Preparing clip..."
-        return (not is_open), video_path, "", message
-
-    # if original avi has not been uploaded, ask for it
-    video_path = cache.get("video_path")
-    message = "Please upload the original video above."
-    if video_path:
-        message += f" You may find it at {video_path}."
-    return (not is_open), dash.no_update, components.video_upload_button, message
-
-
-@app.callback(
-    Output("video-path-store", "data", allow_duplicate=True),
-    Output("video-container", "children", allow_duplicate=True),
-    Output("video-message", "children", allow_duplicate=True),
-    Input("reselect-video-button", "n_clicks"),
-    prevent_initial_call=True,
-)
-def reselect_video(n_clicks):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise dash.exceptions.PreventUpdate
-
-    message = "Please upload the video above."
-    return dash.no_update, components.video_upload_button, message
-
-
-@app.callback(
-    Output("video-path-store", "data"),
-    Output("video-message", "children", allow_duplicate=True),
-    Input("video-upload-button", "n_clicks"),
-    prevent_initial_call=True,
-)
-def choose_video(n_clicks):
-    if not n_clicks:
-        raise PreventUpdate
-
-    selected_file_path = open_file_dialog(file_type="video")
-    if selected_file_path is None:
-        raise PreventUpdate  # user canceled dialog
-
-    avi_path = Path(
-        selected_file_path
-    )  # need to turn WindowsPath to str for the output
-    filename = cache.get("filename")
-    recent_files_with_video = cache.get("recent_files_with_video")
-    file_video_record = cache.get("file_video_record")
-    file_video_record[filename] = {
-        "video_path": str(avi_path),
-        "video_name": avi_path.name,
-    }
-    if len(recent_files_with_video) > 3:
-        filename_to_remove = recent_files_with_video.pop(0)
-        if filename_to_remove in file_video_record:
-            avi_file_to_remove = Path(
-                file_video_record[filename_to_remove]["video_path"]
-            )
-            file_video_record.pop(filename_to_remove)
-            avi_file_to_remove.unlink(missing_ok=False)
-
-    cache.set("recent_files_with_video", recent_files_with_video)
-    cache.set("file_video_record", file_video_record)
-
-    return str(avi_path), "Preparing clip..."
-
-
-@app.callback(
-    Output("clip-name-store", "data"),
-    Output("video-message", "children", allow_duplicate=True),
-    Input("video-path-store", "data"),
-    State("box-select-store", "data"),
-    prevent_initial_call=True,
-)
-def make_clip(video_path, box_select_range):
-    if not box_select_range:
-        return dash.no_update, ""
-
-    start, end = box_select_range
-    video_start_time = cache.get("video_start_time")
-    # start_time = cache.get("start_time")
-    start = start + video_start_time
-    end = end + video_start_time
-    video_name = Path(video_path).stem
-    clip_name = video_name + f"_time_range_{start}-{end}" + ".mp4"
-    save_path = VIDEO_DIR / clip_name
-    if save_path.is_file():
-        return clip_name, ""
-
-    for file in VIDEO_DIR.iterdir():
-        if file.is_file() and file.suffix == ".mp4":
-            file.unlink()
-
-    try:
-        make_mp4_clip(
-            video_path,
-            start_time=start,
-            end_time=end,
-            save_path=save_path,
-        )
-    except ValueError as error_message:
-        return dash.no_update, repr(error_message)
-
-    return clip_name, ""
-
-
-@app.callback(
-    Output("video-container", "children"),
-    Output("video-message", "children"),
-    Input("clip-name-store", "data"),
-    prevent_initial_call=True,
-)
-def show_clip(clip_name):
-    if not (VIDEO_DIR / clip_name).is_file():
-        return "", "Video not ready yet. Please check again in a second."
-    # clip_path = os.path.join("/assets/videos/", clip_name)
-    clip_path = Path("/assets/videos") / clip_name
-    player = dash_player.DashPlayer(
-        id="player",
-        url=str(clip_path),
-        controls=True,
-        width="100%",
-        height="100%",
-    )
-
-    return player, components.reselect_video_button
-
-
-@app.callback(
-    # Output("debug-message", "children"),
     Output("box-select-store", "data"),
     Output("graph", "figure", allow_duplicate=True),
     Output("annotation-message", "children", allow_duplicate=True),
@@ -628,9 +733,10 @@ def show_clip(clip_name):
     Input("graph", "selectedData"),
     State("graph", "figure"),
     State("graph", "clickData"),
+    State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )
-def read_box_select(box_select, figure, clickData):
+def read_box_select(box_select, figure, clickData, metadata):
     video_button_style = {"visibility": "hidden"}
     selections = figure["layout"].get("selections")
 
@@ -654,8 +760,10 @@ def read_box_select(box_select, figure, clickData):
     start, end = min(selections[0]["x0"], selections[0]["x1"]), max(
         selections[0]["x0"], selections[0]["x1"]
     )
-    eeg_start_time = cache.get("start_time")
-    eeg_end_time = cache.get("end_time")
+    #eeg_start_time = cache.get("start_time")
+    #eeg_end_time = cache.get("end_time")
+    eeg_start_time = metadata.get("start_time")
+    eeg_end_time = metadata.get("end_time")
 
     if end < eeg_start_time or start > eeg_end_time:
         return (
@@ -690,30 +798,17 @@ def read_box_select(box_select, figure, clickData):
     )
 
 
-"""
 @app.callback(
-    Output("debug-message", "children"),
-    Input("box-select-store", "data"),
-    State("graph", "figure"),
-    prevent_initial_call=True,
-)
-def debug_box_select(box_select, figure):
-    #time_end = figure["data"][-1]["z"][0][-1]
-    return json.dumps(figure["data"][-1]["z"], indent=2)
-"""
-
-
-@app.callback(
-    # Output("debug-message", "children", allow_duplicate=True),
     Output("box-select-store", "data", allow_duplicate=True),
     Output("graph", "figure", allow_duplicate=True),
     Output("annotation-message", "children", allow_duplicate=True),
     Output("video-button", "style", allow_duplicate=True),
     Input("graph", "clickData"),
     State("graph", "figure"),
+    State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )
-def read_click_select(clickData, figure):  # triggered only  if clicked within x-range
+def read_click_select(clickData, figure, metadata):  # triggered only  if clicked within x-range
     patched_figure = Patch()
     patched_figure["layout"]["shapes"] = None  # remove existing select box if any
     video_button_style = {"visibility": "hidden"}
@@ -734,8 +829,10 @@ def read_click_select(clickData, figure):  # triggered only  if clicked within x
     # Decide neighborhood size: e.g., 1% of current view range
     fraction = 0.005  # 0.5% (adjustable)
     delta = total_range * fraction
-    eeg_start_time = cache.get("start_time")
-    eeg_end_time = cache.get("end_time")
+    #eeg_start_time = cache.get("start_time")
+    #eeg_end_time = cache.get("end_time")
+    eeg_start_time = metadata.get("start_time")
+    eeg_end_time = metadata.get("end_time")
     x0, x1 = math.floor(x_click - delta / 2), math.ceil(x_click + delta / 2)
     curve_index = clickData["points"][0]["curveNumber"]
     trace = figure["data"][curve_index]
@@ -768,6 +865,7 @@ def read_click_select(clickData, figure):  # triggered only  if clicked within x
         f"You selected [{start}, {end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.",
         video_button_style,
     )
+"""
 
 
 @app.callback(
@@ -859,7 +957,6 @@ def undo_annotation(n_clicks, figure, net_annotation_count):
 @app.callback(
     Output("save-button", "style"),
     Output("undo-button", "style"),
-    # Output("debug-message", "children"),
     Input("net-annotation-count-store", "data"),
     prevent_initial_call=True,
 )
@@ -949,3 +1046,156 @@ def save_annotations(n_clicks):
         return dcc.send_file(temp_mat_path), dcc.send_file(temp_excel_path)
 
     return dcc.send_file(temp_mat_path), dash.no_update
+
+
+@app.callback(
+    Output("video-modal", "is_open"),
+    Output("video-path-store", "data", allow_duplicate=True),
+    Output("video-container", "children", allow_duplicate=True),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("video-button", "n_clicks"),
+    State("video-modal", "is_open"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+def prepare_video(n_clicks, is_open, metadata):
+    file_unseen = True
+    filename = cache.get("filename")
+    recent_files_with_video = cache.get("recent_files_with_video")
+    file_video_record = cache.get("file_video_record")
+    if filename in recent_files_with_video:
+        recent_files_with_video.remove(filename)
+        video_info = file_video_record.get(filename)
+        if video_info is not None and Path(video_info["video_path"]).is_file():
+            file_unseen = False
+
+    recent_files_with_video.append(filename)
+    cache.set("recent_files_with_video", recent_files_with_video)
+    if not file_unseen:
+        video_path = video_info["video_path"]
+        message = "Preparing clip..."
+        return (not is_open), video_path, "", message
+
+    # if original avi has not been uploaded, ask for it
+    # video_path = cache.get("video_path")
+    video_path = metadata.get("video_path")
+    message = "Please select the video above."
+    if video_path:
+        message += f" You may find it at {video_path}."
+    return (not is_open), dash.no_update, components.video_upload_button, message
+
+
+@app.callback(
+    Output("video-path-store", "data", allow_duplicate=True),
+    Output("video-container", "children", allow_duplicate=True),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("reselect-video-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reselect_video(n_clicks):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise dash.exceptions.PreventUpdate
+
+    message = "Please select the video above."
+    return dash.no_update, components.video_upload_button, message
+
+
+@app.callback(
+    Output("video-path-store", "data"),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("video-upload-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def choose_video(n_clicks):
+    if not n_clicks:
+        raise PreventUpdate
+
+    selected_file_path = open_file_dialog(file_type="video")
+    if selected_file_path is None:
+        raise PreventUpdate  # user canceled dialog
+
+    avi_path = Path(
+        selected_file_path
+    )  # need to turn WindowsPath to str for the output
+    filename = cache.get("filename")
+    recent_files_with_video = cache.get("recent_files_with_video")
+    file_video_record = cache.get("file_video_record")
+    file_video_record[filename] = {
+        "video_path": str(avi_path),
+        "video_name": avi_path.name,
+    }
+    if len(recent_files_with_video) > 3:
+        filename_to_remove = recent_files_with_video.pop(0)
+        if filename_to_remove in file_video_record:
+            avi_file_to_remove = Path(
+                file_video_record[filename_to_remove]["video_path"]
+            )
+            file_video_record.pop(filename_to_remove)
+            avi_file_to_remove.unlink(missing_ok=False)
+
+    cache.set("recent_files_with_video", recent_files_with_video)
+    cache.set("file_video_record", file_video_record)
+
+    return str(avi_path), "Preparing clip..."
+
+
+@app.callback(
+    Output("clip-name-store", "data"),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("video-path-store", "data"),
+    State("box-select-store", "data"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+def make_clip(video_path, box_select_range, metadata):
+    if not box_select_range:
+        return dash.no_update, ""
+
+    start, end = box_select_range
+    # video_start_time = cache.get("video_start_time")
+    video_start_time = metadata.get("video_start_time")
+    start = start + video_start_time
+    end = end + video_start_time
+    video_name = Path(video_path).stem
+    clip_name = video_name + f"_time_range_{start}-{end}" + ".mp4"
+    save_path = VIDEO_DIR / clip_name
+    if save_path.is_file():
+        return clip_name, ""
+
+    for file in VIDEO_DIR.iterdir():
+        if file.is_file() and file.suffix == ".mp4":
+            file.unlink()
+
+    try:
+        make_mp4_clip(
+            video_path,
+            start_time=start,
+            end_time=end,
+            save_path=save_path,
+        )
+    except ValueError as error_message:
+        return dash.no_update, repr(error_message)
+
+    return clip_name, ""
+
+
+@app.callback(
+    Output("video-container", "children"),
+    Output("video-message", "children"),
+    Input("clip-name-store", "data"),
+    prevent_initial_call=True,
+)
+def show_clip(clip_name):
+    if not (VIDEO_DIR / clip_name).is_file():
+        return "", "Video not ready yet. Please check again in a second."
+    # clip_path = os.path.join("/assets/videos/", clip_name)
+    clip_path = Path("/assets/videos") / clip_name
+    player = dash_player.DashPlayer(
+        id="player",
+        url=str(clip_path),
+        controls=True,
+        width="100%",
+        height="100%",
+    )
+
+    return player, components.reselect_video_button
