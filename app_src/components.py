@@ -108,6 +108,7 @@ home_div = html.Div(
                 html.Div(id="debug-message"),
             ],
         ),
+        dcc.Store(id="mat-metadata-store"),
         dcc.Store(id="prediction-ready-store"),
         dcc.Store(id="visualization-ready-store"),
         dcc.Store(id="net-annotation-count-store"),

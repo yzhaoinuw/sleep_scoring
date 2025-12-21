@@ -100,19 +100,13 @@ home_div = html.Div(
             children=[mat_upload_button],
         ),
         html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
-        html.Div(
-            style={"display": "flex", "marginLeft": "15px"},
-            children=[
-                save_div,
-                html.Div(id="annotation-message"),
-                html.Div(id="debug-message"),
-            ],
-        ),
+        # html.Div(id="annotation-message", style={"marginLeft": "10px"}),
+        html.Div(id="debug-message", style={"marginLeft": "10px"}),
         dcc.Store(id="mat-metadata-store"),
         dcc.Store(id="prediction-ready-store"),
         dcc.Store(id="visualization-ready-store"),
         dcc.Store(id="net-annotation-count-store"),
-        dcc.Download(id="prediction-download-store"),
+        # dcc.Download(id="prediction-download-store"),
         pred_modal_confirm,
     ]
 )
@@ -147,7 +141,6 @@ reselect_video_button = html.Button(
 backend_div = html.Div(
     children=[
         dcc.Store(id="box-select-store"),
-        dcc.Store(id="annotation-store"),
         dcc.Store(id="update-fft-store"),
         dcc.Store(id="video-path-store"),
         dcc.Store(id="clip-name-store"),
@@ -237,6 +230,8 @@ def make_visualization_div(pred_disabled=True):
                 style={"marginTop": "1px", "marginLeft": "20px", "marginRight": "15px"},
             ),
             backend_div,
+            html.Div(id="annotation-message", style={"marginLeft": "10px"}),
+            save_div,
         ],
     )
     return visualization_div

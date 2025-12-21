@@ -10,7 +10,6 @@ Created on Fri Oct 20 15:45:29 2023
 import math
 import tempfile
 
-# import webbrowser
 from pathlib import Path
 from collections import deque
 
@@ -27,12 +26,21 @@ import pandas as pd
 from flask_caching import Cache
 from scipy.io import loadmat, savemat
 
-from app_src import VERSION, config
+from app_src import VERSION
+from app_src.config import POSTPROCESS
 from app_src.make_mp4 import make_mp4_clip
-from app_src.components_dev import Components
-from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 
+# from app_src.debug_tool import Debug_Counter
+from app_src.components import Components
+from app_src.make_figure import get_padded_sleep_scores, make_figure
 from app_src.postprocessing import get_sleep_segments, get_pred_label_stats
+
+try:
+    from app_src.inference import run_inference
+
+    components = Components(pred_disabled=False)
+except ImportError:
+    components = Components()
 
 
 app = Dash(
@@ -43,23 +51,13 @@ app = Dash(
         dbc.themes.BOOTSTRAP
     ],  # need this for the modal to work properly
 )
+app.layout = components.home_div
 
+# debug_counter = Debug_Counter()
 TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
-
-
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-
-try:
-    from app_src.inference import run_inference
-
-    components = Components(pred_disabled=False)
-except ImportError:
-    components = Components()
-
-app.layout = components.home_div
-# du = components.configure_du(app, TEMP_PATH)
 
 # Note: np.nan is converted to None when reading from cache
 cache = Cache(
@@ -76,8 +74,6 @@ cache = Cache(
 
 
 # %%
-
-
 def open_file_dialog(file_type):
     """
     Open a native file dialog (pywebview) with given file type filters.
@@ -124,6 +120,33 @@ def clear_temp_dir(filename):
             temp_file.unlink()
 
 
+def write_metadata(mat):
+    eeg = mat.get("eeg")
+    start_time = mat.get("start_time", 0)
+    eeg_freq = mat.get("eeg_frequency")
+    duration = math.ceil(
+        (eeg.size - 1) / eeg_freq
+    )  # need to round duration to an int for later
+    end_time = duration + start_time
+    video_start_time = mat.get("video_start_time", 0)
+    video_path = mat.get("video_path", "")
+
+    if not isinstance(mat.get("video_start_time"), int):
+        video_start_time = 0
+    if not isinstance(video_path, str):
+        video_path = ""
+
+    metadata = dict(
+        [
+            ("start_time", start_time),
+            ("end_time", end_time),
+            ("video_start_time", video_start_time),
+            ("video_path", ""),
+        ]
+    )
+    return metadata
+
+
 def initialize_cache(cache, filepath):
     cache.set("filepath", filepath)
     prev_filename = cache.get("filename")
@@ -142,36 +165,7 @@ def initialize_cache(cache, filepath):
         file_video_record = {}
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
-    cache.set("start_time", 0)
-    cache.set("end_time", 0)
-    cache.set("video_start_time", 0)
-    cache.set("video_name", "")
-    cache.set("video_path", "")
     cache.set("fig_resampler", None)
-
-
-def update_cache(mat):
-    eeg = mat.get("eeg")
-    start_time = mat.get("start_time", 0)
-    eeg_freq = mat.get("eeg_frequency")
-    duration = math.ceil(
-        (eeg.size - 1) / eeg_freq
-    )  # need to round duration to an int for later
-    end_time = duration + start_time
-    video_start_time = mat.get("video_start_time", 0)
-    video_path = mat.get("video_path", "")
-    video_name = mat.get("video_name", "")
-    cache.set("start_time", start_time)
-    cache.set("end_time", end_time)
-    if not isinstance(mat.get("video_start_time"), int):
-        video_start_time = 0
-    if not isinstance(video_path, str):
-        video_path = ""
-    if not isinstance(video_name, str):
-        video_name = ""
-    cache.set("video_start_time", video_start_time)
-    cache.set("video_path", "")
-    cache.set("video_name", "")
 
 
 # %% client side callbacks below
@@ -183,23 +177,28 @@ app.clientside_callback(
         if (!keyboard_event || !figure) {
             return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
         }
-
+        
         var key = keyboard_event.key;
-
+        
         if (key === "m" || key === "M") {
-            let updatedFigure = JSON.parse(JSON.stringify(figure));
+            var patched_figure = new dash_clientside.Patch;
+            var predVisibility;
+            
             if (figure.layout.dragmode === "pan") {
-                updatedFigure.layout.dragmode = "select"
-                predVisibility = {"visibility": "visible"}
+                // Switch to select mode
+                patched_figure.assign(['layout', 'dragmode'], "select");
+                predVisibility = {"visibility": "visible"};
             } else if (figure.layout.dragmode === "select") {
-                updatedFigure.layout.selections = null;
-                updatedFigure.layout.shapes = null;
-                updatedFigure.layout.dragmode = "pan"
-                predVisibility = {"visibility": "hidden"}
+                // Switch to pan mode and clear selections
+                patched_figure.assign(['layout', 'selections'], null);
+                patched_figure.assign(['layout', 'shapes'], null);
+                patched_figure.assign(['layout', 'dragmode'], "pan");
+                predVisibility = {"visibility": "hidden"};
             }
-            return [updatedFigure, "", {"visibility": "hidden"}, predVisibility];
+            
+            return [patched_figure.build(), "", {"visibility": "hidden"}, predVisibility];
         }
-
+        
         return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
@@ -212,33 +211,41 @@ app.clientside_callback(
     State("graph", "figure"),
 )
 
-# pan_figures
+# pan_figure
 clientside_callback(
     """
     function(keyboard_nevents, keyboard_event, relayoutdata, figure) {
         if (!keyboard_event || !figure) {
             return [dash_clientside.no_update, dash_clientside.no_update];
         }
-
+        
         var key = keyboard_event.key;
         var xaxisRange = figure.layout.xaxis4.range;
         var x0 = xaxisRange[0];
         var x1 = xaxisRange[1];
         var newRange;
-
+        
         if (key === "ArrowRight") {
             newRange = [x0 + (x1 - x0) * 0.3, x1 + (x1 - x0) * 0.3];
         } else if (key === "ArrowLeft") {
             newRange = [x0 - (x1 - x0) * 0.3, x1 - (x1 - x0) * 0.3];
         }
-
+        
         if (newRange) {
-            relayoutdata['xaxis4.range[0]'] = newRange[0];
-            relayoutdata['xaxis4.range[1]'] = newRange[1];
-            figure.layout.xaxis4.range = newRange;
-            return [figure, relayoutdata];
+            // Use Patch for efficient partial update
+            var patched_figure = new dash_clientside.Patch;
+            patched_figure.assign(['layout', 'xaxis4', 'range'], newRange);
+            
+            // Create NEW object instead of mutating
+            var newRelayoutData = {
+                ...relayoutdata,  // Spread existing properties
+                'xaxis4.range[0]': newRange[0],
+                'xaxis4.range[1]': newRange[1]
+            };
+            
+            return [patched_figure.build(), newRelayoutData];
         }
-
+        
         return [dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
@@ -281,7 +288,216 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
+
+# read_box_select
+app.clientside_callback(
+    """
+    function(box_select, figure, clickData, metadata) {
+        // Return no_update for all outputs if conditions not met
+        const no_update = dash_clientside.no_update;
+        
+        if (!figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+        
+        const video_button_style = {"visibility": "hidden"};
+        const selections = figure.layout.selections;
+        
+        // When selections is None/undefined, prevent update
+        if (!selections || selections.length === 0) {
+            return [no_update, no_update, no_update, no_update];
+        }
+        
+        // Clone figure to avoid mutating state
+        var patched_figure = new dash_clientside.Patch;
+        
+        // Allow only at most one select box in all subplots
+        if (selections.length > 1) {
+            patched_figure.assign(['layout', 'selections'], [selections[selections.length - 1]]);
+        }
+        
+        // Remove existing click select box if any
+        patched_figure.assign(['layout', 'shapes'], null);
+        
+        const selection = selections[selections.length - 1];
+        
+        // Take the min as start and max as end
+        let start = Math.min(selection.x0, selection.x1);
+        let end = Math.max(selection.x0, selection.x1);
+        
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        
+        // Check if out of range
+        if (end < eeg_start_time || start > eeg_end_time) {
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+        
+        // Round start and end
+        let start_round = Math.round(start);
+        let end_round = Math.round(end);
+        
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+        
+        // Handle case where start_round equals end_round
+        if (start_round === end_round) {
+            if (start_round - start > end - end_round) {
+                // Spanning over two consecutive seconds
+                end_round = Math.ceil(start);
+                start_round = Math.floor(start);
+            } else {
+                end_round = Math.ceil(end);
+                start_round = Math.floor(end);
+            }
+        }
+        
+        // Adjust relative to eeg_start_time
+        const final_start = start_round - eeg_start_time;
+        const final_end = end_round - eeg_start_time;
+        
+        // Show video button if valid range
+        let final_video_button_style = {"visibility": "hidden"};
+        if (final_end - final_start >= 1 && final_end - final_start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+        
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected [${final_start}, ${final_end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data"),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph", "selectedData"),
+    State("graph", "figure"),
+    State("graph", "clickData"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+# read_click_select
+app.clientside_callback(
+    """
+    function(clickData, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+        
+        if (!figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+        
+        // Clone figure to avoid mutating state
+        var patched_figure = new dash_clientside.Patch;
+        
+        // Remove existing select box if any
+        patched_figure.assign(['layout', 'shapes'], null);
+        
+        const video_button_style = {"visibility": "hidden"};
+        const dragmode = figure.layout.dragmode;
+        
+        // If no click data or in pan mode, return defaults
+        if (!clickData || dragmode === "pan") {
+            return [[], patched_figure.build(), "", video_button_style];
+        }
+        
+        // Remove the box selection if present
+        patched_figure.assign(['layout', 'selections'], null);
+        
+        // Grab clicked x value
+        const x_click = clickData.points[0].x;
+        
+        // Determine current x-axis visible range
+        const x_min = figure.layout.xaxis4.range[0];
+        const x_max = figure.layout.xaxis4.range[1];
+        const total_range = x_max - x_min;
+        
+        // Decide neighborhood size: 0.5% of current view range
+        const fraction = 0.005;
+        const delta = total_range * fraction;
+        
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        
+        const x0 = Math.floor(x_click - delta / 2);
+        const x1 = Math.ceil(x_click + delta / 2);
+        
+        // Get curve information
+        const curve_index = clickData.points[0].curveNumber;
+        const trace = figure.data[curve_index];
+        const xref = trace.xaxis || "x4";  // x4 is the shared x-axis
+        let yref = trace.yaxis || "y5";    // spectrogram has dual y-axis
+        
+        // Use the left y-axis to avoid interfering with theta/delta curve
+        if (yref === "y2") {
+            yref = "y1";
+        }
+        
+        // Create select box
+        const select_box = {
+            "type": "rect",
+            "xref": xref,
+            "yref": yref,
+            "x0": x0,
+            "x1": x1,
+            "y0": -30,
+            "y1": 30,
+            "line": {"width": 1, "dash": "dot"}
+        };
+        
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+        
+        // Calculate final start and end
+        const start = Math.max(x0, eeg_start_time);
+        const end = Math.min(x1, eeg_end_time);
+        
+        // Show video button if valid range
+        let final_video_button_style = {"visibility": "hidden"};
+        if (end - start >= 1 && end - start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+        
+        return [
+            [start, end],
+            patched_figure.build(),
+            `You selected [${start}, ${end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph", "clickData"),
+    State("graph", "figure"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+
 # %% server side callbacks below
+
+"""
+@app.callback(
+    Output("debug-message", "children"),
+    Input("box-select-store", "data"),
+    State("graph", "figure"),
+    prevent_initial_call=True,
+)
+def debug_box_select(box_select, figure):
+    #time_end = figure["data"][-1]["z"][0][-1]
+    return json.dumps(figure["data"][-1]["z"], indent=2)
+"""
 
 
 @app.callback(
@@ -347,17 +563,18 @@ def read_mat_pred(n_clicks, is_open):
 )
 def generate_prediction(n_clicks, net_annotation_count):
     mat_path = cache.get("filepath")
-    filename = cache.get("filename")
+    # filename = cache.get("filename")
     mat = loadmat(mat_path, squeeze_me=True)
-    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
+    # temp_mat_path = (
+    #    TEMP_PATH / f"{filename}.mat"
+    # )  # savemat automatically saves as .mat file
     mat, output_path = run_inference(
         mat,
-        postprocess=config["postprocess"],
-        output_path=temp_mat_path,
+        postprocess=POSTPROCESS,
+        # output_path=temp_mat_path,
     )
 
     sleep_scores_history = cache.get("sleep_scores_history")
-    # new_sleep_scores = mat.get("sleep_scores")
     new_sleep_scores = get_padded_sleep_scores(mat)
     sleep_scores_history.append(new_sleep_scores.astype(float))
     cache.set("sleep_scores_history", sleep_scores_history)
@@ -383,7 +600,6 @@ def choose_mat(n_clicks):
     if selected_file_path is None:
         raise PreventUpdate  # user canceled dialog
 
-    # selected_file_path = Path(selected_file_path)
     initialize_cache(cache, selected_file_path)
     message = "Creating visualizations... This may take up to 30 seconds."
     return message, "vis", components.mat_upload_button, 0, ""
@@ -391,7 +607,7 @@ def choose_mat(n_clicks):
 
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
-    # Output("debug-message", "children"),
+    Output("mat-metadata-store", "data"),
     Input("visualization-ready-store", "data"),
     prevent_initial_call=True,
 )
@@ -401,6 +617,7 @@ def create_visualization(ready):
     mat = loadmat(mat_path, squeeze_me=True)
     eeg, emg = mat.get("eeg"), mat.get("emg")
 
+    metadata = {}
     message = "Please double check the file selected."
     validated = True
     if emg is None:
@@ -410,9 +627,9 @@ def create_visualization(ready):
         validated = False
         message = " ".join(["EEG data is missing.", message])
     if not validated:
-        return message
+        return message, metadata
 
-    update_cache(mat)
+    metadata = write_metadata(mat)
 
     # salvage unsaved annotations
     sleep_scores_history = cache.get("sleep_scores_history")
@@ -427,7 +644,28 @@ def create_visualization(ready):
     cache.set("fig_resampler", fig)
     cache.set("sleep_scores_history", sleep_scores_history)
     components.graph.figure = fig
-    return components.visualization_div
+    return components.visualization_div, metadata
+
+
+@app.callback(
+    Output("graph", "figure", allow_duplicate=True),
+    # Output("debug-message", "children"),
+    Input("graph", "relayoutData"),
+    prevent_initial_call=True,
+)
+def update_figure(relayoutdata):
+    if relayoutdata is None:
+        return dash.no_update
+
+    if "xaxis4.range[0]" not in relayoutdata and "xaxis4.range" not in relayoutdata:
+        return dash.no_update
+
+    fig = cache.get("fig_resampler")
+    if fig is None:
+        return dash.no_update
+
+    # debug_counter.increment()
+    return fig.construct_update_data_patch(relayoutdata)
 
 
 @app.callback(
@@ -454,15 +692,196 @@ def change_sampling_level(sampling_level):
 
 
 @app.callback(
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Output("net-annotation-count-store", "data", allow_duplicate=True),
+    Input("box-select-store", "data"),
+    Input("keyboard", "n_events"),  # a keyboard press
+    State("keyboard", "event"),
+    State("graph", "figure"),
+    State("net-annotation-count-store", "data"),
+    prevent_initial_call=True,
+)
+def add_annotation(
+    box_select_range, keyboard_press, keyboard_event, figure, net_annotation_count
+):
+    """update sleep scores in fig and annotation history"""
+    if not (
+        ctx.triggered_id == "keyboard"
+        and box_select_range
+        and figure["layout"]["dragmode"] == "select"
+    ):
+        raise PreventUpdate
+
+    label = keyboard_event.get("key")
+    if label not in ["1", "2", "3"]:
+        raise PreventUpdate
+
+    label = int(label) - 1
+    start, end = box_select_range
+    sleep_scores_history = cache.get("sleep_scores_history")
+    current_sleep_scores = sleep_scores_history[-1]  # np array
+    new_sleep_scores = current_sleep_scores.copy()
+    new_sleep_scores[start:end] = label
+    # If the annotation does not change anything, don't add to history
+    if (new_sleep_scores == current_sleep_scores).all():
+        raise PreventUpdate
+
+    sleep_scores_history.append(new_sleep_scores.astype(float))
+    cache.set("sleep_scores_history", sleep_scores_history)
+    net_annotation_count += 1
+
+    new_sleep_scores = [
+        new_sleep_scores.tolist()
+    ]  # all numpy arrays to list for plotly 6.0 update
+    patched_figure = Patch()
+
+    for i in [-3, -2, -1]:
+        # overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = new_sleep_scores
+
+    # remove box or click select after an update is made
+    patched_figure["layout"]["selections"] = None
+    patched_figure["layout"]["shapes"] = None
+
+    return patched_figure, "", {"visibility": "hidden"}, net_annotation_count
+
+
+@app.callback(
+    Output("graph", "figure", allow_duplicate=True),
+    Output("net-annotation-count-store", "data", allow_duplicate=True),
+    Input("undo-button", "n_clicks"),
+    State("graph", "figure"),
+    State("net-annotation-count-store", "data"),
+    prevent_initial_call=True,
+)
+def undo_annotation(n_clicks, figure, net_annotation_count):
+    sleep_scores_history = cache.get("sleep_scores_history")
+    if len(sleep_scores_history) <= 1:
+        raise PreventUpdate()
+
+    net_annotation_count -= 1
+    sleep_scores_history.pop()  # pop current one, then get the last one
+
+    # undo cache
+    cache.set("sleep_scores_history", sleep_scores_history)
+    prev_sleep_scores = [sleep_scores_history[-1].tolist()]
+
+    # undo figure
+    patched_figure = Patch()
+    for i in [-3, -2, -1]:
+        # Overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"] = prev_sleep_scores
+
+    return patched_figure, net_annotation_count
+
+
+@app.callback(
+    Output("save-button", "style"),
+    Output("undo-button", "style"),
+    Input("net-annotation-count-store", "data"),
+    prevent_initial_call=True,
+)
+def show_hide_save_undo_button(net_annotation_count):
+    sleep_scores_history = cache.get("sleep_scores_history")
+    save_button_style = {"visibility": "hidden"}
+    undo_button_style = {"visibility": "hidden"}
+    if net_annotation_count > 0:
+        save_button_style = {"visibility": "visible"}
+        if len(sleep_scores_history) > 1:
+            undo_button_style = {"visibility": "visible"}
+    return (
+        save_button_style,
+        undo_button_style,
+    )  # len(sleep_scores_history)
+
+
+"""
+@app.callback(
+    Output("debug-message", "children"),
+    Input("save-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+def save_annotations(n_clicks):
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
+    mat = loadmat(mat_path, squeeze_me=True)
+    return list(mat.keys())
+
+"""
+
+
+@app.callback(
+    Output("download-annotations", "data"),
+    Output("download-spreadsheet", "data"),
+    Input("save-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def save_annotations(n_clicks):
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    temp_mat_path = (
+        TEMP_PATH / f"{filename}.mat"
+    )  # savemat automatically saves as .mat file
+    mat = loadmat(mat_path, squeeze_me=True)
+
+    # replace None in sleep_scores
+    sleep_scores_history = cache.get("sleep_scores_history")
+    labels = None
+    if sleep_scores_history:
+        # replace any None or nan in sleep scores to -1 before saving, otherwise results in save error
+        # make a copy first because we don't want to convert any nan in the cache
+        sleep_scores = sleep_scores_history[-1]
+        np.place(
+            sleep_scores, sleep_scores == None, [-1]
+        )  # convert None to -1 for scipy's savemat
+        sleep_scores = np.nan_to_num(
+            sleep_scores, nan=-1
+        )  # convert np.nan to -1 for scipy's savemat
+
+        mat["sleep_scores"] = sleep_scores
+
+    # Filter out the default keys
+    mat_filtered = {}
+    for key, value in mat.items():
+        if not key.startswith("_"):
+            mat_filtered[key] = value
+    savemat(temp_mat_path, mat_filtered)
+
+    # export sleep bout spreadsheet only if the manual scoring is complete
+    if mat.get("sleep_scores") is not None and -1 not in mat["sleep_scores"]:
+        labels = mat["sleep_scores"]
+
+    if labels is not None:
+        labels = labels.astype(int)
+        df = get_sleep_segments(labels)
+        df_stats = get_pred_label_stats(df)
+        temp_excel_path = TEMP_PATH / f"{filename}_table.xlsx"
+        with pd.ExcelWriter(temp_excel_path) as writer:
+            df.to_excel(writer, sheet_name="Sleep_bouts")
+            df_stats.to_excel(writer, sheet_name="Sleep_stats")
+            worksheet = writer.sheets["Sleep_stats"]
+            worksheet.set_column(0, 0, 20)
+
+        return dcc.send_file(temp_mat_path), dcc.send_file(temp_excel_path)
+
+    return dcc.send_file(temp_mat_path), dash.no_update
+
+
+@app.callback(
     Output("video-modal", "is_open"),
     Output("video-path-store", "data", allow_duplicate=True),
     Output("video-container", "children", allow_duplicate=True),
     Output("video-message", "children", allow_duplicate=True),
     Input("video-button", "n_clicks"),
     State("video-modal", "is_open"),
+    State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )
-def prepare_video(n_clicks, is_open):
+def prepare_video(n_clicks, is_open, metadata):
     file_unseen = True
     filename = cache.get("filename")
     recent_files_with_video = cache.get("recent_files_with_video")
@@ -481,8 +900,9 @@ def prepare_video(n_clicks, is_open):
         return (not is_open), video_path, "", message
 
     # if original avi has not been uploaded, ask for it
-    video_path = cache.get("video_path")
-    message = "Please upload the original video above."
+    # video_path = cache.get("video_path")
+    video_path = metadata.get("video_path")
+    message = "Please select the video above."
     if video_path:
         message += f" You may find it at {video_path}."
     return (not is_open), dash.no_update, components.video_upload_button, message
@@ -499,7 +919,7 @@ def reselect_video(n_clicks):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise dash.exceptions.PreventUpdate
 
-    message = "Please upload the video above."
+    message = "Please select the video above."
     return dash.no_update, components.video_upload_button, message
 
 
@@ -530,11 +950,11 @@ def choose_video(n_clicks):
     if len(recent_files_with_video) > 3:
         filename_to_remove = recent_files_with_video.pop(0)
         if filename_to_remove in file_video_record:
-            avi_file_to_remove = Path(
-                file_video_record[filename_to_remove]["video_path"]
-            )
+            # avi_file_to_remove = Path(
+            #    file_video_record[filename_to_remove]["video_path"]
+            # )
             file_video_record.pop(filename_to_remove)
-            avi_file_to_remove.unlink(missing_ok=False)
+            # avi_file_to_remove.unlink(missing_ok=False)
 
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
@@ -547,15 +967,15 @@ def choose_video(n_clicks):
     Output("video-message", "children", allow_duplicate=True),
     Input("video-path-store", "data"),
     State("box-select-store", "data"),
+    State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )
-def make_clip(video_path, box_select_range):
+def make_clip(video_path, box_select_range, metadata):
     if not box_select_range:
         return dash.no_update, ""
 
     start, end = box_select_range
-    video_start_time = cache.get("video_start_time")
-    # start_time = cache.get("start_time")
+    video_start_time = metadata.get("video_start_time")
     start = start + video_start_time
     end = end + video_start_time
     video_name = Path(video_path).stem
@@ -590,7 +1010,7 @@ def make_clip(video_path, box_select_range):
 def show_clip(clip_name):
     if not (VIDEO_DIR / clip_name).is_file():
         return "", "Video not ready yet. Please check again in a second."
-    # clip_path = os.path.join("/assets/videos/", clip_name)
+
     clip_path = Path("/assets/videos") / clip_name
     player = dash_player.DashPlayer(
         id="player",
@@ -601,327 +1021,3 @@ def show_clip(clip_name):
     )
 
     return player, components.reselect_video_button
-
-
-@app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Input("graph", "relayoutData"),
-    prevent_initial_call=True,
-    memoize=True,
-)
-def update_fig(relayoutdata):
-    fig = cache.get("fig_resampler")
-    if fig is None:
-        return dash.no_update
-
-    return fig.construct_update_data_patch(relayoutdata)
-
-
-@app.callback(
-    # Output("debug-message", "children"),
-    Output("box-select-store", "data"),
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Input("graph", "selectedData"),
-    State("graph", "figure"),
-    State("graph", "clickData"),
-    prevent_initial_call=True,
-)
-def read_box_select(box_select, figure, clickData):
-    video_button_style = {"visibility": "hidden"}
-    selections = figure["layout"].get("selections")
-
-    # when selections is None, it means there's not box select in the graph
-    if selections is None:
-        raise PreventUpdate()
-
-    # allow only at most one select box in all subplots
-    if len(selections) > 1:
-        selections.pop(0)
-
-    patched_figure = Patch()
-    patched_figure["layout"][
-        "selections"
-    ] = selections  # patial property update: https://dash.plotly.com/partial-properties#update
-    patched_figure["layout"]["shapes"] = None  # remove click select box
-
-    # take the min as start and max as end so that how the box is drawn doesn't matter
-    start, end = min(selections[0]["x0"], selections[0]["x1"]), max(
-        selections[0]["x0"], selections[0]["x1"]
-    )
-    eeg_start_time = cache.get("start_time")
-    eeg_end_time = cache.get("end_time")
-
-    if end < eeg_start_time or start > eeg_end_time:
-        return (
-            [],
-            patched_figure,
-            f"Out of range. Please select from {eeg_start_time} to {eeg_end_time}.",
-            video_button_style,
-        )
-
-    start_round, end_round = round(start), round(end)
-    start_round = max(start_round, eeg_start_time)
-    end_round = min(end_round, eeg_end_time)
-    if start_round == end_round:
-        if (
-            start_round - start > end - end_round
-        ):  # spanning over two consecutive seconds
-            end_round = math.ceil(start)
-            start_round = math.floor(start)
-        else:
-            end_round = math.ceil(end)
-            start_round = math.floor(end)
-
-    start, end = start_round - eeg_start_time, end_round - eeg_start_time
-    if 1 <= end - start <= 300:
-        video_button_style = {"visibility": "visible"}
-
-    return (
-        [start, end],
-        patched_figure,
-        f"You selected [{start}, {end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.",
-        video_button_style,
-    )
-
-
-"""
-@app.callback(
-    Output("debug-message", "children"),
-    Input("box-select-store", "data"),
-    State("graph", "figure"),
-    prevent_initial_call=True,
-)
-def debug_box_select(box_select, figure):
-    #time_end = figure["data"][-1]["z"][0][-1]
-    return json.dumps(figure["data"][-1]["z"], indent=2)
-"""
-
-
-@app.callback(
-    # Output("debug-message", "children", allow_duplicate=True),
-    Output("box-select-store", "data", allow_duplicate=True),
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Input("graph", "clickData"),
-    State("graph", "figure"),
-    prevent_initial_call=True,
-)
-def read_click_select(clickData, figure):  # triggered only  if clicked within x-range
-    patched_figure = Patch()
-    patched_figure["layout"]["shapes"] = None
-    video_button_style = {"visibility": "hidden"}
-    dragmode = figure["layout"]["dragmode"]
-    if clickData is None or dragmode == "pan":
-        return [], patched_figure, "", video_button_style
-
-    # remove the select box if present
-    patched_figure["layout"]["selections"] = None
-
-    # Grab clicked x value
-    x_click = clickData["points"][0]["x"]
-
-    # Determine current x-axis visible range
-    x_min, x_max = figure["layout"]["xaxis4"]["range"]
-    total_range = x_max - x_min
-
-    # Decide neighborhood size: e.g., 1% of current view range
-    fraction = 0.005  # 0.5% (adjustable)
-    delta = total_range * fraction
-    eeg_start_time = cache.get("start_time")
-    eeg_end_time = cache.get("end_time")
-    x0, x1 = math.floor(x_click - delta / 2), math.ceil(x_click + delta / 2)
-    curve_index = clickData["points"][0]["curveNumber"]
-    trace = figure["data"][curve_index]
-    xref = trace.get("xaxis", "x4")  # x4 is the shared x-axis
-    yref = trace.get("yaxis", "y5")  # spectrogram has dual y-axis
-
-    if yref == "y2":  # use the left y-axis to avoid interfering with theta/delta curve
-        yref = "y1"
-
-    select_box = {
-        "type": "rect",
-        "xref": xref,
-        "yref": yref,
-        "x0": x0,
-        "x1": x1,
-        "y0": -20,
-        "y1": 20,
-        "line": {"width": 1, "dash": "dot"},
-    }
-
-    patched_figure["layout"]["shapes"] = [select_box]
-    start = max(x0, eeg_start_time)
-    end = min(x1, eeg_end_time)
-
-    if 1 <= end - start <= 300:
-        video_button_style = {"visibility": "visible"}
-    return (
-        [start, end],
-        patched_figure,
-        f"You selected [{start}, {end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.",
-        video_button_style,
-    )
-
-
-@app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Output("net-annotation-count-store", "data", allow_duplicate=True),
-    Input("box-select-store", "data"),
-    Input("keyboard", "n_events"),  # a keyboard press
-    State("keyboard", "event"),
-    State("graph", "figure"),
-    State("net-annotation-count-store", "data"),
-    prevent_initial_call=True,
-)
-def update_sleep_scores(
-    box_select_range, keyboard_press, keyboard_event, figure, net_annotation_count
-):
-    """update sleep scores in fig and annotation history"""
-    if not (
-        ctx.triggered_id == "keyboard"
-        and box_select_range
-        and figure["layout"]["dragmode"] == "select"
-    ):
-        raise PreventUpdate
-
-    label = keyboard_event.get("key")
-    if label not in ["1", "2", "3"]:
-        raise PreventUpdate
-
-    label = int(label) - 1
-    start, end = box_select_range
-    sleep_scores_history = cache.get("sleep_scores_history")
-    current_sleep_scores = sleep_scores_history[-1]  # np array
-    new_sleep_scores = current_sleep_scores.copy()
-    new_sleep_scores[start:end] = np.array([label] * (end - start))
-    # If the annotation does not change anything, don't add to history
-    if (new_sleep_scores == current_sleep_scores).all():
-        raise PreventUpdate
-
-    sleep_scores_history.append(new_sleep_scores.astype(float))
-    cache.set("sleep_scores_history", sleep_scores_history)
-    net_annotation_count += 1
-    new_sleep_scores = new_sleep_scores.tolist()
-
-    patched_figure = Patch()
-
-    for i in [-3, -2, -1]:
-        # overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"] = [new_sleep_scores]
-
-    # remove box or click select after an update is made
-    patched_figure["layout"]["selections"] = None
-    patched_figure["layout"]["shapes"] = None
-
-    return patched_figure, "", {"visibility": "hidden"}, net_annotation_count
-
-
-@app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Output("net-annotation-count-store", "data", allow_duplicate=True),
-    Input("undo-button", "n_clicks"),
-    State("graph", "figure"),
-    State("net-annotation-count-store", "data"),
-    prevent_initial_call=True,
-)
-def undo_annotation(n_clicks, figure, net_annotation_count):
-    sleep_scores_history = cache.get("sleep_scores_history")
-    if len(sleep_scores_history) <= 1:
-        raise PreventUpdate()
-
-    net_annotation_count -= 1
-    sleep_scores_history.pop()  # pop current one, then get the last one
-
-    # undo cache
-    cache.set("sleep_scores_history", sleep_scores_history)
-    prev_sleep_scores = sleep_scores_history[-1]
-
-    prev_sleep_scores = prev_sleep_scores.tolist()
-
-    # undo figure
-    patched_figure = Patch()
-    for i in [-3, -2, -1]:
-        # Overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"] = [prev_sleep_scores]
-
-    """
-    patched_figure["data"][-3]["z"][0] = prev_sleep_scores
-    patched_figure["data"][-2]["z"][0] = prev_sleep_scores
-    patched_figure["data"][-1]["z"][0] = prev_sleep_scores
-    """
-    return patched_figure, net_annotation_count
-
-
-@app.callback(
-    Output("save-button", "style"),
-    Output("undo-button", "style"),
-    # Output("debug-message", "children"),
-    Input("net-annotation-count-store", "data"),
-    prevent_initial_call=True,
-)
-def show_hide_save_undo_button(net_annotation_count):
-    sleep_scores_history = cache.get("sleep_scores_history")
-    save_button_style = {"visibility": "hidden"}
-    undo_button_style = {"visibility": "hidden"}
-    if net_annotation_count > 0:
-        save_button_style = {"visibility": "visible"}
-        if len(sleep_scores_history) > 1:
-            undo_button_style = {"visibility": "visible"}
-    return (
-        save_button_style,
-        undo_button_style,
-    )  # len(sleep_scores_history)
-
-
-@app.callback(
-    Output("download-annotations", "data"),
-    Output("download-spreadsheet", "data"),
-    Input("save-button", "n_clicks"),
-    prevent_initial_call=True,
-)
-def save_annotations(n_clicks):
-    mat_path = cache.get("filepath")
-    filename = cache.get("filename")
-    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
-    mat = loadmat(mat_path, squeeze_me=True)
-
-    # replace None in sleep_scores
-    sleep_scores_history = cache.get("sleep_scores_history")
-    labels = None
-    if sleep_scores_history:
-        # replace any None or nan in sleep scores to -1 before saving, otherwise results in save error
-        # make a copy first because we don't want to convert any nan in the cache
-        sleep_scores = sleep_scores_history[-1]
-        np.place(
-            sleep_scores, sleep_scores == None, [-1]
-        )  # convert None to -1 for scipy's savemat
-        sleep_scores = np.nan_to_num(
-            sleep_scores, nan=-1
-        )  # convert np.nan to -1 for scipy's savemat
-
-        mat["sleep_scores"] = sleep_scores
-    savemat(temp_mat_path, mat)
-
-    # export sleep bout spreadsheet only if the manual scoring is complete
-    if mat.get("sleep_scores") is not None and -1 not in mat["sleep_scores"]:
-        labels = mat["sleep_scores"]
-
-    if labels is not None:
-        labels = labels.astype(int)
-        df = get_sleep_segments(labels)
-        df_stats = get_pred_label_stats(df)
-        temp_excel_path = str(temp_mat_path) + "_table.xlsx"
-        with pd.ExcelWriter(temp_excel_path) as writer:
-            df.to_excel(writer, sheet_name="Sleep_bouts")
-            df_stats.to_excel(writer, sheet_name="Sleep_stats")
-            worksheet = writer.sheets["Sleep_stats"]
-            worksheet.set_column(0, 0, 20)
-
-        return dcc.send_file(temp_mat_path), dcc.send_file(temp_excel_path)
-
-    return dcc.send_file(temp_mat_path), dash.no_update

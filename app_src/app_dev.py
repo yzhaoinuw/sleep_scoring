@@ -6,7 +6,7 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
-# import json
+import json
 import math
 import tempfile
 
@@ -563,15 +563,10 @@ def read_mat_pred(n_clicks, is_open):
 )
 def generate_prediction(n_clicks, net_annotation_count):
     mat_path = cache.get("filepath")
-    # filename = cache.get("filename")
     mat = loadmat(mat_path, squeeze_me=True)
-    # temp_mat_path = (
-    #    TEMP_PATH / f"{filename}.mat"
-    # )  # savemat automatically saves as .mat file
     mat, output_path = run_inference(
         mat,
         postprocess=POSTPROCESS,
-        # output_path=temp_mat_path,
     )
 
     sleep_scores_history = cache.get("sleep_scores_history")
@@ -588,7 +583,7 @@ def generate_prediction(n_clicks, net_annotation_count):
     Output("visualization-ready-store", "data", allow_duplicate=True),
     Output("upload-container", "children", allow_duplicate=True),
     Output("net-annotation-count-store", "data", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
+    # Output("annotation-message", "children", allow_duplicate=True),
     Input("mat-upload-button", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -602,7 +597,7 @@ def choose_mat(n_clicks):
 
     initialize_cache(cache, selected_file_path)
     message = "Creating visualizations... This may take up to 30 seconds."
-    return message, "vis", components.mat_upload_button, 0, ""
+    return message, "vis", components.mat_upload_button, 0
 
 
 @app.callback(
@@ -649,7 +644,7 @@ def create_visualization(ready):
 
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
-    # Output("debug-message", "children"),
+    Output("debug-message", "children"),
     Input("graph", "relayoutData"),
     prevent_initial_call=True,
 )
@@ -665,7 +660,9 @@ def update_figure(relayoutdata):
         return dash.no_update
 
     # debug_counter.increment()
-    return fig.construct_update_data_patch(relayoutdata)
+    return fig.construct_update_data_patch(relayoutdata), json.dumps(
+        relayoutdata, indent=2
+    )
 
 
 @app.callback(
@@ -795,23 +792,6 @@ def show_hide_save_undo_button(net_annotation_count):
         save_button_style,
         undo_button_style,
     )  # len(sleep_scores_history)
-
-
-"""
-@app.callback(
-    Output("debug-message", "children"),
-    Input("save-button", "n_clicks"),
-    prevent_initial_call=True,
-)
-
-def save_annotations(n_clicks):
-    mat_path = cache.get("filepath")
-    filename = cache.get("filename")
-    temp_mat_path = TEMP_PATH / filename  # savemat automatically saves as .mat file
-    mat = loadmat(mat_path, squeeze_me=True)
-    return list(mat.keys())
-
-"""
 
 
 @app.callback(
