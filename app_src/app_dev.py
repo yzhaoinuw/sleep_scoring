@@ -508,7 +508,7 @@ def debug_box_select(box_select, figure):
 )
 def show_confirm_pred_modal(n_clicks, is_open):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise dash.exceptions.PreventUpdate
+        raise PreventUpdate
 
     return not is_open
 
@@ -518,15 +518,15 @@ def show_confirm_pred_modal(n_clicks, is_open):
     Output("data-upload-message", "children"),
     Output("prediction-ready-store", "data"),
     Output("annotation-message", "children", allow_duplicate=True),
-    Output("save-button", "style", allow_duplicate=True),
-    Output("undo-button", "style", allow_duplicate=True),
+    # Output("save-button", "style", allow_duplicate=True),
+    # Output("undo-button", "style", allow_duplicate=True),
     Input("pred-confirm-button", "n_clicks"),
     State("pred-modal-confirm", "is_open"),
     prevent_initial_call=True,
 )
 def read_mat_pred(n_clicks, is_open):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise dash.exceptions.PreventUpdate
+        raise PreventUpdate
 
     message = ""
     mat_path = cache.get("filepath")
@@ -548,8 +548,8 @@ def read_mat_pred(n_clicks, is_open):
         message,
         True,
         "",
-        {"visibility": "hidden"},
-        {"visibility": "hidden"},
+        # {"visibility": "hidden"},
+        # {"visibility": "hidden"},
     )
 
 
@@ -562,6 +562,9 @@ def read_mat_pred(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def generate_prediction(n_clicks, net_annotation_count):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
     mat_path = cache.get("filepath")
     mat = loadmat(mat_path, squeeze_me=True)
     mat, output_path = run_inference(
@@ -581,14 +584,14 @@ def generate_prediction(n_clicks, net_annotation_count):
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("visualization-ready-store", "data", allow_duplicate=True),
-    Output("upload-container", "children", allow_duplicate=True),
+    # Output("upload-container", "children", allow_duplicate=True),
     Output("net-annotation-count-store", "data", allow_duplicate=True),
     # Output("annotation-message", "children", allow_duplicate=True),
     Input("mat-upload-button", "n_clicks"),
     prevent_initial_call=True,
 )
 def choose_mat(n_clicks):
-    if not n_clicks:
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
 
     selected_file_path = open_file_dialog(file_type="mat")
@@ -597,7 +600,7 @@ def choose_mat(n_clicks):
 
     initialize_cache(cache, selected_file_path)
     message = "Creating visualizations... This may take up to 30 seconds."
-    return message, "vis", components.mat_upload_button, 0
+    return message, "vis", 0
 
 
 @app.callback(
@@ -754,6 +757,9 @@ def add_annotation(
     prevent_initial_call=True,
 )
 def undo_annotation(n_clicks, figure, net_annotation_count):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
     sleep_scores_history = cache.get("sleep_scores_history")
     if len(sleep_scores_history) <= 1:
         raise PreventUpdate()
@@ -801,6 +807,9 @@ def show_hide_save_undo_button(net_annotation_count):
     prevent_initial_call=True,
 )
 def save_annotations(n_clicks):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
     temp_mat_path = (
@@ -862,6 +871,9 @@ def save_annotations(n_clicks):
     prevent_initial_call=True,
 )
 def prepare_video(n_clicks, is_open, metadata):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
     file_unseen = True
     filename = cache.get("filename")
     recent_files_with_video = cache.get("recent_files_with_video")
@@ -897,7 +909,7 @@ def prepare_video(n_clicks, is_open, metadata):
 )
 def reselect_video(n_clicks):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise dash.exceptions.PreventUpdate
+        raise PreventUpdate
 
     message = "Please select the video above."
     return dash.no_update, components.video_upload_button, message
@@ -910,7 +922,7 @@ def reselect_video(n_clicks):
     prevent_initial_call=True,
 )
 def choose_video(n_clicks):
-    if not n_clicks:
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
 
     selected_file_path = open_file_dialog(file_type="video")
