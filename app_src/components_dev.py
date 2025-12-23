@@ -36,16 +36,40 @@ mat_upload_button = html.Button(
     style=upload_button_style,
 )
 
+backend_div = html.Div(
+    children=[
+        dcc.Store(id="mat-metadata-store"),
+        dcc.Store(id="prediction-ready-store"),
+        dcc.Store(id="visualization-ready-store"),
+        dcc.Store(id="box-select-store"),
+        dcc.Store(id="update-fft-store"),
+        dcc.Store(id="video-path-store"),
+        dcc.Store(id="clip-name-store"),
+        dcc.Store(id="clip-range-store"),
+        dcc.Store(id="net-annotation-count-store"),
+        EventListener(
+            id="keyboard",
+            events=[{"event": "keydown", "props": ["key"]}],
+        ),
+        dcc.Interval(
+            id="interval-component",
+            interval=1 * 1000,  # in milliseconds
+            max_intervals=0,  # stop after the first interval
+        ),
+    ]
+)
+
 home_div = html.Div(
     [
         mat_upload_button,
         html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
         # html.Div(id="annotation-message", style={"marginLeft": "10px"}),
         html.Div(id="debug-message", style={"marginLeft": "10px"}),
-        dcc.Store(id="mat-metadata-store"),
-        dcc.Store(id="prediction-ready-store"),
-        dcc.Store(id="visualization-ready-store"),
-        dcc.Store(id="net-annotation-count-store"),
+        backend_div,
+        # dcc.Store(id="mat-metadata-store"),
+        # dcc.Store(id="prediction-ready-store"),
+        # dcc.Store(id="visualization-ready-store"),
+        # dcc.Store(id="net-annotation-count-store"),
         # dcc.Download(id="prediction-download-store"),
         # pred_modal_confirm,
     ]
@@ -102,7 +126,7 @@ save_div = html.Div(
         html.Button(
             "Save Annotations",
             id="save-button",
-            style={"visibility": "hidden"},
+            # style={"visibility": "visible"},
         ),
         dcc.Download(id="download-annotations"),
         dcc.Download(id="download-spreadsheet"),
@@ -138,25 +162,6 @@ video_modal = dbc.Modal(
 
 reselect_video_button = html.Button(
     "Select a different video", id="reselect-video-button"
-)
-
-backend_div = html.Div(
-    children=[
-        dcc.Store(id="box-select-store"),
-        dcc.Store(id="update-fft-store"),
-        dcc.Store(id="video-path-store"),
-        dcc.Store(id="clip-name-store"),
-        dcc.Store(id="clip-range-store"),
-        EventListener(
-            id="keyboard",
-            events=[{"event": "keydown", "props": ["key"]}],
-        ),
-        dcc.Interval(
-            id="interval-component",
-            interval=1 * 1000,  # in milliseconds
-            max_intervals=0,  # stop after the first interval
-        ),
-    ]
 )
 
 
@@ -233,7 +238,7 @@ def make_visualization_div(pred_disabled=True):
                 children=[graph],
                 style={"marginTop": "1px", "marginLeft": "20px", "marginRight": "15px"},
             ),
-            backend_div,
+            # backend_div,
             html.Div(
                 id="annotation-message",
                 style={
