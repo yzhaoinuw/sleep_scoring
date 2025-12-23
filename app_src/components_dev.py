@@ -148,7 +148,8 @@ graph = dcc.Graph(
 
 video_modal = dbc.Modal(
     [
-        dbc.ModalHeader(dbc.ModalTitle("Video")),
+        # dbc.ModalHeader(dbc.ModalTitle("Video")),
+        dbc.ModalHeader(html.Div(id="video-title")),
         dbc.ModalBody(html.Div(id="video-container")),
         dbc.ModalFooter(html.Div(id="video-message")),
     ],

@@ -902,6 +902,7 @@ def prepare_video(n_clicks, is_open, metadata):
 
 @app.callback(
     Output("video-path-store", "data", allow_duplicate=True),
+    Output("video-title", "children"),
     Output("video-container", "children", allow_duplicate=True),
     Output("video-message", "children", allow_duplicate=True),
     Input("reselect-video-button", "n_clicks"),
@@ -911,8 +912,8 @@ def reselect_video(n_clicks):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
 
-    message = "Please select the video above."
-    return dash.no_update, components.video_upload_button, message
+    message = "Please select video above."
+    return dash.no_update, "", components.video_upload_button, message
 
 
 @app.callback(
@@ -994,6 +995,7 @@ def make_clip(video_path, box_select_range, metadata):
 
 
 @app.callback(
+    Output("video-title", "children", allow_duplicate=True),
     Output("video-container", "children"),
     Output("video-message", "children"),
     Input("clip-name-store", "data"),
@@ -1012,4 +1014,4 @@ def show_clip(clip_name):
         height="100%",
     )
 
-    return player, components.reselect_video_button
+    return clip_name, player, components.reselect_video_button
