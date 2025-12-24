@@ -108,6 +108,7 @@ def open_file_dialog(file_type):
 
 def create_fig(mat, filename, default_n_shown_samples=2048):
     fig = make_figure(mat, filename, default_n_shown_samples)
+    cache.set("fig_resampler", fig)
     return fig
 
 
@@ -153,7 +154,7 @@ def initialize_cache(cache, filepath):
     filename = Path(filepath).stem
     # attempt for salvaging unsaved annotations
     if prev_filename is None or prev_filename != filename:
-        cache.set("sleep_scores_history", deque(maxlen=4))
+        cache.set("sleep_scores_history", deque(maxlen=2))
 
     clear_temp_dir(filename)
     cache.set("filename", filename)
@@ -555,13 +556,13 @@ def read_mat_pred(n_clicks, is_open):
 
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
-    Output("visualization-ready-store", "data"),
-    Output("net-annotation-count-store", "data"),
+    # Output("visualization-ready-store", "data"),
+    Output("updated-sleep-scores-store", "data"),
     Input("prediction-ready-store", "data"),
-    State("net-annotation-count-store", "data"),
+    # State("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def generate_prediction(n_clicks, net_annotation_count):
+def generate_prediction(n_clicks):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
 
@@ -572,20 +573,20 @@ def generate_prediction(n_clicks, net_annotation_count):
         postprocess=POSTPROCESS,
     )
 
-    sleep_scores_history = cache.get("sleep_scores_history")
-    new_sleep_scores = get_padded_sleep_scores(mat)
-    sleep_scores_history.append(new_sleep_scores.astype(float))
-    cache.set("sleep_scores_history", sleep_scores_history)
-    net_annotation_count += 1
+    # sleep_scores_history = cache.get("sleep_scores_history")
+    sleep_scores = get_padded_sleep_scores(mat)
+    # sleep_scores_history.append(new_sleep_scores.astype(float))
+    # cache.set("sleep_scores_history", sleep_scores_history)
+    # net_annotation_count += 1
 
-    return "The prediction has been generated.", "pred", net_annotation_count
+    return "The prediction will be displayed shortly.", sleep_scores.tolist()
 
 
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("visualization-ready-store", "data", allow_duplicate=True),
     # Output("upload-container", "children", allow_duplicate=True),
-    Output("net-annotation-count-store", "data", allow_duplicate=True),
+    # Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     # Output("annotation-message", "children", allow_duplicate=True),
     Input("mat-upload-button", "n_clicks"),
     prevent_initial_call=True,
@@ -600,12 +601,13 @@ def choose_mat(n_clicks):
 
     initialize_cache(cache, selected_file_path)
     message = "Creating visualizations... This may take up to 30 seconds."
-    return message, "vis", 0
+    return message, "vis"
 
 
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("mat-metadata-store", "data"),
+    # Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     Input("visualization-ready-store", "data"),
     prevent_initial_call=True,
 )
@@ -637,21 +639,21 @@ def create_visualization(ready):
         sleep_scores = get_padded_sleep_scores(mat)
         np.place(sleep_scores, sleep_scores == -1, [np.nan])
         sleep_scores_history.append(sleep_scores)
+        cache.set("sleep_scores_history", sleep_scores_history)
 
     fig = create_fig(mat, filename)
-    cache.set("fig_resampler", fig)
-    cache.set("sleep_scores_history", sleep_scores_history)
+    # cache.set("fig_resampler", fig)
     components.graph.figure = fig
     return components.visualization_div, metadata
 
 
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
-    Output("debug-message", "children"),
+    # Output("debug-message", "children"),
     Input("graph", "relayoutData"),
     prevent_initial_call=True,
 )
-def update_figure(relayoutdata):
+def update_fig_resampler(relayoutdata):
     if relayoutdata is None:
         return dash.no_update
 
@@ -663,9 +665,7 @@ def update_figure(relayoutdata):
         return dash.no_update
 
     # debug_counter.increment()
-    return fig.construct_update_data_patch(relayoutdata), json.dumps(
-        relayoutdata, indent=2
-    )
+    return fig.construct_update_data_patch(relayoutdata)
 
 
 @app.callback(
@@ -688,24 +688,40 @@ def change_sampling_level(sampling_level):
         mat["sleep_scores"] = sleep_scores_history[-1]
 
     fig = create_fig(mat, filename, default_n_shown_samples=n_samples)
+    # cache.set("fig_resampler", fig)
     return fig
 
 
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
+    Input("updated-sleep-scores-store", "data"),
+    prevent_initial_call=True,
+)
+def update_sleep_scores(sleep_scores):
+    patched_figure = Patch()
+    for i in [-3, -2, -1]:
+        # overwrite the entire z for the last 3 heatmaps
+        patched_figure["data"][i]["z"][0] = sleep_scores
+
+    # remove box or click select after an update is made
+    patched_figure["layout"]["selections"] = None
+    patched_figure["layout"]["shapes"] = None
+    return patched_figure
+
+
+@app.callback(
+    # Output("graph", "figure", allow_duplicate=True),
     Output("annotation-message", "children", allow_duplicate=True),
     Output("video-button", "style", allow_duplicate=True),
-    Output("net-annotation-count-store", "data", allow_duplicate=True),
+    Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     Input("box-select-store", "data"),
     Input("keyboard", "n_events"),  # a keyboard press
     State("keyboard", "event"),
     State("graph", "figure"),
-    State("net-annotation-count-store", "data"),
+    # State("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def add_annotation(
-    box_select_range, keyboard_press, keyboard_event, figure, net_annotation_count
-):
+def make_annotation(box_select_range, keyboard_press, keyboard_event, figure):
     """update sleep scores in fig and annotation history"""
     if not (
         ctx.triggered_id == "keyboard"
@@ -720,84 +736,77 @@ def add_annotation(
 
     label = int(label) - 1
     start, end = box_select_range
-    sleep_scores_history = cache.get("sleep_scores_history")
-    current_sleep_scores = sleep_scores_history[-1]  # np array
-    new_sleep_scores = current_sleep_scores.copy()
-    new_sleep_scores[start:end] = label
-    # If the annotation does not change anything, don't add to history
-    if (new_sleep_scores == current_sleep_scores).all():
-        raise PreventUpdate
-
-    sleep_scores_history.append(new_sleep_scores.astype(float))
-    cache.set("sleep_scores_history", sleep_scores_history)
-    net_annotation_count += 1
-
-    new_sleep_scores = [
-        new_sleep_scores.tolist()
-    ]  # all numpy arrays to list for plotly 6.0 update
-    patched_figure = Patch()
-
-    for i in [-3, -2, -1]:
-        # overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"] = new_sleep_scores
-
-    # remove box or click select after an update is made
-    patched_figure["layout"]["selections"] = None
-    patched_figure["layout"]["shapes"] = None
-
-    return patched_figure, "", {"visibility": "hidden"}, net_annotation_count
+    sleep_scores = figure["data"][-1]["z"][0].copy()
+    sleep_scores[start:end] = [label] * (end - start)
+    return "", {"visibility": "hidden"}, sleep_scores
 
 
 @app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Output("net-annotation-count-store", "data", allow_duplicate=True),
+    # Output("graph", "figure", allow_duplicate=True),
+    Output("updated-sleep-scores-store", "data", allow_duplicate=True),
+    Output("undo-button", "style"),
     Input("undo-button", "n_clicks"),
-    State("graph", "figure"),
-    State("net-annotation-count-store", "data"),
+    # State("graph", "figure"),
+    # State("backup-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def undo_annotation(n_clicks, figure, net_annotation_count):
+def undo_annotation(n_clicks):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
 
     sleep_scores_history = cache.get("sleep_scores_history")
     if len(sleep_scores_history) <= 1:
-        raise PreventUpdate()
+        raise PreventUpdate
 
-    net_annotation_count -= 1
-    sleep_scores_history.pop()  # pop current one, then get the last one
-
-    # undo cache
+    sleep_scores = sleep_scores_history[0]
+    sleep_scores_history.pop()
     cache.set("sleep_scores_history", sleep_scores_history)
-    prev_sleep_scores = [sleep_scores_history[-1].tolist()]
-
-    # undo figure
-    patched_figure = Patch()
-    for i in [-3, -2, -1]:
-        # Overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"] = prev_sleep_scores
-
-    return patched_figure, net_annotation_count
+    return sleep_scores.tolist(), {"visibility": "hidden"}
 
 
 @app.callback(
-    Output("save-button", "style"),
-    Output("undo-button", "style"),
-    Input("net-annotation-count-store", "data"),
+    # Output("save-button", "style"),
+    # Output("backup-sleep-scores-store", "data"),
+    Output("undo-button", "style", allow_duplicate=True),
+    Input("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def show_hide_save_undo_button(net_annotation_count):
+def update_sleep_scores_history(updated_sleep_scores):
+    undo_button_style = {"visibility": "hidden"}
+    if not updated_sleep_scores:
+        return undo_button_style
+
     sleep_scores_history = cache.get("sleep_scores_history")
-    save_button_style = {"visibility": "hidden"}
+    updated_sleep_scores = np.array(updated_sleep_scores, dtype=float)
+    current_sleep_scores = sleep_scores_history[-1]  # np array
+    if (current_sleep_scores == updated_sleep_scores).all():  # no change
+        return undo_button_style
+
+    sleep_scores_history.append(updated_sleep_scores)
+    cache.set("sleep_scores_history", sleep_scores_history)
+    return {"visibility": "visible"}
+
+
+"""
+@app.callback(
+    #Output("save-button", "style"),
+    Output("undo-button", "style"),
+    Input("updated-sleep-scores-store", "data"),
+    prevent_initial_call=True,
+)
+def update_sleep_scores_history(net_annotation_count):
+    sleep_scores_history = cache.get("sleep_scores_history")
+    #save_button_style = {"visibility": "hidden"}
     undo_button_style = {"visibility": "hidden"}
     if net_annotation_count > 0:
-        save_button_style = {"visibility": "visible"}
+        #save_button_style = {"visibility": "visible"}
         if len(sleep_scores_history) > 1:
             undo_button_style = {"visibility": "visible"}
     return (
-        save_button_style,
+        #save_button_style,
         undo_button_style,
     )  # len(sleep_scores_history)
+"""
 
 
 @app.callback(
