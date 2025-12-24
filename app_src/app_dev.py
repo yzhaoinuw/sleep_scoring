@@ -6,7 +6,7 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
-import json
+#import json
 import math
 import tempfile
 
@@ -559,7 +559,6 @@ def read_mat_pred(n_clicks, is_open):
     # Output("visualization-ready-store", "data"),
     Output("updated-sleep-scores-store", "data"),
     Input("prediction-ready-store", "data"),
-    # State("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
 def generate_prediction(n_clicks):
@@ -572,13 +571,7 @@ def generate_prediction(n_clicks):
         mat,
         postprocess=POSTPROCESS,
     )
-
-    # sleep_scores_history = cache.get("sleep_scores_history")
     sleep_scores = get_padded_sleep_scores(mat)
-    # sleep_scores_history.append(new_sleep_scores.astype(float))
-    # cache.set("sleep_scores_history", sleep_scores_history)
-    # net_annotation_count += 1
-
     return "The prediction will be displayed shortly.", sleep_scores.tolist()
 
 
@@ -586,7 +579,6 @@ def generate_prediction(n_clicks):
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("visualization-ready-store", "data", allow_duplicate=True),
     # Output("upload-container", "children", allow_duplicate=True),
-    # Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     # Output("annotation-message", "children", allow_duplicate=True),
     Input("mat-upload-button", "n_clicks"),
     prevent_initial_call=True,
@@ -607,7 +599,6 @@ def choose_mat(n_clicks):
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("mat-metadata-store", "data"),
-    # Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     Input("visualization-ready-store", "data"),
     prevent_initial_call=True,
 )
@@ -771,17 +762,16 @@ def undo_annotation(n_clicks):
     Input("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def update_sleep_scores_history(updated_sleep_scores):
+def add_sleep_scores_history(updated_sleep_scores):
     undo_button_style = {"visibility": "hidden"}
     if not updated_sleep_scores:
         return undo_button_style
 
     sleep_scores_history = cache.get("sleep_scores_history")
     updated_sleep_scores = np.array(updated_sleep_scores, dtype=float)
-    current_sleep_scores = sleep_scores_history[-1]  # np array
-    if (current_sleep_scores == updated_sleep_scores).all():  # no change
+    if (sleep_scores_history[-1] == updated_sleep_scores).all():  # no change
         return undo_button_style
-
+        
     sleep_scores_history.append(updated_sleep_scores)
     cache.set("sleep_scores_history", sleep_scores_history)
     return {"visibility": "visible"}
