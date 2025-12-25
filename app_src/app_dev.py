@@ -6,7 +6,7 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
-#import json
+# import json
 import math
 import tempfile
 
@@ -516,9 +516,10 @@ def show_confirm_pred_modal(n_clicks, is_open):
 
 @app.callback(
     Output("pred-modal-confirm", "is_open", allow_duplicate=True),
-    Output("data-upload-message", "children"),
-    Output("prediction-ready-store", "data"),
+    # Output("data-upload-message", "children"),
     Output("annotation-message", "children", allow_duplicate=True),
+    Output("prediction-ready-store", "data"),
+    # Output("annotation-message", "children", allow_duplicate=True),
     # Output("save-button", "style", allow_duplicate=True),
     # Output("undo-button", "style", allow_duplicate=True),
     Input("pred-confirm-button", "n_clicks"),
@@ -548,14 +549,15 @@ def read_mat_pred(n_clicks, is_open):
         (not is_open),
         message,
         True,
-        "",
+        # "",
         # {"visibility": "hidden"},
         # {"visibility": "hidden"},
     )
 
 
 @app.callback(
-    Output("data-upload-message", "children", allow_duplicate=True),
+    # Output("data-upload-message", "children", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
     # Output("visualization-ready-store", "data"),
     Output("updated-sleep-scores-store", "data"),
     Input("prediction-ready-store", "data"),
@@ -685,10 +687,12 @@ def change_sampling_level(sampling_level):
 
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
     Input("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
 def update_sleep_scores(sleep_scores):
+    """updates sleep scores in figure; clears annotation message"""
     patched_figure = Patch()
     for i in [-3, -2, -1]:
         # overwrite the entire z for the last 3 heatmaps
@@ -697,12 +701,12 @@ def update_sleep_scores(sleep_scores):
     # remove box or click select after an update is made
     patched_figure["layout"]["selections"] = None
     patched_figure["layout"]["shapes"] = None
-    return patched_figure
+    return patched_figure, ""
 
 
 @app.callback(
     # Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
+    # Output("annotation-message", "children", allow_duplicate=True),
     Output("video-button", "style", allow_duplicate=True),
     Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     Input("box-select-store", "data"),
@@ -729,7 +733,7 @@ def make_annotation(box_select_range, keyboard_press, keyboard_event, figure):
     start, end = box_select_range
     sleep_scores = figure["data"][-1]["z"][0].copy()
     sleep_scores[start:end] = [label] * (end - start)
-    return "", {"visibility": "hidden"}, sleep_scores
+    return {"visibility": "hidden"}, sleep_scores
 
 
 @app.callback(
@@ -759,22 +763,27 @@ def undo_annotation(n_clicks):
     # Output("save-button", "style"),
     # Output("backup-sleep-scores-store", "data"),
     Output("undo-button", "style", allow_duplicate=True),
+    Output("debug-message", "children"),
     Input("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def add_sleep_scores_history(updated_sleep_scores):
+def update_sleep_scores_history(updated_sleep_scores):
+    """
+    always starts with at least one list when a mat file is read
+
+    """
     undo_button_style = {"visibility": "hidden"}
     if not updated_sleep_scores:
-        return undo_button_style
+        return undo_button_style, dash.no_update
 
     sleep_scores_history = cache.get("sleep_scores_history")
     updated_sleep_scores = np.array(updated_sleep_scores, dtype=float)
     if (sleep_scores_history[-1] == updated_sleep_scores).all():  # no change
-        return undo_button_style
-        
+        return undo_button_style, len(updated_sleep_scores)
+
     sleep_scores_history.append(updated_sleep_scores)
     cache.set("sleep_scores_history", sleep_scores_history)
-    return {"visibility": "visible"}
+    return {"visibility": "visible"}, len(updated_sleep_scores)
 
 
 """
