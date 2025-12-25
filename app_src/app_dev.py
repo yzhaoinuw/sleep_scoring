@@ -485,6 +485,98 @@ app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# update_sleep_scores
+app.clientside_callback(
+    """
+    function(sleep_scores, figure) {
+        const no_update = dash_clientside.no_update;
+        
+        if (!sleep_scores || !Array.isArray(sleep_scores) || !figure) {
+            return [no_update, no_update];
+        }
+        
+        // Use Patch for efficient update
+        var patched_figure = new dash_clientside.Patch;
+        
+        // Wrap in array for heatmap z-data format
+        const sleep_scores_wrapped = [sleep_scores];
+        
+        // Calculate actual indices (last 3 traces)
+        const num_traces = figure.data.length;
+        const indices = [num_traces - 3, num_traces - 2, num_traces - 1];
+        
+        // Update all 3 heatmaps
+        for (const idx of indices) {
+            patched_figure.assign(['data', idx, 'z'], sleep_scores_wrapped);
+        }
+        
+        // Clear selections
+        patched_figure.assign(['layout', 'selections'], null);
+        patched_figure.assign(['layout', 'shapes'], null);
+        
+        return [patched_figure.build(), ""];
+    }
+    """,
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Input("updated-sleep-scores-store", "data"),
+    State("graph", "figure"),
+    prevent_initial_call=True,
+)
+
+
+# make_annotation
+app.clientside_callback(
+    """
+    function(keyboard_press, keyboard_event, box_select_range, figure) {
+        const no_update = dash_clientside.no_update;
+        
+        // Only proceed if we have all required data
+        if (!keyboard_event || !box_select_range || box_select_range.length === 0 || !figure) {
+            return [no_update, no_update, no_update];
+        }
+        
+        // Check if in select mode
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update];
+        }
+        
+        const label = keyboard_event.key;
+        if (!["1", "2", "3"].includes(label)) {
+            return [no_update, no_update, no_update];
+        }
+        
+        const label_int = parseInt(label) - 1;
+        const [start, end] = box_select_range;
+        
+        // Get current sleep scores from last trace
+        const last_trace = figure.data[figure.data.length - 1];
+        const current_sleep_scores = last_trace.z[0];
+        
+        // Create a copy using spread operator
+        const sleep_scores = [...current_sleep_scores];
+        
+        // Update the range
+        for (let i = start; i < end; i++) {
+            sleep_scores[i] = label_int;
+        }
+        
+        return [
+            {"visibility": "hidden"},
+            sleep_scores,
+            []  // Clear box selection after annotation
+        ];
+    }
+    """,
+    Output("video-button", "style", allow_duplicate=True),
+    Output("updated-sleep-scores-store", "data", allow_duplicate=True),
+    Output("box-select-store", "data", allow_duplicate=True),
+    Input("keyboard", "n_events"),
+    State("keyboard", "event"),
+    State("box-select-store", "data"),
+    State("graph", "figure"),
+    prevent_initial_call=True,
+)
 
 # %% server side callbacks below
 
@@ -516,12 +608,8 @@ def show_confirm_pred_modal(n_clicks, is_open):
 
 @app.callback(
     Output("pred-modal-confirm", "is_open", allow_duplicate=True),
-    # Output("data-upload-message", "children"),
     Output("annotation-message", "children", allow_duplicate=True),
     Output("prediction-ready-store", "data"),
-    # Output("annotation-message", "children", allow_duplicate=True),
-    # Output("save-button", "style", allow_duplicate=True),
-    # Output("undo-button", "style", allow_duplicate=True),
     Input("pred-confirm-button", "n_clicks"),
     State("pred-modal-confirm", "is_open"),
     prevent_initial_call=True,
@@ -549,16 +637,11 @@ def read_mat_pred(n_clicks, is_open):
         (not is_open),
         message,
         True,
-        # "",
-        # {"visibility": "hidden"},
-        # {"visibility": "hidden"},
     )
 
 
 @app.callback(
-    # Output("data-upload-message", "children", allow_duplicate=True),
     Output("annotation-message", "children", allow_duplicate=True),
-    # Output("visualization-ready-store", "data"),
     Output("updated-sleep-scores-store", "data"),
     Input("prediction-ready-store", "data"),
     prevent_initial_call=True,
@@ -580,8 +663,6 @@ def generate_prediction(n_clicks):
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("visualization-ready-store", "data", allow_duplicate=True),
-    # Output("upload-container", "children", allow_duplicate=True),
-    # Output("annotation-message", "children", allow_duplicate=True),
     Input("mat-upload-button", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -635,7 +716,6 @@ def create_visualization(ready):
         cache.set("sleep_scores_history", sleep_scores_history)
 
     fig = create_fig(mat, filename)
-    # cache.set("fig_resampler", fig)
     components.graph.figure = fig
     return components.visualization_div, metadata
 
@@ -686,63 +766,9 @@ def change_sampling_level(sampling_level):
 
 
 @app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Input("updated-sleep-scores-store", "data"),
-    prevent_initial_call=True,
-)
-def update_sleep_scores(sleep_scores):
-    """updates sleep scores in figure; clears annotation message"""
-    patched_figure = Patch()
-    for i in [-3, -2, -1]:
-        # overwrite the entire z for the last 3 heatmaps
-        patched_figure["data"][i]["z"][0] = sleep_scores
-
-    # remove box or click select after an update is made
-    patched_figure["layout"]["selections"] = None
-    patched_figure["layout"]["shapes"] = None
-    return patched_figure, ""
-
-
-@app.callback(
-    # Output("graph", "figure", allow_duplicate=True),
-    # Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Output("updated-sleep-scores-store", "data", allow_duplicate=True),
-    Input("box-select-store", "data"),
-    Input("keyboard", "n_events"),  # a keyboard press
-    State("keyboard", "event"),
-    State("graph", "figure"),
-    # State("updated-sleep-scores-store", "data"),
-    prevent_initial_call=True,
-)
-def make_annotation(box_select_range, keyboard_press, keyboard_event, figure):
-    """update sleep scores in fig and annotation history"""
-    if not (
-        ctx.triggered_id == "keyboard"
-        and box_select_range
-        and figure["layout"]["dragmode"] == "select"
-    ):
-        raise PreventUpdate
-
-    label = keyboard_event.get("key")
-    if label not in ["1", "2", "3"]:
-        raise PreventUpdate
-
-    label = int(label) - 1
-    start, end = box_select_range
-    sleep_scores = figure["data"][-1]["z"][0].copy()
-    sleep_scores[start:end] = [label] * (end - start)
-    return {"visibility": "hidden"}, sleep_scores
-
-
-@app.callback(
-    # Output("graph", "figure", allow_duplicate=True),
     Output("updated-sleep-scores-store", "data", allow_duplicate=True),
     Output("undo-button", "style"),
     Input("undo-button", "n_clicks"),
-    # State("graph", "figure"),
-    # State("backup-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
 def undo_annotation(n_clicks):
@@ -750,9 +776,6 @@ def undo_annotation(n_clicks):
         raise PreventUpdate
 
     sleep_scores_history = cache.get("sleep_scores_history")
-    if len(sleep_scores_history) <= 1:
-        raise PreventUpdate
-
     sleep_scores = sleep_scores_history[0]
     sleep_scores_history.pop()
     cache.set("sleep_scores_history", sleep_scores_history)
@@ -760,10 +783,7 @@ def undo_annotation(n_clicks):
 
 
 @app.callback(
-    # Output("save-button", "style"),
-    # Output("backup-sleep-scores-store", "data"),
     Output("undo-button", "style", allow_duplicate=True),
-    Output("debug-message", "children"),
     Input("updated-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
@@ -774,38 +794,18 @@ def update_sleep_scores_history(updated_sleep_scores):
     """
     undo_button_style = {"visibility": "hidden"}
     if not updated_sleep_scores:
-        return undo_button_style, dash.no_update
+        return undo_button_style
 
     sleep_scores_history = cache.get("sleep_scores_history")
     updated_sleep_scores = np.array(updated_sleep_scores, dtype=float)
-    if (sleep_scores_history[-1] == updated_sleep_scores).all():  # no change
-        return undo_button_style, len(updated_sleep_scores)
+    if np.array_equal(
+        sleep_scores_history[-1], updated_sleep_scores, equal_nan=True
+    ):  # no change
+        return undo_button_style
 
     sleep_scores_history.append(updated_sleep_scores)
     cache.set("sleep_scores_history", sleep_scores_history)
-    return {"visibility": "visible"}, len(updated_sleep_scores)
-
-
-"""
-@app.callback(
-    #Output("save-button", "style"),
-    Output("undo-button", "style"),
-    Input("updated-sleep-scores-store", "data"),
-    prevent_initial_call=True,
-)
-def update_sleep_scores_history(net_annotation_count):
-    sleep_scores_history = cache.get("sleep_scores_history")
-    #save_button_style = {"visibility": "hidden"}
-    undo_button_style = {"visibility": "hidden"}
-    if net_annotation_count > 0:
-        #save_button_style = {"visibility": "visible"}
-        if len(sleep_scores_history) > 1:
-            undo_button_style = {"visibility": "visible"}
-    return (
-        #save_button_style,
-        undo_button_style,
-    )  # len(sleep_scores_history)
-"""
+    return {"visibility": "visible"}
 
 
 @app.callback(
