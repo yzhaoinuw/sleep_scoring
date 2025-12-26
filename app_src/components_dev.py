@@ -238,7 +238,12 @@ def make_visualization_div(pred_disabled=True):
             pred_modal_confirm,
             html.Div(
                 children=[graph],
-                style={"marginTop": "1px", "marginLeft": "20px", "marginRight": "15px"},
+                style={
+                    "marginTop": "1px",
+                    "marginLeft": "20px",
+                    "marginRight": "15px",
+                    "minHeight": "800px",
+                },
             ),
             # backend_div,
             html.Div(
