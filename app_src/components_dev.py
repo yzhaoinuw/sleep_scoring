@@ -129,8 +129,6 @@ save_div = html.Div(
             id="save-button",
             # style={"visibility": "visible"},
         ),
-        dcc.Download(id="download-annotations"),
-        dcc.Download(id="download-spreadsheet"),
         html.Button(
             "Undo Annotation",
             id="undo-button",

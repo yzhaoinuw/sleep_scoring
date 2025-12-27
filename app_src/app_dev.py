@@ -8,6 +8,7 @@ Created on Fri Oct 20 15:45:29 2023
 # import os
 # import json
 import math
+import shutil
 import tempfile
 
 from pathlib import Path
@@ -18,8 +19,8 @@ import webview
 import dash_player
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
+from dash import Dash, clientside_callback
 from dash.dependencies import Input, Output, State
-from dash import Dash, dcc, ctx, clientside_callback, Patch
 
 import numpy as np
 import pandas as pd
@@ -100,6 +101,44 @@ def open_file_dialog(file_type):
     result = window.create_file_dialog(
         webview.FileDialog.OPEN,
         allow_multiple=False,
+        file_types=file_types,
+    )
+
+    return result[0] if result else None
+
+
+def save_file_dialog(file_type, filename):
+    """
+    Open a native save file dialog (pywebview) with given file type filters.
+    Returns a single file path as a string, or None if canceled.
+
+    Parameters
+    ----------
+    file_type : str
+        Example: "mat", "xlsx", or "video"
+    filename : str
+        Default filename to suggest to the user
+
+    Returns
+    -------
+    str or None
+        The selected file path, or None if canceled
+    """
+    if not webview.windows:
+        return None
+
+    window = webview.windows[0]
+
+    if file_type == "mat":
+        file_types = ("MAT files (*.mat)",)
+    elif file_type == "xlsx":
+        file_types = ("Excel files (*.xlsx)",)
+    else:
+        raise ValueError(f"Unsupported file type: {file_type}. Use 'mat', 'xlsx'.")
+
+    result = window.create_file_dialog(
+        webview.FileDialog.SAVE,
+        save_filename=filename,
         file_types=file_types,
     )
 
@@ -259,7 +298,7 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-
+'''
 # show_save_annotation_status
 clientside_callback(
     """
@@ -275,7 +314,7 @@ clientside_callback(
     Input("save-button", "n_clicks"),
     prevent_initial_call=True,
 )
-
+'''
 
 # clear_display
 clientside_callback(
@@ -809,36 +848,27 @@ def update_sleep_scores_history(updated_sleep_scores):
 
 
 @app.callback(
-    Output("download-annotations", "data"),
-    Output("download-spreadsheet", "data"),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("interval-component", "max_intervals"),
     Input("save-button", "n_clicks"),
     prevent_initial_call=True,
 )
 def save_annotations(n_clicks):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+    if n_clicks is None or n_clicks == 0:
         raise PreventUpdate
 
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
-    temp_mat_path = (
-        TEMP_PATH / f"{filename}.mat"
-    )  # savemat automatically saves as .mat file
+    temp_mat_path = TEMP_PATH / f"{filename}.mat"
     mat = loadmat(mat_path, squeeze_me=True)
 
-    # replace None in sleep_scores
+    # Replace None in sleep_scores
     sleep_scores_history = cache.get("sleep_scores_history")
     labels = None
     if sleep_scores_history:
-        # replace any None or nan in sleep scores to -1 before saving, otherwise results in save error
-        # make a copy first because we don't want to convert any nan in the cache
         sleep_scores = sleep_scores_history[-1]
-        np.place(
-            sleep_scores, sleep_scores == None, [-1]
-        )  # convert None to -1 for scipy's savemat
-        sleep_scores = np.nan_to_num(
-            sleep_scores, nan=-1
-        )  # convert np.nan to -1 for scipy's savemat
-
+        np.place(sleep_scores, sleep_scores == None, [-1])
+        sleep_scores = np.nan_to_num(sleep_scores, nan=-1)
         mat["sleep_scores"] = sleep_scores
 
     # Filter out the default keys
@@ -846,9 +876,19 @@ def save_annotations(n_clicks):
     for key, value in mat.items():
         if not key.startswith("_"):
             mat_filtered[key] = value
+
     savemat(temp_mat_path, mat_filtered)
 
-    # export sleep bout spreadsheet only if the manual scoring is complete
+    # Save MAT file with native dialog
+    mat_save_path = save_file_dialog("mat", f"{filename}.mat")
+
+    if mat_save_path:
+        shutil.copy(temp_mat_path, mat_save_path)
+        message = f"Saved annotations to {mat_save_path}."
+    else:
+        return "Save cancelled", dash.no_update
+
+    # Export sleep bout spreadsheet only if the manual scoring is complete
     if mat.get("sleep_scores") is not None and -1 not in mat["sleep_scores"]:
         labels = mat["sleep_scores"]
 
@@ -857,15 +897,23 @@ def save_annotations(n_clicks):
         df = get_sleep_segments(labels)
         df_stats = get_pred_label_stats(df)
         temp_excel_path = TEMP_PATH / f"{filename}_table.xlsx"
+
         with pd.ExcelWriter(temp_excel_path) as writer:
             df.to_excel(writer, sheet_name="Sleep_bouts")
             df_stats.to_excel(writer, sheet_name="Sleep_stats")
             worksheet = writer.sheets["Sleep_stats"]
             worksheet.set_column(0, 0, 20)
 
-        return dcc.send_file(temp_mat_path), dcc.send_file(temp_excel_path)
+        # Save Excel file with native dialog
+        excel_save_path = save_file_dialog("xlsx", f"{filename}_table.xlsx")
 
-    return dcc.send_file(temp_mat_path), dash.no_update
+        if excel_save_path:
+            shutil.copy(temp_excel_path, excel_save_path)
+            message += f"\nSaved spreadsheet to {excel_save_path}."
+        else:
+            message += "\nSpreadsheet save cancelled."
+
+    return message, 5
 
 
 @app.callback(
