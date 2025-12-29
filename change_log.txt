@@ -1,4 +1,13 @@
-#### v0.15.0
+#### v0.15.1
+1. Speed up annotations.
+2. Reduce Undo to only one step.
+3. Show video name in Video window.
+4. Added support for macOS (tested on Tahoe 26.0.1).
+5. Update sleep scores only, instead of redrawing the entire figure when using automatic sleep scoring.
+6. Keep Graph container size to prevent it from collapsing when visualizing another mat file.
+ 
+
+#### v0.15.0-dev
 1. Removed dash-uploader. Instead, use pywebview to open app and its file dialog to find selected files. This cuts the file upload and saves time.
 2. Updated to Dash 3.3.0. Made necessary changes due to the update. 
 3. Optimized callbacks to make app respond faster.
