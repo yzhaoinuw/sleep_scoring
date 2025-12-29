@@ -64,15 +64,8 @@ home_div = html.Div(
     [
         mat_upload_button,
         html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
-        # html.Div(id="annotation-message", style={"marginLeft": "10px"}),
         html.Div(id="debug-message", style={"marginLeft": "10px"}),
         backend_div,
-        # dcc.Store(id="mat-metadata-store"),
-        # dcc.Store(id="prediction-ready-store"),
-        # dcc.Store(id="visualization-ready-store"),
-        # dcc.Store(id="net-annotation-count-store"),
-        # dcc.Download(id="prediction-download-store"),
-        # pred_modal_confirm,
     ]
 )
 
@@ -147,7 +140,6 @@ graph = dcc.Graph(
 
 video_modal = dbc.Modal(
     [
-        # dbc.ModalHeader(dbc.ModalTitle("Video")),
         dbc.ModalHeader(html.Div(id="video-title")),
         dbc.ModalBody(html.Div(id="video-container")),
         dbc.ModalFooter(html.Div(id="video-message")),

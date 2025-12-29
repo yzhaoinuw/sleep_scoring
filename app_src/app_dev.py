@@ -323,23 +323,6 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-'''
-# show_save_annotation_status
-clientside_callback(
-    """
-    function(n_clicks) {
-        if (n_clicks > 0) {
-            return [5, "Saving annotations. This may take up to 10 seconds."];
-        }
-        return [dash_clientside.no_update, dash_clientside.no_update];
-    }
-    """,
-    Output("interval-component", "max_intervals"),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Input("save-button", "n_clicks"),
-    prevent_initial_call=True,
-)
-'''
 
 # clear_display
 clientside_callback(
@@ -907,11 +890,11 @@ def save_annotations(n_clicks):
     # Save MAT file with native dialog
     mat_save_path = save_file_dialog("mat", f"{filename}.mat")
 
-    if mat_save_path:
-        shutil.copy(temp_mat_path, mat_save_path)
-        message = f"Saved annotations to {mat_save_path}."
-    else:
-        return "Save cancelled", dash.no_update
+    if not mat_save_path:
+        return "", dash.no_update
+
+    shutil.copy(temp_mat_path, mat_save_path)
+    message = f"Saved annotations to {mat_save_path}."
 
     # Export sleep bout spreadsheet only if the manual scoring is complete
     if mat.get("sleep_scores") is not None and -1 not in mat["sleep_scores"]:
@@ -936,7 +919,7 @@ def save_annotations(n_clicks):
             shutil.copy(temp_excel_path, excel_save_path)
             message += f"\nSaved spreadsheet to {excel_save_path}."
         else:
-            message += "\nSpreadsheet save cancelled."
+            message += ""
 
     return message, 5
 
