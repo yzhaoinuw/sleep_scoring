@@ -1,18 +1,22 @@
 # 📦 Installation
+## Windows Users
 1. Go to the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g) on OneDrive. Contact Yue if you can't access it.
 2. Download **_sleep_scoring_app_vx.zip_** (the "**x**" in the suffix "**vx**" denotes the current version). Note that if you unzip it to the same location where the zip file is, you may end up with a nested folder, ie., a _sleep_scoring_app_vx/_ folder inside another _sleep_scoring_app_vx/_ folder. If this happens, move the inner folder somewhere else and delete the outer one to avoid confusion.  
-2. Inside the unzipped sleep_scoring_app_vx directory, you should see:
+3. Check that inside the unzipped sleep_scoring_app_vx directory, you have:
 - **__internal/_**
 - **_app_src/_**
 - **_models/_**
 - **_run_app.exe_**
 
-> **Note**: For Windows users, after you download and unzip, you MUST open PowerShell and and run the following command
+4. **NEW!!!**  after you download and unzip, you MUST open PowerShell and and run the following command
 ```bash
 cd PATH_TO_YOUR_APP_FOLDER
 Get-ChildItem -Recurse | Unblock-File
 ```
 The first line navigates to the unzipped app folder. You need to supply the actual path to the app folder on your computer. The second line unblocks the dependencies related to webview, which provides the window to the app interface, as Windows blocks them when the zip file is downloaded from Onedrive. Without unblocking it, you may not be able to run the app.
+
+## Mac Users
+The app has been tested on macOS Tahoe. To download, follow [Build From Source](#build-from-source-run-using-anaconda).
 
 # 🎹 Usage 
 To open the app, double click **_run_desktop_app.exe_** and it will open the app's home page. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#%EF%B8%8F-navigation) and [**annotation mode**](#%EF%B8%8F-annotation). To swap between them, press M on the keyboard.   
@@ -33,7 +37,7 @@ To zoom in or out,
 
 To reset the view, click Reset Axes in the mode bar (upper-right, above the graph). The mode bar may be hidden but will appear if your cursor is within the graph area.
 
-> Note: The spectrogram and the NE plot are fixed on the Y-axis, so you can only zoom on the X-axis on them. **If you want to change this behavior, contact Yue for an easy hack.** 
+> Note: The spectrogram and the NE plot are fixed on the Y-axis, so you can only zoom on the X-axis on them. You can change this behavior for the NE plot. Open **_config.py_** in **_app_src/_** and change the line `FIX_NE_Y_RANGE = False` to `FIX_NE_Y_RANGE = True`. 
 
 https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
 
@@ -43,7 +47,7 @@ In annotation mode, you can annotate sleep scores or use [automatic sleep scorin
 - Assign a score by pressing 1, 2, or 3 on your keyboard. The selected region will be colored correspondingly.
 - To annotate a wider region, click-and-drag to draw a wider box.
 - You can overwrite existing annotations by selecting and reassigning them.
-- Use the Undo Annotation button (bottom-left, below the graph) to undo up to the three most recent annotations. This button only appears when there is something to undo.
+- Use the Undo Annotation button (bottom-left, below the graph) to undo last annotation. This button only appears when there is something to undo.
 
 https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
 
@@ -107,7 +111,7 @@ The input files to the app must be .mat (matlab) files, and contain the followin
  
 
 ## Build From Source (Run Using Anaconda)
-There are two preparation processes that you need to do before using the app with Anaconda.
+There are two preparation steps that you need to follow before using the app with Anaconda.
 
 1. Install Miniconda, a minimal install of Anaconda. Follow the instrcutions here: https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html
 
@@ -120,9 +124,9 @@ git clone https://github.com/yzhaoinuw/sleep_scoring.git
 In whatever directory you run this command will download the source code there. You can place the source code folder anywhere you like afterwards. Then use the command `cd`, which stands for change directory, in your command line to change to where you place the *sleep_scoring_app_vx/* folder. 
 
 #### Set up the environment
-After you have done the prep work above, open you Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.10
+After you have done the prep work above, open you Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
 ```bash
-conda create -n sleep_scoring python=3.10
+conda create -n sleep_scoring python=3.11
 ```
 Then, activate the sleep_scoring environment by typing
 ```bash
@@ -136,12 +140,12 @@ pip install -r requirements.txt
 #### Running the app
 Last step, type
 ```bash
-python main.py
+python run_desktop_app.py
 ```
 to run the app.
 
 #### Updating the app
 When there's an update announced, it's straightforward to get the update from source. Have the environment activated, cd to the source code folder, then type
 ```bash
-git pull origin dev
+git pull
 ```
