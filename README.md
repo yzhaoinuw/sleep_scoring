@@ -123,6 +123,9 @@ git clone https://github.com/yzhaoinuw/sleep_scoring.git
 ```
 In whatever directory you run this command will download the source code there. You can place the source code folder anywhere you like afterwards. Then use the command `cd`, which stands for change directory, in your command line to change to where you place the *sleep_scoring_app_vx/* folder. 
 
+#### Download model checkpoints
+To use automatic sleep scoring, you need to download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place it in **_models/sdreamer/_** in the app folder.
+
 #### Set up the environment
 After you have done the prep work above, open you Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
 ```bash
