@@ -71,20 +71,14 @@ def merge_consecutive_sleep_scores(df):
     return df_merged
 
 
-def evaluate_Wake(
-    emg, emg_frequency, start, end, prev_start, prev_end, next_start, next_end
-):
+def evaluate_Wake(emg, emg_frequency, start, end, prev_start, prev_end, next_start, next_end):
     emg_seg = abs(emg[int(start * emg_frequency) : int((end + 1) * emg_frequency)])
-    prev_emg_seg = abs(
-        emg[int(prev_start * emg_frequency) : int((prev_end + 1) * emg_frequency)]
-    )
-    next_emg_seg = abs(
-        emg[int(next_start * emg_frequency) : int((next_end + 1) * emg_frequency)]
-    )
+    prev_emg_seg = abs(emg[int(prev_start * emg_frequency) : int((prev_end + 1) * emg_frequency)])
+    next_emg_seg = abs(emg[int(next_start * emg_frequency) : int((next_end + 1) * emg_frequency)])
     # check 1: EMG increases
-    high_emg = (
-        np.percentile(emg_seg, q=99) > 100 * np.percentile(prev_emg_seg, q=60)
-    ) and (np.percentile(emg_seg, q=99) > 100 * np.percentile(next_emg_seg, q=60))
+    high_emg = (np.percentile(emg_seg, q=99) > 100 * np.percentile(prev_emg_seg, q=60)) and (
+        np.percentile(emg_seg, q=99) > 100 * np.percentile(next_emg_seg, q=60)
+    )
 
     return high_emg
 
@@ -150,8 +144,8 @@ def check_REM_transitions(df, ne, ne_frequency=None):
         if index < 1:
             continue
 
-        prev_start = df.loc[index - 1]["start"]
-        duration = row[4]
+        df.loc[index - 1]["start"]
+        row[4]
         valid_REM = True
         if ne_frequency is not None:
             valid_REM = validate_REM(df, ne, ne_frequency, start, end)
@@ -201,12 +195,8 @@ def check_REM_duration(df):
 def validate_REM(df, ne, ne_frequency, REM_start, REM_end):
     if REM_end > len(ne) - 21 and REM_end > 21:
         return False
-    ne_segment = ne[
-        int((REM_end - 21) * ne_frequency) : int((REM_end + 1) * ne_frequency)
-    ]
-    next_ne_seg = ne[
-        int((REM_end - 5) * ne_frequency) : int((REM_end + 21) * ne_frequency)
-    ]
+    ne_segment = ne[int((REM_end - 21) * ne_frequency) : int((REM_end + 1) * ne_frequency)]
+    next_ne_seg = ne[int((REM_end - 5) * ne_frequency) : int((REM_end + 21) * ne_frequency)]
     next_ne_seg = next_ne_seg - min(ne_segment)
     ne_segment = ne_segment - min(ne_segment)
 
@@ -217,7 +207,7 @@ def validate_REM(df, ne, ne_frequency, REM_start, REM_end):
 def evaluate_REM(df, ne, ne_frequency):
     df_rem = df[df["sleep_scores"] == 2]
     for row in df_rem.itertuples():
-        index, start, end = row[0], row[2], row[3]
+        index, _start, end = row[0], row[2], row[3]
 
         if end > len(ne) - 20:
             df.at[index, "sleep_scores"] = 1
@@ -229,9 +219,7 @@ def evaluate_REM(df, ne, ne_frequency):
         ne_segment = ne_segment - min(ne_segment)
         # check 1: NE increases
         try:  # if REM is identified at the start or the end, discard REM
-            NE_increase = np.percentile(next_ne_seg, 99) > 3 * np.percentile(
-                ne_segment, q=50
-            )
+            NE_increase = np.percentile(next_ne_seg, 99) > 3 * np.percentile(ne_segment, q=50)
         except IndexError:
             NE_increase = False
         if NE_increase:
@@ -307,34 +295,20 @@ def get_pred_label_stats(df_sleep_segments: pd.DataFrame):
     MA_seg_count = MA_indices.size
 
     # count transitions
-    df2 = pd.DataFrame(
-        [[-1, np.nan, np.nan, np.nan]], columns=df_sleep_segments.columns
-    )
+    df2 = pd.DataFrame([[-1, np.nan, np.nan, np.nan]], columns=df_sleep_segments.columns)
     df2 = pd.concat([df_sleep_segments, df2], ignore_index=True)
 
     df_wake_transition = df2.loc[wake_indices + 1]
-    wake_SWS_transition_count = df_wake_transition[
-        df_wake_transition["sleep_scores"] == 1
-    ].shape[0]
+    wake_SWS_transition_count = df_wake_transition[df_wake_transition["sleep_scores"] == 1].shape[0]
 
     df_SWS_transition = df2.loc[SWS_indices + 1]
-    SWS_wake_transition_count = np.flatnonzero(
-        df_SWS_transition["sleep_scores"] == 0
-    ).size
-    SWS_REM_transition_count = np.flatnonzero(
-        df_SWS_transition["sleep_scores"] == 2
-    ).size
-    SWS_MA_transition_count = np.flatnonzero(
-        df_SWS_transition["sleep_scores"] == 3
-    ).size
+    SWS_wake_transition_count = np.flatnonzero(df_SWS_transition["sleep_scores"] == 0).size
+    SWS_REM_transition_count = np.flatnonzero(df_SWS_transition["sleep_scores"] == 2).size
+    SWS_MA_transition_count = np.flatnonzero(df_SWS_transition["sleep_scores"] == 3).size
 
     df_REM_transition = df2.loc[REM_indices + 1]
-    REM_wake_transition_count = np.flatnonzero(
-        df_REM_transition["sleep_scores"] == 0
-    ).size
-    REM_MA_transition_count = np.flatnonzero(
-        df_REM_transition["sleep_scores"] == 3
-    ).size
+    REM_wake_transition_count = np.flatnonzero(df_REM_transition["sleep_scores"] == 0).size
+    REM_MA_transition_count = np.flatnonzero(df_REM_transition["sleep_scores"] == 3).size
 
     df_MA_transition = df2.loc[MA_indices + 1]
     MA_SWS_transition_count = np.flatnonzero(df_MA_transition["sleep_scores"] == 1).size

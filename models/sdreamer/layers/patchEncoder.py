@@ -1,5 +1,5 @@
-from torch import nn
 from einops.layers.torch import Rearrange
+from torch import nn
 
 
 class PatchEncoder(nn.Module):

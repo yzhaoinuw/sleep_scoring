@@ -6,10 +6,9 @@ Created on Fri Oct 20 16:27:03 2023
 """
 
 # import dash_uploader as du
-from dash import dcc, html
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 from dash_extensions import EventListener
-
 
 # %% home div
 
@@ -140,9 +139,7 @@ video_modal = dbc.Modal(
     centered=True,
 )
 
-reselect_video_button = html.Button(
-    "Select a different video", id="reselect-video-button"
-)
+reselect_video_button = html.Button("Select a different video", id="reselect-video-button")
 
 backend_div = html.Div(
     children=[

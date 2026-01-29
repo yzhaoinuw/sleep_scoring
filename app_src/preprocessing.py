@@ -9,8 +9,7 @@ import math
 from fractions import Fraction
 
 import numpy as np
-from scipy import stats
-from scipy import signal
+from scipy import signal, stats
 from scipy.io import loadmat
 
 
@@ -46,9 +45,7 @@ def reshape_sleep_data_ne(
 
     # if sampling rate is much higher than 512, downsample using poly resample
     if math.ceil(eeg_freq) != segment_size and math.floor(eeg_freq) != segment_size:
-        down, up = (
-            Fraction(eeg_freq / segment_size).limit_denominator(100).as_integer_ratio()
-        )
+        down, up = Fraction(eeg_freq / segment_size).limit_denominator(100).as_integer_ratio()
         eeg = signal.resample_poly(eeg, up, down)
         emg = signal.resample_poly(emg, up, down)
         eeg_freq = segment_size
@@ -90,9 +87,7 @@ def reshape_sleep_data_ne(
 
     if has_labels:
         sleep_scores = mat["sleep_scores"]
-        sleep_scores = trim_missing_labels(
-            sleep_scores, trim="b"
-        )  # trim trailing zeros
+        sleep_scores = trim_missing_labels(sleep_scores, trim="b")  # trim trailing zeros
         return eeg_reshaped, emg_reshaped, ne_reshaped, sleep_scores
 
     return eeg_reshaped, emg_reshaped, ne_reshaped
@@ -113,9 +108,7 @@ def reshape_sleep_data(mat, segment_size=512, standardize=False, has_labels=True
 
     # if sampling rate is much higher than 512, downsample using poly resample
     if math.ceil(eeg_freq) != segment_size and math.floor(eeg_freq) != segment_size:
-        down, up = (
-            Fraction(eeg_freq / segment_size).limit_denominator(100).as_integer_ratio()
-        )
+        down, up = Fraction(eeg_freq / segment_size).limit_denominator(100).as_integer_ratio()
         print(f"file has sampling frequency of {eeg_freq}.")
         eeg = signal.resample_poly(eeg, up, down)
         emg = signal.resample_poly(emg, up, down)
@@ -135,9 +128,7 @@ def reshape_sleep_data(mat, segment_size=512, standardize=False, has_labels=True
 
     if has_labels:
         sleep_scores = mat["sleep_scores"]
-        sleep_scores = trim_missing_labels(
-            sleep_scores, trim="b"
-        )  # trim trailing zeros
+        sleep_scores = trim_missing_labels(sleep_scores, trim="b")  # trim trailing zeros
         return eeg_reshaped, emg_reshaped, sleep_scores
 
     return eeg_reshaped, emg_reshaped

@@ -7,13 +7,13 @@ Created on Wed Nov 13 19:02:18 2024
 
 import argparse
 
-import torch
-from torch.utils.data import Dataset, DataLoader
-from tqdm import tqdm
 import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
-from models.sdreamer import n2nBaseLineNE
 from app_src.preprocessing import reshape_sleep_data_ne
+from models.sdreamer import n2nBaseLineNE
 
 
 class SequenceDataset(Dataset):
@@ -200,11 +200,10 @@ def infer(data, model_path, batch_size=32):
 # %%
 if __name__ == "__main__":
     from pathlib import Path
+
     from scipy.io import loadmat
 
-    model_path = Path(
-        "C:/Users/yzhao/python_projects/sleep_scoring/models/sdreamer/checkpoints/"
-    )
+    model_path = Path("C:/Users/yzhao/python_projects/sleep_scoring/models/sdreamer/checkpoints/")
     mat_file = "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/115_gs.mat"
     mat = loadmat(mat_file, squeeze_me=True)
     all_pred, all_prob = infer(mat, model_path)

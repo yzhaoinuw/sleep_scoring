@@ -1,14 +1,14 @@
 import torch
-from torch import nn
 from einops import repeat
 from timm.layers import trunc_normal_
+from torch import nn
 
-from .patchEncoder import PatchEncoder
-from .head import SeqPooler2, init_weights
 from .attention import (
-    MultiHeadAttention,
     MoEBlock,
+    MultiHeadAttention,
 )
+from .head import SeqPooler2, init_weights
+from .patchEncoder import PatchEncoder
 
 
 class get_cls_token(nn.Module):
@@ -32,9 +32,7 @@ class get_cls_token(nn.Module):
             cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=x.shape[0])
         else:
             # print("self.cls_token.shape: ", self.cls_token.shape)
-            cls_tokens = repeat(
-                self.cls_token, "() () n d -> b e n d", b=x.shape[0], e=x.shape[1]
-            )
+            cls_tokens = repeat(self.cls_token, "() () n d -> b e n d", b=x.shape[0], e=x.shape[1])
 
         # expand self.cls_token to match with x.shape for cat
         # b, e, t, n, d = x.shape
@@ -126,9 +124,7 @@ class Transformer(nn.Module):
         }
         self.get_cls = get_cls_token(inner_dim, flag=flag) if cls else nn.Identity()
         self.get_pos = (
-            get_pos_emb(n_patches, inner_dim, flag, dropout, cls)
-            if pos
-            else nn.Identity()
+            get_pos_emb(n_patches, inner_dim, flag, dropout, cls) if pos else nn.Identity()
         )
         self.get_mod = get_mod_emb(inner_dim, flag, dropout) if mod else nn.Identity()
 
@@ -187,25 +183,21 @@ class MoELoader(nn.Module):
         front_append=True,
     ):
         super().__init__()
-        pos, mod = False, False
+        pos, _mod = False, False
         if mix_type != 1:
             pos = True
         if mix_type == 2:
-            mod = True
+            pass
 
         patch_mapper = {
             "time": PatchEncoder(patch_len, c_in, inner_dim),
             "freq": nn.Linear(129, inner_dim),
         }
         self.get_cls = (
-            get_cls_token(inner_dim, flag=flag, front_append=front_append)
-            if cls
-            else nn.Identity()
+            get_cls_token(inner_dim, flag=flag, front_append=front_append) if cls else nn.Identity()
         )
         self.get_pos = (
-            get_pos_emb(n_patches, inner_dim, flag, dropout, cls)
-            if pos
-            else nn.Identity()
+            get_pos_emb(n_patches, inner_dim, flag, dropout, cls) if pos else nn.Identity()
         )
 
         self.patch_ecncoder = patch_mapper[domain] if cls else nn.Identity()
@@ -248,11 +240,11 @@ class SeqNewMoETransformer2(nn.Module):
         super().__init__()
         self.mixffn_start_layer_index = mixffn_start_layer_index
 
-        pos, mod = False, False
+        _pos, _mod = False, False
         if mix_type != 1:
-            pos = True
+            pass
         if mix_type == 2:
-            mod = True
+            pass
 
         self.eeg_loader = MoELoader(
             patch_len,

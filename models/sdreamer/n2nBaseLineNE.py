@@ -1,7 +1,7 @@
 import torch
-from torch import nn
 from einops import rearrange
 from timm.layers import trunc_normal_
+from torch import nn
 
 from .layers.transformer import Transformer
 
@@ -118,9 +118,7 @@ class Model(nn.Module):
             nn.LayerNorm(inner_dim * n_traces),
             nn.Linear(inner_dim * n_traces, inner_dim),
         )
-        self.mlp_head = nn.Sequential(
-            nn.LayerNorm(inner_dim), nn.Linear(inner_dim, c_out)
-        )
+        self.mlp_head = nn.Sequential(nn.LayerNorm(inner_dim), nn.Linear(inner_dim, c_out))
         self.apply(self._init_weights)
 
     def _init_weights(self, m):

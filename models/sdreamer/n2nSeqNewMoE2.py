@@ -1,8 +1,8 @@
-from torch import nn
 from einops import rearrange
+from torch import nn
 
-from .layers.transformer import Transformer, SeqNewMoETransformer2
 from .layers.head import cls_head
+from .layers.transformer import SeqNewMoETransformer2, Transformer
 
 
 class Model(nn.Module):
@@ -26,7 +26,6 @@ class Model(nn.Module):
         d_head = d_model // n_heads
         inner_dim = n_heads * d_head
         mult_ff = args.d_ff // d_model
-        n_traces = 2 if args.features == "ALL" else 1
 
         assert (seq_len % patch_len) == 0
         n_patches = seq_len // patch_len

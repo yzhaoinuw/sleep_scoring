@@ -7,7 +7,6 @@ Created on Tue Jun 27 18:37:28 2023
 
 from setuptools import setup
 
-
 # Get the requirements from requirements.txt
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()

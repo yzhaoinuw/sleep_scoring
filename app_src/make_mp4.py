@@ -92,7 +92,9 @@ if __name__ == "__main__":
     import time
 
     start_time = time.time()
-    video_path = "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/35_ymaze_ymaze_Cam2.avi"
+    video_path = (
+        "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/35_ymaze_ymaze_Cam2.avi"
+    )
     make_mp4_clip(video_path, start_time=800, end_time=1300)
     # out_path = avi_to_mp4(video_path, "C:/Users/yzhao/python_projects/sleep_scoring/user_test_files/")
     end_time = time.time()

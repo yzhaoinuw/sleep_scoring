@@ -2,9 +2,9 @@ from inspect import isfunction
 
 import torch
 import torch.nn.functional as F
-from torch import nn, einsum
 from einops import rearrange
 from timm.layers import DropPath
+from torch import einsum, nn
 
 
 def exists(val):
@@ -114,9 +114,7 @@ def zero_module(module):
 
 
 def Normalize(in_channels):
-    return torch.nn.GroupNorm(
-        num_groups=32, num_channels=in_channels, eps=1e-6, affine=True
-    )
+    return torch.nn.GroupNorm(num_groups=32, num_channels=in_channels, eps=1e-6, affine=True)
 
 
 class CrossAttention(nn.Module):
@@ -140,9 +138,7 @@ class CrossAttention(nn.Module):
         self.to_k = nn.Linear(context_dim, inner_dim, bias=False)
         self.to_v = nn.Linear(context_dim, inner_dim, bias=False)
 
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, query_dim, bias=True), nn.Dropout(dropout)
-        )
+        self.to_out = nn.Sequential(nn.Linear(inner_dim, query_dim, bias=True), nn.Dropout(dropout))
         self.att_fn = F.softmax
         self.output_attentions = output_attentions
 
@@ -154,17 +150,15 @@ class CrossAttention(nn.Module):
         k = self.to_k(context)
         v = self.to_v(context)
 
-        q, k, v = map(
-            lambda t: rearrange(t, "b ... n (h d) -> b h ... n d", h=h), (q, k, v)
-        )
+        q, k, v = map(lambda t: rearrange(t, "b ... n (h d) -> b h ... n d", h=h), (q, k, v))
 
         dots = einsum("b h ... i d, b h ... j d -> b h ... i j", q, k) * self.scale
         mask_value = max_neg_value(dots)
 
         if exists(mask):
-            assert (
-                2 <= mask.ndim <= 4
-            ), "attention mask must have greater than 2 dimensions but less than or equal to 4"
+            assert 2 <= mask.ndim <= 4, (
+                "attention mask must have greater than 2 dimensions but less than or equal to 4"
+            )
             if mask.ndim == 2:
                 mask = rearrange(mask, "i j -> 1 1 i j")
             elif mask.ndim == 3:
@@ -233,17 +227,13 @@ class MultiHeadAttention(nn.Module):
         self.drop_path = DropPath(path_drop) if path_drop > 0.0 else nn.Identity()
 
         self.gamma1 = (
-            nn.Parameter(
-                layer_scale_init_values * torch.ones((dim)), requires_grad=True
-            )
+            nn.Parameter(layer_scale_init_values * torch.ones((dim)), requires_grad=True)
             if layer_scale_init_values is not None
             else 1.0
         )
 
         self.gamma2 = (
-            nn.Parameter(
-                layer_scale_init_values * torch.ones((dim)), requires_grad=True
-            )
+            nn.Parameter(layer_scale_init_values * torch.ones((dim)), requires_grad=True)
             if layer_scale_init_values is not None
             else 1.0
         )
@@ -335,22 +325,16 @@ class MoEBlock(nn.Module):
             self.norm2_mix = (
                 nn.LayerNorm(dim)
                 if norm == "layernorm"
-                else nn.Sequential(
-                    Transpose(1, 2), nn.BatchNorm1d(dim), Transpose(1, 2)
-                )
+                else nn.Sequential(Transpose(1, 2), nn.BatchNorm1d(dim), Transpose(1, 2))
             )
 
         self.gamma_1 = (
-            nn.Parameter(
-                layer_scale_init_values * torch.ones((dim)), requires_grad=True
-            )
+            nn.Parameter(layer_scale_init_values * torch.ones((dim)), requires_grad=True)
             if layer_scale_init_values is not None
             else 1.0
         )
         self.gamma_2 = (
-            nn.Parameter(
-                layer_scale_init_values * torch.ones((dim)), requires_grad=True
-            )
+            nn.Parameter(layer_scale_init_values * torch.ones((dim)), requires_grad=True)
             if layer_scale_init_values is not None
             else 1.0
         )
@@ -368,12 +352,8 @@ class MoEBlock(nn.Module):
             if self.mlp_mix is None:
                 x_eeg = x[:, : self.n_patches]
                 x_emg = x[:, self.n_patches :]
-                x_eeg = x_eeg + self.drop_path(
-                    self.gamma_2 * self.mlp_eeg(self.norm2_eeg(x_eeg))
-                )
-                x_emg = x_emg + self.drop_path(
-                    self.gamma_2 * self.mlp_emg(self.norm2_emg(x_emg))
-                )
+                x_eeg = x_eeg + self.drop_path(self.gamma_2 * self.mlp_eeg(self.norm2_eeg(x_eeg)))
+                x_emg = x_emg + self.drop_path(self.gamma_2 * self.mlp_emg(self.norm2_emg(x_emg)))
                 x = torch.cat([x_eeg, x_emg], dim=-2)
             else:
                 x = x + self.drop_path(self.gamma_2 * self.mlp_mix(self.norm2_mix(x)))

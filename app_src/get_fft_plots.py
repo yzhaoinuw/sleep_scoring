@@ -6,13 +6,11 @@ Created on Tue Apr 22 14:06:41 2025
 """
 
 import numpy as np
-
 import plotly.graph_objects as go
-
 from scipy.io import loadmat
+from scipy.ndimage import gaussian_filter, gaussian_filter1d
 from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import hamming
-from scipy.ndimage import gaussian_filter, gaussian_filter1d
 
 from app_src.config import SPECTROGRAM_COLORSCALE, THETA_DELTA_RATIO_LINE_COLOR
 
@@ -24,7 +22,6 @@ def get_fft_plots(
     window_duration=5,
     mfft=None,
 ) -> go.Heatmap:
-
     nperseg = round(eeg_frequency * window_duration)
     noverlap = round(nperseg / 2)
     window = hamming(nperseg)

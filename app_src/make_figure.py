@@ -11,8 +11,8 @@ Notes
 """
 
 import math
-import numpy as np
 
+import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from plotly_resampler import FigureResampler
@@ -48,9 +48,7 @@ def get_padded_sleep_scores(mat) -> np.ndarray:
     """Make a sleep score array the same size as the duration."""
     eeg = mat.get("eeg")
     eeg_freq = mat.get("eeg_frequency")
-    duration = math.ceil(
-        (eeg.size - 1) / eeg_freq
-    )  # need to round duration to an int for later
+    duration = math.ceil((eeg.size - 1) / eeg_freq)  # need to round duration to an int for later
     sleep_scores = mat.get("sleep_scores", np.array([]))
     if sleep_scores.size == 0:
         # if unscored, initialize with nan
@@ -63,9 +61,7 @@ def get_padded_sleep_scores(mat) -> np.ndarray:
         # sleep_scores need to have the length of duration. pad if necessary
         pad_len = duration - sleep_scores.size
         if pad_len > 0:
-            sleep_scores = np.pad(
-                sleep_scores, (0, pad_len), "constant", constant_values=np.nan
-            )
+            sleep_scores = np.pad(sleep_scores, (0, pad_len), "constant", constant_values=np.nan)
     return sleep_scores
 
 
@@ -79,9 +75,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     if start_time is None:
         start_time = 0
 
-    duration = math.ceil(
-        (eeg.size - 1) / eeg_freq
-    )  # need to round duration to an int for later
+    duration = math.ceil((eeg.size - 1) / eeg_freq)  # need to round duration to an int for later
 
     # scored fully or partially or unscored
     sleep_scores = get_padded_sleep_scores(mat)
@@ -90,12 +84,14 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     time_eeg = np.linspace(start_time, eeg_end_time, eeg.size)
     time_emg = np.linspace(start_time, eeg_end_time, emg.size)
     eeg_end_time = math.ceil(time_eeg[-1])
-    eeg_lower_range, eeg_upper_range = np.nanquantile(
-        eeg, 1 - RANGE_QUANTILE
-    ), np.nanquantile(eeg, RANGE_QUANTILE)
-    emg_lower_range, emg_upper_range = np.nanquantile(
-        emg, 1 - RANGE_QUANTILE
-    ), np.nanquantile(emg, RANGE_QUANTILE)
+    eeg_lower_range, eeg_upper_range = (
+        np.nanquantile(eeg, 1 - RANGE_QUANTILE),
+        np.nanquantile(eeg, RANGE_QUANTILE),
+    )
+    emg_lower_range, emg_upper_range = (
+        np.nanquantile(emg, 1 - RANGE_QUANTILE),
+        np.nanquantile(emg, RANGE_QUANTILE),
+    )
     eeg_range = max(abs(eeg_lower_range), abs(eeg_upper_range))
     emg_range = max(abs(emg_lower_range), abs(emg_upper_range))
     np.place(
@@ -204,9 +200,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
                 y=[0.2],
                 name=STAGE_NAMES[i],
                 mode="markers",
-                marker=dict(
-                    size=8, color=color, symbol="square", opacity=SLEEP_SCORE_OPACITY
-                ),
+                marker=dict(size=8, color=color, symbol="square", opacity=SLEEP_SCORE_OPACITY),
                 showlegend=True,
             ),
             row=2,
@@ -222,9 +216,10 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
         # Create the time sequences
         time_ne = np.linspace(start_time, ne_end_time, ne.size)
         # ne_end_time = math.ceil(ne_end_time)
-        ne_lower_range, ne_upper_range = np.nanquantile(
-            ne, 1 - RANGE_QUANTILE
-        ), np.nanquantile(ne, RANGE_QUANTILE)
+        ne_lower_range, ne_upper_range = (
+            np.nanquantile(ne, 1 - RANGE_QUANTILE),
+            np.nanquantile(ne, RANGE_QUANTILE),
+        )
         fig.add_trace(
             go.Scattergl(
                 name="NE",
@@ -232,8 +227,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
                 marker=dict(size=2, color="black"),
                 showlegend=False,
                 mode="lines+markers",
-                hovertemplate="<b>time</b>: %{x:.2f}"
-                + "<br><b>y</b>: %{y}<extra></extra>",
+                hovertemplate="<b>time</b>: %{x:.2f}" + "<br><b>y</b>: %{y}<extra></extra>",
             ),
             hf_x=time_ne,
             hf_y=ne,
@@ -351,6 +345,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
 
 if __name__ == "__main__":
     import os
+
     import plotly.io as io
     from scipy.io import loadmat
 

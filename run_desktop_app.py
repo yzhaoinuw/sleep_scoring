@@ -5,13 +5,12 @@ Created on Tue Dec  2 17:54:32 2025
 @author: yzhao
 """
 
+import multiprocessing
 import os
 import sys
 import threading
-import multiprocessing
 
 import webview
-
 
 if getattr(sys, "frozen", False):
     # Running as packaged .exe → base path is folder containing executable
@@ -36,14 +35,12 @@ def run_dash():
 if __name__ == "__main__":
     from app_src import VERSION
     from app_src.app_dev import app
-    from app_src.config import WINDOW_CONFIG, PORT
+    from app_src.config import PORT, WINDOW_CONFIG
 
     multiprocessing.freeze_support()
     t = threading.Thread(target=run_dash, daemon=True)
     t.start()
-    webview.settings["ALLOW_DOWNLOADS"] = (
-        True  # must have this for the download to work
-    )
+    webview.settings["ALLOW_DOWNLOADS"] = True  # must have this for the download to work
     # This is the window `webview.windows[0]` will refer to
     webview.create_window(
         f"Sleep Scoring App {VERSION}",

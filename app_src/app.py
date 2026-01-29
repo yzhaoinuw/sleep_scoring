@@ -9,31 +9,29 @@ Created on Fri Oct 20 15:45:29 2023
 # import json
 import math
 import tempfile
-
-from pathlib import Path
 from collections import deque
+from pathlib import Path
 
 import dash
-import webview
-import dash_player
 import dash_bootstrap_components as dbc
-from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output, State
-from dash import Dash, dcc, ctx, clientside_callback, Patch
-
+import dash_player
 import numpy as np
 import pandas as pd
+import webview
+from dash import Dash, Patch, clientside_callback, ctx, dcc
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 from flask_caching import Cache
 from scipy.io import loadmat, savemat
 
 from app_src import VERSION
-from app_src.config import POSTPROCESS
-from app_src.make_mp4 import make_mp4_clip
 
 # from app_src.debug_tool import Debug_Counter
 from app_src.components import Components
+from app_src.config import POSTPROCESS
 from app_src.make_figure import get_padded_sleep_scores, make_figure
-from app_src.postprocessing import get_sleep_segments, get_pred_label_stats
+from app_src.make_mp4 import make_mp4_clip
+from app_src.postprocessing import get_pred_label_stats, get_sleep_segments
 
 try:
     from app_src.inference import run_inference
@@ -47,9 +45,7 @@ app = Dash(
     __name__,
     title=f"Sleep Scoring App {VERSION}",
     suppress_callback_exceptions=True,
-    external_stylesheets=[
-        dbc.themes.BOOTSTRAP
-    ],  # need this for the modal to work properly
+    external_stylesheets=[dbc.themes.BOOTSTRAP],  # need this for the modal to work properly
 )
 app.layout = components.home_div
 
@@ -124,9 +120,7 @@ def write_metadata(mat):
     eeg = mat.get("eeg")
     start_time = mat.get("start_time", 0)
     eeg_freq = mat.get("eeg_frequency")
-    duration = math.ceil(
-        (eeg.size - 1) / eeg_freq
-    )  # need to round duration to an int for later
+    duration = math.ceil((eeg.size - 1) / eeg_freq)  # need to round duration to an int for later
     end_time = duration + start_time
     video_start_time = mat.get("video_start_time", 0)
     video_path = mat.get("video_path", "")
@@ -177,13 +171,13 @@ app.clientside_callback(
         if (!keyboard_event || !figure) {
             return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
         }
-        
+
         var key = keyboard_event.key;
-        
+
         if (key === "m" || key === "M") {
             var patched_figure = new dash_clientside.Patch;
             var predVisibility;
-            
+
             if (figure.layout.dragmode === "pan") {
                 // Switch to select mode
                 patched_figure.assign(['layout', 'dragmode'], "select");
@@ -195,10 +189,10 @@ app.clientside_callback(
                 patched_figure.assign(['layout', 'dragmode'], "pan");
                 predVisibility = {"visibility": "hidden"};
             }
-            
+
             return [patched_figure.build(), "", {"visibility": "hidden"}, predVisibility];
         }
-        
+
         return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
@@ -218,34 +212,34 @@ clientside_callback(
         if (!keyboard_event || !figure) {
             return [dash_clientside.no_update, dash_clientside.no_update];
         }
-        
+
         var key = keyboard_event.key;
         var xaxisRange = figure.layout.xaxis4.range;
         var x0 = xaxisRange[0];
         var x1 = xaxisRange[1];
         var newRange;
-        
+
         if (key === "ArrowRight") {
             newRange = [x0 + (x1 - x0) * 0.3, x1 + (x1 - x0) * 0.3];
         } else if (key === "ArrowLeft") {
             newRange = [x0 - (x1 - x0) * 0.3, x1 - (x1 - x0) * 0.3];
         }
-        
+
         if (newRange) {
             // Use Patch for efficient partial update
             var patched_figure = new dash_clientside.Patch;
             patched_figure.assign(['layout', 'xaxis4', 'range'], newRange);
-            
+
             // Create NEW object instead of mutating
             var newRelayoutData = {
                 ...relayoutdata,  // Spread existing properties
                 'xaxis4.range[0]': newRange[0],
                 'xaxis4.range[1]': newRange[1]
             };
-            
+
             return [patched_figure.build(), newRelayoutData];
         }
-        
+
         return [dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
@@ -295,39 +289,39 @@ app.clientside_callback(
     function(box_select, figure, clickData, metadata) {
         // Return no_update for all outputs if conditions not met
         const no_update = dash_clientside.no_update;
-        
+
         if (!figure || !metadata) {
             return [no_update, no_update, no_update, no_update];
         }
-        
+
         const video_button_style = {"visibility": "hidden"};
         const selections = figure.layout.selections;
-        
+
         // When selections is None/undefined, prevent update
         if (!selections || selections.length === 0) {
             return [no_update, no_update, no_update, no_update];
         }
-        
+
         // Clone figure to avoid mutating state
         var patched_figure = new dash_clientside.Patch;
-        
+
         // Allow only at most one select box in all subplots
         if (selections.length > 1) {
             patched_figure.assign(['layout', 'selections'], [selections[selections.length - 1]]);
         }
-        
+
         // Remove existing click select box if any
         patched_figure.assign(['layout', 'shapes'], null);
-        
+
         const selection = selections[selections.length - 1];
-        
+
         // Take the min as start and max as end
         let start = Math.min(selection.x0, selection.x1);
         let end = Math.max(selection.x0, selection.x1);
-        
+
         const eeg_start_time = metadata.start_time;
         const eeg_end_time = metadata.end_time;
-        
+
         // Check if out of range
         if (end < eeg_start_time || start > eeg_end_time) {
             return [
@@ -337,14 +331,14 @@ app.clientside_callback(
                 video_button_style
             ];
         }
-        
+
         // Round start and end
         let start_round = Math.round(start);
         let end_round = Math.round(end);
-        
+
         start_round = Math.max(start_round, eeg_start_time);
         end_round = Math.min(end_round, eeg_end_time);
-        
+
         // Handle case where start_round equals end_round
         if (start_round === end_round) {
             if (start_round - start > end - end_round) {
@@ -356,17 +350,17 @@ app.clientside_callback(
                 start_round = Math.floor(end);
             }
         }
-        
+
         // Adjust relative to eeg_start_time
         const final_start = start_round - eeg_start_time;
         const final_end = end_round - eeg_start_time;
-        
+
         // Show video button if valid range
         let final_video_button_style = {"visibility": "hidden"};
         if (final_end - final_start >= 1 && final_end - final_start <= 300) {
             final_video_button_style = {"visibility": "visible"};
         }
-        
+
         return [
             [final_start, final_end],
             patched_figure.build(),
@@ -391,57 +385,57 @@ app.clientside_callback(
     """
     function(clickData, figure, metadata) {
         const no_update = dash_clientside.no_update;
-        
+
         if (!figure || !metadata) {
             return [no_update, no_update, no_update, no_update];
         }
-        
+
         // Clone figure to avoid mutating state
         var patched_figure = new dash_clientside.Patch;
-        
+
         // Remove existing select box if any
         patched_figure.assign(['layout', 'shapes'], null);
-        
+
         const video_button_style = {"visibility": "hidden"};
         const dragmode = figure.layout.dragmode;
-        
+
         // If no click data or in pan mode, return defaults
         if (!clickData || dragmode === "pan") {
             return [[], patched_figure.build(), "", video_button_style];
         }
-        
+
         // Remove the box selection if present
         patched_figure.assign(['layout', 'selections'], null);
-        
+
         // Grab clicked x value
         const x_click = clickData.points[0].x;
-        
+
         // Determine current x-axis visible range
         const x_min = figure.layout.xaxis4.range[0];
         const x_max = figure.layout.xaxis4.range[1];
         const total_range = x_max - x_min;
-        
+
         // Decide neighborhood size: 0.5% of current view range
         const fraction = 0.005;
         const delta = total_range * fraction;
-        
+
         const eeg_start_time = metadata.start_time;
         const eeg_end_time = metadata.end_time;
-        
+
         const x0 = Math.floor(x_click - delta / 2);
         const x1 = Math.ceil(x_click + delta / 2);
-        
+
         // Get curve information
         const curve_index = clickData.points[0].curveNumber;
         const trace = figure.data[curve_index];
         const xref = trace.xaxis || "x4";  // x4 is the shared x-axis
         let yref = trace.yaxis || "y5";    // spectrogram has dual y-axis
-        
+
         // Use the left y-axis to avoid interfering with theta/delta curve
         if (yref === "y2") {
             yref = "y1";
         }
-        
+
         // Create select box
         const select_box = {
             "type": "rect",
@@ -453,19 +447,19 @@ app.clientside_callback(
             "y1": 30,
             "line": {"width": 1, "dash": "dot"}
         };
-        
+
         patched_figure.assign(['layout', 'shapes'], [select_box]);
-        
+
         // Calculate final start and end
         const start = Math.max(x0, eeg_start_time);
         const end = Math.min(x1, eeg_end_time);
-        
+
         // Show video button if valid range
         let final_video_button_style = {"visibility": "hidden"};
         if (end - start >= 1 && end - start <= 300) {
             final_video_button_style = {"visibility": "visible"};
         }
-        
+
         return [
             [start, end],
             patched_figure.build(),
@@ -534,15 +528,16 @@ def read_mat_pred(n_clicks, is_open):
     eeg_freq = mat["eeg_frequency"]
     if round(eeg_freq) != 512:
         message += (
-            f"EEG/EMG data has a sampling frequency of {eeg_freq} Hz. "
-            "Will resample to 512 Hz."
+            f"EEG/EMG data has a sampling frequency of {eeg_freq} Hz. Will resample to 512 Hz."
         )
 
     ne = mat.get("ne")
     if ne is None:
         message += " NE data not detected."
 
-    message += " Generating predictions... This may take up to 3 minutes. Check Terminal for the progress."
+    message += (
+        " Generating predictions... This may take up to 3 minutes. Check Terminal for the progress."
+    )
     return (
         (not is_open),
         message,
@@ -703,9 +698,7 @@ def change_sampling_level(sampling_level):
     State("net-annotation-count-store", "data"),
     prevent_initial_call=True,
 )
-def add_annotation(
-    box_select_range, keyboard_press, keyboard_event, figure, net_annotation_count
-):
+def add_annotation(box_select_range, keyboard_press, keyboard_event, figure, net_annotation_count):
     """update sleep scores in fig and annotation history"""
     if not (
         ctx.triggered_id == "keyboard"
@@ -732,9 +725,7 @@ def add_annotation(
     cache.set("sleep_scores_history", sleep_scores_history)
     net_annotation_count += 1
 
-    new_sleep_scores = [
-        new_sleep_scores.tolist()
-    ]  # all numpy arrays to list for plotly 6.0 update
+    new_sleep_scores = [new_sleep_scores.tolist()]  # all numpy arrays to list for plotly 6.0 update
     patched_figure = Patch()
 
     for i in [-3, -2, -1]:
@@ -823,9 +814,7 @@ def save_annotations(n_clicks):
 def save_annotations(n_clicks):
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
-    temp_mat_path = (
-        TEMP_PATH / f"{filename}.mat"
-    )  # savemat automatically saves as .mat file
+    temp_mat_path = TEMP_PATH / f"{filename}.mat"  # savemat automatically saves as .mat file
     mat = loadmat(mat_path, squeeze_me=True)
 
     # replace None in sleep_scores
@@ -835,9 +824,7 @@ def save_annotations(n_clicks):
         # replace any None or nan in sleep scores to -1 before saving, otherwise results in save error
         # make a copy first because we don't want to convert any nan in the cache
         sleep_scores = sleep_scores_history[-1]
-        np.place(
-            sleep_scores, sleep_scores == None, [-1]
-        )  # convert None to -1 for scipy's savemat
+        np.place(sleep_scores, sleep_scores is None, [-1])  # convert None to -1 for scipy's savemat
         sleep_scores = np.nan_to_num(
             sleep_scores, nan=-1
         )  # convert np.nan to -1 for scipy's savemat
@@ -937,9 +924,7 @@ def choose_video(n_clicks):
     if selected_file_path is None:
         raise PreventUpdate  # user canceled dialog
 
-    avi_path = Path(
-        selected_file_path
-    )  # need to turn WindowsPath to str for the output
+    avi_path = Path(selected_file_path)  # need to turn WindowsPath to str for the output
     filename = cache.get("filename")
     recent_files_with_video = cache.get("recent_files_with_video")
     file_video_record = cache.get("file_video_record")

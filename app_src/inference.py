@@ -6,12 +6,12 @@ Created on Sun Oct 29 22:09:21 2023
 """
 
 from pathlib import Path
+
 from scipy.io import loadmat, savemat
 
 import app_src.run_inference_ne as run_inference_ne
-from app_src.postprocessing import postprocess_sleep_scores
 import app_src.run_inference_sdreamer as run_inference_sdreamer
-
+from app_src.postprocessing import postprocess_sleep_scores
 
 MODEL_PATH = Path(__file__).parents[1] / "models" / "sdreamer" / "checkpoints"
 
