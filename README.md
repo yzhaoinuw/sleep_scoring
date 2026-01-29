@@ -127,7 +127,7 @@ In whatever directory you run this command will download the source code there. 
 To use automatic sleep scoring, you need to download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place it in **_models/sdreamer/_** in the app folder.
 
 #### Set up the environment
-After you have done the prep work above, open you Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
+After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
 ```bash
 conda create -n sleep_scoring python=3.11
 ```
@@ -135,17 +135,33 @@ Then, activate the sleep_scoring environment by typing
 ```bash
 conda activate sleep_scoring
 ```
-In the future, every time before you run the app, make sure you activate this environment. Next, When you are in the *sleep_scoring_app_vx/* folder, install all the dependencies for the app. You only need to do it once.
+In the future, every time before you run the app, make sure you activate this environment. Next, when you are in the *sleep_scoring/* folder, install all the dependencies for the app. You only need to do it once.
 ```bash
-pip install -r requirements.txt 
+pip install -r requirements.txt
+```
+
+**For developers**, you can install in editable mode with dev/test dependencies:
+```bash
+pip install -e ".[dev,test]"
+```
+This installs the package along with development tools (ruff, black, pre-commit) and testing tools (pytest).
+
+To set up pre-commit hooks for automatic linting and formatting:
+```bash
+pre-commit install
 ```
 
 #### Running the app
-Last step, type
+To run the app, type
 ```bash
 python run_desktop_app.py
 ```
-to run the app.
+
+#### Running tests
+To run the test suite:
+```bash
+pytest
+```
 
 #### Updating the app
 When there's an update announced, it's straightforward to get the update from source. Have the environment activated, cd to the source code folder, then type
