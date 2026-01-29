@@ -156,9 +156,9 @@ class CrossAttention(nn.Module):
         mask_value = max_neg_value(dots)
 
         if exists(mask):
-            assert 2 <= mask.ndim <= 4, (
-                "attention mask must have greater than 2 dimensions but less than or equal to 4"
-            )
+            assert (
+                2 <= mask.ndim <= 4
+            ), "attention mask must have greater than 2 dimensions but less than or equal to 4"
             if mask.ndim == 2:
                 mask = rearrange(mask, "i j -> 1 1 i j")
             elif mask.ndim == 3:

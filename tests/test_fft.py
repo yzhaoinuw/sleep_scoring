@@ -11,9 +11,7 @@ class TestGetFFTPlots:
 
     def test_returns_correct_types(self, mock_eeg_signal):
         """Test that function returns correct plotly object types."""
-        spectrogram, theta_delta = get_fft_plots(
-            mock_eeg_signal, eeg_frequency=512, start_time=0
-        )
+        spectrogram, theta_delta = get_fft_plots(mock_eeg_signal, eeg_frequency=512, start_time=0)
 
         assert isinstance(spectrogram, go.Heatmap)
         assert isinstance(theta_delta, go.Scatter)
@@ -94,9 +92,7 @@ class TestGetFFTPlots:
         # 10 seconds of data
         short_signal = np.random.randn(512 * 10).astype(np.float32)
 
-        spectrogram, theta_delta = get_fft_plots(
-            short_signal, eeg_frequency=512, start_time=0
-        )
+        spectrogram, theta_delta = get_fft_plots(short_signal, eeg_frequency=512, start_time=0)
 
         assert spectrogram.z is not None
         assert theta_delta.y is not None

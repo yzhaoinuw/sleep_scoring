@@ -13,6 +13,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v1
 
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: psf/black@stable
+        with:
+          options: "--check --diff"
+
   test:
     runs-on: ubuntu-latest
     steps:
