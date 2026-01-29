@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sleep_scoring"
+dynamic = ["version"]
+description = "Sleep scoring application with deep learning support"
+readme = "README.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "dash>=3.3.0",
+    "dash-bootstrap-components>=2.0.4",
+    "dash-extensions>=2.0.4",
+    "dash-player>=1.1.0",
+    "Flask-Caching>=2.3.1",
+    "plotly>=5.17.0",
+    "plotly-resampler>=0.11.0",
+    "scipy>=1.16.0",
+    "numpy",
+    "pandas",
+    "openpyxl>=3.1.5",
+    "xlsxwriter>=3.2.9",
+    "pywebview>=6.1",
+    "imageio-ffmpeg>=0.6.0",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+ml = [
+    "torch>=2.9.1",
+    "timm>=1.0.22",
+    "einops>=0.8.1",
+]
+dev = [
+    "ruff",
+    "pre-commit",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "app_src.__init__.VERSION"}
+
+[tool.setuptools.packages.find]
+include = ["app_src*", "models*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]  # line too long - let formatter handle it
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow",
+    "ml: marks tests requiring PyTorch",
+]
