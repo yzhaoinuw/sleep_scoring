@@ -9,9 +9,14 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from scipy.io import loadmat
 
 
+def normalize(x):
+    return stats.zscore(x)
+    
+    
 def get_sleep_segments(sleep_scores):
     transition_indices = np.flatnonzero(np.diff(sleep_scores))
     transition_indices = np.append(transition_indices, len(sleep_scores) - 1)

@@ -209,8 +209,6 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
 
     ne_lower_range, ne_upper_range = 0, 0
     if ne is not None and ne.size > 1:
-        # ne = ne.flatten()
-        # ne_freq = ne_freq.item()
         ne_end_time = (ne.size - 1) / ne_freq + start_time
 
         # Create the time sequences

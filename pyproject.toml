@@ -33,7 +33,6 @@ ml = [
     "einops==0.8.1",
 ]
 dev = [
-    "ruff==0.14.10",
     "black==25.12.0",
     "pre-commit==4.5.1",
 ]
@@ -47,14 +46,6 @@ version = {attr = "app_src.__init__.VERSION"}
 
 [tool.setuptools.packages.find]
 include = ["app_src*", "models*"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "W"]
-ignore = ["E501"]  # line too long - let formatter handle it
 
 [tool.black]
 line-length = 100
