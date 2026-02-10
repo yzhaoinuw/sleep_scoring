@@ -32,7 +32,7 @@ from app_src.components_dev import Components
 from app_src.config import POSTPROCESS
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 from app_src.make_mp4 import make_mp4_clip
-from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, normalize
+from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
 
 try:
     from app_src.inference import run_inference
@@ -868,14 +868,14 @@ def save_annotations(n_clicks):
     labels = None
     if sleep_scores_history:
         sleep_scores = sleep_scores_history[-1]
-        np.place(sleep_scores, sleep_scores is None, [-1])
+        np.place(sleep_scores, sleep_scores == None, [-1])
         sleep_scores = np.nan_to_num(sleep_scores, nan=-1)
         mat["sleep_scores"] = sleep_scores
 
     ne = mat.get("ne")
     if ne is not None and ne.size > 1:
-        ne_normalized = normalize(ne)
-        mat["ne_normalized"] = ne_normalized
+        ne_standardized = standardize(ne)
+        mat["ne_standardized"] = ne_standardized
         
     # Filter out the default keys
     mat_filtered = {}

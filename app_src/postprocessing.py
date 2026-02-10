@@ -13,7 +13,7 @@ from scipy import stats
 from scipy.io import loadmat
 
 
-def normalize(x):
+def standardize(x):
     return stats.zscore(x)
     
     
