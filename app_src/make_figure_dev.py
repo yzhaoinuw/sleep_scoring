@@ -40,7 +40,7 @@ COLORSCALE = {
     ],
 }
 RANGE_QUANTILE = 0.9999
-HEATMAP_WIDTH = 40
+HEATMAP_WIDTH = 2000
 RANGE_PADDING_PERCENT = 0.2
 
 
@@ -136,7 +136,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
         x0=start_time + 0.5,
         dx=1,
         y0=0,
-        dy=HEATMAP_WIDTH,  # assuming that the max abs value of eeg, emg, or ne is no more than 10
+        dy=HEATMAP_WIDTH,
         z=sleep_scores,
         name="Sleep Scores",
         hoverinfo="none",
