@@ -876,7 +876,7 @@ def save_annotations(n_clicks):
     if ne is not None and ne.size > 1:
         ne_standardized = standardize(ne)
         mat["ne_standardized"] = ne_standardized
-        
+
     # Filter out the default keys
     mat_filtered = {}
     for key, value in mat.items():
