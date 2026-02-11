@@ -112,22 +112,20 @@ The input files to the app must be .mat (matlab) files, and contain the followin
 
 ## Build From Source (Run Using Anaconda)
 There are two preparation steps that you need to follow before using the app with Anaconda.
-
-1. Install Miniconda, a minimal install of Anaconda. Follow the instrcutions here: https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html
-
+1. Install Miniconda, a minimal install of Anaconda. Follow the instructions here: https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html
 2. Get Git if you haven't. You need it to download the repo and to get updates. Follow the instructions here: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
 
 #### Download source code
 ```bash
 git clone https://github.com/yzhaoinuw/sleep_scoring.git
 ```
-In whatever directory you run this command will download the source code there. You can place the source code folder anywhere you like afterwards. Then use the command `cd`, which stands for change directory, in your command line to change to where you place the *sleep_scoring_app_vx/* folder. 
+In whatever directory you run this command will download the source code there. You can place the source code folder anywhere you like afterwards. Then use the command `cd`, which stands for change directory, in your command line to change to where you place the **_sleep_scoring_vx/_** folder. 
 
 #### Download model checkpoints
 To use automatic sleep scoring, you need to download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place it in **_models/sdreamer/_** in the app folder.
 
 #### Set up the environment
-After you have done the prep work above, open you Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
+After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
 ```bash
 conda create -n sleep_scoring python=3.11
 ```
@@ -135,9 +133,9 @@ Then, activate the sleep_scoring environment by typing
 ```bash
 conda activate sleep_scoring
 ```
-In the future, every time before you run the app, make sure you activate this environment. Next, When you are in the *sleep_scoring_app_vx/* folder, install all the dependencies for the app. You only need to do it once.
+In the future, every time before you run the app, make sure you activate this environment. Next, when you are in the *sleep_scoring/* folder, install the app with all dependencies including PyTorch for automatic sleep scoring. You only need to do this once.
 ```bash
-pip install -r requirements.txt 
+pip install -e ".[ml]"
 ```
 
 #### Running the app
@@ -151,4 +149,8 @@ to run the app.
 When there's an update announced, it's straightforward to get the update from source. Have the environment activated, cd to the source code folder, then type
 ```bash
 git pull
+```
+If dependencies have changed, reinstall:
+```bash
+pip install -e ".[ml]"
 ```
