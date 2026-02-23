@@ -12,7 +12,11 @@ from scipy.ndimage import gaussian_filter, gaussian_filter1d
 from scipy.signal import ShortTimeFFT
 from scipy.signal.windows import hamming
 
-from app_src.config import SPECTROGRAM_COLORSCALE, DELTA_THETA_RATIO_LINE_COLOR
+from app_src.config import (
+    SPECTROGRAM_COLORSCALE,
+    THETA_DELTA_RATIO_LINE_COLOR,
+    GAUSSIAN_FILTER_SIGMA,
+)
 
 
 def get_fft_plots(
@@ -44,11 +48,8 @@ def get_fft_plots(
     theta_mask = np.where((frequencies > 4) & (frequencies <= 8))[0]
     delta_power = np.mean(Sx_db[delta_mask, :], axis=0)
     theta_power = np.mean(Sx_db[theta_mask, :], axis=0)
-    delta_theta_ratio = (
-        delta_power / theta_power
-    )  # flip delta and theta because their "magnitude" is negative
-    delta_theta_ratio = gaussian_filter1d(delta_theta_ratio, 4)
-    Sx_db = gaussian_filter(Sx_db, sigma=4)
+    theta_delta_ratio = theta_power - delta_power  # In dB (log space), division becomes subtraction
+    Sx_db = gaussian_filter(Sx_db, sigma=GAUSSIAN_FILTER_SIGMA)
     spectrogram = go.Heatmap(
         x=time,
         y=frequencies,
@@ -59,18 +60,18 @@ def get_fft_plots(
         showlegend=False,
         showscale=True,
     )
-    delta_theta_ratio = go.Scatter(
+    theta_delta_ratio = go.Scatter(
         x=time,
-        y=delta_theta_ratio,
-        name="Delta/Theta",
+        y=theta_delta_ratio,
+        name="Theta/Delta",
         mode="lines",
         customdata=time / 3600,
         hovertemplate="<b>time</b>: %{customdata:.2f}h<extra></extra>",
         showlegend=False,
-        line=dict(color=DELTA_THETA_RATIO_LINE_COLOR, width=1),
+        line=dict(color=THETA_DELTA_RATIO_LINE_COLOR, width=1),
         opacity=0.4,
     )
-    return spectrogram, delta_theta_ratio
+    return spectrogram, theta_delta_ratio
 
 
 # %%
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     else:
         start_time = start_time.item()
 
-    spectrogram, delta_theta_ratio = get_fft_plots(eeg, eeg_frequency, start_time)
+    spectrogram, theta_delta_ratio = get_fft_plots(eeg, eeg_frequency, start_time)
 
     """
     duration = math.ceil(

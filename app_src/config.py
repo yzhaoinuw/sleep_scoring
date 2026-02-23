@@ -20,7 +20,9 @@ FIX_NE_Y_RANGE = False  # True or False
 SPECTROGRAM_COLORSCALE = "viridis"  # "turbo", "jet", etc.
 
 # consider to change this too if you change the spectrogram colorscale above
-DELTA_THETA_RATIO_LINE_COLOR = "white"  # "black", "white", etc.
+THETA_DELTA_RATIO_LINE_COLOR = "white"  # "black", "white", etc.
+
+GAUSSIAN_FILTER_SIGMA = 4  # how agressive to smooth the spectrogram or theta/delta line
 
 # %% Automatic sleep scoring customization
 POSTPROCESS = True
