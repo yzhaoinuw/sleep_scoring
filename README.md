@@ -124,6 +124,9 @@ In whatever directory you run this command will download the source code there. 
 #### Download model checkpoints
 To use automatic sleep scoring, you need to download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place it in **_models/sdreamer/_** in the app folder.
 
+#### Download model checkpoints
+To use automatic sleep scoring, you need to download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place it in **_models/sdreamer/_** in the app folder.
+
 #### Set up the environment
 After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt, create an environment with Python 3.11
 ```bash
