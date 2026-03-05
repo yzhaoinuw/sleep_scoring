@@ -190,7 +190,7 @@ def write_metadata(mat):
     video_start_time = mat.get("video_start_time", 0)
     video_path = mat.get("video_path", "")
 
-    if not isinstance(mat.get("video_start_time"), int):
+    if not isinstance(mat.get("video_start_time"), (int, float)):
         video_start_time = 0
     if not isinstance(video_path, str):
         video_path = ""
@@ -1032,7 +1032,7 @@ def make_clip(video_path, box_select_range, metadata):
     start = start + video_start_time
     end = end + video_start_time
     video_name = Path(video_path).stem
-    clip_name = video_name + f"_time_range_{start}-{end}" + ".mp4"
+    clip_name = video_name + f"_time_range_{start:.1f}-{end:.1f}" + ".mp4"
     save_path = VIDEO_DIR / clip_name
     if save_path.is_file():
         return clip_name, ""
