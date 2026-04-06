@@ -7,6 +7,13 @@ models/sdreamer/checkpoints/
 # Test data files
 user_test_files/
 
+# Local archival / historical materials
+archive/
+
+# Generated or demo video assets
+*.mp4
+app_src/assets/videos/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
