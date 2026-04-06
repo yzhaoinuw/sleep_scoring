@@ -29,6 +29,20 @@ git config --global --add safe.directory C:/Users/yzhao/python_projects/sleep_sc
 
 This is the preferred fix unless the repository ownership itself needs to be changed at the OS level.
 
+## Pre-commit Note
+
+If `pre-commit` cannot write to its default cache location, set a repo-local cache before running it:
+
+```powershell
+$env:PRE_COMMIT_HOME = "C:\Users\yzhao\python_projects\sleep_scoring\.pre-commit-cache"
+```
+
+Then run:
+
+```powershell
+C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pre_commit run --all-files
+```
+
 ## Commit Message Guidelines
 
 Commit messages should use:
