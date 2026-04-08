@@ -30,16 +30,13 @@ from app_src import VERSION
 # from app_src.debug_tool import Debug_Counter
 from app_src.components_dev import Components
 from app_src.config import POSTPROCESS
+from app_src.inference import is_sdreamer_available, run_inference
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 from app_src.make_mp4 import make_mp4_clip
 from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
 
-try:
-    from app_src.inference import run_inference
-
-    components = Components(pred_disabled=False)
-except ImportError:
-    components = Components()
+SDREAMER_AVAILABLE = is_sdreamer_available()
+components = Components(pred_disabled=not SDREAMER_AVAILABLE)
 
 
 app = Dash(
@@ -653,32 +650,46 @@ def show_confirm_pred_modal(n_clicks, is_open):
     Output("prediction-ready-store", "data"),
     Input("pred-confirm-button", "n_clicks"),
     State("pred-modal-confirm", "is_open"),
+    State("pred-backend-dropdown", "value"),
     prevent_initial_call=True,
 )
-def read_mat_pred(n_clicks, is_open):
+def read_mat_pred(n_clicks, is_open, backend):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
+
+    if backend == "sdreamer" and not SDREAMER_AVAILABLE:
+        return (
+            (not is_open),
+            "SDreamer is unavailable in this environment. Choose ChatGPT or install the optional ML dependencies.",
+            dash.no_update,
+        )
 
     message = ""
     mat_path = cache.get("filepath")
     mat = loadmat(mat_path, squeeze_me=True)
-    eeg_freq = mat["eeg_frequency"]
-    if round(eeg_freq) != 512:
+    if backend == "sdreamer":
+        eeg_freq = mat["eeg_frequency"]
+        if round(eeg_freq) != 512:
+            message += (
+                f"EEG/EMG data has a sampling frequency of {eeg_freq} Hz. Will resample to 512 Hz."
+            )
+
+        ne = mat.get("ne")
+        if ne is None:
+            message += " NE data not detected."
+
         message += (
-            f"EEG/EMG data has a sampling frequency of {eeg_freq} Hz. Will resample to 512 Hz."
+            " Generating SDreamer predictions... This may take up to 3 minutes. Check Terminal for the progress."
         )
-
-    ne = mat.get("ne")
-    if ne is None:
-        message += " NE data not detected."
-
-    message += (
-        " Generating predictions... This may take up to 3 minutes. Check Terminal for the progress."
-    )
+    else:
+        message = (
+            "Generating ChatGPT placeholder predictions from the current session context."
+            " API wiring and helper functions still need to be filled in."
+        )
     return (
         (not is_open),
         message,
-        True,
+        {"backend": backend},
     )
 
 
@@ -688,17 +699,29 @@ def read_mat_pred(n_clicks, is_open):
     Input("prediction-ready-store", "data"),
     prevent_initial_call=True,
 )
-def generate_prediction(n_clicks):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+def generate_prediction(prediction_request):
+    if not prediction_request:
         raise PreventUpdate
+
+    if isinstance(prediction_request, dict):
+        backend = prediction_request.get("backend", "sdreamer")
+    else:
+        backend = "sdreamer"
 
     mat_path = cache.get("filepath")
     mat = loadmat(mat_path, squeeze_me=True)
     mat, output_path = run_inference(
         mat,
         postprocess=POSTPROCESS,
+        backend=backend,
     )
     sleep_scores = get_padded_sleep_scores(mat)
+    del output_path
+    if backend == "chatgpt":
+        return (
+            "ChatGPT placeholder backend is wired in. Fill in app_src/chatgpt_inference.py and app_src/chatgpt_tools.py to start generating scores.",
+            sleep_scores.tolist(),
+        )
     return "The prediction will be displayed shortly.", sleep_scores.tolist()
 
 

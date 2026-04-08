@@ -40,6 +40,20 @@ class TestImports:
         assert isinstance(VERSION, str)
         assert len(VERSION) > 0
 
+    def test_import_inference_scaffold(self):
+        """Test inference scaffold imports without optional ML deps."""
+        from app_src import inference
+
+        assert hasattr(inference, "run_inference")
+        assert hasattr(inference, "is_sdreamer_available")
+
+    def test_import_chatgpt_scaffold_modules(self):
+        """Test ChatGPT scaffold modules import."""
+        from app_src import chatgpt_inference, chatgpt_tools
+
+        assert hasattr(chatgpt_inference, "infer")
+        assert hasattr(chatgpt_tools, "capture_overview_snapshot")
+
 
 class TestAppImport:
     """Test that the Dash app can be imported."""

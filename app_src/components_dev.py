@@ -108,6 +108,31 @@ pred_modal_confirm = dbc.Modal(
     centered=True,
 )
 
+
+def make_prediction_backend_dropdown(pred_disabled=True):
+    """Return a lightweight backend picker for the prediction flow."""
+    options = [
+        {
+            "label": "SDreamer",
+            "value": "sdreamer",
+            "disabled": pred_disabled,
+        },
+        {
+            "label": "ChatGPT (placeholder)",
+            "value": "chatgpt",
+        },
+    ]
+    default_value = "chatgpt" if pred_disabled else "sdreamer"
+    return dcc.Dropdown(
+        id="pred-backend-dropdown",
+        options=options,
+        value=default_value,
+        searchable=False,
+        clearable=False,
+        style={"width": "180px"},
+    )
+
+
 save_div = html.Div(
     style={
         "display": "flex",
@@ -156,20 +181,12 @@ reselect_video_button = html.Button("Select a different video", id="reselect-vid
 
 # %%
 def make_utility_div(pred_disabled=True):
-    # enable or disable pred button depending on availability of pytorch
+    prediction_backend_dropdown = make_prediction_backend_dropdown(pred_disabled)
     pred_button = html.Button(
         "Generate Predictions",
         id="pred-button",
         style={"visibility": "hidden"},
     )
-    if pred_disabled:
-        pred_button = html.Button(
-            "Generate Predictions",
-            id="pred-button",
-            style={"visibility": "hidden"},
-            disabled=True,
-            title="Add Torch to generate predictions.",
-        )
     utility_div = html.Div(
         style={
             "display": "flex",
@@ -205,6 +222,8 @@ def make_utility_div(pred_disabled=True):
                             )
                         ]
                     ),
+                    html.Div(["Prediction Backend"]),
+                    prediction_backend_dropdown,
                 ],
             ),
             html.Div(
