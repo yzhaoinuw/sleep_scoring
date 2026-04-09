@@ -2,6 +2,25 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-09
+
+### Done Today
+
+- Drafted `get_interval_features()` in `app_src/chatgpt_tools.py`.
+- Updated the helper to accept an optional `fig` so spectral summaries can come from the rendered Plotly figure instead of recomputing by default.
+- Added interval summaries for:
+  - spectrogram delta/theta power and theta-delta ratio
+  - EMG amplitude and burst counts
+  - current score counts / dominant state
+  - NE mean/std/slope/drop when NE is present
+- Kept a fallback path that recomputes spectrogram/theta-delta traces if no figure is supplied.
+- Added targeted tests in `tests/test_chatgpt_tools.py`.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_chatgpt_tools.py`
+- Result: 2 tests passed
+
 ## 2026-04-08
 
 ### Planned Today
