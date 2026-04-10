@@ -98,6 +98,12 @@ Shared preprocessing:
 
 - [`app_src/preprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\preprocessing.py)
 
+ChatGPT scoring scaffold notes:
+
+- [`app_src/chatgpt_inference.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\chatgpt_inference.py) is the placeholder backend entrypoint for the future ChatGPT scoring path
+- [`app_src/chatgpt_tools.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\chatgpt_tools.py) contains deterministic helper functions for snapshots, interval inspection, score lookup, and score editing
+- [`app_src/chatgpt_scoring_guidance.md`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\chatgpt_scoring_guidance.md) is the first draft of the model guidance prompt, including the current transition rules
+
 What preprocessing does:
 
 - Trims missing labels at sequence edges

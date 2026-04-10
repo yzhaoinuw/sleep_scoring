@@ -1,8 +1,15 @@
 """Tests for ChatGPT helper utilities."""
 
+import numpy as np
 import pytest
 
-from app_src.chatgpt_tools import get_interval_features
+from app_src.chatgpt_tools import (
+    apply_transition_rules,
+    get_current_scores,
+    get_interval_features,
+    mark_uncertain_interval,
+    set_scores_block,
+)
 from app_src.make_figure_dev import make_figure
 
 
@@ -51,3 +58,142 @@ def test_get_interval_features_recomputes_spectral_data_without_figure(mock_mat_
         features_with_fig["theta_delta_ratio_mean_db"],
         abs=1e-6,
     )
+
+
+def test_get_current_scores_returns_raw_scores_and_contiguous_blocks(sample_sleep_scores):
+    """The helper should expose both per-second labels and merged blocks."""
+    current_scores = get_current_scores(sample_sleep_scores, start_s=1.2, end_s=7.1)
+
+    assert current_scores["start_s"] == 1
+    assert current_scores["end_s"] == 8
+    assert current_scores["duration_s"] == 7
+    assert current_scores["current_score_counts"] == {
+        "Wake": 1,
+        "NREM": 4,
+        "REM": 2,
+        "Unscored": 0,
+    }
+    assert current_scores["current_score_dominant_state"] == "NREM"
+    assert current_scores["scores"] == [
+        {"second": 1, "state": "Wake", "score": 0},
+        {"second": 2, "state": "NREM", "score": 1},
+        {"second": 3, "state": "NREM", "score": 1},
+        {"second": 4, "state": "NREM", "score": 1},
+        {"second": 5, "state": "REM", "score": 2},
+        {"second": 6, "state": "REM", "score": 2},
+        {"second": 7, "state": "NREM", "score": 1},
+    ]
+    assert current_scores["score_blocks"] == [
+        {"start_s": 1, "end_s": 2, "duration_s": 1, "state": "Wake", "score": 0},
+        {"start_s": 2, "end_s": 5, "duration_s": 3, "state": "NREM", "score": 1},
+        {"start_s": 5, "end_s": 7, "duration_s": 2, "state": "REM", "score": 2},
+        {"start_s": 7, "end_s": 8, "duration_s": 1, "state": "NREM", "score": 1},
+    ]
+
+
+def test_get_current_scores_clamps_and_preserves_unscored_values(sleep_scores_with_missing):
+    """Out-of-range requests should clamp and keep missing labels explicit."""
+    current_scores = get_current_scores(sleep_scores_with_missing, start_s=-2, end_s=20)
+
+    assert current_scores["start_s"] == 0
+    assert current_scores["end_s"] == 9
+    assert current_scores["duration_s"] == 9
+    assert current_scores["current_score_counts"] == {
+        "Wake": 2,
+        "NREM": 2,
+        "REM": 1,
+        "Unscored": 4,
+    }
+    assert current_scores["current_score_dominant_state"] == "Wake"
+    assert current_scores["scores"][0] == {"second": 0, "state": "Unscored", "score": None}
+    assert current_scores["scores"][-1] == {"second": 8, "state": "Unscored", "score": None}
+    assert current_scores["score_blocks"] == [
+        {"start_s": 0, "end_s": 2, "duration_s": 2, "state": "Unscored", "score": None},
+        {"start_s": 2, "end_s": 3, "duration_s": 1, "state": "Wake", "score": 0},
+        {"start_s": 3, "end_s": 5, "duration_s": 2, "state": "NREM", "score": 1},
+        {"start_s": 5, "end_s": 6, "duration_s": 1, "state": "REM", "score": 2},
+        {"start_s": 6, "end_s": 7, "duration_s": 1, "state": "Wake", "score": 0},
+        {"start_s": 7, "end_s": 9, "duration_s": 2, "state": "Unscored", "score": None},
+    ]
+
+
+def test_get_current_scores_validates_interval_inputs():
+    """Invalid score requests should fail with a clear error."""
+    with pytest.raises(ValueError, match="end_s must be greater than start_s"):
+        get_current_scores(np.array([0, 1, 2]), start_s=4, end_s=4)
+
+    with pytest.raises(ValueError, match="Requested interval falls outside the available scores"):
+        get_current_scores(np.array([0, 1, 2]), start_s=3, end_s=5)
+
+
+def test_set_scores_block_updates_a_copied_half_open_interval(sample_sleep_scores):
+    """Score writeback should follow the app's existing half-open interval behavior."""
+    updated_scores = set_scores_block(sample_sleep_scores, start_s=1.2, end_s=5.0, state="REM")
+
+    np.testing.assert_array_equal(sample_sleep_scores, np.array([0, 0, 1, 1, 1, 2, 2, 1, 0]))
+    np.testing.assert_array_equal(updated_scores, np.array([0, 2, 2, 2, 2, 2, 2, 1, 0]))
+
+
+def test_set_scores_block_clamps_to_available_score_range(sample_sleep_scores):
+    """Out-of-range edits should clamp to the array bounds instead of failing."""
+    updated_scores = set_scores_block(sample_sleep_scores, start_s=-5, end_s=20, state="Wake")
+
+    np.testing.assert_array_equal(updated_scores, np.zeros(sample_sleep_scores.shape, dtype=float))
+
+
+def test_set_scores_block_validates_inputs():
+    """Invalid edit requests should raise clear errors."""
+    with pytest.raises(ValueError, match="end_s must be greater than start_s"):
+        set_scores_block(np.array([0, 1, 2]), start_s=2, end_s=2, state="Wake")
+
+    with pytest.raises(ValueError, match="Requested interval falls outside the available scores"):
+        set_scores_block(np.array([0, 1, 2]), start_s=5, end_s=6, state="Wake")
+
+    with pytest.raises(ValueError, match="Unsupported sleep state"):
+        set_scores_block(np.array([0, 1, 2]), start_s=0, end_s=1, state="MA")
+
+
+def test_apply_transition_rules_preserves_scores_without_local_rewrites():
+    """Transition rules are prompt guidance, so the helper should not mutate scores."""
+    scores = np.array([0, 0, 2, 2, 1, 1], dtype=float)
+
+    updated_scores = apply_transition_rules(scores)
+
+    np.testing.assert_array_equal(scores, np.array([0, 0, 2, 2, 1, 1], dtype=float))
+    np.testing.assert_array_equal(updated_scores, scores)
+
+
+def test_apply_transition_rules_preserves_unscored_boundaries():
+    """The non-destructive helper should preserve missing labels exactly."""
+    scores = np.array([0, 0, np.nan, 2, 2, 1, 1], dtype=float)
+
+    updated_scores = apply_transition_rules(scores)
+
+    assert np.array_equal(updated_scores, scores, equal_nan=True)
+
+
+def test_apply_transition_rules_validates_nonempty_input():
+    """Empty score arrays should fail clearly."""
+    with pytest.raises(ValueError, match="scores must contain at least one value"):
+        apply_transition_rules(np.array([]))
+
+
+def test_mark_uncertain_interval_normalizes_bounds_and_reason():
+    """Uncertain interval markers should use whole-second bounds and trimmed reasons."""
+    marker = mark_uncertain_interval(start_s=10.2, end_s=15.0, reason="  transition ambiguity  ")
+
+    assert marker == {
+        "start_s": 10,
+        "end_s": 15,
+        "duration_s": 5,
+        "reason": "transition ambiguity",
+    }
+
+
+def test_mark_uncertain_interval_validates_inputs():
+    """Invalid uncertain-interval requests should fail clearly."""
+    with pytest.raises(ValueError, match="end_s must be greater than start_s"):
+        mark_uncertain_interval(start_s=5, end_s=5, reason="ambiguous")
+
+    with pytest.raises(ValueError, match="reason must be a non-empty string"):
+        mark_uncertain_interval(start_s=1, end_s=2, reason="   ")

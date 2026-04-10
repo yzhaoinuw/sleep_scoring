@@ -25,6 +25,7 @@ SLEEP_STAGE_LOOKUP = {
     1: "NREM",
     2: "REM",
 }
+SLEEP_STAGE_TO_SCORE = {label: score for score, label in SLEEP_STAGE_LOOKUP.items()}
 
 
 def _scalar_value(value: Any, default: float = 0.0) -> float:
@@ -203,6 +204,14 @@ def _score_counts(scores: np.ndarray) -> tuple[dict[str, int], str | None]:
         dominant_state = max(scored_counts, key=scored_counts.get)
 
     return counts, dominant_state
+
+
+def _score_to_label(score: float) -> str:
+    """Map a raw score value to a human-readable stage label."""
+    if np.isnan(score) or score < 0:
+        return "Unscored"
+
+    return SLEEP_STAGE_LOOKUP.get(int(round(score)), "Unscored")
 
 
 def _spectral_interval_data(
@@ -450,8 +459,61 @@ def get_current_scores(
     The eventual implementation should slice the current in-memory scores and
     return both the raw labels and compact contiguous blocks for prompt use.
     """
-    del scores, start_s, end_s
-    raise NotImplementedError("Implement score lookup for ChatGPT refinement.")
+    if end_s <= start_s:
+        raise ValueError("end_s must be greater than start_s.")
+
+    scores_array = np.asarray(scores, dtype=float).reshape(-1)
+    if scores_array.size == 0:
+        raise ValueError("scores must contain at least one value.")
+
+    interval_start_idx = max(0, int(math.floor(start_s)))
+    interval_end_idx = min(scores_array.size, int(math.ceil(end_s)))
+
+    if interval_end_idx <= interval_start_idx:
+        raise ValueError("Requested interval falls outside the available scores.")
+
+    interval_scores = scores_array[interval_start_idx:interval_end_idx]
+    current_score_counts, dominant_state = _score_counts(interval_scores)
+
+    raw_scores: list[dict[str, Any]] = []
+    score_blocks: list[dict[str, Any]] = []
+
+    for offset, score in enumerate(interval_scores):
+        second = interval_start_idx + offset
+        state = _score_to_label(score)
+        score_value = None if state == "Unscored" else int(round(float(score)))
+        raw_scores.append(
+            {
+                "second": second,
+                "state": state,
+                "score": score_value,
+            }
+        )
+
+        if score_blocks and score_blocks[-1]["state"] == state:
+            score_blocks[-1]["end_s"] = second + 1
+            score_blocks[-1]["duration_s"] += 1
+            continue
+
+        score_blocks.append(
+            {
+                "start_s": second,
+                "end_s": second + 1,
+                "duration_s": 1,
+                "state": state,
+                "score": score_value,
+            }
+        )
+
+    return {
+        "start_s": interval_start_idx,
+        "end_s": interval_end_idx,
+        "duration_s": interval_end_idx - interval_start_idx,
+        "scores": raw_scores,
+        "score_blocks": score_blocks,
+        "current_score_counts": current_score_counts,
+        "current_score_dominant_state": dominant_state,
+    }
 
 
 def set_scores_block(
@@ -468,21 +530,41 @@ def set_scores_block(
     - Accept `state` values Wake/NREM/REM and map them to app labels.
     - Return a new score array so undo history remains predictable.
     """
-    del scores, start_s, end_s, state
-    raise NotImplementedError("Implement contiguous score editing for ChatGPT output.")
+    if end_s <= start_s:
+        raise ValueError("end_s must be greater than start_s.")
+
+    scores_array = np.asarray(scores, dtype=float).reshape(-1)
+    if scores_array.size == 0:
+        raise ValueError("scores must contain at least one value.")
+
+    if state not in SLEEP_STAGE_TO_SCORE:
+        raise ValueError(f"Unsupported sleep state: {state!r}.")
+
+    interval_start_idx = max(0, int(math.floor(start_s)))
+    interval_end_idx = min(scores_array.size, int(math.ceil(end_s)))
+
+    if interval_end_idx <= interval_start_idx:
+        raise ValueError("Requested interval falls outside the available scores.")
+
+    updated_scores = scores_array.copy()
+    updated_scores[interval_start_idx:interval_end_idx] = SLEEP_STAGE_TO_SCORE[state]
+    return updated_scores
 
 
 def apply_transition_rules(scores: np.ndarray) -> np.ndarray:
     """
-    Clean up invalid transitions after ChatGPT writes coarse blocks.
+    Return scores unchanged after validating the array shape.
 
-    Suggested first-pass rules:
-    - no NREM immediately following REM
-    - no REM immediately following Wake
-    - optional minimum REM duration and brief-bout smoothing
+    For the ChatGPT path, transition rules should primarily live in the model
+    instructions so the model can reason about global bout structure while it
+    scores. We intentionally avoid local post-hoc rewrites here because
+    mechanical fixes can cascade into unintended neighboring changes.
     """
-    del scores
-    raise NotImplementedError("Implement transition cleanup for ChatGPT output.")
+    scores_array = np.asarray(scores, dtype=float).reshape(-1)
+    if scores_array.size == 0:
+        raise ValueError("scores must contain at least one value.")
+
+    return scores_array.copy()
 
 
 def mark_uncertain_interval(
@@ -496,8 +578,21 @@ def mark_uncertain_interval(
     This can eventually feed a lightweight review list or a confidence ribbon in
     the existing visualization.
     """
+    if end_s <= start_s:
+        raise ValueError("end_s must be greater than start_s.")
+
+    reason_text = str(reason).strip()
+    if not reason_text:
+        raise ValueError("reason must be a non-empty string.")
+
+    interval_start = int(math.floor(start_s))
+    interval_end = int(math.ceil(end_s))
+    if interval_end <= interval_start:
+        interval_end = interval_start + 1
+
     return {
-        "start_s": int(start_s),
-        "end_s": int(end_s),
-        "reason": reason,
+        "start_s": interval_start,
+        "end_s": interval_end,
+        "duration_s": interval_end - interval_start,
+        "reason": reason_text,
     }

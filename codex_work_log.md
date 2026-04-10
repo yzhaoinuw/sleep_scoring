@@ -2,6 +2,33 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-10
+
+### Done Today
+
+- Drafted the first ChatGPT sleep-scoring guidance prompt in `app_src/chatgpt_scoring_guidance.md`.
+- Referenced the draft guidance prompt from `app_src/chatgpt_inference.py` and `project_overview.md` so future wiring work can pick it up quickly.
+- Implemented `get_current_scores()` in `app_src/chatgpt_tools.py`.
+- Added per-second score export for a requested interval with:
+  - clamped floor/ceil interval handling
+  - explicit `Wake` / `NREM` / `REM` / `Unscored` labels
+  - contiguous block summaries for prompt-friendly interval refinement
+  - score counts and dominant-state summary
+- Added targeted tests for:
+  - mixed-state interval slicing
+  - clamped intervals with missing labels
+  - invalid interval validation
+- Implemented the remaining `chatgpt_tools.py` helpers:
+  - `set_scores_block()` for half-open contiguous score edits
+  - `apply_transition_rules()` as a non-destructive pass-through so transition rules stay in the model guidance prompt
+  - `mark_uncertain_interval()` with whole-second normalization, duration, and validation
+- Expanded `tests/test_chatgpt_tools.py` to cover the new helper contracts.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_chatgpt_tools.py`
+- Result: 13 tests passed
+
 ## 2026-04-09
 
 ### Done Today

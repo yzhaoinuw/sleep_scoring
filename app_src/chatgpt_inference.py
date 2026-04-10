@@ -19,6 +19,7 @@ from app_src.make_figure_dev import get_padded_sleep_scores
 
 DEFAULT_CHATGPT_MODEL = "gpt-4.1-mini"
 DEFAULT_SNAPSHOT_DIR = Path(tempfile.gettempdir()) / "sleep_scoring_app_data" / "chatgpt_snapshots"
+DEFAULT_GUIDANCE_PROMPT_PATH = Path(__file__).with_name("chatgpt_scoring_guidance.md")
 
 
 def infer(
@@ -32,12 +33,13 @@ def infer(
 
     Future implementation notes:
     - Save a deterministic overview snapshot for the current recording.
-    - Send the image plus a compact rules prompt to the OpenAI Responses API.
+    - Load the draft guidance prompt from `DEFAULT_GUIDANCE_PROMPT_PATH`.
+    - Send the image plus the sleep-scoring guidance prompt to the OpenAI Responses API.
     - Parse coarse segments from the model response.
     - Request targeted zoom snapshots or numeric interval features for uncertain
       or transition-heavy regions.
     - Convert contiguous blocks back into per-second sleep scores.
-    - Apply local transition constraints before returning final predictions.
+    - Prefer model-side global transition reasoning over local post-hoc rewrites.
 
     Parameters
     ----------
