@@ -6,6 +6,13 @@ models/sdreamer/checkpoints/
 
 # Test data files
 user_test_files/
+demo_data/COM5_bin1_gs.mat
+
+# Local demo / scratch artifacts
+app_pyinstaller_test.spec
+get_gold_standard.py
+gold_standard_demo.png
+model_infer_example.txt
 
 # Local archival / historical materials
 archive/

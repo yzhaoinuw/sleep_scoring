@@ -12,12 +12,32 @@ Typical startup:
 conda activate sleep_scoring_dash3.0
 ```
 
+In the Codex desktop PowerShell shell, `conda` may not be on `PATH` even though Miniconda is installed.
+If `conda` is not recognized, use the environment's Python directly instead of spending time on shell activation:
+
+```powershell
+C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest
+```
+
 After activation, use that environment for commands such as:
 
 - `pytest`
 - `python run_desktop_app.py`
 - package import checks
 - one-off scripts
+
+## Shell Notes
+
+The Codex PowerShell shell in this project does not support Bash-style `&&`.
+Use separate commands or PowerShell separators instead of `&&`.
+
+## Git / Sandbox Notes
+
+`git push` needs network access and should be rerun with escalation if it fails in the sandbox.
+
+`git commit` may also need escalation in this environment when Git hooks invoke shell tooling.
+
+If these commands repeatedly need escalation, prefer approving persistent command prefixes for `git commit` and `git push` so future sessions can run them without extra friction.
 
 ## Git Ownership Note
 
