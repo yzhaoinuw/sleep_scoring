@@ -109,6 +109,54 @@ The input files to the app must be .mat (matlab) files, and contain the followin
  2. *video_path* is the .avi path found during preprocessing.
  3. *video_start_time* is the TTL pulse onset found on the EEG side (such as Viewpoint, Pinnacle).
  
+## AI Model Cost Estimate
+For the current ChatGPT overview snapshot export, the nominal Plotly export target is `1800 x 900`, but one sampled output image measured about `1539 x 800` pixels on disk.
+
+Using the current OpenAI image-token guidance, a cost-effective starting point for this app is `gpt-5-mini` with `detail="high"`. That model family uses patch-based image tokenization with `32 x 32` patches, a `1536`-patch budget, and a `1.62` billed-token multiplier for image inputs.
+
+For an image of about `1539 x 800` pixels:
+
+- `ceil(1539 / 32) = 49`
+- `ceil(800 / 32) = 25`
+- patch count = `49 * 25 = 1225`
+- `1225` is below the `1536` patch budget, so no resize is needed
+- billed image tokens = `1225 * 1.62 = 1984.5`
+
+Reasonable estimate: about `1,985` image-input tokens per overview snapshot on `gpt-5-mini`, plus the text prompt tokens for the sleep-scoring instructions and any structured-output schema overhead.
+
+At an input price of about `$0.25 / 1M` tokens, the image portion alone is about `$0.0005` per request.
+
+Reference:
+
+- OpenAI Images and Vision guide: https://developers.openai.com/api/docs/guides/images-vision
+- OpenAI `gpt-5-mini` model page: https://developers.openai.com/api/docs/models/gpt-5-mini
+
+## ChatGPT Backend Setup
+The ChatGPT backend currently expects:
+
+- the `openai` Python package to be installed
+- the `OPENAI_API_KEY` secret to be available before starting the app
+
+The active model and confidence threshold are configured in `app_src/config.py` through:
+
+- `CHATGPT_MODEL`
+- `CHATGPT_CONFIDENCE_THRESHOLD`
+
+Recommended setup:
+
+1. Copy `.env.example` to `.env` in the project root.
+2. Replace the placeholder value with your real OpenAI API key.
+3. Start the app normally.
+
+The app now auto-loads a local `.env` file on startup, so users do not need to manually define a system-wide environment variable just to use the ChatGPT backend.
+
+Example `.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+`.env` is already git-ignored and should stay local to each user.
 
 ## Build From Source (Run Using Anaconda)
 There are two preparation steps that you need to follow before using the app with Anaconda.

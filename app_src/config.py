@@ -26,6 +26,8 @@ GAUSSIAN_FILTER_SIGMA = 4  # how agressive to smooth the spectrogram or theta/de
 
 # %% Automatic sleep scoring customization
 POSTPROCESS = True
+CHATGPT_MODEL = "gpt-5.4-mini"
+CHATGPT_CONFIDENCE_THRESHOLD = 0.5
 
 # %% Others
 PORT = 8050

@@ -9,6 +9,7 @@ from pathlib import Path
 from scipy.io import loadmat, savemat
 
 import app_src.chatgpt_inference as chatgpt_inference
+from app_src.config import CHATGPT_CONFIDENCE_THRESHOLD
 from app_src.postprocessing import postprocess_sleep_scores
 
 MODEL_PATH = Path(__file__).parents[1] / "models" / "sdreamer" / "checkpoints"
@@ -17,7 +18,9 @@ SDREAMER_OPTIONAL_PACKAGES = ("torch", "timm", "einops")
 
 def is_sdreamer_available():
     """Return True when the optional ML dependencies are installed."""
-    return all(importlib.util.find_spec(package) is not None for package in SDREAMER_OPTIONAL_PACKAGES)
+    return all(
+        importlib.util.find_spec(package) is not None for package in SDREAMER_OPTIONAL_PACKAGES
+    )
 
 
 def run_inference(
@@ -33,7 +36,11 @@ def run_inference(
     del num_class, save_inference
 
     if backend == "chatgpt":
-        predictions, confidence = chatgpt_inference.infer(mat)
+        postprocess = False  # no postprocess if using chatgpt
+        predictions, confidence = chatgpt_inference.infer(
+            mat,
+            confidence_threshold=CHATGPT_CONFIDENCE_THRESHOLD,
+        )
     else:
         if backend != "sdreamer":
             raise ValueError(f"Unsupported inference backend: {backend}")

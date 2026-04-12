@@ -118,7 +118,7 @@ def make_prediction_backend_dropdown(pred_disabled=True):
             "disabled": pred_disabled,
         },
         {
-            "label": "ChatGPT (placeholder)",
+            "label": "ChatGPT",
             "value": "chatgpt",
         },
     ]

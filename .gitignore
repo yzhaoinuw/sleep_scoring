@@ -13,6 +13,7 @@ app_pyinstaller_test.spec
 get_gold_standard.py
 gold_standard_demo.png
 model_infer_example.txt
+test-artifacts/
 
 # Local archival / historical materials
 archive/
