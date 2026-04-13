@@ -560,6 +560,7 @@ def generate_prediction(n_clicks, net_annotation_count):
     mat_path = cache.get("filepath")
     # filename = cache.get("filename")
     mat = loadmat(mat_path, squeeze_me=True)
+    mat["_source_filename"] = Path(mat_path).stem
     # temp_mat_path = (
     #    TEMP_PATH / f"{filename}.mat"
     # )  # savemat automatically saves as .mat file

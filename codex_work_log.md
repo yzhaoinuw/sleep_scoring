@@ -2,6 +2,56 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-12
+
+### Done Today
+
+- Reviewed the current ChatGPT scoring guidance and confirmed that `app_src/chatgpt_inference.py` loads `app_src/chatgpt_scoring_guidance.md` verbatim as the system prompt.
+- Confirmed the previous guidance file was still an early draft and that its "future iteration" notes were being sent to the model as part of the prompt.
+- Confirmed that the detailed scoring rules were not written in a second prompt file elsewhere:
+  - signal summaries come from `app_src/chatgpt_tools.py`
+  - a few deterministic cleanup heuristics still live in `app_src/postprocessing.py`
+- Rewrote `app_src/chatgpt_scoring_guidance.md` into a tighter prompt that now:
+  - removes draft/dev-note content
+  - adds explicit EEG spectrogram, EMG, and NE stage cues
+  - keeps transition guidance and uncertainty handling concise
+- Refined the guidance again to make the expert scoring order explicit:
+  - EEG spectrogram and theta/delta first
+  - NE next for `REM` versus `Wake` when available
+  - EMG last as a comparative `Wake` cue that should be used cautiously
+- Added `CHATGPT_SHOW_THOUGHTS` to `app_src/config.py` as an opt-in debug toggle.
+- Updated `app_src/chatgpt_inference.py` so when that toggle is enabled it writes a per-run `.txt` trace into the same temp snapshot folder as `chatgpt_snapshots`.
+- The trace currently records visible model summaries and structured outputs plus pipeline actions, interval context, refinements, and fallback/error details.
+- Added test coverage in `tests/test_inference_scaffold.py` for trace-file creation.
+- Updated ChatGPT snapshot figure titles to use the source `.mat` stem plus absolute interval bounds instead of the generic `ChatGPT Sleep Scoring` title.
+- Threaded the source filename into inference from the active app path using hidden `_source_filename` metadata so exported overview and zoom images can be labeled clearly.
+- Deferred a follow-up trace improvement for later: add a compact top-of-trace summary of why each interval was selected for refinement.
+- Increased the requested density of major x-axis labels in the active figure builders by setting `xaxis4.nticks = 16`, so overview snapshots should carry more readable time labels for the vision model.
+- Commented out the temporary hour-mark minor ticks in both figure builders because they add clutter and may confuse the vision model.
+- Added figure-layout test coverage in `tests/test_chatgpt_tools.py` for the denser overview ticks and disabled minor ticks.
+- Added a configurable ChatGPT refinement mode in `app_src/config.py` and `app_src/chatgpt_inference.py`.
+- Set the current default refinement mode to overview-only with:
+  - `CHATGPT_REFINEMENT_MODE = "none"`
+  - `CHATGPT_FIXED_REFINEMENT_SECTION_COUNT = 4` ready for the next fixed-broad-section experiment
+- Added support for:
+  - `none` to skip all second-pass zoom refinement
+  - `adaptive` to preserve the old uncertainty/transition-driven local zoom behavior
+  - `fixed_sections` to run broad second-pass refinement across evenly divided recording sections
+- Added inference tests covering:
+  - the new overview-only default
+  - the preserved adaptive path
+  - the new fixed broad-section path
+- Simplified the ChatGPT trace `.txt` output so it now focuses on model-visible summaries, proposed bouts, uncertain intervals, applied blocks, and fallback/error notes.
+- Removed prompt/request payload dumps from the trace file so it reads like a compact scoring report instead of a raw debug dump.
+- Replaced UUID-style ChatGPT snapshot and trace filenames with deterministic readable names based on the recording stem and interval bounds.
+- ChatGPT snapshot files now use names like `<mat_name>_<start>s_<end>s.png`, and the trace file now uses `<mat_name>_thoughts.txt`.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_inference_scaffold.py`
+- Result: 10 tests passed
+- Note: pytest still emitted the existing repo-local cache permission warning, but the test run completed successfully.
+
 ## 2026-04-11
 
 ### Done Today

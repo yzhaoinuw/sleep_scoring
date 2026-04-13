@@ -20,7 +20,7 @@ Quick workflow:
 
 - `app_src/chatgpt_tools.py` helper functions are implemented.
 - `tests/test_chatgpt_tools.py` covers the helper contracts.
-- `app_src/chatgpt_scoring_guidance.md` exists as an early draft.
+- `app_src/chatgpt_scoring_guidance.md` now contains the active tightened scoring guidance used by the ChatGPT backend.
 - `app_src/chatgpt_inference.py` now performs a first real coarse ChatGPT overview pass.
 - `app_src/chatgpt_inference.py` now also performs targeted local refinement with zoom snapshots and interval features for uncertain, low-confidence, and transition-heavy intervals.
 - The ChatGPT backend now falls back safely when the SDK, API key, snapshot export, or structured output path is unavailable.
@@ -28,6 +28,14 @@ Quick workflow:
 - The app UI now treats ChatGPT as a real backend and reports readiness when the local SDK or API key is missing.
 - A live ChatGPT run still requires the local `openai` package to be installed, but the app now auto-loads `OPENAI_API_KEY` from a repo-local `.env` file.
 - A first live ChatGPT scoring run completed successfully through the app, but the sleep-stage quality is not yet good enough for beta use.
+- The guidance prompt in `app_src/chatgpt_scoring_guidance.md` has been tightened so the model now receives explicit EEG spectrogram first, NE second, and EMG last guidance, along with concise transition and uncertainty instructions and no extra dev notes.
+- Optional ChatGPT trace logging is now available through `CHATGPT_SHOW_THOUGHTS` in `app_src/config.py`, writing a `.txt` trace beside the snapshot images for each enabled run.
+- The ChatGPT trace file now focuses on model-visible summaries and labeled block outputs instead of dumping the full prompt payload.
+- ChatGPT snapshot and trace filenames are now deterministic and human-readable instead of UUID-heavy.
+- ChatGPT overview and zoom snapshot titles now use the source `.mat` stem plus the exported interval bounds.
+- The overview figure now requests denser major x-axis labels and has temporary hour-mark minor ticks disabled to make the snapshot easier for the vision model to read.
+- ChatGPT refinement is now configurable through `CHATGPT_REFINEMENT_MODE`, and the current default is overview-only so the model is forced to prioritize coarse global structure first.
+- A four-section broad-refinement mode is now implemented and ready to test next by switching `CHATGPT_REFINEMENT_MODE` to `fixed_sections`.
 
 ## Beta Checklist
 
@@ -50,9 +58,9 @@ Quick workflow:
 - [ ] Add fixture cases covering confident scoring, uncertain intervals, malformed responses, and API failures.
 - [ ] Build a small evaluation set of representative `.mat` files for beta validation.
 - [ ] Measure agreement with expected labels and review the main failure modes before beta.
-- [ ] Tighten the prompt with clearer sleep-stage heuristics and uncertainty instructions.
+- [x] Tighten the prompt with clearer sleep-stage heuristics and uncertainty instructions.
 - [ ] Investigate why the live ChatGPT scores are poor and identify the highest-leverage improvements.
-- [ ] Add optional prediction trace logging so the model can write its reasoning, observations, and actions to a `.txt` file during sleep-score generation for debugging.
+- [x] Add optional prediction trace logging so the model can write its visible reasoning summaries, observations, and actions to a `.txt` file during sleep-score generation for debugging.
 
 ## Suggested Build Order
 
@@ -70,7 +78,12 @@ Quick workflow:
 - [ ] Improve retry/failure handling and fallback behavior.
 - [x] Replace placeholder UI text.
 - [ ] Run evaluation on a small representative dataset.
-- [ ] Add debug logging for live ChatGPT prediction traces and use it to diagnose scoring mistakes.
+- [x] Add debug logging for live ChatGPT prediction traces.
+- [ ] Use the new traces to diagnose scoring mistakes.
+- [ ] Add a compact top-of-trace summary of why each interval was selected for refinement.
+- [ ] Evaluate the new overview-only default against the previous adaptive-refinement behavior on a small representative set.
+- [ ] If overview-only helps global structure but still misses REM, test `fixed_sections` refinement next.
+- [ ] If REM remains weak after the refinement change, add a small curated set of REM-vs-quiet-Wake ground-truth exemplar images.
 
 ## Notes
 

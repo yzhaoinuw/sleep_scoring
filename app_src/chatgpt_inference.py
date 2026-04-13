@@ -20,7 +20,7 @@ import math
 import mimetypes
 import os
 import tempfile
-import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,13 +33,17 @@ from app_src.chatgpt_tools import (
     get_current_scores,
     get_interval_features,
 )
-from app_src.config import CHATGPT_MODEL
+from app_src.config import CHATGPT_MODEL, CHATGPT_SHOW_THOUGHTS
+from app_src.config import CHATGPT_FIXED_REFINEMENT_SECTION_COUNT, CHATGPT_REFINEMENT_MODE
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 
 DEFAULT_CHATGPT_MODEL = CHATGPT_MODEL
 DEFAULT_SNAPSHOT_DIR = Path(tempfile.gettempdir()) / "sleep_scoring_app_data" / "chatgpt_snapshots"
 DEFAULT_GUIDANCE_PROMPT_PATH = Path(__file__).with_name("chatgpt_scoring_guidance.md")
 DEFAULT_CONFIDENCE_THRESHOLD = 0.7
+DEFAULT_SHOW_THOUGHTS = CHATGPT_SHOW_THOUGHTS
+DEFAULT_REFINEMENT_MODE = CHATGPT_REFINEMENT_MODE
+DEFAULT_FIXED_REFINEMENT_SECTION_COUNT = CHATGPT_FIXED_REFINEMENT_SECTION_COUNT
 OPENAI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
 DEFAULT_REFINEMENT_MARGIN_S = 15
 DEFAULT_MAX_REFINEMENT_INTERVALS = 6
@@ -109,6 +113,49 @@ def _get_recording_window(mat: dict[str, Any]) -> tuple[float, int, float]:
     return start_s, duration_s, end_s
 
 
+def _get_recording_label(mat: dict[str, Any]) -> str:
+    """Return a human-readable recording label for exported figure titles."""
+    for key in (
+        "_source_filename",
+        "filename",
+        "file_name",
+        "mat_name",
+        "recording_name",
+    ):
+        value = mat.get(key)
+        if value is None:
+            continue
+
+        label = str(np.asarray(value).reshape(-1)[0]).strip()
+        if label:
+            return Path(label).stem
+
+    return "recording"
+
+
+def _format_title_second(value: float) -> str:
+    """Format a second value compactly for figure titles."""
+    numeric = float(value)
+    if numeric.is_integer():
+        return str(int(numeric))
+
+    return f"{numeric:.3f}".rstrip("0").rstrip(".")
+
+
+def _build_snapshot_title(recording_label: str, start_s: float, end_s: float) -> str:
+    """Build a concise figure title with the recording label and interval."""
+    return (
+        f"{recording_label} | " f"{_format_title_second(start_s)}s-{_format_title_second(end_s)}s"
+    )
+
+
+def _set_figure_title(figure: Any, title_text: str) -> None:
+    """Best-effort figure title update for exported snapshots."""
+    update_layout = getattr(figure, "update_layout", None)
+    if callable(update_layout):
+        update_layout(title=dict(text=title_text))
+
+
 def _normalize_confidence_threshold(confidence_threshold: float | None) -> float:
     """Return a bounded confidence threshold in [0, 1]."""
     if confidence_threshold is None:
@@ -129,6 +176,208 @@ def _normalize_confidence_threshold(confidence_threshold: float | None) -> float
 def _load_guidance_prompt(prompt_path: str | Path = DEFAULT_GUIDANCE_PROMPT_PATH) -> str:
     """Load the current sleep-scoring guidance prompt."""
     return Path(prompt_path).read_text(encoding="utf-8").strip()
+
+
+def _normalize_show_thoughts(show_thoughts: bool | None) -> bool:
+    """Return the explicit trace-logging choice for this inference run."""
+    if show_thoughts is None:
+        return bool(DEFAULT_SHOW_THOUGHTS)
+
+    return bool(show_thoughts)
+
+
+def _normalize_refinement_mode(refinement_mode: str | None) -> str:
+    """Return the requested refinement mode for this inference run."""
+    raw_mode = DEFAULT_REFINEMENT_MODE if refinement_mode is None else refinement_mode
+    normalized_mode = str(raw_mode).strip().lower()
+    aliases = {
+        "disabled": "none",
+        "off": "none",
+        "overview_only": "none",
+        "fixed": "fixed_sections",
+    }
+    normalized_mode = aliases.get(normalized_mode, normalized_mode)
+
+    if normalized_mode not in {"none", "adaptive", "fixed_sections"}:
+        raise ValueError("refinement_mode must be one of 'none', 'adaptive', or 'fixed_sections'.")
+
+    return normalized_mode
+
+
+def _normalize_fixed_refinement_section_count(section_count: int | None) -> int:
+    """Return the number of fixed broad refinement sections to use."""
+    raw_count = DEFAULT_FIXED_REFINEMENT_SECTION_COUNT if section_count is None else section_count
+    normalized_count = int(raw_count)
+    if normalized_count < 1:
+        raise ValueError("fixed_refinement_section_count must be at least 1.")
+
+    return normalized_count
+
+
+def _sanitize_trace_value(value: Any) -> Any:
+    """Redact large binary payloads so trace logs stay readable."""
+    if isinstance(value, str):
+        if value.startswith("data:") and ";base64," in value:
+            prefix, _, encoded = value.partition(";base64,")
+            return f"{prefix};base64,<omitted {len(encoded)} chars>"
+        return value
+
+    if isinstance(value, list):
+        return [_sanitize_trace_value(item) for item in value]
+
+    if isinstance(value, dict):
+        return {key: _sanitize_trace_value(item) for key, item in value.items()}
+
+    return value
+
+
+class _TraceLogger:
+    """Write an opt-in plain-text debug trace for one ChatGPT inference run."""
+
+    def __init__(self, enabled: bool, path: Path | None):
+        self.enabled = enabled
+        self.path = path if enabled else None
+        self._lines: list[str] = []
+
+    def add(self, title: str, value: Any | None = None) -> None:
+        """Append one trace section when logging is enabled."""
+        if not self.enabled:
+            return
+
+        self._lines.append(f"## {title}")
+        if value is not None:
+            self._lines.append(self._format_value(value))
+        self._lines.append("")
+
+    def save(self) -> None:
+        """Flush the accumulated trace to disk."""
+        if not self.enabled or self.path is None:
+            return
+
+        self.path.write_text("\n".join(self._lines).rstrip() + "\n", encoding="utf-8")
+
+    def add_text_block(self, title: str, lines: list[str]) -> None:
+        """Append a preformatted plain-text block."""
+        if not self.enabled:
+            return
+
+        self._lines.append(f"## {title}")
+        self._lines.extend(lines or ["(none)"])
+        self._lines.append("")
+
+    def _format_value(self, value: Any) -> str:
+        sanitized = _sanitize_trace_value(value)
+        if isinstance(sanitized, str):
+            return sanitized
+
+        return json.dumps(sanitized, indent=2, sort_keys=True, default=str)
+
+
+def _format_confidence(confidence: Any) -> str:
+    """Format a confidence value for trace output."""
+    if confidence is None:
+        return "n/a"
+
+    numeric = float(confidence)
+    return f"{numeric:.2f}"
+
+
+def _trace_interval_bounds(item: dict[str, Any]) -> tuple[Any, Any]:
+    """Return whichever interval keys are available for trace formatting."""
+    start_value = item.get("start_idx", item.get("start_s"))
+    end_value = item.get("end_idx", item.get("end_s"))
+    return start_value, end_value
+
+
+def _format_trace_bouts(bouts: list[dict[str, Any]]) -> list[str]:
+    """Format scored bouts for compact trace output."""
+    if not bouts:
+        return ["(none)"]
+
+    lines = []
+    for bout in bouts:
+        start_value, end_value = _trace_interval_bounds(bout)
+        lines.append(
+            "- "
+            f"{start_value}s-{end_value}s | "
+            f"{bout['state']} | confidence {_format_confidence(bout.get('confidence'))}"
+        )
+    return lines
+
+
+def _format_trace_uncertain_intervals(intervals: list[dict[str, Any]]) -> list[str]:
+    """Format uncertain intervals for compact trace output."""
+    if not intervals:
+        return ["(none)"]
+
+    lines = []
+    for interval in intervals:
+        start_value, end_value = _trace_interval_bounds(interval)
+        reason = interval.get("reason") or "uncertain"
+        lines.append(f"- {start_value}s-{end_value}s | {reason}")
+    return lines
+
+
+def _format_trace_payload(payload: dict[str, Any]) -> dict[str, list[str]]:
+    """Convert a structured model payload into compact visible-reasoning blocks."""
+    bouts = payload.get("bouts", [])
+    uncertain_intervals = payload.get("uncertain_intervals", [])
+    summary = str(payload.get("summary", "")).strip() or "(no summary)"
+    return {
+        "summary": [summary],
+        "bouts": _format_trace_bouts(bouts),
+        "uncertain_intervals": _format_trace_uncertain_intervals(uncertain_intervals),
+    }
+
+
+def _format_refinement_window(
+    candidate: dict[str, Any],
+    recording_start_s: float,
+) -> list[str]:
+    """Format the requested refinement window as a small trace block."""
+    return [
+        "- "
+        f"{recording_start_s + candidate['start_idx']:.0f}s-"
+        f"{recording_start_s + candidate['end_idx']:.0f}s | "
+        f"{candidate.get('reason') or 'refinement'}"
+    ]
+
+
+def _sanitize_filename_part(value: str) -> str:
+    """Convert a label into a filesystem-safe filename fragment."""
+    sanitized = []
+    for char in str(value).strip():
+        if char.isalnum() or char in {"-", "_"}:
+            sanitized.append(char)
+        else:
+            sanitized.append("_")
+
+    result = "".join(sanitized).strip("._")
+    return result or "recording"
+
+
+def _build_snapshot_basename(recording_label: str, start_s: float, end_s: float) -> str:
+    """Return a readable basename for overview/zoom snapshot files."""
+    safe_label = _sanitize_filename_part(recording_label)
+    return f"{safe_label}_{_format_title_second(start_s)}s_{_format_title_second(end_s)}s"
+
+
+def _build_snapshot_path(
+    snapshot_dir: Path,
+    recording_label: str,
+    start_s: float,
+    end_s: float,
+    suffix: str = ".png",
+) -> Path:
+    """Return a deterministic snapshot path for the given recording interval."""
+    basename = _build_snapshot_basename(recording_label, start_s, end_s)
+    return snapshot_dir / f"{basename}{suffix}"
+
+
+def _build_trace_path(snapshot_dir: Path, recording_label: str) -> Path:
+    """Return a deterministic trace path for one recording."""
+    safe_label = _sanitize_filename_part(recording_label)
+    return snapshot_dir / f"{safe_label}_thoughts.txt"
 
 
 def _build_openai_client(client: Any = None) -> Any:
@@ -500,6 +749,29 @@ def _build_refinement_candidates(
     return _merge_refinement_candidates(candidates, max_intervals=max_intervals)
 
 
+def _build_fixed_section_refinement_candidates(
+    duration_s: int,
+    section_count: int,
+) -> list[dict[str, Any]]:
+    """Split the recording into a small number of broad fixed refinement windows."""
+    candidates = []
+    for section_index in range(section_count):
+        start_idx = (section_index * duration_s) // section_count
+        end_idx = ((section_index + 1) * duration_s) // section_count
+        if end_idx <= start_idx:
+            continue
+
+        candidates.append(
+            {
+                "start_idx": start_idx,
+                "end_idx": end_idx,
+                "reason": f"fixed broad section {section_index + 1} of {section_count}",
+            }
+        )
+
+    return candidates
+
+
 def _shift_current_scores_to_absolute(
     current_scores: dict[str, Any],
     recording_start_s: float,
@@ -548,6 +820,8 @@ def _request_structured_scoring(
     client: Any,
     model_name: str,
     request_input: list[dict[str, Any]],
+    trace_logger: _TraceLogger | None = None,
+    trace_label: str = "ChatGPT Request",
 ) -> dict[str, Any]:
     """Send one structured scoring request and return the decoded payload."""
     response = client.responses.create(
@@ -555,7 +829,18 @@ def _request_structured_scoring(
         input=request_input,
         text={"format": RESPONSE_TEXT_FORMAT},
     )
-    return _extract_response_payload(response)
+    payload = _extract_response_payload(response)
+
+    if trace_logger is not None:
+        formatted_payload = _format_trace_payload(payload)
+        trace_logger.add_text_block(f"{trace_label} Summary", formatted_payload["summary"])
+        trace_logger.add_text_block(f"{trace_label} Proposed Bouts", formatted_payload["bouts"])
+        trace_logger.add_text_block(
+            f"{trace_label} Proposed Uncertain Intervals",
+            formatted_payload["uncertain_intervals"],
+        )
+
+    return payload
 
 
 def _run_refinement_pass(
@@ -566,6 +851,7 @@ def _run_refinement_pass(
     client: Any,
     model_name: str,
     guidance_prompt: str,
+    recording_label: str,
     recording_start_s: float,
     duration_s: int,
     current_predictions: np.ndarray,
@@ -573,17 +859,45 @@ def _run_refinement_pass(
     coarse_bouts: list[dict[str, Any]],
     coarse_uncertain_intervals: list[dict[str, Any]],
     confidence_threshold: float,
+    refinement_mode: str,
+    fixed_refinement_section_count: int,
+    trace_logger: _TraceLogger | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Run zoomed local follow-up requests for ambiguous or transition-heavy regions."""
-    refinement_candidates = _build_refinement_candidates(
-        bouts=coarse_bouts,
-        uncertain_intervals=coarse_uncertain_intervals,
-        duration_s=duration_s,
-        confidence_threshold=confidence_threshold,
-    )
-
+    if refinement_mode == "none":
+        refinement_candidates = []
+    elif refinement_mode == "fixed_sections":
+        refinement_candidates = _build_fixed_section_refinement_candidates(
+            duration_s=duration_s,
+            section_count=fixed_refinement_section_count,
+        )
+    else:
+        refinement_candidates = _build_refinement_candidates(
+            bouts=coarse_bouts,
+            uncertain_intervals=coarse_uncertain_intervals,
+            duration_s=duration_s,
+            confidence_threshold=confidence_threshold,
+        )
     predictions = current_predictions.copy()
     confidence = current_confidence.copy()
+
+    if trace_logger is not None:
+        trace_logger.add_text_block(
+            "Refinement Mode",
+            [f"- {refinement_mode}"],
+        )
+        trace_logger.add_text_block(
+            "Refinement Windows",
+            [
+                line
+                for candidate in refinement_candidates
+                for line in _format_refinement_window(candidate, recording_start_s)
+            ]
+            or ["(none)"],
+        )
+
+    if not refinement_candidates:
+        return predictions, confidence
 
     for candidate_index, candidate in enumerate(refinement_candidates):
         interval_start_s = recording_start_s + candidate["start_idx"]
@@ -591,7 +905,16 @@ def _run_refinement_pass(
         baseline_scores = predictions.copy()
 
         try:
-            snapshot_path = snapshot_dir / f"zoom_{candidate_index}_{uuid.uuid4().hex}.png"
+            _set_figure_title(
+                figure,
+                _build_snapshot_title(recording_label, interval_start_s, interval_end_s),
+            )
+            snapshot_path = _build_snapshot_path(
+                snapshot_dir,
+                recording_label,
+                interval_start_s,
+                interval_end_s,
+            )
             snapshot_path = capture_zoom_snapshot(
                 figure,
                 interval_start_s,
@@ -615,6 +938,11 @@ def _run_refinement_pass(
                 current_scores,
                 recording_start_s=recording_start_s,
             )
+            if trace_logger is not None:
+                trace_logger.add_text_block(
+                    f"Refinement {candidate_index} Window",
+                    _format_refinement_window(candidate, recording_start_s),
+                )
 
             payload = _request_structured_scoring(
                 client=client,
@@ -628,6 +956,8 @@ def _run_refinement_pass(
                     interval_features=interval_features,
                     current_scores=current_scores,
                 ),
+                trace_logger=trace_logger,
+                trace_label=f"Refinement {candidate_index}",
             )
             refined_bouts, refined_uncertain_intervals = _normalize_bouts(
                 payload,
@@ -639,7 +969,15 @@ def _run_refinement_pass(
                 refined_uncertain_intervals,
                 candidate,
             )
-        except Exception:
+        except Exception as exc:
+            if trace_logger is not None:
+                trace_logger.add(
+                    f"Refinement {candidate_index} Error",
+                    {
+                        "candidate": candidate,
+                        "error": repr(exc),
+                    },
+                )
             continue
 
         predictions, confidence = _overlay_structured_scoring(
@@ -650,6 +988,15 @@ def _run_refinement_pass(
             uncertain_intervals=refined_uncertain_intervals,
             confidence_threshold=confidence_threshold,
         )
+        if trace_logger is not None:
+            trace_logger.add_text_block(
+                f"Refinement {candidate_index} Applied Bouts",
+                _format_trace_bouts(refined_bouts),
+            )
+            trace_logger.add_text_block(
+                f"Refinement {candidate_index} Applied Uncertain Intervals",
+                _format_trace_uncertain_intervals(refined_uncertain_intervals),
+            )
 
     return predictions, confidence
 
@@ -660,6 +1007,9 @@ def infer(
     snapshot_dir: str | Path = DEFAULT_SNAPSHOT_DIR,
     client: Any = None,
     confidence_threshold: float | None = None,
+    show_thoughts: bool | None = None,
+    refinement_mode: str | None = None,
+    fixed_refinement_section_count: int | None = None,
     guidance_prompt_path: str | Path = DEFAULT_GUIDANCE_PROMPT_PATH,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -673,20 +1023,53 @@ def infer(
     base_scores = get_padded_sleep_scores(mat).astype(float)
     fallback_confidence = np.full(base_scores.shape, np.nan, dtype=float)
     threshold = _normalize_confidence_threshold(confidence_threshold)
+    normalized_refinement_mode = _normalize_refinement_mode(refinement_mode)
+    normalized_fixed_refinement_section_count = _normalize_fixed_refinement_section_count(
+        fixed_refinement_section_count
+    )
+    recording_label = _get_recording_label(mat)
+    snapshot_dir = Path(snapshot_dir)
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    trace_logger = _TraceLogger(
+        enabled=_normalize_show_thoughts(show_thoughts),
+        path=_build_trace_path(snapshot_dir, recording_label),
+    )
+    trace_logger.add_text_block(
+        "Trace Info",
+        [
+            f"- timestamp: {datetime.now().isoformat(timespec='seconds')}",
+            f"- model: {model_name}",
+            f"- confidence_threshold: {threshold:.2f}",
+            f"- refinement_mode: {normalized_refinement_mode}",
+        ],
+    )
 
     client = _build_openai_client(client=client)
     if client is None:
+        trace_logger.add_text_block(
+            "Fallback",
+            ["- OpenAI client unavailable. Returning the current in-memory scores."],
+        )
+        trace_logger.save()
         return base_scores, fallback_confidence
 
     try:
         guidance_prompt = _load_guidance_prompt(guidance_prompt_path)
         recording_start_s, duration_s, recording_end_s = _get_recording_window(mat)
-
-        snapshot_dir = Path(snapshot_dir)
-        snapshot_dir.mkdir(parents=True, exist_ok=True)
-        snapshot_path = snapshot_dir / f"overview_{uuid.uuid4().hex}.png"
-
-        figure = make_figure(mat, plot_name="ChatGPT Sleep Scoring")
+        figure = make_figure(
+            mat,
+            plot_name=_build_snapshot_title(
+                recording_label,
+                recording_start_s,
+                recording_end_s,
+            ),
+        )
+        snapshot_path = _build_snapshot_path(
+            snapshot_dir,
+            recording_label,
+            recording_start_s,
+            recording_end_s,
+        )
         snapshot_path = capture_overview_snapshot(figure, snapshot_path)
         image_data_url = _image_path_to_data_url(snapshot_path)
 
@@ -699,6 +1082,8 @@ def infer(
                 recording_start_s=recording_start_s,
                 recording_end_s=recording_end_s,
             ),
+            trace_logger=trace_logger,
+            trace_label="Coarse Pass",
         )
 
         coarse_bouts, coarse_uncertain_intervals = _normalize_bouts(
@@ -706,7 +1091,6 @@ def infer(
             recording_start_s=recording_start_s,
             duration_s=duration_s,
         )
-
         predictions, confidence = _overlay_structured_scoring(
             current_predictions=base_scores,
             current_confidence=fallback_confidence,
@@ -715,6 +1099,14 @@ def infer(
             uncertain_intervals=coarse_uncertain_intervals,
             confidence_threshold=threshold,
         )
+        trace_logger.add_text_block(
+            "Coarse Pass Applied Bouts",
+            _format_trace_bouts(coarse_bouts),
+        )
+        trace_logger.add_text_block(
+            "Coarse Pass Applied Uncertain Intervals",
+            _format_trace_uncertain_intervals(coarse_uncertain_intervals),
+        )
         predictions, confidence = _run_refinement_pass(
             mat=mat,
             figure=figure,
@@ -722,6 +1114,7 @@ def infer(
             client=client,
             model_name=model_name,
             guidance_prompt=guidance_prompt,
+            recording_label=recording_label,
             recording_start_s=recording_start_s,
             duration_s=duration_s,
             current_predictions=predictions,
@@ -729,7 +1122,29 @@ def infer(
             coarse_bouts=coarse_bouts,
             coarse_uncertain_intervals=coarse_uncertain_intervals,
             confidence_threshold=threshold,
+            refinement_mode=normalized_refinement_mode,
+            fixed_refinement_section_count=normalized_fixed_refinement_section_count,
+            trace_logger=trace_logger,
+        )
+        trace_logger.add_text_block(
+            "Final Writeback",
+            [
+                f"- predictions_written: {int(np.count_nonzero(~np.isnan(predictions)))}",
+                f"- confidence_written: {int(np.count_nonzero(~np.isnan(confidence)))}",
+            ],
         )
         return predictions, confidence
-    except Exception:
+    except Exception as exc:
+        trace_logger.add_text_block(
+            "Run Error",
+            [
+                f"- {repr(exc)}",
+                "- Returning the current in-memory scores.",
+            ],
+        )
         return base_scores, fallback_confidence
+    finally:
+        try:
+            trace_logger.save()
+        except Exception:
+            pass

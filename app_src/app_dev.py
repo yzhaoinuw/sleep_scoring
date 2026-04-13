@@ -717,6 +717,7 @@ def generate_prediction(prediction_request):
 
     mat_path = cache.get("filepath")
     mat = loadmat(mat_path, squeeze_me=True)
+    mat["_source_filename"] = Path(mat_path).stem
     mat, output_path = run_inference(
         mat,
         postprocess=POSTPROCESS,

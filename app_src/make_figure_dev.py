@@ -42,6 +42,7 @@ COLORSCALE = {
 RANGE_QUANTILE = 0.9999
 HEATMAP_WIDTH = 2000
 RANGE_PADDING_PERCENT = 0.2
+OVERVIEW_XAXIS_NTICKS = 16
 
 
 def get_padded_sleep_scores(mat) -> np.ndarray:
@@ -258,7 +259,10 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
             yref="paper",
         ),
         # yaxis4=dict(tickvals=[]),  # suppress y ticks on the heatmap
-        xaxis4=dict(tickformat="digits"),
+        xaxis4=dict(
+            tickformat="digits",
+            nticks=OVERVIEW_XAXIS_NTICKS,
+        ),
         legend=dict(
             x=0.6,  # adjust these values to position the sleep score legend STAGE_NAMES
             y=0.85,
@@ -281,15 +285,17 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
         col=1,
         title_text="<b>Time (s)</b>",
         title_standoff=10,
-        ticklabelstandoff=5,  # keep some distance between tick label and the minor ticks
-        minor=dict(
-            tick0=0,
-            dtick=3600,
-            tickcolor="black",
-            ticks="outside",
-            ticklen=5,
-            tickwidth=2,
-        ),
+        ticklabelstandoff=5,
+        # Minor hour ticks are temporarily disabled because they add visual clutter
+        # and can confuse the ChatGPT vision model on overview snapshots.
+        # minor=dict(
+        #     tick0=0,
+        #     dtick=3600,
+        #     tickcolor="black",
+        #     ticks="outside",
+        #     ticklen=5,
+        #     tickwidth=2,
+        # ),
     )
     fig.update_yaxes(
         range=[

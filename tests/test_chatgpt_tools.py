@@ -60,6 +60,15 @@ def test_get_interval_features_recomputes_spectral_data_without_figure(mock_mat_
     )
 
 
+def test_make_figure_uses_denser_overview_ticks_without_minor_hour_marks(mock_mat_data):
+    """The active figure should request denser x labels and disable minor hour ticks."""
+    fig = make_figure(mock_mat_data, plot_name="test")
+
+    assert fig.layout.xaxis4.tickformat == "digits"
+    assert fig.layout.xaxis4.nticks == 16
+    assert fig.layout.xaxis4.minor.to_plotly_json() == {}
+
+
 def test_get_current_scores_returns_raw_scores_and_contiguous_blocks(sample_sleep_scores):
     """The helper should expose both per-second labels and merged blocks."""
     current_scores = get_current_scores(sample_sleep_scores, start_s=1.2, end_s=7.1)
