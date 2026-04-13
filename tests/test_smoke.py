@@ -72,3 +72,9 @@ class TestAppImport:
 
         assert hasattr(make_figure_dev, "make_figure")
         assert hasattr(make_figure_dev, "get_padded_sleep_scores")
+
+    def test_import_make_figure_chatgpt(self):
+        """Test ChatGPT export figure module imports."""
+        from app_src import make_figure_chatgpt
+
+        assert hasattr(make_figure_chatgpt, "make_chatgpt_vision_figure")

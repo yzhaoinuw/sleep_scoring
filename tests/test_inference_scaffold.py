@@ -63,7 +63,11 @@ def test_chatgpt_backend_applies_confident_coarse_bouts_without_refinement(
         }
     )
 
-    monkeypatch.setattr(chatgpt_inference, "make_figure", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: object(),
+    )
     monkeypatch.setattr(
         chatgpt_inference,
         "capture_overview_snapshot",
@@ -85,6 +89,105 @@ def test_chatgpt_backend_applies_confident_coarse_bouts_without_refinement(
     assert np.isnan(predictions[20:]).all()
     assert np.all(confidence[:20] == 0.95)
     assert np.isnan(confidence[20:]).all()
+
+
+def test_chatgpt_backend_uses_focused_figure_mode_by_default(
+    mock_mat_data,
+    monkeypatch,
+):
+    """The current default should keep using the focused ChatGPT export figure."""
+    from app_src import chatgpt_inference
+
+    mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
+    client = MockResponsesClient(
+        {
+            "summary": "Clear wake at the start of the session.",
+            "bouts": [
+                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+            ],
+            "uncertain_intervals": [],
+        }
+    )
+
+    focused_calls = []
+
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: focused_calls.append(kwargs.get("plot_name")) or object(),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_figure",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("full figure should not be used")
+        ),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_overview_snapshot",
+        lambda _fig, output_path: _fake_write_snapshot(output_path),
+    )
+
+    chatgpt_inference.infer(
+        mat,
+        client=client,
+        snapshot_dir=Path("test-artifacts") / "chatgpt_inference_focused_mode",
+        confidence_threshold=0.7,
+        refinement_mode="none",
+    )
+
+    assert len(focused_calls) == 1
+
+
+def test_chatgpt_backend_can_use_full_figure_mode_for_backend_comparison(
+    mock_mat_data,
+    monkeypatch,
+):
+    """A backend-only full mode should reuse the original 4-panel export builder."""
+    from app_src import chatgpt_inference
+
+    mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
+    client = MockResponsesClient(
+        {
+            "summary": "Clear wake at the start of the session.",
+            "bouts": [
+                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+            ],
+            "uncertain_intervals": [],
+        }
+    )
+
+    full_calls = []
+
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("focused figure should not be used in full mode")
+        ),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_figure",
+        lambda *args, **kwargs: full_calls.append(kwargs.get("plot_name")) or object(),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_overview_snapshot",
+        lambda _fig, output_path: _fake_write_snapshot(output_path),
+    )
+
+    chatgpt_inference.infer(
+        mat,
+        client=client,
+        snapshot_dir=Path("test-artifacts") / "chatgpt_inference_full_mode",
+        confidence_threshold=0.7,
+        refinement_mode="none",
+        vision_figure_mode="full",
+    )
+
+    assert len(full_calls) == 1
 
 
 def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_features(
@@ -120,7 +223,11 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
         ]
     )
 
-    monkeypatch.setattr(chatgpt_inference, "make_figure", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: object(),
+    )
     monkeypatch.setattr(
         chatgpt_inference,
         "capture_overview_snapshot",
@@ -131,19 +238,6 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
         "capture_zoom_snapshot",
         lambda _fig, _start_s, _end_s, output_path: _fake_write_snapshot(output_path),
     )
-    monkeypatch.setattr(
-        chatgpt_inference,
-        "get_interval_features",
-        lambda *args, **kwargs: {
-            "start_s": 20,
-            "end_s": 40,
-            "duration_s": 20,
-            "theta_delta_ratio_mean_db": 1.2,
-            "emg_rms": 0.3,
-            "current_score_dominant_state": None,
-        },
-    )
-
     snapshot_dir = Path("test-artifacts") / "chatgpt_inference_refinement"
 
     predictions, confidence = chatgpt_inference.infer(
@@ -170,8 +264,12 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
     refinement_request = client.calls[1]
     assert coarse_request["input"][0]["content"].startswith("# ChatGPT Sleep Scoring Guidance")
     assert "Refine only this local interval" in refinement_request["input"][1]["content"][0]["text"]
-    assert "interval_features=" in refinement_request["input"][1]["content"][0]["text"]
-    assert "current_scores=" in refinement_request["input"][1]["content"][0]["text"]
+    assert (
+        "Base the decision only on the image"
+        in refinement_request["input"][1]["content"][0]["text"]
+    )
+    assert "interval_features=" not in refinement_request["input"][1]["content"][0]["text"]
+    assert "current_scores=" not in refinement_request["input"][1]["content"][0]["text"]
     assert any(
         part["type"] == "input_image" and part["image_url"].startswith("data:image/png;base64,")
         for part in refinement_request["input"][1]["content"]
@@ -197,7 +295,11 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
         }
     )
 
-    monkeypatch.setattr(chatgpt_inference, "make_figure", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: object(),
+    )
     monkeypatch.setattr(
         chatgpt_inference,
         "capture_overview_snapshot",
@@ -253,7 +355,11 @@ def test_chatgpt_backend_skips_refinement_in_none_mode_even_with_uncertain_inter
         }
     )
 
-    monkeypatch.setattr(chatgpt_inference, "make_figure", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: object(),
+    )
     monkeypatch.setattr(
         chatgpt_inference,
         "capture_overview_snapshot",
@@ -307,7 +413,11 @@ def test_chatgpt_backend_can_refine_using_fixed_broad_sections(
     fake_figure = FakeFigure()
     zoom_titles = []
 
-    monkeypatch.setattr(chatgpt_inference, "make_figure", lambda *args, **kwargs: fake_figure)
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: fake_figure,
+    )
     monkeypatch.setattr(
         chatgpt_inference,
         "capture_overview_snapshot",
@@ -319,12 +429,6 @@ def test_chatgpt_backend_can_refine_using_fixed_broad_sections(
         lambda fig, _start_s, _end_s, output_path: zoom_titles.append(fig.title_updates[-1])
         or _fake_write_snapshot(output_path),
     )
-    monkeypatch.setattr(
-        chatgpt_inference,
-        "get_interval_features",
-        lambda *args, **kwargs: {"theta_delta_ratio_mean_db": 1.2},
-    )
-
     chatgpt_inference.infer(
         mat,
         client=client,
@@ -380,7 +484,7 @@ def test_chatgpt_backend_uses_recording_name_and_interval_in_snapshot_titles(
 
     monkeypatch.setattr(
         chatgpt_inference,
-        "make_figure",
+        "make_chatgpt_vision_figure",
         lambda _mat, plot_name="", **_kwargs: observed_plot_names.append(plot_name) or fake_figure,
     )
     monkeypatch.setattr(
@@ -394,17 +498,6 @@ def test_chatgpt_backend_uses_recording_name_and_interval_in_snapshot_titles(
         lambda fig, _start_s, _end_s, output_path: zoom_titles.append(fig.title_updates[-1])
         or _fake_write_snapshot(output_path),
     )
-    monkeypatch.setattr(
-        chatgpt_inference,
-        "get_interval_features",
-        lambda *args, **kwargs: {
-            "start_s": 20,
-            "end_s": 40,
-            "duration_s": 20,
-            "theta_delta_ratio_mean_db": 1.2,
-        },
-    )
-
     chatgpt_inference.infer(
         mat,
         client=client,
@@ -478,7 +571,11 @@ def test_chatgpt_backend_falls_back_when_structured_output_is_invalid(
         }
     )
 
-    monkeypatch.setattr(chatgpt_inference, "make_figure", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: object(),
+    )
     monkeypatch.setattr(
         chatgpt_inference,
         "capture_overview_snapshot",

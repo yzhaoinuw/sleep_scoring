@@ -6,36 +6,40 @@ Score the recording into one state per second:
 - `NREM`
 - `REM`
 
-Use the plotted signals and helper outputs as the source of truth. Follow this scoring order, which should drive your reasoning:
+Use the plotted image as the source of truth.
+The model-facing image is a focused two-panel layout:
 
-1. First consult the EEG spectrogram and theta/delta trace to separate `NREM` from `Wake` or `REM`.
-2. Then use NE, when available, to distinguish `REM` from `Wake`.
-3. Then use EMG as a supporting cue for `Wake`, with caution because some recordings have inflated EMG baseline from noise or setup differences.
+- Top panel: EEG spectrogram with theta/delta ratio trace overlay
+- Bottom panel: NE
 
-Use both local evidence and surrounding context, and prefer coherent bout structure over second-to-second flipping. If the evidence is mixed or weak, mark the interval as uncertain instead of forcing a label.
+Follow this scoring order, which should drive your reasoning:
+
+1. Start by labeling entire recording as `NREM`.
+2. Consult the EEG spectrogram and the overlaid theta/delta ratio trace (in white) to pick out clearly non-`NREM` intervals and relabel them as `Wake`.
+3. Then use NE, when available, to further pick out `REM` from those wake-like intervals.
+
+Use both local evidence and surrounding context, and prefer coherent bout structure over second-to-second flipping. If the evidence is mixed or weak, leave it as `NREM`.
 
 ## Signal Cues
 
-- Start with EEG spectrogram because it is the most effective cue for separating `NREM` from `Wake` or `REM`.
-- `NREM`: stronger warmer-color delta power in about 0.5-4 Hz, with lower theta/delta ratio than `Wake` or `REM`.
-- `Wake` or `REM`: relatively stronger theta activity in about 4-8 Hz and a higher theta/delta ratio than nearby `NREM`.
-- Use the theta/delta trace as a compact summary of the same comparison: lower supports `NREM`, higher supports `Wake` or `REM`.
-- If NE is available, use it next to separate `REM` from `Wake`: a sudden dip or sustained low NE supports `REM`; without that dip, the interval is more likely `Wake`.
-- If NE is absent, be more conservative when separating `REM` from quiet `Wake`.
-- Use EMG last as a supporting cue: spikes, bursts, or clear relative increases usually support `Wake`.
-- Interpret EMG comparatively within the same recording, not by absolute amplitude alone, because some sessions have noisy or elevated resting baseline.
+- Start with EEG spectrogram because it is the most effective cue for picking out `Wake` from `NREM`.
+- `NREM`: stronger warmer-color delta power in the 0-5 Hz band, with lower theta/delta ratio than `Wake`.
+- `Wake` or `REM`: relatively stronger theta activity above 5Hz and a higher theta/delta ratio than nearby `NREM`.
+- Use the theta/delta trace as a compact summary of the same comparison: lower supports `NREM`, higher supports `Wake`.
+- If NE is available, use it next to pick out `REM` from `Wake`: a sudden dramatic valley supports `REM`. Dramatic valleys are more noticeable and longer than ordinary wiggles.
+- If NE is absent, make the best guess based on the height and duration of the rise in the theta/delta ratio trace. Much higher and longer rises, sometimes up to 200 seconds, usually indicate `REM`.
+
 
 ## Bout And Transition Rules
 
-- Use spectrogram pattern, EMG, NE, and nearby context together. Do not rely on a single cue alone.
+- Use spectrogram pattern, NE, and nearby context together.
 - Prefer contiguous, biologically plausible bouts over isolated one-off state flips.
-- `REM` should usually emerge from `NREM`, not directly from sustained `Wake`.
-- A direct `REM` to `NREM` switch is less plausible than `REM` to brief `Wake` or micro-arousal.
-- Brief isolated candidate `REM` segments with weak support are suspicious; leave them uncertain if needed.
+- `REM` should usually emerge after a preceding `NREM` bout, even though in the scoring workflow it is identified by carving `REM` out of wake-like candidate intervals.
+- A direct `REM` to `NREM` switch is less plausible than `REM` to brief `Wake`.
+- Brief isolated candidate `REM` segments with weak support are suspicious; leave them as `Wake`.
 
 ## Output Behavior
 
 - Return only contiguous, non-overlapping high-confidence bouts in `bouts`.
-- Put ambiguous spans in `uncertain_intervals`.
 - For local refinement, revise only the requested interval unless the prompt explicitly allows nearby changes.
 - Keep the summary concise.

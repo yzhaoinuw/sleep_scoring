@@ -265,6 +265,35 @@ def _merge_nested_update(target: dict[str, Any], key: str, value: Any) -> None:
     _merge_nested_update(existing_value, tail, value)
 
 
+def _get_bottom_xaxis_layout_key(fig: FigureResampler) -> str:
+    """Return the layout key for the lowest shared x-axis in a subplot figure."""
+    layout = getattr(fig, "layout", None)
+    to_plotly_json = getattr(layout, "to_plotly_json", None)
+    if not callable(to_plotly_json):
+        return "xaxis"
+
+    bottom_axis_index = 1
+    for key in to_plotly_json():
+        key = str(key)
+        if not key.startswith("xaxis"):
+            continue
+
+        suffix = key.removeprefix("xaxis")
+        if suffix == "":
+            axis_index = 1
+        elif suffix.isdigit():
+            axis_index = int(suffix)
+        else:
+            continue
+
+        bottom_axis_index = max(bottom_axis_index, axis_index)
+
+    if bottom_axis_index == 1:
+        return "xaxis"
+
+    return f"xaxis{bottom_axis_index}"
+
+
 def capture_overview_snapshot(
     fig: FigureResampler,
     output_path: str | Path,
@@ -300,10 +329,11 @@ def capture_zoom_snapshot(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     export_fig = deepcopy(fig)
+    bottom_xaxis_key = _get_bottom_xaxis_layout_key(export_fig)
 
     relayout_data = {
-        "xaxis4.range[0]": start_s,
-        "xaxis4.range[1]": end_s,
+        f"{bottom_xaxis_key}.range[0]": start_s,
+        f"{bottom_xaxis_key}.range[1]": end_s,
     }
 
     update_data = export_fig._construct_update_data(relayout_data)

@@ -9,7 +9,7 @@ This module implements a two-stage scoring flow:
 3. Parse structured contiguous sleep-state bouts from the model output.
 4. Write back only bouts above a configurable confidence threshold.
 5. Run targeted local refinement for uncertain, low-confidence, or
-   transition-heavy intervals using zoom snapshots plus numeric helpers.
+   transition-heavy intervals using zoom snapshots only.
 """
 
 from __future__ import annotations
@@ -30,11 +30,10 @@ from app_src.chatgpt_tools import (
     SLEEP_STAGE_TO_SCORE,
     capture_overview_snapshot,
     capture_zoom_snapshot,
-    get_current_scores,
-    get_interval_features,
 )
 from app_src.config import CHATGPT_MODEL, CHATGPT_SHOW_THOUGHTS
 from app_src.config import CHATGPT_FIXED_REFINEMENT_SECTION_COUNT, CHATGPT_REFINEMENT_MODE
+from app_src.make_figure_chatgpt import make_chatgpt_vision_figure
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 
 DEFAULT_CHATGPT_MODEL = CHATGPT_MODEL
@@ -44,6 +43,7 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.7
 DEFAULT_SHOW_THOUGHTS = CHATGPT_SHOW_THOUGHTS
 DEFAULT_REFINEMENT_MODE = CHATGPT_REFINEMENT_MODE
 DEFAULT_FIXED_REFINEMENT_SECTION_COUNT = CHATGPT_FIXED_REFINEMENT_SECTION_COUNT
+DEFAULT_VISION_FIGURE_MODE = "focused"
 OPENAI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
 DEFAULT_REFINEMENT_MARGIN_S = 15
 DEFAULT_MAX_REFINEMENT_INTERVALS = 6
@@ -212,6 +212,39 @@ def _normalize_fixed_refinement_section_count(section_count: int | None) -> int:
         raise ValueError("fixed_refinement_section_count must be at least 1.")
 
     return normalized_count
+
+
+def _normalize_vision_figure_mode(vision_figure_mode: str | None) -> str:
+    """Return the requested model-facing figure layout mode."""
+    raw_mode = DEFAULT_VISION_FIGURE_MODE if vision_figure_mode is None else vision_figure_mode
+    normalized_mode = str(raw_mode).strip().lower()
+    aliases = {
+        "chatgpt": "focused",
+        "compact": "focused",
+        "spectrogram_ne": "focused",
+        "focused_2panel": "focused",
+        "ui": "full",
+        "full_4panel": "full",
+        "overview_full": "full",
+    }
+    normalized_mode = aliases.get(normalized_mode, normalized_mode)
+
+    if normalized_mode not in {"focused", "full"}:
+        raise ValueError("vision_figure_mode must be one of 'focused' or 'full'.")
+
+    return normalized_mode
+
+
+def _build_model_figure(
+    mat: dict[str, Any],
+    plot_name: str,
+    vision_figure_mode: str,
+) -> Any:
+    """Build the model-facing figure for the requested layout mode."""
+    if vision_figure_mode == "full":
+        return make_figure(mat, plot_name=plot_name)
+
+    return make_chatgpt_vision_figure(mat, plot_name=plot_name)
 
 
 def _sanitize_trace_value(value: Any) -> Any:
@@ -471,8 +504,6 @@ def _build_refinement_request_input(
     interval_start_s: float,
     interval_end_s: float,
     refinement_reason: str,
-    interval_features: dict[str, Any],
-    current_scores: dict[str, Any],
 ) -> list[dict[str, Any]]:
     """Build a bounded prompt for a local refinement pass."""
     metadata_prompt = (
@@ -480,12 +511,10 @@ def _build_refinement_request_input(
         f"Target interval start time: {interval_start_s:.3f} seconds.\n"
         f"Target interval end time: {interval_end_s:.3f} seconds.\n"
         f"Refinement reason: {refinement_reason}\n"
-        "Use the image and helper outputs together.\n"
+        "Base the decision only on the image for this interval.\n"
         "Only return bouts that stay entirely inside the target interval.\n"
         "If any sub-interval remains ambiguous, include it in `uncertain_intervals`.\n"
-        "The current in-memory interval labels are provided in `current_scores`.\n"
-        f"interval_features={json.dumps(interval_features, sort_keys=True)}\n"
-        f"current_scores={json.dumps(current_scores, sort_keys=True)}"
+        "Do not rely on prior labels or non-image helper summaries."
     )
 
     return [
@@ -772,39 +801,6 @@ def _build_fixed_section_refinement_candidates(
     return candidates
 
 
-def _shift_current_scores_to_absolute(
-    current_scores: dict[str, Any],
-    recording_start_s: float,
-) -> dict[str, Any]:
-    """Offset per-second score summaries into absolute recording seconds."""
-    absolute_scores = []
-    for item in current_scores["scores"]:
-        absolute_scores.append(
-            {
-                **item,
-                "second": recording_start_s + item["second"],
-            }
-        )
-
-    absolute_blocks = []
-    for block in current_scores["score_blocks"]:
-        absolute_blocks.append(
-            {
-                **block,
-                "start_s": recording_start_s + block["start_s"],
-                "end_s": recording_start_s + block["end_s"],
-            }
-        )
-
-    return {
-        **current_scores,
-        "start_s": recording_start_s + current_scores["start_s"],
-        "end_s": recording_start_s + current_scores["end_s"],
-        "scores": absolute_scores,
-        "score_blocks": absolute_blocks,
-    }
-
-
 def _validate_intervals_within_candidate(
     bouts: list[dict[str, Any]],
     uncertain_intervals: list[dict[str, Any]],
@@ -923,21 +919,6 @@ def _run_refinement_pass(
             )
             image_data_url = _image_path_to_data_url(snapshot_path)
 
-            interval_features = get_interval_features(
-                mat,
-                start_s=interval_start_s,
-                end_s=interval_end_s,
-                fig=figure,
-            )
-            current_scores = get_current_scores(
-                predictions,
-                start_s=candidate["start_idx"],
-                end_s=candidate["end_idx"],
-            )
-            current_scores = _shift_current_scores_to_absolute(
-                current_scores,
-                recording_start_s=recording_start_s,
-            )
             if trace_logger is not None:
                 trace_logger.add_text_block(
                     f"Refinement {candidate_index} Window",
@@ -953,8 +934,6 @@ def _run_refinement_pass(
                     interval_start_s=interval_start_s,
                     interval_end_s=interval_end_s,
                     refinement_reason=candidate["reason"],
-                    interval_features=interval_features,
-                    current_scores=current_scores,
                 ),
                 trace_logger=trace_logger,
                 trace_label=f"Refinement {candidate_index}",
@@ -1010,6 +989,7 @@ def infer(
     show_thoughts: bool | None = None,
     refinement_mode: str | None = None,
     fixed_refinement_section_count: int | None = None,
+    vision_figure_mode: str | None = None,
     guidance_prompt_path: str | Path = DEFAULT_GUIDANCE_PROMPT_PATH,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -1027,6 +1007,7 @@ def infer(
     normalized_fixed_refinement_section_count = _normalize_fixed_refinement_section_count(
         fixed_refinement_section_count
     )
+    normalized_vision_figure_mode = _normalize_vision_figure_mode(vision_figure_mode)
     recording_label = _get_recording_label(mat)
     snapshot_dir = Path(snapshot_dir)
     snapshot_dir.mkdir(parents=True, exist_ok=True)
@@ -1041,6 +1022,7 @@ def infer(
             f"- model: {model_name}",
             f"- confidence_threshold: {threshold:.2f}",
             f"- refinement_mode: {normalized_refinement_mode}",
+            f"- vision_figure_mode: {normalized_vision_figure_mode}",
         ],
     )
 
@@ -1056,13 +1038,14 @@ def infer(
     try:
         guidance_prompt = _load_guidance_prompt(guidance_prompt_path)
         recording_start_s, duration_s, recording_end_s = _get_recording_window(mat)
-        figure = make_figure(
-            mat,
+        figure = _build_model_figure(
+            mat=mat,
             plot_name=_build_snapshot_title(
                 recording_label,
                 recording_start_s,
                 recording_end_s,
             ),
+            vision_figure_mode=normalized_vision_figure_mode,
         )
         snapshot_path = _build_snapshot_path(
             snapshot_dir,

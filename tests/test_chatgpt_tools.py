@@ -4,12 +4,14 @@ import numpy as np
 import pytest
 
 from app_src.chatgpt_tools import (
+    _get_bottom_xaxis_layout_key,
     apply_transition_rules,
     get_current_scores,
     get_interval_features,
     mark_uncertain_interval,
     set_scores_block,
 )
+from app_src.make_figure_chatgpt import make_chatgpt_vision_figure
 from app_src.make_figure_dev import make_figure
 
 
@@ -67,6 +69,46 @@ def test_make_figure_uses_denser_overview_ticks_without_minor_hour_marks(mock_ma
     assert fig.layout.xaxis4.tickformat == "digits"
     assert fig.layout.xaxis4.nticks == 16
     assert fig.layout.xaxis4.minor.to_plotly_json() == {}
+    assert tuple(fig.layout.yaxis.range) == (0, 20)
+    assert tuple(fig.layout.yaxis.tickvals) == (0, 5, 10, 15, 20)
+
+
+def test_make_chatgpt_vision_figure_only_shows_spectrogram_and_ne(mock_mat_data_with_ne):
+    """The model-facing export figure should omit the raw EEG and EMG waveform panels."""
+    fig = make_chatgpt_vision_figure(mock_mat_data_with_ne, plot_name="test")
+
+    trace_names = [getattr(trace, "name", None) for trace in fig.data]
+
+    assert "Spectrogram" in trace_names
+    assert "Theta/Delta" in trace_names
+    assert "NE" in trace_names
+    assert "EEG" not in trace_names
+    assert "EMG" not in trace_names
+    assert fig.layout.xaxis2.tickformat == "digits"
+    assert fig.layout.xaxis2.nticks == 16
+    assert tuple(fig.layout.yaxis.range) == (0, 20)
+    assert tuple(fig.layout.yaxis.tickvals) == (0, 5, 10, 15, 20)
+
+
+def test_make_chatgpt_vision_figure_marks_missing_ne(mock_mat_data):
+    """Recordings without NE should still export a focused figure with a clear note."""
+    fig = make_chatgpt_vision_figure(mock_mat_data, plot_name="test")
+
+    annotation_text = [annotation.text for annotation in fig.layout.annotations]
+
+    assert "NE unavailable" in annotation_text
+
+
+def test_zoom_snapshot_helper_detects_bottom_xaxis_for_both_figure_layouts(
+    mock_mat_data,
+    mock_mat_data_with_ne,
+):
+    """Zoom export should work with both the 4-row UI figure and the 2-row ChatGPT figure."""
+    full_figure = make_figure(mock_mat_data, plot_name="full")
+    chatgpt_figure = make_chatgpt_vision_figure(mock_mat_data_with_ne, plot_name="chatgpt")
+
+    assert _get_bottom_xaxis_layout_key(full_figure) == "xaxis4"
+    assert _get_bottom_xaxis_layout_key(chatgpt_figure) == "xaxis2"
 
 
 def test_get_current_scores_returns_raw_scores_and_contiguous_blocks(sample_sleep_scores):

@@ -2,6 +2,66 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-13
+
+### Done Today
+
+- Refined `app_src/chatgpt_scoring_guidance.md` to make the new scoring workflow more internally consistent:
+  - default everything to `NREM`
+  - carve clearly non-`NREM` intervals into `Wake`
+  - then carve `REM` out of wake-like intervals using NE
+- Kept the user-requested broader practical EEG boundary in the prompt around `7 Hz`, while clarifying the wording around transitions and REM detection.
+- Changed the displayed spectrogram frequency axis from `0-30 Hz` to `0-20 Hz` with labeled ticks every `5 Hz` in:
+  - `app_src/make_figure_dev.py`
+  - `app_src/make_figure.py`
+  - `app_src/make_figure_chatgpt.py`
+- Updated figure tests to assert the new spectrogram axis range and tick labels.
+- Disabled non-image refinement context in the ChatGPT backend so local refinement is now based only on the zoomed image plus interval bounds:
+  - removed `interval_features` from the refinement prompt
+  - removed `current_scores` from the refinement prompt
+  - stopped computing helper-feature metadata during refinement
+- Updated `app_src/chatgpt_scoring_guidance.md` to match the new image-only refinement behavior and removed the remaining EMG/helper-summary instructions.
+- Updated `app_src/chatgpt_scoring_guidance.md` to better match the focused two-panel model image:
+  - explicitly describes the top spectrogram/theta-delta panel and bottom NE panel
+  - removes any expectation of raw EEG or raw EMG waveform panels in the image
+  - adds more explicit guidance for separating `Wake` vs `REM` when only spectrogram + NE are visible
+  - emphasizes leaving mixed `Wake`/`REM` spans uncertain instead of over-calling `REM`
+- Added a backend-only ChatGPT figure selection mode in `app_src/chatgpt_inference.py`:
+  - `focused` keeps the new spectrogram+NE export-only figure as the default
+  - `full` reuses the original 4-panel figure for direct A/B comparison without changing the app UI default
+- Added inference tests covering the default focused mode and the explicit full-mode comparison path.
+- Moved the ChatGPT-specific export figure out of `app_src/make_figure_dev.py` into its own module:
+  - `app_src/make_figure_chatgpt.py`
+- Updated ChatGPT inference and tests to import `make_chatgpt_vision_figure()` from the new module.
+- Added smoke-test coverage for the new `make_figure_chatgpt` module import.
+- Changed the ChatGPT model-facing snapshot layout so inference now renders a dedicated export figure with only:
+  - the EEG spectrogram plus theta/delta trace
+  - the NE panel
+- Kept the Dash/UI figure unchanged; only the image sent to the model was modified.
+- Added `make_chatgpt_vision_figure()` in `app_src/make_figure_dev.py` for the export-only layout.
+- Updated `app_src/chatgpt_inference.py` to use that export-only figure for both overview and zoom snapshots.
+- Generalized `capture_zoom_snapshot()` in `app_src/chatgpt_tools.py` so it detects the bottom x-axis dynamically; this keeps zoom export working for both the old 4-row figure and the new 2-row export figure.
+- Updated `app_src/chatgpt_scoring_guidance.md` so the prompt now explicitly tells the model that:
+  - the images emphasize spectrogram/theta-delta plus NE
+  - raw EEG and EMG waveform panels are not present in the model-facing image
+  - EMG should only be used when helper outputs explicitly provide EMG summaries during refinement
+- Added tests covering:
+  - the new ChatGPT export figure content
+  - the dynamic bottom x-axis detection for zoom export
+  - the inference wiring change from the old figure builder to the export-only one
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_chatgpt_tools.py tests/test_inference_scaffold.py`
+- Result: 29 tests passed
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_inference_scaffold.py`
+- Result: 12 tests passed
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_inference_scaffold.py tests/test_chatgpt_tools.py`
+- Result: 29 tests passed
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_smoke.py tests/test_chatgpt_tools.py tests/test_inference_scaffold.py`
+- Result: 37 tests passed
+- Note: pytest still emitted the existing repo-local cache permission warning, but the run completed successfully.
+
 ## 2026-04-12
 
 ### Done Today

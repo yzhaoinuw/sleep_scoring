@@ -43,6 +43,8 @@ RANGE_QUANTILE = 0.9999
 HEATMAP_WIDTH = 40
 RANGE_PADDING_PERCENT = 0.2
 OVERVIEW_XAXIS_NTICKS = 16
+SPECTROGRAM_Y_MAX_HZ = 20
+SPECTROGRAM_Y_TICKVALS_HZ = list(range(0, SPECTROGRAM_Y_MAX_HZ + 1, 5))
 
 
 def get_padded_sleep_scores(mat) -> np.ndarray:
@@ -328,7 +330,9 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     )
     fig.update_yaxes(
         title="Frequency (Hz)",
-        range=[0, 30],
+        range=[0, SPECTROGRAM_Y_MAX_HZ],
+        tickmode="array",
+        tickvals=SPECTROGRAM_Y_TICKVALS_HZ,
         fixedrange=True,
         secondary_y=False,
         row=1,

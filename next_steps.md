@@ -13,8 +13,13 @@ Quick workflow:
 - Keep the existing app review flow.
 - Do not build extra beta review UI for now.
 - Only write ChatGPT scores where the model is confident enough.
-- Leave very uncertain intervals as `Unscored` so the current app workflow can handle manual review.
+- Keep the backend support for unscored / unchanged intervals available, but note that the current prompt experiment now defaults mixed evidence to `NREM` instead of relying on uncertain intervals.
 - Make the confidence threshold user-configurable.
+
+## Immediate Next Experiments
+
+- Add a small curated set of ground-truth exemplar images for each sleep stage so the model can anchor its interpretation to concrete labeled examples.
+- Restructure the ChatGPT vision input so the overview image and multiple detailed zoom images are attached in the same request, letting the model score with overall and local context at the same time.
 
 ## Current State
 
@@ -22,20 +27,23 @@ Quick workflow:
 - `tests/test_chatgpt_tools.py` covers the helper contracts.
 - `app_src/chatgpt_scoring_guidance.md` now contains the active tightened scoring guidance used by the ChatGPT backend.
 - `app_src/chatgpt_inference.py` now performs a first real coarse ChatGPT overview pass.
-- `app_src/chatgpt_inference.py` now also performs targeted local refinement with zoom snapshots and interval features for uncertain, low-confidence, and transition-heavy intervals.
+- `app_src/chatgpt_inference.py` now also performs targeted local refinement with zoom snapshots for uncertain, low-confidence, and transition-heavy intervals.
 - The ChatGPT backend now falls back safely when the SDK, API key, snapshot export, or structured output path is unavailable.
 - Confidence thresholding is supported through `app_src/config.py` and the backend inference path.
 - The app UI now treats ChatGPT as a real backend and reports readiness when the local SDK or API key is missing.
 - A live ChatGPT run still requires the local `openai` package to be installed, but the app now auto-loads `OPENAI_API_KEY` from a repo-local `.env` file.
 - A first live ChatGPT scoring run completed successfully through the app, but the sleep-stage quality is not yet good enough for beta use.
-- The guidance prompt in `app_src/chatgpt_scoring_guidance.md` has been tightened so the model now receives explicit EEG spectrogram first, NE second, and EMG last guidance, along with concise transition and uncertainty instructions and no extra dev notes.
+- The guidance prompt in `app_src/chatgpt_scoring_guidance.md` has been revised around the current `NREM -> Wake -> REM` workflow for the focused two-panel image.
+- The current prompt experiment now defaults weak or mixed evidence to `NREM` instead of explicitly asking the model to produce uncertain intervals.
 - Optional ChatGPT trace logging is now available through `CHATGPT_SHOW_THOUGHTS` in `app_src/config.py`, writing a `.txt` trace beside the snapshot images for each enabled run.
 - The ChatGPT trace file now focuses on model-visible summaries and labeled block outputs instead of dumping the full prompt payload.
 - ChatGPT snapshot and trace filenames are now deterministic and human-readable instead of UUID-heavy.
 - ChatGPT overview and zoom snapshot titles now use the source `.mat` stem plus the exported interval bounds.
-- The overview figure now requests denser major x-axis labels and has temporary hour-mark minor ticks disabled to make the snapshot easier for the vision model to read.
-- ChatGPT refinement is now configurable through `CHATGPT_REFINEMENT_MODE`, and the current default is overview-only so the model is forced to prioritize coarse global structure first.
-- A four-section broad-refinement mode is now implemented and ready to test next by switching `CHATGPT_REFINEMENT_MODE` to `fixed_sections`.
+- The model-facing ChatGPT figure is now isolated in `app_src/make_figure_chatgpt.py` and uses a focused two-panel layout with spectrogram/theta-delta on top and NE on the bottom, while the app UI figure stays unchanged.
+- The displayed spectrogram frequency axis now spans `0-20 Hz` with labels every `5 Hz`.
+- ChatGPT refinement is now configurable through `CHATGPT_REFINEMENT_MODE`, and the current default is `fixed_sections`.
+- Non-image helper metadata has been disabled for refinement, so the model now scores from the attached images only.
+- A backend-only `vision_figure_mode` comparison hook now exists so `focused` and `full` model-facing image layouts can be compared without changing the app UI.
 
 ## Beta Checklist
 
@@ -45,11 +53,11 @@ Quick workflow:
 - [x] Define a strict structured response format for contiguous bout output.
 - [x] Parse model output into validated `start_s` / `end_s` / `state` blocks.
 - [x] Convert validated blocks into per-second sleep scores.
-- [x] Support leaving uncertain intervals unscored instead of forcing a label.
+- [x] Support leaving uncertain intervals unscored instead of forcing a label when the prompt/backend choose to use that path.
 - [x] Add confidence handling that maps model certainty into per-second confidence values.
 - [x] Add a user-configurable confidence threshold for score writeback.
 - [x] Skip writeback below the threshold and preserve those intervals as unchanged or `Unscored`.
-- [x] Add targeted zoom-snapshot and interval-feature follow-up calls for uncertain or transition-heavy intervals.
+- [x] Add targeted zoom-snapshot follow-up calls for uncertain or transition-heavy intervals.
 - [x] Add API configuration plumbing for model name and credentials.
 - [ ] Add timeout, retry, and failure handling for API calls.
 - [x] Add safe fallback behavior when the ChatGPT request fails or returns invalid output.
@@ -61,6 +69,8 @@ Quick workflow:
 - [x] Tighten the prompt with clearer sleep-stage heuristics and uncertainty instructions.
 - [ ] Investigate why the live ChatGPT scores are poor and identify the highest-leverage improvements.
 - [x] Add optional prediction trace logging so the model can write its visible reasoning summaries, observations, and actions to a `.txt` file during sleep-score generation for debugging.
+- [ ] Add curated ground-truth exemplar images for `Wake`, `NREM`, and `REM`.
+- [ ] Test a single-request multi-image input that includes the overview and several zoomed snapshots together.
 
 ## Suggested Build Order
 
@@ -74,7 +84,7 @@ Quick workflow:
 ### Milestone 2: Beta Hardening
 
 - [x] Add configurable confidence thresholding.
-- [x] Add targeted refinement with zoom snapshots and interval features.
+- [x] Add targeted refinement with zoom snapshots.
 - [ ] Improve retry/failure handling and fallback behavior.
 - [x] Replace placeholder UI text.
 - [ ] Run evaluation on a small representative dataset.
@@ -83,7 +93,8 @@ Quick workflow:
 - [ ] Add a compact top-of-trace summary of why each interval was selected for refinement.
 - [ ] Evaluate the new overview-only default against the previous adaptive-refinement behavior on a small representative set.
 - [ ] If overview-only helps global structure but still misses REM, test `fixed_sections` refinement next.
-- [ ] If REM remains weak after the refinement change, add a small curated set of REM-vs-quiet-Wake ground-truth exemplar images.
+- [ ] Add a small curated set of REM-vs-quiet-Wake ground-truth exemplar images.
+- [ ] Test sending the overview and several zoomed snapshots to ChatGPT in one request instead of separate passes.
 
 ## Notes
 
