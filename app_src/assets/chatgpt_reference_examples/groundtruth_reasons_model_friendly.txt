@@ -1,0 +1,63 @@
+Ground-truth references for 35_app13 at the same zoom level as the model-facing refinement images.
+
+Conventions
+- Assume all unlabeled time is `NREM`.
+- Entries are listed in time order.
+- `approx` means the brief bout is obvious enough to detect, but exact onset and offset are less important than correct identification.
+- Brief `Wake` bouts immediately after `REM` are intentionally called out as post-`REM` wake bridges. Do not jump directly from a clear `REM` bout to `NREM` when a brief `Wake` bridge is visible.
+
+0-2575 s
+[01] `Wake` | approx 300 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band in the spectrogram.
+[02] `Wake` | approx 425 s | brief wake interruption.
+[03] `Wake` | approx 745 s | wake interruption.
+[04] `Wake` | approx 850 s | brief wake interruption.
+[05] `Wake` | approx 980 s | brief wake interruption.
+[06] `Wake` | approx 1190 s | brief wake interruption.
+[07] `Wake` | approx 1280 s | brief wake interruption.
+[08] `Wake` | approx 1470 s | brief wake interruption.
+[09] `Wake` | approx 1580 s | brief wake interruption.
+[10] `REM` | 1700-1750 s | theta/delta rises while NE shows a large valley at the same time.
+[11] `Wake` | immediately after 1750 s | brief post-`REM` wake bridge.
+[12] `REM` | 2100-2250 s | theta/delta rises while NE shows a large valley at the same time.
+[13] `Wake` | immediately after 2250 s | brief post-`REM` wake bridge.
+
+2575-5150 s
+[14] `Wake` | approx 2590 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[15] `Wake` | 2845-3155 s | broader wake bout. Cue: clear fading of the warmer 0-5 Hz band, without a pronounced theta/delta rise and without a large NE rise.
+[16] `REM` | 3550-3620 s | theta/delta rises while NE shows a large valley at the same time.
+[17] `Wake` | immediately after 3620 s to about 3740 s | post-`REM` wake bridge plus fading of the warmer 0-5 Hz band.
+[18] `Wake` | 3810-3950 s | broader wake bout. Cue: clear fading of the warmer 0-5 Hz band, without strong REM-like support.
+[19] `Wake` | 4070-4320 s | broader wake bout. Cue: clear fading of the warmer 0-5 Hz band, without strong REM-like support.
+[20] `Wake` | approx 4660 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[21] `Wake` | approx 5105 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+
+5150-7725 s
+[22] `REM` | 5320-5400 s | theta/delta rises while NE shows a large valley at the same time.
+[23] `Wake` | immediately after 5400 s | brief post-`REM` wake bridge.
+[24] `REM` | 5800-5845 s | theta/delta rises while NE shows a large valley at the same time.
+[25] `Wake` | immediately after 5845 s | brief post-`REM` wake bridge.
+[26] `Wake` | approx 6180 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[27] `Wake` | approx 6320 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[28] `REM` | 6550-6700 s | theta/delta rises while NE shows a large valley at the same time.
+[29] `Wake` | immediately after 6700 s | brief post-`REM` wake bridge.
+[30] `REM` | 7260-7310 s | theta/delta rises while NE shows a large valley at the same time.
+[31] `Wake` | immediately after 7310 s | brief post-`REM` wake bridge.
+[32] `Wake` | approx 7450 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[33] `Wake` | approx 7540 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[34] `Wake` | 7710-8170 s | broader wake bout. Cue: clear fading of the warmer 0-5 Hz band, without a pronounced REM-like NE valley.
+
+7725-10300 s
+[35] `Wake` | approx 8465 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[36] `Wake` | approx 8760 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[37] `REM` | 9130-9170 s | theta/delta rises while NE shows a large valley at the same time.
+[38] `Wake` | immediately after 9170 s | brief post-`REM` wake bridge.
+[39] `Wake` | approx 9240 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[40] `REM` | 9385-9415 s | theta/delta rises while NE shows a large valley at the same time.
+[41] `Wake` | immediately after 9415 s | brief post-`REM` wake bridge.
+[42] `Wake` | approx 9600 s | brief wake interruption. Cue: narrow cooler vertical strip interrupting the warmer 0-5 Hz `NREM` band.
+[43] `REM` | 9700-9725 s | theta/delta rises while NE shows a large valley at the same time.
+[44] `Wake` | immediately after 9725 s | brief post-`REM` wake bridge.
+[45] `REM` | 9835-9865 s | theta/delta rises while NE shows a large valley at the same time.
+[46] `Wake` | immediately after 9865 s | brief post-`REM` wake bridge.
+[47] `REM` | 10100-10125 s | theta/delta rises while NE shows a large valley at the same time.
+[48] `Wake` | immediately after 10125 s | brief post-`REM` wake bridge.

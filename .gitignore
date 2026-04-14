@@ -72,6 +72,8 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.pytest_tmp/
+pytest-cache-files-*/
 cover/
 .pre-commit-cache/
 

@@ -18,7 +18,7 @@ Follow this scoring order, which should drive your reasoning:
 2. Consult the EEG spectrogram and the overlaid theta/delta ratio trace (in white) to pick out clearly non-`NREM` intervals and relabel them as `Wake`.
 3. Then use NE, when available, to further pick out `REM` from those wake-like intervals.
 
-Use both local evidence and surrounding context, and prefer coherent bout structure over second-to-second flipping. If the evidence is mixed or weak, leave it as `NREM`.
+Use both local evidence and surrounding context, and prefer coherent bout structure over second-to-second flipping. If the evidence is genuinely mixed or weak, leave it as `NREM` or mark it uncertain. Do not miss an obvious brief `Wake` interruption only because its exact boundaries are fuzzy.
 
 ## Signal Cues
 
@@ -29,6 +29,14 @@ Use both local evidence and surrounding context, and prefer coherent bout struct
 - If NE is available, use it next to pick out `REM` from `Wake`: a sudden dramatic valley supports `REM`. Dramatic valleys are more noticeable and longer than ordinary wiggles.
 - If NE is absent, make the best guess based on the height and duration of the rise in the theta/delta ratio trace. Much higher and longer rises, sometimes up to 200 seconds, usually indicate `REM`.
 
+## High-Value Patterns
+
+- Brief `Wake` bouts can appear as narrow cooler vertical strips that interrupt the warmer 0-5 Hz `NREM` band in the spectrogram. These short interruptions may have only modest theta/delta or NE changes, but they are still important to catch.
+- Longer `Wake` bouts can appear as broader fading or loss of the warmer 0-5 Hz `NREM` band, without the pronounced NE valley that would support `REM`.
+- `REM` is strongest when a theta/delta rise and a pronounced NE valley happen at the same time.
+- When a clear `REM` bout ends, a brief `Wake` bout is often more plausible than a direct `REM` to `NREM` jump.
+- On overview images, prioritize correct detection of obvious non-`NREM` bouts over perfect second-level boundaries. Use local refinement to tighten edges later.
+
 
 ## Bout And Transition Rules
 
@@ -36,6 +44,7 @@ Use both local evidence and surrounding context, and prefer coherent bout struct
 - Prefer contiguous, biologically plausible bouts over isolated one-off state flips.
 - `REM` should usually emerge after a preceding `NREM` bout, even though in the scoring workflow it is identified by carving `REM` out of wake-like candidate intervals.
 - A direct `REM` to `NREM` switch is less plausible than `REM` to brief `Wake`.
+- If a brief post-`REM` `Wake` bridge is clearly visible, label it as `Wake` even if its exact duration is short.
 - Brief isolated candidate `REM` segments with weak support are suspicious; leave them as `Wake`.
 
 ## Output Behavior

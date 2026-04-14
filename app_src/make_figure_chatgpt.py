@@ -18,10 +18,11 @@ from app_src.make_figure_dev import (
     RANGE_PADDING_PERCENT,
     RANGE_QUANTILE,
     SLEEP_SCORE_OPACITY,
-    SPECTROGRAM_Y_MAX_HZ,
-    SPECTROGRAM_Y_TICKVALS_HZ,
     get_padded_sleep_scores,
 )
+
+SPECTROGRAM_Y_MAX_HZ = 15
+SPECTROGRAM_Y_TICKVALS_HZ = list(range(0, SPECTROGRAM_Y_MAX_HZ + 1, 5))
 
 
 def make_chatgpt_vision_figure(
@@ -200,6 +201,7 @@ def make_chatgpt_vision_figure(
         title="Theta/Delta",
         overlaying="y",
         side="right",
+        showgrid=False,
         fixedrange=True,
         secondary_y=True,
         row=1,
@@ -209,3 +211,19 @@ def make_chatgpt_vision_figure(
     fig["layout"]["annotations"][-1]["font"]["size"] = 14
 
     return fig
+
+
+if __name__ == "__main__":
+    import os
+
+    import plotly.io as io
+    from scipy.io import loadmat
+
+    io.renderers.default = "browser"
+    data_path = "../user_test_files/"
+    mat_file = "35_app13_groundtruth.mat"
+    mat = loadmat(os.path.join(data_path, mat_file), squeeze_me=True)
+
+    mat_name = os.path.basename(mat_file)
+    fig = make_chatgpt_vision_figure(mat, plot_name=mat_name)
+    fig.show_dash(mode="external", config={"scrollZoom": True})

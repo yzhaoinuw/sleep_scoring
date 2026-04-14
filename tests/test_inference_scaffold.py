@@ -12,18 +12,28 @@ import numpy as np
 class MockResponsesClient:
     """Minimal test double for the OpenAI Responses API."""
 
-    def __init__(self, payloads):
+    def __init__(self, payloads, usages=None):
         if isinstance(payloads, list):
             self.payloads = list(payloads)
         else:
             self.payloads = [payloads]
+        if usages is None:
+            self.usages = [None] * len(self.payloads)
+        elif isinstance(usages, list):
+            self.usages = list(usages)
+        else:
+            self.usages = [usages]
         self.calls = []
         self.responses = self
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
         payload_index = min(len(self.calls) - 1, len(self.payloads) - 1)
-        return SimpleNamespace(output_text=json.dumps(self.payloads[payload_index]))
+        usage_index = min(len(self.calls) - 1, len(self.usages) - 1)
+        return SimpleNamespace(
+            output_text=json.dumps(self.payloads[payload_index]),
+            usage=self.usages[usage_index],
+        )
 
 
 class FakeFigure:
@@ -60,7 +70,14 @@ def test_chatgpt_backend_applies_confident_coarse_bouts_without_refinement(
                 {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
             ],
             "uncertain_intervals": [],
-        }
+        },
+        usages={
+            "input_tokens": 1200,
+            "input_tokens_details": {"cached_tokens": 200},
+            "output_tokens": 300,
+            "output_tokens_details": {"reasoning_tokens": 180},
+            "total_tokens": 1500,
+        },
     )
 
     monkeypatch.setattr(
@@ -106,7 +123,14 @@ def test_chatgpt_backend_uses_focused_figure_mode_by_default(
                 {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
             ],
             "uncertain_intervals": [],
-        }
+        },
+        usages={
+            "input_tokens": 1200,
+            "input_tokens_details": {"cached_tokens": 200},
+            "output_tokens": 300,
+            "output_tokens_details": {"reasoning_tokens": 180},
+            "total_tokens": 1500,
+        },
     )
 
     focused_calls = []
@@ -155,7 +179,14 @@ def test_chatgpt_backend_can_use_full_figure_mode_for_backend_comparison(
                 {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
             ],
             "uncertain_intervals": [],
-        }
+        },
+        usages={
+            "input_tokens": 1200,
+            "input_tokens_details": {"cached_tokens": 200},
+            "output_tokens": 300,
+            "output_tokens_details": {"reasoning_tokens": 180},
+            "total_tokens": 1500,
+        },
     )
 
     full_calls = []
@@ -276,6 +307,83 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
     )
 
 
+def test_chatgpt_backend_attaches_reference_examples_only_to_coarse_pass_and_forwards_reasoning_effort(
+    mock_mat_data,
+    monkeypatch,
+):
+    """The coarse pass should include the reference pack once and keep refinements lighter."""
+    from app_src import chatgpt_inference
+
+    mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
+    client = MockResponsesClient(
+        [
+            {
+                "summary": "Wake first, REM later, unclear middle interval.",
+                "bouts": [
+                    {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+                    {"start_s": 40, "end_s": 60, "state": "REM", "confidence": 0.9},
+                ],
+                "uncertain_intervals": [
+                    {"start_s": 20, "end_s": 40, "reason": "boundary-heavy middle segment"},
+                ],
+            },
+            {
+                "summary": "The first half of the local interval is likely NREM.",
+                "bouts": [
+                    {"start_s": 20, "end_s": 30, "state": "NREM", "confidence": 0.88},
+                ],
+                "uncertain_intervals": [],
+            },
+        ]
+    )
+
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: object(),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_overview_snapshot",
+        lambda _fig, output_path: _fake_write_snapshot(output_path),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_zoom_snapshot",
+        lambda _fig, _start_s, _end_s, output_path: _fake_write_snapshot(output_path),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "_build_reference_examples_message",
+        lambda _reference_examples_dir=None: {
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": "REFERENCE PACK"},
+                {"type": "input_image", "image_url": "data:image/png;base64,cmVm"},
+            ],
+        },
+    )
+
+    chatgpt_inference.infer(
+        mat,
+        client=client,
+        snapshot_dir=Path("test-artifacts") / "chatgpt_inference_reference_examples",
+        confidence_threshold=0.7,
+        refinement_mode="adaptive",
+        use_reference_examples=True,
+        reasoning_effort="high",
+    )
+
+    coarse_request = client.calls[0]
+    refinement_request = client.calls[1]
+
+    assert coarse_request["reasoning"] == {"effort": "high"}
+    assert refinement_request["reasoning"] == {"effort": "high"}
+    assert len(coarse_request["input"]) == 3
+    assert coarse_request["input"][1]["content"][0]["text"] == "REFERENCE PACK"
+    assert len(refinement_request["input"]) == 2
+
+
 def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
     mock_mat_data,
     monkeypatch,
@@ -292,7 +400,14 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
                 {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
             ],
             "uncertain_intervals": [],
-        }
+        },
+        usages={
+            "input_tokens": 1200,
+            "input_tokens_details": {"cached_tokens": 200},
+            "output_tokens": 300,
+            "output_tokens_details": {"reasoning_tokens": 180},
+            "total_tokens": 1500,
+        },
     )
 
     monkeypatch.setattr(
@@ -323,6 +438,14 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
     assert trace_files[0].name == "trace_demo_thoughts.txt"
     trace_text = trace_files[0].read_text(encoding="utf-8")
     assert "## Trace Info" in trace_text
+    assert "## Coarse Pass API Usage" in trace_text
+    assert "- reasoning_effort: high" in trace_text
+    assert "- input_tokens: 1200" in trace_text
+    assert "- cached_input_tokens: 200" in trace_text
+    assert "- output_tokens: 300" in trace_text
+    assert "- reasoning_tokens: 180" in trace_text
+    assert "- total_tokens: 1500" in trace_text
+    assert "- estimated_cost_usd: $0.002115" in trace_text
     assert "## Coarse Pass Summary" in trace_text
     assert "## Coarse Pass Proposed Bouts" in trace_text
     assert "Clear wake at the start of the session." in trace_text

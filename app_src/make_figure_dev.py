@@ -43,8 +43,8 @@ RANGE_QUANTILE = 0.9999
 HEATMAP_WIDTH = 2000
 RANGE_PADDING_PERCENT = 0.2
 OVERVIEW_XAXIS_NTICKS = 16
-SPECTROGRAM_Y_MAX_HZ = 20
-SPECTROGRAM_Y_TICKVALS_HZ = list(range(0, SPECTROGRAM_Y_MAX_HZ + 1, 5))
+SPECTROGRAM_Y_MAX_HZ = 30
+SPECTROGRAM_Y_TICKVALS_HZ = list(range(0, SPECTROGRAM_Y_MAX_HZ + 1, 10))
 
 
 def get_padded_sleep_scores(mat) -> np.ndarray:
@@ -340,6 +340,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
         title="Theta/Delta",
         overlaying="y",
         side="right",
+        showgrid=False,
         fixedrange=True,
         secondary_y=True,
         row=1,

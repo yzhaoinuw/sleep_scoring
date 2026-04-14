@@ -18,8 +18,12 @@ Quick workflow:
 
 ## Immediate Next Experiments
 
-- Add a small curated set of ground-truth exemplar images for each sleep stage so the model can anchor its interpretation to concrete labeled examples.
-- Restructure the ChatGPT vision input so the overview image and multiple detailed zoom images are attached in the same request, letting the model score with overall and local context at the same time.
+- Speed-quality tradeoff experiments for the improved-but-slower ChatGPT path:
+  - compare the current `high`-effort reference-pack setup against `medium` effort
+  - test sending fewer reference images, such as overview + the strongest 2 zoom examples instead of all 5 images
+  - tighten the guidance prompt further so fewer examples may be needed to teach the same visual cues
+  - consider a two-tier strategy: keep examples on the coarse pass only, but reduce or skip refinement windows when the coarse output already looks confident
+- Revisit whether sending all overview + zoom images in a single request is still worthwhile now that the curated example pack already improves recall, or whether it will just add latency and token cost without enough quality gain.
 
 ## Current State
 
@@ -40,10 +44,13 @@ Quick workflow:
 - ChatGPT snapshot and trace filenames are now deterministic and human-readable instead of UUID-heavy.
 - ChatGPT overview and zoom snapshot titles now use the source `.mat` stem plus the exported interval bounds.
 - The model-facing ChatGPT figure is now isolated in `app_src/make_figure_chatgpt.py` and uses a focused two-panel layout with spectrogram/theta-delta on top and NE on the bottom, while the app UI figure stays unchanged.
-- The displayed spectrogram frequency axis now spans `0-20 Hz` with labels every `5 Hz`.
+- The user-facing spectrogram frequency axis now spans `0-30 Hz`, while the ChatGPT model-facing export uses a tighter `0-15 Hz` range.
 - ChatGPT refinement is now configurable through `CHATGPT_REFINEMENT_MODE`, and the current default is `fixed_sections`.
 - Non-image helper metadata has been disabled for refinement, so the model now scores from the attached images only.
 - A backend-only `vision_figure_mode` comparison hook now exists so `focused` and `full` model-facing image layouts can be compared without changing the app UI.
+- The coarse ChatGPT pass now attaches a bundled ground-truth reference example pack from `app_src/assets/chatgpt_reference_examples`.
+- ChatGPT reasoning effort is now explicitly configurable, and the current default is `high`.
+- The thoughts trace file now includes per-call token usage and estimated cost when the Responses API returns usage data.
 
 ## Beta Checklist
 
@@ -69,8 +76,10 @@ Quick workflow:
 - [x] Tighten the prompt with clearer sleep-stage heuristics and uncertainty instructions.
 - [ ] Investigate why the live ChatGPT scores are poor and identify the highest-leverage improvements.
 - [x] Add optional prediction trace logging so the model can write its visible reasoning summaries, observations, and actions to a `.txt` file during sleep-score generation for debugging.
-- [ ] Add curated ground-truth exemplar images for `Wake`, `NREM`, and `REM`.
-- [ ] Test a single-request multi-image input that includes the overview and several zoomed snapshots together.
+- [x] Add curated ground-truth exemplar images and attach them to the coarse pass.
+- [ ] Reduce latency and token cost without losing the current quality gains from the example pack.
+- [ ] Decide whether the current coarse-pass example pack should be trimmed, reordered, or partially removed.
+- [ ] Re-test a single-request multi-image strategy only if the leaner prompt/example experiments still miss obvious bouts.
 
 ## Suggested Build Order
 
@@ -94,7 +103,9 @@ Quick workflow:
 - [ ] Evaluate the new overview-only default against the previous adaptive-refinement behavior on a small representative set.
 - [ ] If overview-only helps global structure but still misses REM, test `fixed_sections` refinement next.
 - [ ] Add a small curated set of REM-vs-quiet-Wake ground-truth exemplar images.
-- [ ] Test sending the overview and several zoomed snapshots to ChatGPT in one request instead of separate passes.
+- [ ] Test whether a smaller curated example pack can preserve the new quality gains with lower latency.
+- [ ] Compare `high` versus `medium` reasoning effort on the same representative recordings.
+- [ ] If speed is still unacceptable, test whether a single-request overview-plus-zooms path helps enough to justify the extra token load.
 
 ## Notes
 

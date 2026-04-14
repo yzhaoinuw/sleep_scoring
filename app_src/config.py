@@ -27,10 +27,12 @@ GAUSSIAN_FILTER_SIGMA = 4  # how agressive to smooth the spectrogram or theta/de
 # %% Automatic sleep scoring customization
 POSTPROCESS = True
 CHATGPT_MODEL = "gpt-5.4-mini"
+CHATGPT_REASONING_EFFORT = "high"
 CHATGPT_CONFIDENCE_THRESHOLD = 0.5
 CHATGPT_SHOW_THOUGHTS = True
 CHATGPT_REFINEMENT_MODE = "fixed_sections"  # "none", "adaptive", or "fixed_sections"
 CHATGPT_FIXED_REFINEMENT_SECTION_COUNT = 4
+CHATGPT_USE_REFERENCE_EXAMPLES = True
 
 # %% Others
 PORT = 8050

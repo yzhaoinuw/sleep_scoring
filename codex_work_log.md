@@ -2,10 +2,61 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-14
+
+### Done Today
+
+- Split the spectrogram frequency range so the app UI and the ChatGPT model can use different views:
+  - restored the user-facing figure in `app_src/make_figure_dev.py` to `0-30 Hz` with sparser ticks
+  - kept the ChatGPT export figure in `app_src/make_figure_chatgpt.py` tighter at `0-15 Hz`
+- Disabled the secondary `Theta/Delta` y-axis grid in both active figure builders so it no longer visually conflicts with the primary spectrogram frequency grid.
+- Created ground-truth reference images from `user_test_files/35_app13_groundtruth.mat`:
+  - one full overview image
+  - four fixed-section refinement images
+- Converted the handwritten ground-truth notes into a more model-friendly companion file:
+  - `groundtruth_reasons_model_friendly.txt`
+  - grouped by refinement window
+  - normalized the brief wake-anchor and post-REM wake-bridge wording
+- Updated `app_src/chatgpt_scoring_guidance.md` so the prompt now better emphasizes:
+  - brief wake interruptions as narrow cooler vertical strips
+  - longer wake bouts as broader fading of the warm 0-5 Hz band
+  - post-REM brief wake bridges
+  - favoring correct detection of obvious non-NREM bouts even when exact edges are fuzzy
+- Wired the curated ground-truth reference pack into `app_src/chatgpt_inference.py`:
+  - the coarse pass now attaches the overview example plus the four labeled zoom examples
+  - the refinement pass still avoids resending the full example pack to limit extra overhead
+- Moved the bundled reference pack into `app_src/assets/chatgpt_reference_examples` so it can ship with the packaged app instead of living under `user_test_files/`.
+- Added ChatGPT inference config toggles in `app_src/config.py` for:
+  - `CHATGPT_REASONING_EFFORT`
+  - `CHATGPT_USE_REFERENCE_EXAMPLES`
+- Increased the default ChatGPT reasoning effort from the implicit SDK default to explicit `high`.
+- Extended the thoughts trace output so each ChatGPT API call now logs:
+  - reasoning effort
+  - input, cached-input, uncached-input, output, reasoning, and total tokens when available
+  - estimated per-call USD cost using the current GPT-5.4 pricing table in code
+- Added and updated tests covering:
+  - the split UI-vs-ChatGPT spectrogram ranges
+  - the disabled secondary-axis grid
+  - the coarse-pass reference example attachment behavior
+  - reasoning-effort forwarding
+  - per-call token and cost trace logging
+- User feedback from a live run after the example-pack + higher-effort changes:
+  - prediction quality looked much better
+  - runtime was much slower, roughly around 10 minutes
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_inference_scaffold.py tests/test_chatgpt_tools.py`
+- Result: 30 tests passed
+
 ## 2026-04-13
 
 ### Done Today
 
+- Reduced pytest repo clutter by:
+  - disabling pytest's cache provider in `pyproject.toml`
+  - setting `tmp_path_retention_policy = "none"` in `pyproject.toml`
+  - ignoring `.pytest_tmp/` and `pytest-cache-files-*/` in `.gitignore`
 - Refined `app_src/chatgpt_scoring_guidance.md` to make the new scoring workflow more internally consistent:
   - default everything to `NREM`
   - carve clearly non-`NREM` intervals into `Wake`
@@ -52,6 +103,8 @@ Prepend new session notes to the top of this file.
 
 ### Verification
 
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_smoke.py`
+- Result: 10 tests passed
 - Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_chatgpt_tools.py tests/test_inference_scaffold.py`
 - Result: 29 tests passed
 - Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_inference_scaffold.py`

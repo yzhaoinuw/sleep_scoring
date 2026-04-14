@@ -19,6 +19,7 @@ import json
 import math
 import mimetypes
 import os
+import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -31,22 +32,78 @@ from app_src.chatgpt_tools import (
     capture_overview_snapshot,
     capture_zoom_snapshot,
 )
-from app_src.config import CHATGPT_MODEL, CHATGPT_SHOW_THOUGHTS
-from app_src.config import CHATGPT_FIXED_REFINEMENT_SECTION_COUNT, CHATGPT_REFINEMENT_MODE
+from app_src.config import (
+    CHATGPT_FIXED_REFINEMENT_SECTION_COUNT,
+    CHATGPT_MODEL,
+    CHATGPT_REASONING_EFFORT,
+    CHATGPT_REFINEMENT_MODE,
+    CHATGPT_SHOW_THOUGHTS,
+    CHATGPT_USE_REFERENCE_EXAMPLES,
+)
 from app_src.make_figure_chatgpt import make_chatgpt_vision_figure
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 
 DEFAULT_CHATGPT_MODEL = CHATGPT_MODEL
 DEFAULT_SNAPSHOT_DIR = Path(tempfile.gettempdir()) / "sleep_scoring_app_data" / "chatgpt_snapshots"
 DEFAULT_GUIDANCE_PROMPT_PATH = Path(__file__).with_name("chatgpt_scoring_guidance.md")
+DEFAULT_REFERENCE_EXAMPLES_DIR = (
+    Path(__file__).resolve().parent / "assets" / "chatgpt_reference_examples"
+)
 DEFAULT_CONFIDENCE_THRESHOLD = 0.7
+DEFAULT_REASONING_EFFORT = CHATGPT_REASONING_EFFORT
 DEFAULT_SHOW_THOUGHTS = CHATGPT_SHOW_THOUGHTS
 DEFAULT_REFINEMENT_MODE = CHATGPT_REFINEMENT_MODE
 DEFAULT_FIXED_REFINEMENT_SECTION_COUNT = CHATGPT_FIXED_REFINEMENT_SECTION_COUNT
+DEFAULT_USE_REFERENCE_EXAMPLES = CHATGPT_USE_REFERENCE_EXAMPLES
 DEFAULT_VISION_FIGURE_MODE = "focused"
 OPENAI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
 DEFAULT_REFINEMENT_MARGIN_S = 15
 DEFAULT_MAX_REFINEMENT_INTERVALS = 6
+MODEL_PRICING_USD_PER_1M_TOKENS = {
+    "gpt-5.4": {
+        "input": 2.50,
+        "cached_input": 0.25,
+        "output": 15.00,
+    },
+    "gpt-5.4-mini": {
+        "input": 0.75,
+        "cached_input": 0.075,
+        "output": 4.50,
+    },
+    "gpt-5.4-nano": {
+        "input": 0.20,
+        "cached_input": 0.02,
+        "output": 1.25,
+    },
+}
+REFERENCE_EXAMPLE_TEXT_FILENAME = "groundtruth_reasons_model_friendly.txt"
+REFERENCE_EXAMPLE_IMAGE_SPECS = [
+    (
+        "35_app13_groundtruth_overview_0s_10300s.png",
+        "overview",
+        "35_app13 reference overview",
+    ),
+    (
+        "35_app13_groundtruth_refinement_1_0s_2575s.png",
+        "0-2575 s",
+        "35_app13 reference zoom 0-2575 s",
+    ),
+    (
+        "35_app13_groundtruth_refinement_2_2575s_5150s.png",
+        "2575-5150 s",
+        "35_app13 reference zoom 2575-5150 s",
+    ),
+    (
+        "35_app13_groundtruth_refinement_3_5150s_7725s.png",
+        "5150-7725 s",
+        "35_app13 reference zoom 5150-7725 s",
+    ),
+    (
+        "35_app13_groundtruth_refinement_4_7725s_10300s.png",
+        "7725-10300 s",
+        "35_app13 reference zoom 7725-10300 s",
+    ),
+]
 
 RESPONSE_TEXT_FORMAT = {
     "type": "json_schema",
@@ -214,6 +271,28 @@ def _normalize_fixed_refinement_section_count(section_count: int | None) -> int:
     return normalized_count
 
 
+def _normalize_reasoning_effort(reasoning_effort: str | None) -> str:
+    """Return the requested Responses API reasoning effort."""
+    raw_effort = DEFAULT_REASONING_EFFORT if reasoning_effort is None else reasoning_effort
+    normalized_effort = str(raw_effort).strip().lower()
+
+    if normalized_effort not in {"none", "minimal", "low", "medium", "high", "xhigh"}:
+        raise ValueError(
+            "reasoning_effort must be one of 'none', 'minimal', 'low', "
+            "'medium', 'high', or 'xhigh'."
+        )
+
+    return normalized_effort
+
+
+def _normalize_use_reference_examples(use_reference_examples: bool | None) -> bool:
+    """Return whether the reference example pack should be attached to requests."""
+    if use_reference_examples is None:
+        return bool(DEFAULT_USE_REFERENCE_EXAMPLES)
+
+    return bool(use_reference_examples)
+
+
 def _normalize_vision_figure_mode(vision_figure_mode: str | None) -> str:
     """Return the requested model-facing figure layout mode."""
     raw_mode = DEFAULT_VISION_FIGURE_MODE if vision_figure_mode is None else vision_figure_mode
@@ -313,6 +392,93 @@ def _format_confidence(confidence: Any) -> str:
 
     numeric = float(confidence)
     return f"{numeric:.2f}"
+
+
+def _coerce_mapping(value: Any) -> dict[str, Any]:
+    """Return a shallow dict view for SDK objects or plain mappings."""
+    if value is None:
+        return {}
+
+    if isinstance(value, dict):
+        return value
+
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        try:
+            dumped = model_dump()
+            if isinstance(dumped, dict):
+                return dumped
+        except Exception:
+            pass
+
+    return {
+        key: getattr(value, key)
+        for key in dir(value)
+        if not key.startswith("_") and not callable(getattr(value, key, None))
+    }
+
+
+def _extract_response_usage(response: Any) -> dict[str, Any] | None:
+    """Return normalized usage fields for one Responses API call when available."""
+    raw_usage = (
+        response.get("usage") if isinstance(response, dict) else getattr(response, "usage", None)
+    )
+    if raw_usage is None:
+        return None
+
+    usage = _coerce_mapping(raw_usage)
+    input_details = _coerce_mapping(usage.get("input_tokens_details"))
+    output_details = _coerce_mapping(usage.get("output_tokens_details"))
+
+    input_tokens = int(usage.get("input_tokens", 0) or 0)
+    cached_input_tokens = int(input_details.get("cached_tokens", 0) or 0)
+    output_tokens = int(usage.get("output_tokens", 0) or 0)
+    reasoning_tokens = int(output_details.get("reasoning_tokens", 0) or 0)
+    total_tokens = int(usage.get("total_tokens", input_tokens + output_tokens) or 0)
+    uncached_input_tokens = max(0, input_tokens - cached_input_tokens)
+
+    return {
+        "input_tokens": input_tokens,
+        "cached_input_tokens": cached_input_tokens,
+        "uncached_input_tokens": uncached_input_tokens,
+        "output_tokens": output_tokens,
+        "reasoning_tokens": reasoning_tokens,
+        "total_tokens": total_tokens,
+    }
+
+
+def _normalize_pricing_model_key(model_name: str) -> str | None:
+    """Map a model name or snapshot name to a pricing table key."""
+    normalized_model_name = str(model_name).strip().lower()
+    for model_key in sorted(MODEL_PRICING_USD_PER_1M_TOKENS, key=len, reverse=True):
+        if normalized_model_name == model_key or normalized_model_name.startswith(f"{model_key}-"):
+            return model_key
+
+    return None
+
+
+def _estimate_response_cost_usd(model_name: str, usage: dict[str, Any] | None) -> float | None:
+    """Estimate the cost of one model call when usage and pricing are available."""
+    if not usage:
+        return None
+
+    pricing_key = _normalize_pricing_model_key(model_name)
+    if pricing_key is None:
+        return None
+
+    pricing = MODEL_PRICING_USD_PER_1M_TOKENS[pricing_key]
+    uncached_input_cost = usage["uncached_input_tokens"] * pricing["input"] / 1_000_000
+    cached_input_cost = usage["cached_input_tokens"] * pricing["cached_input"] / 1_000_000
+    output_cost = usage["output_tokens"] * pricing["output"] / 1_000_000
+    return float(uncached_input_cost + cached_input_cost + output_cost)
+
+
+def _format_cost_usd(cost_usd: float | None) -> str:
+    """Format a USD cost estimate for trace output."""
+    if cost_usd is None:
+        return "unavailable"
+
+    return f"${cost_usd:.6f}"
 
 
 def _trace_interval_bounds(item: dict[str, Any]) -> tuple[Any, Any]:
@@ -459,11 +625,105 @@ def _image_path_to_data_url(image_path: str | Path) -> str:
     return f"data:{mime_type};base64,{encoded_bytes}"
 
 
+def _split_reference_examples_text(reference_text: str) -> tuple[str, dict[str, str]]:
+    """Split the model-friendly reference text into conventions and per-window notes."""
+    section_headers = {label for _filename, label, _description in REFERENCE_EXAMPLE_IMAGE_SPECS}
+    section_headers.discard("overview")
+    heading_pattern = re.compile(r"^\d+-\d+ s$")
+
+    conventions_lines: list[str] = []
+    section_lines: dict[str, list[str]] = {}
+    current_header: str | None = None
+
+    for raw_line in reference_text.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+
+        if stripped in section_headers or heading_pattern.match(stripped):
+            current_header = stripped
+            section_lines.setdefault(current_header, [])
+            continue
+
+        if current_header is None:
+            conventions_lines.append(line)
+            continue
+
+        section_lines[current_header].append(line)
+
+    return (
+        "\n".join(line for line in conventions_lines if line.strip()).strip(),
+        {
+            header: "\n".join(line for line in lines if line.strip()).strip()
+            for header, lines in section_lines.items()
+        },
+    )
+
+
+def _build_reference_examples_message(
+    reference_examples_dir: str | Path = DEFAULT_REFERENCE_EXAMPLES_DIR,
+) -> dict[str, Any] | None:
+    """Return a single user message containing the ground-truth reference pack."""
+    reference_examples_dir = Path(reference_examples_dir)
+    reference_text_path = reference_examples_dir / REFERENCE_EXAMPLE_TEXT_FILENAME
+    if not reference_text_path.exists():
+        return None
+
+    reference_text = reference_text_path.read_text(encoding="utf-8").strip()
+    if not reference_text:
+        return None
+
+    conventions_text, section_text = _split_reference_examples_text(reference_text)
+    content: list[dict[str, Any]] = [
+        {
+            "type": "input_text",
+            "text": (
+                "Reference example pack:\n"
+                "Study these labeled ground-truth examples before scoring the target recording. "
+                "They use the same model-facing figure style. Treat them as calibration examples "
+                "for identifying obvious non-NREM bouts, not as a template to copy.\n\n"
+                f"{conventions_text}"
+            ).strip(),
+        }
+    ]
+
+    for filename, label, description in REFERENCE_EXAMPLE_IMAGE_SPECS:
+        image_path = reference_examples_dir / filename
+        if not image_path.exists():
+            continue
+
+        if label == "overview":
+            text = (
+                f"{description}.\n"
+                "Use this image to calibrate rough bout placement and overall cadence. "
+                "Exact second-level boundaries are less important here than correct detection "
+                "of obvious non-NREM intervals."
+            )
+        else:
+            section_notes = section_text.get(label, "")
+            text = f"{description}.\nMatching labeled bouts and reasons:\n{section_notes}".strip()
+
+        content.extend(
+            [
+                {"type": "input_text", "text": text},
+                {"type": "input_image", "image_url": _image_path_to_data_url(image_path)},
+            ]
+        )
+
+    if len(content) == 1:
+        return None
+
+    return {
+        "role": "user",
+        "content": content,
+    }
+
+
 def _build_coarse_request_input(
     guidance_prompt: str,
     image_data_url: str,
     recording_start_s: float,
     recording_end_s: float,
+    reference_examples_message: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Build a deterministic prompt for the full-session overview pass."""
     metadata_prompt = (
@@ -477,11 +737,16 @@ def _build_coarse_request_input(
         "Keep the summary concise."
     )
 
-    return [
+    request_input = [
         {
             "role": "system",
             "content": guidance_prompt,
         },
+    ]
+    if reference_examples_message is not None:
+        request_input.append(reference_examples_message)
+
+    request_input.append(
         {
             "role": "user",
             "content": [
@@ -494,8 +759,10 @@ def _build_coarse_request_input(
                     "image_url": image_data_url,
                 },
             ],
-        },
-    ]
+        }
+    )
+
+    return request_input
 
 
 def _build_refinement_request_input(
@@ -816,6 +1083,7 @@ def _request_structured_scoring(
     client: Any,
     model_name: str,
     request_input: list[dict[str, Any]],
+    reasoning_effort: str,
     trace_logger: _TraceLogger | None = None,
     trace_label: str = "ChatGPT Request",
 ) -> dict[str, Any]:
@@ -823,11 +1091,38 @@ def _request_structured_scoring(
     response = client.responses.create(
         model=model_name,
         input=request_input,
+        reasoning={"effort": reasoning_effort},
         text={"format": RESPONSE_TEXT_FORMAT},
     )
     payload = _extract_response_payload(response)
+    usage = _extract_response_usage(response)
+    cost_estimate_usd = _estimate_response_cost_usd(model_name, usage)
 
     if trace_logger is not None:
+        usage_lines = [f"- reasoning_effort: {reasoning_effort}"]
+        if usage is None:
+            usage_lines.extend(
+                [
+                    "- input_tokens: unavailable",
+                    "- output_tokens: unavailable",
+                    "- reasoning_tokens: unavailable",
+                    "- total_tokens: unavailable",
+                    f"- estimated_cost_usd: {_format_cost_usd(cost_estimate_usd)}",
+                ]
+            )
+        else:
+            usage_lines.extend(
+                [
+                    f"- input_tokens: {usage['input_tokens']}",
+                    f"- cached_input_tokens: {usage['cached_input_tokens']}",
+                    f"- uncached_input_tokens: {usage['uncached_input_tokens']}",
+                    f"- output_tokens: {usage['output_tokens']}",
+                    f"- reasoning_tokens: {usage['reasoning_tokens']}",
+                    f"- total_tokens: {usage['total_tokens']}",
+                    f"- estimated_cost_usd: {_format_cost_usd(cost_estimate_usd)}",
+                ]
+            )
+        trace_logger.add_text_block(f"{trace_label} API Usage", usage_lines)
         formatted_payload = _format_trace_payload(payload)
         trace_logger.add_text_block(f"{trace_label} Summary", formatted_payload["summary"])
         trace_logger.add_text_block(f"{trace_label} Proposed Bouts", formatted_payload["bouts"])
@@ -857,6 +1152,7 @@ def _run_refinement_pass(
     confidence_threshold: float,
     refinement_mode: str,
     fixed_refinement_section_count: int,
+    reasoning_effort: str,
     trace_logger: _TraceLogger | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Run zoomed local follow-up requests for ambiguous or transition-heavy regions."""
@@ -935,6 +1231,7 @@ def _run_refinement_pass(
                     interval_end_s=interval_end_s,
                     refinement_reason=candidate["reason"],
                 ),
+                reasoning_effort=reasoning_effort,
                 trace_logger=trace_logger,
                 trace_label=f"Refinement {candidate_index}",
             )
@@ -990,6 +1287,9 @@ def infer(
     refinement_mode: str | None = None,
     fixed_refinement_section_count: int | None = None,
     vision_figure_mode: str | None = None,
+    reasoning_effort: str | None = None,
+    use_reference_examples: bool | None = None,
+    reference_examples_dir: str | Path = DEFAULT_REFERENCE_EXAMPLES_DIR,
     guidance_prompt_path: str | Path = DEFAULT_GUIDANCE_PROMPT_PATH,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -1008,6 +1308,8 @@ def infer(
         fixed_refinement_section_count
     )
     normalized_vision_figure_mode = _normalize_vision_figure_mode(vision_figure_mode)
+    normalized_reasoning_effort = _normalize_reasoning_effort(reasoning_effort)
+    normalized_use_reference_examples = _normalize_use_reference_examples(use_reference_examples)
     recording_label = _get_recording_label(mat)
     snapshot_dir = Path(snapshot_dir)
     snapshot_dir.mkdir(parents=True, exist_ok=True)
@@ -1023,6 +1325,8 @@ def infer(
             f"- confidence_threshold: {threshold:.2f}",
             f"- refinement_mode: {normalized_refinement_mode}",
             f"- vision_figure_mode: {normalized_vision_figure_mode}",
+            f"- reasoning_effort: {normalized_reasoning_effort}",
+            f"- reference_examples: {normalized_use_reference_examples}",
         ],
     )
 
@@ -1037,6 +1341,9 @@ def infer(
 
     try:
         guidance_prompt = _load_guidance_prompt(guidance_prompt_path)
+        reference_examples_message = None
+        if normalized_use_reference_examples:
+            reference_examples_message = _build_reference_examples_message(reference_examples_dir)
         recording_start_s, duration_s, recording_end_s = _get_recording_window(mat)
         figure = _build_model_figure(
             mat=mat,
@@ -1064,7 +1371,9 @@ def infer(
                 image_data_url=image_data_url,
                 recording_start_s=recording_start_s,
                 recording_end_s=recording_end_s,
+                reference_examples_message=reference_examples_message,
             ),
+            reasoning_effort=normalized_reasoning_effort,
             trace_logger=trace_logger,
             trace_label="Coarse Pass",
         )
@@ -1107,6 +1416,7 @@ def infer(
             confidence_threshold=threshold,
             refinement_mode=normalized_refinement_mode,
             fixed_refinement_section_count=normalized_fixed_refinement_section_count,
+            reasoning_effort=normalized_reasoning_effort,
             trace_logger=trace_logger,
         )
         trace_logger.add_text_block(

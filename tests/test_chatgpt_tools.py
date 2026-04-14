@@ -69,8 +69,9 @@ def test_make_figure_uses_denser_overview_ticks_without_minor_hour_marks(mock_ma
     assert fig.layout.xaxis4.tickformat == "digits"
     assert fig.layout.xaxis4.nticks == 16
     assert fig.layout.xaxis4.minor.to_plotly_json() == {}
-    assert tuple(fig.layout.yaxis.range) == (0, 20)
-    assert tuple(fig.layout.yaxis.tickvals) == (0, 5, 10, 15, 20)
+    assert tuple(fig.layout.yaxis.range) == (0, 30)
+    assert tuple(fig.layout.yaxis.tickvals) == (0, 10, 20, 30)
+    assert fig.layout.yaxis2.showgrid is False
 
 
 def test_make_chatgpt_vision_figure_only_shows_spectrogram_and_ne(mock_mat_data_with_ne):
@@ -86,8 +87,9 @@ def test_make_chatgpt_vision_figure_only_shows_spectrogram_and_ne(mock_mat_data_
     assert "EMG" not in trace_names
     assert fig.layout.xaxis2.tickformat == "digits"
     assert fig.layout.xaxis2.nticks == 16
-    assert tuple(fig.layout.yaxis.range) == (0, 20)
-    assert tuple(fig.layout.yaxis.tickvals) == (0, 5, 10, 15, 20)
+    assert tuple(fig.layout.yaxis.range) == (0, 15)
+    assert tuple(fig.layout.yaxis.tickvals) == (0, 5, 10, 15)
+    assert fig.layout.yaxis2.showgrid is False
 
 
 def test_make_chatgpt_vision_figure_marks_missing_ne(mock_mat_data):

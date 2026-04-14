@@ -1,0 +1,49 @@
+a short Wake bout around 300 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a short Wake bout around 425 seconds. 
+a Wake bout around 745 seconds. 
+a short Wake bout around 850 seconds.
+a short  Wake bout around 980 seconds.
+a short Wake bout around 1190 seconds.
+a short Wake bout around 1280 seconds.
+a short Wake bout around 1470 seconds.
+a short Wake bout around 1580 seconds.
+a REM bout from 1700 to 1750 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 1751 seconds. Need a Wake bout following immediately a REM bout.
+a REM bout from 2100 to 2250 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 2251 seconds. Need a Wake bout following immediately a REM bout.
+a short Wake bout around 2590 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.
+a Wake bout from 2845 to 3155 seconds. clear fading in the warmer heatmap in the 0 - 5 Hz range, no clear rise in theta/delta ratio trace, and no large rise in the NE.
+a REM bout from 3550 to 3620 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a Wake bout from 3551 to 3740 seconds. Need a Wake bout following immediately a REM bout, but also fading in the warmer heatmap in the 0 - 5 Hz range.
+A Wake bout from 3810 to 3950 seconds. clear fading in the warmer heatmap in the 0 - 5 Hz range, no clear rise in theta/delta ratio trace, and no large rise in the NE.
+A Wake bout from 4070 to 4320 seconds. clear fading in the warmer heatmap in the 0 - 5 Hz range, no clear rise in theta/delta ratio trace, and no large rise in the NE.
+a short Wake bout around 4660 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a short Wake bout around 5105 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a REM bout from 5320 to 5400 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 5401 seconds. Need a Wake bout following immediately a REM bout.
+a REM bout from 5800 to 5845 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 5846 seconds. Need a Wake bout following immediately a REM bout.
+a short Wake bout around 6180 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a short Wake bout around 6320 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a REM bout from 6550 to 6700 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 6701 seconds. Need a Wake bout following immediately a REM bout.
+a REM bout from 7260 to 7310 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 7311 seconds. Need a Wake bout following immediately a REM bout.
+a short Wake bout around 7450 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a short Wake bout around 7540 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a Wake bout from 7710 to 8170 seconds. clear fading in the warmer heatmap in the 0 - 5 Hz range, no clear rise in theta/delta ratio trace, and no large rise in the NE.
+a short Wake bout around 8465 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a short Wake bout around 8760 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram.    
+a REM bout from 9130 to 9170 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 9171 seconds. Need a Wake bout following immediately a REM bout.
+a short Wake bout around 9240 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram. 
+a REM bout from 9385 to 9415 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 9416 seconds. Need a Wake bout following immediately a REM bout.
+a short Wake bout around 9600 seconds. a clear cooler vertical strip that breaks up the warmer (yellow) heatmap in the spectrogram. 
+a REM bout from 9700 to 9725 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 9726 seconds. Need a Wake bout following immediately a REM bout.   
+a REM bout from 9835 to 9865 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 9867 seconds. Need a Wake bout following immediately a REM bout.
+a REM bout from 10100 to 10125 seconds. a rise in theta/delta ratio trace and a large NE valley at the same time.
+a short Wake bout starting from 10126 seconds. Need a Wake bout following immediately a REM bout.
+
