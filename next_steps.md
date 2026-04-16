@@ -19,6 +19,7 @@ Quick workflow:
 ## Immediate Next Experiments
 
 - Speed-quality tradeoff experiments for the improved-but-slower ChatGPT path:
+  - test the current zero-shot fixed-zoom-section setup with no overview image and no reference examples
   - compare the current `high`-effort reference-pack setup against `medium` effort
   - test sending fewer reference images, such as overview + the strongest 2 zoom examples instead of all 5 images
   - tighten the guidance prompt further so fewer examples may be needed to teach the same visual cues
@@ -29,9 +30,9 @@ Quick workflow:
 
 - `app_src/chatgpt_tools.py` helper functions are implemented.
 - `tests/test_chatgpt_tools.py` covers the helper contracts.
-- `app_src/chatgpt_scoring_guidance.md` now contains the active tightened scoring guidance used by the ChatGPT backend.
-- `app_src/chatgpt_inference.py` now performs a first real coarse ChatGPT overview pass.
-- `app_src/chatgpt_inference.py` now also performs targeted local refinement with zoom snapshots for uncertain, low-confidence, and transition-heavy intervals.
+- `app_src/chatgpt_scoring_guidance.md` now contains the active concise zero-shot scoring guidance used by the ChatGPT backend.
+- `app_src/chatgpt_inference.py` supports both the older coarse ChatGPT overview pass and the current fixed zoom-section-only experiment.
+- The current default skips the full-recording overview image and scores fixed broad zoomed sections directly.
 - The ChatGPT backend now falls back safely when the SDK, API key, snapshot export, or structured output path is unavailable.
 - Confidence thresholding is supported through `app_src/config.py` and the backend inference path.
 - The app UI now treats ChatGPT as a real backend and reports readiness when the local SDK or API key is missing.
@@ -43,12 +44,12 @@ Quick workflow:
 - The ChatGPT trace file now focuses on model-visible summaries and labeled block outputs instead of dumping the full prompt payload.
 - ChatGPT snapshot and trace filenames are now deterministic and human-readable instead of UUID-heavy.
 - ChatGPT overview and zoom snapshot titles now use the source `.mat` stem plus the exported interval bounds.
-- The model-facing ChatGPT figure is now isolated in `app_src/make_figure_chatgpt.py` and uses a focused two-panel layout with spectrogram/theta-delta on top and NE on the bottom, while the app UI figure stays unchanged.
+- The model-facing ChatGPT figure is now isolated in `app_src/make_figure_chatgpt.py` and uses a focused two-panel layout with EEG spectrogram on top and NE on the bottom, while the app UI figure stays unchanged.
 - The user-facing spectrogram frequency axis now spans `0-30 Hz`, while the ChatGPT model-facing export uses a tighter `0-15 Hz` range.
 - ChatGPT refinement is now configurable through `CHATGPT_REFINEMENT_MODE`, and the current default is `fixed_sections`.
 - Non-image helper metadata has been disabled for refinement, so the model now scores from the attached images only.
 - A backend-only `vision_figure_mode` comparison hook now exists so `focused` and `full` model-facing image layouts can be compared without changing the app UI.
-- The coarse ChatGPT pass now attaches a bundled ground-truth reference example pack from `app_src/assets/chatgpt_reference_examples`.
+- The bundled ground-truth reference example pack still exists under `app_src/assets/chatgpt_reference_examples`, but reference examples are currently disabled by default for zero-shot testing.
 - ChatGPT reasoning effort is now explicitly configurable, and the current default is `high`.
 - The thoughts trace file now includes per-call token usage and estimated cost when the Responses API returns usage data.
 

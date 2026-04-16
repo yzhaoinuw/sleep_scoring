@@ -2,6 +2,57 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-16
+
+### Done Today
+
+- Added a non-app ChatGPT preview/dry-run pipeline in `app_src/chatgpt_preview.py`:
+  - input is a `.mat` file path plus an output folder
+  - output folder receives the model-facing PNG snapshots, `model_output.json`, the thoughts trace when enabled, and `prediction_visualization.png`
+  - the source `.mat` file is loaded for inference but is not saved or modified on disk
+- Added a Spyder-friendly direct-run block to `app_src/chatgpt_preview.py` while keeping the command-line entry point available via `python -m app_src.chatgpt_preview <mat_path> <output_dir>`.
+- Ignored local `chatgpt_preview_outputs/` folders because they contain generated dry-run artifacts.
+- Added artifact collection to `app_src/chatgpt_inference.py` so callers can retrieve each model-facing image path and parsed JSON payload while reusing the same scoring path as the app.
+- Replaced the active ChatGPT scoring guidance with the concise zero-shot prompt draft from `C:\Users\yzhao\Desktop\ChatGPT_Sleep_Scoring_Guidance_draft.txt`, adapted to the backend's structured `bouts` / `uncertain_intervals` output.
+- Follow-up correction: restored the guidance file to the user draft without adding an extra `uncertain_intervals` instruction. The backend request wrapper now says to make the call to the best of judgment, leave unresolved parts as `NREM`, keep `uncertain_intervals` empty, and put reasons in the summary.
+- Follow-up prompt simplification: stripped the backend metadata prompt wrappers down to only the user's two-sentence ChatGPT prompt and removed the extra structured-output guidance text from those wrappers.
+- Changed the configured ChatGPT model from `gpt-5.4-mini` to `gpt-5.4`.
+- Changed the default ChatGPT reasoning effort from `high` to `medium`.
+- Set the default ChatGPT confidence threshold to `0.0` so API runs accept the model's returned bouts instead of filtering calls by confidence, closer to the browser testing setup.
+- Updated zoom-section-only scoring to prefill each fixed section as `NREM` before overlaying the model's returned `Wake` / `REM` bouts, matching the revised guidance that the recording is already defaulted to `NREM`.
+- Simplified the ChatGPT structured output schema from `summary` + `bouts` + `uncertain_intervals` to a compact `segments` list:
+  - each segment includes `start_s`, `end_s`, `state`, `reason`, and `confidence`
+  - allowed model-returned states are now only `Wake` and `REM`
+  - the thoughts trace now formats readable segment lines from the JSON in code instead of asking the model to write prose summaries
+- Updated the guidance example to JSON-style `segments` output.
+- Increased model-facing ChatGPT x-axis label density from the shared 16-tick target to a ChatGPT-only 24-tick target with smaller tick labels and automargin, leaving the user-facing app figure unchanged.
+- Finished removing the ChatGPT-only theta/delta visual from `app_src/make_figure_chatgpt.py`:
+  - removed the trace from the model-facing export
+  - removed the secondary right-side y-axis
+  - kept the UI figure builders unchanged
+- Added a configurable `CHATGPT_USE_OVERVIEW_PASS` switch and set the current default to skip the full overview image.
+- Kept `CHATGPT_REFINEMENT_MODE = "fixed_sections"` so the current default experiment scores the fixed zoomed sections directly.
+- Set `CHATGPT_USE_REFERENCE_EXAMPLES = False` so the current default is zero-shot with no bundled ground-truth examples attached.
+- Updated the zoom-section request prompt so each section is scored from the image only and can return `NREM`, `Wake`, `REM`, or unresolved intervals with reasons.
+- Updated the ChatGPT app status text to describe zoom-section scoring instead of overview-plus-refinement scoring.
+- Updated tests for:
+  - the spectrogram+NE-only ChatGPT export figure
+  - the old overview path as an explicit option
+  - the new default fixed-zoom-section-only zero-shot path
+- Added `pytest_tmp_*/` to `.gitignore` after pytest created an inaccessible repo-local temp directory during full-suite diagnostics.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_inference_scaffold.py tests/test_chatgpt_tools.py`
+- Result: 32 tests passed
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_chatgpt_tools.py tests/test_inference_scaffold.py`
+- Result: 31 tests passed
+- Re-ran the same focused ChatGPT test set after the x-axis density change.
+- Result: 31 tests passed
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests/test_smoke.py tests/test_chatgpt_tools.py tests/test_inference_scaffold.py`
+- Result: 41 tests passed
+- Full `pytest` was attempted, but the environment denied access to pytest's temp root (`C:\Users\yzhao\AppData\Local\Temp\pytest-of-yzhao`). A repo-local `--basetemp` attempt was also denied after pytest created the directory, so the failure appears to be temp-directory permissions rather than a test assertion.
+
 ## 2026-04-14
 
 ### Done Today

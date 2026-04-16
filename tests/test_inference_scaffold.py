@@ -47,11 +47,30 @@ class FakeFigure:
             self.title_updates.append(title.get("text"))
 
 
+class FakeExportFigure:
+    """Minimal export figure stub for preview visualization tests."""
+
+    def write_image(self, output_path, **_kwargs):
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"preview-png")
+
+
 def _fake_write_snapshot(output_path):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(b"fake-png")
     return output_path
+
+
+def _segment(start_s, end_s, state, confidence=0.9, reason="model visual cue"):
+    return {
+        "start_s": start_s,
+        "end_s": end_s,
+        "state": state,
+        "reason": reason,
+        "confidence": confidence,
+    }
 
 
 def test_chatgpt_backend_applies_confident_coarse_bouts_without_refinement(
@@ -65,11 +84,15 @@ def test_chatgpt_backend_applies_confident_coarse_bouts_without_refinement(
     mat["_source_filename"] = "trace_demo"
     client = MockResponsesClient(
         {
-            "summary": "Clear wake at the start of the session.",
-            "bouts": [
-                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+            "segments": [
+                _segment(
+                    0,
+                    20,
+                    "Wake",
+                    confidence=0.95,
+                    reason="clear wake at the start of the session",
+                ),
             ],
-            "uncertain_intervals": [],
         },
         usages={
             "input_tokens": 1200,
@@ -99,6 +122,7 @@ def test_chatgpt_backend_applies_confident_coarse_bouts_without_refinement(
         snapshot_dir=snapshot_dir,
         confidence_threshold=0.7,
         refinement_mode="none",
+        use_overview_pass=True,
     )
 
     assert len(client.calls) == 1
@@ -118,11 +142,15 @@ def test_chatgpt_backend_uses_focused_figure_mode_by_default(
     mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
     client = MockResponsesClient(
         {
-            "summary": "Clear wake at the start of the session.",
-            "bouts": [
-                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+            "segments": [
+                _segment(
+                    0,
+                    20,
+                    "Wake",
+                    confidence=0.95,
+                    reason="clear wake at the start of the session",
+                ),
             ],
-            "uncertain_intervals": [],
         },
         usages={
             "input_tokens": 1200,
@@ -159,6 +187,7 @@ def test_chatgpt_backend_uses_focused_figure_mode_by_default(
         snapshot_dir=Path("test-artifacts") / "chatgpt_inference_focused_mode",
         confidence_threshold=0.7,
         refinement_mode="none",
+        use_overview_pass=True,
     )
 
     assert len(focused_calls) == 1
@@ -174,11 +203,15 @@ def test_chatgpt_backend_can_use_full_figure_mode_for_backend_comparison(
     mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
     client = MockResponsesClient(
         {
-            "summary": "Clear wake at the start of the session.",
-            "bouts": [
-                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+            "segments": [
+                _segment(
+                    0,
+                    20,
+                    "Wake",
+                    confidence=0.95,
+                    reason="clear wake at the start of the session",
+                ),
             ],
-            "uncertain_intervals": [],
         },
         usages={
             "input_tokens": 1200,
@@ -216,6 +249,7 @@ def test_chatgpt_backend_can_use_full_figure_mode_for_backend_comparison(
         confidence_threshold=0.7,
         refinement_mode="none",
         vision_figure_mode="full",
+        use_overview_pass=True,
     )
 
     assert len(full_calls) == 1
@@ -233,22 +267,14 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
     client = MockResponsesClient(
         [
             {
-                "summary": "Wake first, REM later, unclear middle interval.",
-                "bouts": [
-                    {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
-                    {"start_s": 40, "end_s": 60, "state": "REM", "confidence": 0.9},
-                ],
-                "uncertain_intervals": [
-                    {"start_s": 20, "end_s": 40, "reason": "boundary-heavy middle segment"},
+                "segments": [
+                    _segment(0, 20, "Wake", confidence=0.95, reason="wake first"),
+                    _segment(40, 60, "REM", confidence=0.9, reason="rem later"),
                 ],
             },
             {
-                "summary": "The first half of the local interval is likely NREM.",
-                "bouts": [
-                    {"start_s": 20, "end_s": 30, "state": "NREM", "confidence": 0.88},
-                ],
-                "uncertain_intervals": [
-                    {"start_s": 30, "end_s": 40, "reason": "remaining local ambiguity"},
+                "segments": [
+                    _segment(20, 30, "Wake", confidence=0.88, reason="local wake strip"),
                 ],
             },
         ]
@@ -277,11 +303,12 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
         snapshot_dir=snapshot_dir,
         confidence_threshold=0.7,
         refinement_mode="adaptive",
+        use_overview_pass=True,
     )
 
     assert len(client.calls) == 2
     assert np.all(predictions[:20] == 0)
-    assert np.all(predictions[20:30] == 1)
+    assert np.all(predictions[20:30] == 0)
     assert np.isnan(predictions[30:40]).all()
     assert np.all(predictions[40:60] == 2)
     assert np.isnan(predictions[60:]).all()
@@ -294,10 +321,21 @@ def test_chatgpt_backend_refines_uncertain_interval_with_zoom_snapshot_and_featu
     coarse_request = client.calls[0]
     refinement_request = client.calls[1]
     assert coarse_request["input"][0]["content"].startswith("# ChatGPT Sleep Scoring Guidance")
-    assert "Refine only this local interval" in refinement_request["input"][1]["content"][0]["text"]
+    assert (
+        "sleep score the figure based on the provided guidance to the best of your judgment"
+        in refinement_request["input"][1]["content"][0]["text"]
+    )
+    assert (
+        "If there truly are some parts that you cannot resolve"
+        in refinement_request["input"][1]["content"][0]["text"]
+    )
+    assert (
+        "Refine only this local interval"
+        not in refinement_request["input"][1]["content"][0]["text"]
+    )
     assert (
         "Base the decision only on the image"
-        in refinement_request["input"][1]["content"][0]["text"]
+        not in refinement_request["input"][1]["content"][0]["text"]
     )
     assert "interval_features=" not in refinement_request["input"][1]["content"][0]["text"]
     assert "current_scores=" not in refinement_request["input"][1]["content"][0]["text"]
@@ -318,21 +356,15 @@ def test_chatgpt_backend_attaches_reference_examples_only_to_coarse_pass_and_for
     client = MockResponsesClient(
         [
             {
-                "summary": "Wake first, REM later, unclear middle interval.",
-                "bouts": [
-                    {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
-                    {"start_s": 40, "end_s": 60, "state": "REM", "confidence": 0.9},
-                ],
-                "uncertain_intervals": [
-                    {"start_s": 20, "end_s": 40, "reason": "boundary-heavy middle segment"},
+                "segments": [
+                    _segment(0, 20, "Wake", confidence=0.95, reason="wake first"),
+                    _segment(40, 60, "REM", confidence=0.9, reason="rem later"),
                 ],
             },
             {
-                "summary": "The first half of the local interval is likely NREM.",
-                "bouts": [
-                    {"start_s": 20, "end_s": 30, "state": "NREM", "confidence": 0.88},
+                "segments": [
+                    _segment(20, 30, "Wake", confidence=0.88, reason="local wake strip"),
                 ],
-                "uncertain_intervals": [],
             },
         ]
     )
@@ -371,6 +403,7 @@ def test_chatgpt_backend_attaches_reference_examples_only_to_coarse_pass_and_for
         confidence_threshold=0.7,
         refinement_mode="adaptive",
         use_reference_examples=True,
+        use_overview_pass=True,
         reasoning_effort="high",
     )
 
@@ -395,11 +428,15 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
     mat["_source_filename"] = "trace_demo"
     client = MockResponsesClient(
         {
-            "summary": "Clear wake at the start of the session.",
-            "bouts": [
-                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
+            "segments": [
+                _segment(
+                    0,
+                    20,
+                    "Wake",
+                    confidence=0.95,
+                    reason="clear wake at the start of the session",
+                ),
             ],
-            "uncertain_intervals": [],
         },
         usages={
             "input_tokens": 1200,
@@ -430,6 +467,7 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
         confidence_threshold=0.7,
         show_thoughts=True,
         refinement_mode="none",
+        use_overview_pass=True,
     )
 
     trace_files = sorted(snapshot_dir.glob("*_thoughts.txt"))
@@ -439,17 +477,19 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
     trace_text = trace_files[0].read_text(encoding="utf-8")
     assert "## Trace Info" in trace_text
     assert "## Coarse Pass API Usage" in trace_text
-    assert "- reasoning_effort: high" in trace_text
+    assert "- reasoning_effort: medium" in trace_text
+    assert "- overview_pass: True" in trace_text
     assert "- input_tokens: 1200" in trace_text
     assert "- cached_input_tokens: 200" in trace_text
     assert "- output_tokens: 300" in trace_text
     assert "- reasoning_tokens: 180" in trace_text
     assert "- total_tokens: 1500" in trace_text
-    assert "- estimated_cost_usd: $0.002115" in trace_text
-    assert "## Coarse Pass Summary" in trace_text
-    assert "## Coarse Pass Proposed Bouts" in trace_text
-    assert "Clear wake at the start of the session." in trace_text
-    assert "## Coarse Pass Applied Bouts" in trace_text
+    assert "- estimated_cost_usd: $0.007050" in trace_text
+    assert "## Coarse Pass Proposed Segments" in trace_text
+    assert "- 0s-20s | Wake | 0.95 | clear wake at the start of the session" in trace_text
+    assert "## Coarse Pass Applied Segments" in trace_text
+    assert "## Coarse Pass Summary" not in trace_text
+    assert "## Coarse Pass Proposed Bouts" not in trace_text
     assert "## Guidance Prompt" not in trace_text
     assert "## Coarse Pass Input" not in trace_text
     assert "data:image/png;base64" not in trace_text
@@ -467,13 +507,9 @@ def test_chatgpt_backend_skips_refinement_in_none_mode_even_with_uncertain_inter
     mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
     client = MockResponsesClient(
         {
-            "summary": "Wake first, REM later, unclear middle interval.",
-            "bouts": [
-                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
-                {"start_s": 40, "end_s": 60, "state": "REM", "confidence": 0.9},
-            ],
-            "uncertain_intervals": [
-                {"start_s": 20, "end_s": 40, "reason": "boundary-heavy middle segment"},
+            "segments": [
+                _segment(0, 20, "Wake", confidence=0.95, reason="wake first"),
+                _segment(40, 60, "REM", confidence=0.9, reason="rem later"),
             ],
         }
     )
@@ -500,6 +536,7 @@ def test_chatgpt_backend_skips_refinement_in_none_mode_even_with_uncertain_inter
         snapshot_dir=Path("test-artifacts") / "chatgpt_inference_overview_only",
         confidence_threshold=0.7,
         refinement_mode="none",
+        use_overview_pass=True,
     )
 
     assert len(client.calls) == 1
@@ -520,16 +557,8 @@ def test_chatgpt_backend_can_refine_using_fixed_broad_sections(
     mat["_source_filename"] = "fixed_sections_demo"
     client = MockResponsesClient(
         [
-            {
-                "summary": "Coarse pass leaves the session uncertain.",
-                "bouts": [],
-                "uncertain_intervals": [],
-            },
-            {
-                "summary": "Broad section keeps the interval uncertain.",
-                "bouts": [],
-                "uncertain_intervals": [],
-            },
+            {"segments": []},
+            {"segments": []},
         ]
     )
 
@@ -559,6 +588,7 @@ def test_chatgpt_backend_can_refine_using_fixed_broad_sections(
         confidence_threshold=0.7,
         refinement_mode="fixed_sections",
         fixed_refinement_section_count=4,
+        use_overview_pass=True,
     )
 
     assert len(client.calls) == 5
@@ -568,6 +598,107 @@ def test_chatgpt_backend_can_refine_using_fixed_broad_sections(
         "fixed_sections_demo | 50s-75s",
         "fixed_sections_demo | 75s-100s",
     ]
+
+
+def test_chatgpt_backend_defaults_to_zoom_sections_without_overview_or_examples(
+    mock_mat_data,
+    monkeypatch,
+):
+    """The current experiment should score fixed zoomed sections without a coarse overview."""
+    from app_src import chatgpt_inference
+
+    mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
+    mat["_source_filename"] = "zoom_only_demo"
+    client = MockResponsesClient(
+        [
+            {"segments": []},
+            {
+                "segments": [
+                    _segment(
+                        25,
+                        35,
+                        "Wake",
+                        confidence=0.2,
+                        reason="discontinuity in the yellow band",
+                    ),
+                ],
+            },
+            {
+                "segments": [
+                    _segment(
+                        50,
+                        60,
+                        "REM",
+                        confidence=0.88,
+                        reason="spectrogram break with NE valley",
+                    ),
+                ],
+            },
+            {"segments": []},
+        ]
+    )
+
+    fake_figure = FakeFigure()
+    zoom_titles = []
+
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: fake_figure,
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_overview_snapshot",
+        lambda _fig, _output_path: (_ for _ in ()).throw(
+            AssertionError("overview snapshot should not be captured")
+        ),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "_build_reference_examples_message",
+        lambda _reference_examples_dir=None: (_ for _ in ()).throw(
+            AssertionError("reference examples should not be attached by default")
+        ),
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_zoom_snapshot",
+        lambda fig, _start_s, _end_s, output_path: zoom_titles.append(fig.title_updates[-1])
+        or _fake_write_snapshot(output_path),
+    )
+
+    predictions, confidence = chatgpt_inference.infer(
+        mat,
+        client=client,
+        snapshot_dir=Path("test-artifacts") / "chatgpt_inference_zoom_only_default",
+    )
+
+    assert len(client.calls) == 4
+    assert zoom_titles == [
+        "zoom_only_demo | 0s-25s",
+        "zoom_only_demo | 25s-50s",
+        "zoom_only_demo | 50s-75s",
+        "zoom_only_demo | 75s-100s",
+    ]
+    first_request_text = client.calls[0]["input"][1]["content"][0]["text"]
+    assert (
+        "sleep score the figure based on the provided guidance to the best of your judgment"
+        in first_request_text
+    )
+    assert "If there truly are some parts that you cannot resolve" in first_request_text
+    assert "Score only this zoomed section" not in first_request_text
+    assert "No full-recording overview image is provided" not in first_request_text
+    assert "Do not label any segment as uncertain" not in first_request_text
+    assert len(client.calls[0]["input"]) == 2
+    assert np.all(predictions[:25] == 1)
+    assert np.all(confidence[:25] == 1.0)
+    assert np.all(predictions[25:35] == 0)
+    assert np.all(confidence[25:35] == 0.2)
+    assert np.all(predictions[35:50] == 1)
+    assert np.all(confidence[35:50] == 1.0)
+    assert np.all(predictions[50:60] == 2)
+    assert np.all(predictions[60:75] == 1)
+    assert np.all(predictions[75:] == 1)
 
 
 def test_chatgpt_backend_uses_recording_name_and_interval_in_snapshot_titles(
@@ -582,21 +713,15 @@ def test_chatgpt_backend_uses_recording_name_and_interval_in_snapshot_titles(
     client = MockResponsesClient(
         [
             {
-                "summary": "Wake first, REM later, unclear middle interval.",
-                "bouts": [
-                    {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
-                    {"start_s": 40, "end_s": 60, "state": "REM", "confidence": 0.9},
-                ],
-                "uncertain_intervals": [
-                    {"start_s": 20, "end_s": 40, "reason": "boundary-heavy middle segment"},
+                "segments": [
+                    _segment(0, 20, "Wake", confidence=0.95, reason="wake first"),
+                    _segment(40, 60, "REM", confidence=0.9, reason="rem later"),
                 ],
             },
             {
-                "summary": "The first half of the local interval is likely NREM.",
-                "bouts": [
-                    {"start_s": 20, "end_s": 30, "state": "NREM", "confidence": 0.88},
+                "segments": [
+                    _segment(20, 30, "Wake", confidence=0.88, reason="local wake strip"),
                 ],
-                "uncertain_intervals": [],
             },
         ]
     )
@@ -627,6 +752,7 @@ def test_chatgpt_backend_uses_recording_name_and_interval_in_snapshot_titles(
         snapshot_dir=Path("test-artifacts") / "chatgpt_inference_titles",
         confidence_threshold=0.7,
         refinement_mode="adaptive",
+        use_overview_pass=True,
     )
 
     assert observed_plot_names == ["115_gs | 0s-100s"]
@@ -685,12 +811,10 @@ def test_chatgpt_backend_falls_back_when_structured_output_is_invalid(
     mat = {key: value for key, value in mock_mat_data.items() if key != "sleep_scores"}
     client = MockResponsesClient(
         {
-            "summary": "Invalid overlapping bout output.",
-            "bouts": [
-                {"start_s": 0, "end_s": 20, "state": "Wake", "confidence": 0.95},
-                {"start_s": 10, "end_s": 30, "state": "REM", "confidence": 0.85},
+            "segments": [
+                _segment(0, 20, "Wake", confidence=0.95, reason="wake first"),
+                _segment(10, 30, "REM", confidence=0.85, reason="overlapping rem"),
             ],
-            "uncertain_intervals": [],
         }
     )
 
@@ -711,7 +835,90 @@ def test_chatgpt_backend_falls_back_when_structured_output_is_invalid(
         mat,
         client=client,
         snapshot_dir=snapshot_dir,
+        use_overview_pass=True,
     )
 
     assert np.isnan(predictions).all()
     assert np.isnan(confidence).all()
+
+
+def test_chatgpt_preview_writes_dry_run_artifacts_without_modifying_mat_file(
+    mock_mat_data,
+    monkeypatch,
+):
+    """The preview pipeline should write model artifacts but leave the source .mat untouched."""
+    from scipy.io import loadmat, savemat
+
+    from app_src import chatgpt_inference, chatgpt_preview
+
+    test_root = Path("test-artifacts") / f"chatgpt_preview_{uuid.uuid4().hex}"
+    test_root.mkdir(parents=True, exist_ok=True)
+    mat_path = test_root / "preview_demo.mat"
+    savemat(mat_path, mock_mat_data)
+    output_dir = test_root / "preview_output"
+    client = MockResponsesClient(
+        [
+            {
+                "segments": [
+                    _segment(
+                        0,
+                        5,
+                        "Wake",
+                        confidence=0.9,
+                        reason="clear wake discontinuity",
+                    )
+                ],
+            },
+            {
+                "segments": [
+                    _segment(
+                        50,
+                        55,
+                        "REM",
+                        confidence=0.8,
+                        reason="brief REM-like spectrogram break",
+                    )
+                ],
+            },
+        ]
+    )
+    fake_model_figure = FakeFigure()
+
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "make_chatgpt_vision_figure",
+        lambda *args, **kwargs: fake_model_figure,
+    )
+    monkeypatch.setattr(
+        chatgpt_inference,
+        "capture_zoom_snapshot",
+        lambda _fig, _start_s, _end_s, output_path: _fake_write_snapshot(output_path),
+    )
+    monkeypatch.setattr(
+        chatgpt_preview,
+        "make_figure",
+        lambda *args, **kwargs: FakeExportFigure(),
+    )
+
+    result = chatgpt_preview.run_chatgpt_preview(
+        mat_path=mat_path,
+        output_dir=output_dir,
+        client=client,
+        fixed_refinement_section_count=2,
+    )
+
+    model_output = json.loads(result["model_output_json_path"].read_text(encoding="utf-8"))
+    reloaded_mat = loadmat(mat_path, squeeze_me=True)
+
+    assert result["output_dir"] == output_dir.resolve()
+    assert result["model_output_json_path"] == output_dir.resolve() / "model_output.json"
+    assert result["model_output_json_path"].exists()
+    assert result["thoughts_path"].exists()
+    assert result["visualization_path"].read_bytes() == b"preview-png"
+    assert len(result["input_image_paths"]) == 2
+    assert all(path.exists() for path in result["input_image_paths"])
+    assert len(model_output["input_images"]) == 2
+    assert len(model_output["model_calls"]) == 2
+    assert model_output["model_calls"][0]["payload"]["segments"][0]["state"] == "Wake"
+    assert model_output["model_calls"][1]["payload"]["segments"][0]["state"] == "REM"
+    assert np.array_equal(reloaded_mat["sleep_scores"], mock_mat_data["sleep_scores"])

@@ -14,6 +14,7 @@ get_gold_standard.py
 gold_standard_demo.png
 model_infer_example.txt
 test-artifacts/
+chatgpt_preview_outputs/
 
 # Local archival / historical materials
 archive/
@@ -73,6 +74,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 .pytest_tmp/
+pytest_tmp_*/
 pytest-cache-files-*/
 cover/
 .pre-commit-cache/

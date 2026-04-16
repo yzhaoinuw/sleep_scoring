@@ -690,7 +690,7 @@ def read_mat_pred(n_clicks, is_open, backend):
         message += " Generating SDreamer predictions... This may take up to 3 minutes. Check Terminal for the progress."
     else:
         message = (
-            "Generating ChatGPT sleep scores from the overview figure and targeted zoomed intervals."
+            "Generating ChatGPT sleep scores from zoomed model-facing sections."
             " This may take longer than SDreamer depending on API response time."
         )
     return (

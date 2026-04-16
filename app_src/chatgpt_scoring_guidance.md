@@ -1,54 +1,38 @@
 # ChatGPT Sleep Scoring Guidance
 
-Score the recording into one state per second:
+Background: experimenters recorded the EEG signal and the Norepinephrine (NE) signal of a mouse simultaneously. Based on the two signals, I want to segment the recording into contiguous sleep states. This process is called sleep scoring. Each segment must be one of three sleep states: NREM, Wake, or REM.
+  
+You will be given a figure that contains two subplots stacked vertically. The upper subplot is a spectrogram of the EEG signal. The spectrogram is a heatmap in which the warmer, yellow color indicates higher strength and the cooler, blue color indicates less strength. The Y-axis on the left side shows the EEG wave frequency in the 0 - 15 Hz range. The lower subplot is the NE signal. The two subplots share a time axis shown at the bottom of the NE subplot. Below is a guidance on how to sleep score and the visual cues that will help you segment the sleep states.
 
-- `Wake`
-- `NREM`
-- `REM`
+First, the entire recording is already default to NREM. From here, you only need to identify Wake and REM segments. Look at the spectrogram for Wake or REM. If you see a discontinuity in the yellow area from 1 - 5 Hz along the time axis, then label the segment of discontinuity as Wake. If and only if, in addition to the discontinuity, you also see a pronounced V-shaped valley in the NE signal around the same time, label the segment of discontinuity as REM. Such a pronounced V-shaped valley should drop about two deviation from its surrounding wiggles and then immediately bounces back. It also must be one clean V, not a cluster of smaller V-shaped dips inside a broader valley.
 
-Use the plotted image as the source of truth.
-The model-facing image is a focused two-panel layout:
+When you identify the segment, do your best to locate its start time and end time on the time axis using the X-axis labels and ticks. When a Wake segment is too thin to estimate its start or end time, estimate its center point on the time axis and then give an appropriate (such as 20 seconds or longer) time window around it. In chronological order, return the Wake and REM segments. For example,
 
-- Top panel: EEG spectrogram with theta/delta ratio trace overlay
-- Bottom panel: NE
-
-Follow this scoring order, which should drive your reasoning:
-
-1. Start by labeling entire recording as `NREM`.
-2. Consult the EEG spectrogram and the overlaid theta/delta ratio trace (in white) to pick out clearly non-`NREM` intervals and relabel them as `Wake`.
-3. Then use NE, when available, to further pick out `REM` from those wake-like intervals.
-
-Use both local evidence and surrounding context, and prefer coherent bout structure over second-to-second flipping. If the evidence is genuinely mixed or weak, leave it as `NREM` or mark it uncertain. Do not miss an obvious brief `Wake` interruption only because its exact boundaries are fuzzy.
-
-## Signal Cues
-
-- Start with EEG spectrogram because it is the most effective cue for picking out `Wake` from `NREM`.
-- `NREM`: stronger warmer-color delta power in the 0-5 Hz band, with lower theta/delta ratio than `Wake`.
-- `Wake` or `REM`: relatively stronger theta activity above 5Hz and a higher theta/delta ratio than nearby `NREM`.
-- Use the theta/delta trace as a compact summary of the same comparison: lower supports `NREM`, higher supports `Wake`.
-- If NE is available, use it next to pick out `REM` from `Wake`: a sudden dramatic valley supports `REM`. Dramatic valleys are more noticeable and longer than ordinary wiggles.
-- If NE is absent, make the best guess based on the height and duration of the rise in the theta/delta ratio trace. Much higher and longer rises, sometimes up to 200 seconds, usually indicate `REM`.
-
-## High-Value Patterns
-
-- Brief `Wake` bouts can appear as narrow cooler vertical strips that interrupt the warmer 0-5 Hz `NREM` band in the spectrogram. These short interruptions may have only modest theta/delta or NE changes, but they are still important to catch.
-- Longer `Wake` bouts can appear as broader fading or loss of the warmer 0-5 Hz `NREM` band, without the pronounced NE valley that would support `REM`.
-- `REM` is strongest when a theta/delta rise and a pronounced NE valley happen at the same time.
-- When a clear `REM` bout ends, a brief `Wake` bout is often more plausible than a direct `REM` to `NREM` jump.
-- On overview images, prioritize correct detection of obvious non-`NREM` bouts over perfect second-level boundaries. Use local refinement to tighten edges later.
-
-
-## Bout And Transition Rules
-
-- Use spectrogram pattern, NE, and nearby context together.
-- Prefer contiguous, biologically plausible bouts over isolated one-off state flips.
-- `REM` should usually emerge after a preceding `NREM` bout, even though in the scoring workflow it is identified by carving `REM` out of wake-like candidate intervals.
-- A direct `REM` to `NREM` switch is less plausible than `REM` to brief `Wake`.
-- If a brief post-`REM` `Wake` bridge is clearly visible, label it as `Wake` even if its exact duration is short.
-- Brief isolated candidate `REM` segments with weak support are suspicious; leave them as `Wake`.
-
-## Output Behavior
-
-- Return only contiguous, non-overlapping high-confidence bouts in `bouts`.
-- For local refinement, revise only the requested interval unless the prompt explicitly allows nearby changes.
-- Keep the summary concise.
+```json
+{
+  "segments": [
+    {
+      "start_s": 300,
+      "end_s": 320,
+      "state": "Wake",
+      "reason": "narrow cooler vertical strip interrupting the warmer 1-5 Hz NREM band",
+      "confidence": 0.8
+    },
+    {
+      "start_s": 1700,
+      "end_s": 1750,
+      "state": "REM",
+      "reason": "spectrogram discontinuity with a pronounced V-shaped NE valley",
+      "confidence": 0.9
+    },
+    {
+      "start_s": 1750,
+      "end_s": 1770,
+      "state": "Wake",
+      "reason": "brief post-REM wake bridge",
+      "confidence": 0.75
+    }
+  ]
+}
+```
+  

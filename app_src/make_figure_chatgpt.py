@@ -14,7 +14,6 @@ from app_src.get_fft_plots import get_fft_plots
 from app_src.make_figure_dev import (
     COLORSCALE,
     HEATMAP_WIDTH,
-    OVERVIEW_XAXIS_NTICKS,
     RANGE_PADDING_PERCENT,
     RANGE_QUANTILE,
     SLEEP_SCORE_OPACITY,
@@ -23,6 +22,7 @@ from app_src.make_figure_dev import (
 
 SPECTROGRAM_Y_MAX_HZ = 15
 SPECTROGRAM_Y_TICKVALS_HZ = list(range(0, SPECTROGRAM_Y_MAX_HZ + 1, 5))
+CHATGPT_XAXIS_NTICKS = 24
 
 
 def make_chatgpt_vision_figure(
@@ -66,7 +66,7 @@ def make_chatgpt_vision_figure(
             ),
             row_heights=[0.45, 0.55],
             specs=[
-                [{"secondary_y": True, "r": -0.05}],
+                [{"r": -0.05}],
                 [{"r": -0.05}],
             ],
         ),
@@ -91,7 +91,7 @@ def make_chatgpt_vision_figure(
         xgap=0.05,
     )
 
-    spectrogram, theta_delta_ratio = get_fft_plots(eeg, eeg_freq, start_time)
+    spectrogram, _theta_delta_ratio = get_fft_plots(eeg, eeg_freq, start_time)
     spectrogram.colorbar = dict(
         title="Power (dB)",
         orientation="h",
@@ -142,8 +142,7 @@ def make_chatgpt_vision_figure(
             font=dict(size=12, color="gray"),
         )
 
-    fig.add_trace(spectrogram, secondary_y=False, row=1, col=1)
-    fig.add_trace(theta_delta_ratio, secondary_y=True, row=1, col=1)
+    fig.add_trace(spectrogram, row=1, col=1)
     fig.add_trace(sleep_scores, row=2, col=1)
     fig.update_layout(
         autosize=True,
@@ -161,7 +160,9 @@ def make_chatgpt_vision_figure(
         ),
         xaxis2=dict(
             tickformat="digits",
-            nticks=OVERVIEW_XAXIS_NTICKS,
+            nticks=CHATGPT_XAXIS_NTICKS,
+            tickfont=dict(size=10),
+            automargin=True,
         ),
         modebar_remove=["lasso2d", "zoom", "autoScale"],
         dragmode="pan",
@@ -193,17 +194,6 @@ def make_chatgpt_vision_figure(
         tickmode="array",
         tickvals=SPECTROGRAM_Y_TICKVALS_HZ,
         fixedrange=True,
-        secondary_y=False,
-        row=1,
-        col=1,
-    )
-    fig.update_yaxes(
-        title="Theta/Delta",
-        overlaying="y",
-        side="right",
-        showgrid=False,
-        fixedrange=True,
-        secondary_y=True,
         row=1,
         col=1,
     )

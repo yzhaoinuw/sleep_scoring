@@ -11,7 +11,7 @@ from app_src.chatgpt_tools import (
     mark_uncertain_interval,
     set_scores_block,
 )
-from app_src.make_figure_chatgpt import make_chatgpt_vision_figure
+from app_src.make_figure_chatgpt import CHATGPT_XAXIS_NTICKS, make_chatgpt_vision_figure
 from app_src.make_figure_dev import make_figure
 
 
@@ -81,15 +81,18 @@ def test_make_chatgpt_vision_figure_only_shows_spectrogram_and_ne(mock_mat_data_
     trace_names = [getattr(trace, "name", None) for trace in fig.data]
 
     assert "Spectrogram" in trace_names
-    assert "Theta/Delta" in trace_names
+    assert "Theta/Delta" not in trace_names
     assert "NE" in trace_names
     assert "EEG" not in trace_names
     assert "EMG" not in trace_names
     assert fig.layout.xaxis2.tickformat == "digits"
-    assert fig.layout.xaxis2.nticks == 16
+    assert fig.layout.xaxis2.nticks == CHATGPT_XAXIS_NTICKS
+    assert fig.layout.xaxis2.tickfont.size == 10
+    assert fig.layout.xaxis2.automargin is True
     assert tuple(fig.layout.yaxis.range) == (0, 15)
     assert tuple(fig.layout.yaxis.tickvals) == (0, 5, 10, 15)
-    assert fig.layout.yaxis2.showgrid is False
+    assert fig.layout.yaxis2.overlaying is None
+    assert fig.layout.yaxis2.side is None
 
 
 def test_make_chatgpt_vision_figure_marks_missing_ne(mock_mat_data):

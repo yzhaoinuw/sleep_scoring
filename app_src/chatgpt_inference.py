@@ -2,14 +2,13 @@
 """
 ChatGPT sleep-scoring backend.
 
-This module implements a two-stage scoring flow:
+This module implements the ChatGPT scoring flow:
 
-1. Render a deterministic overview snapshot for a coarse first pass.
-2. Send the guidance prompt plus the overview image to the Responses API.
-3. Parse structured contiguous sleep-state bouts from the model output.
-4. Write back only bouts above a configurable confidence threshold.
-5. Run targeted local refinement for uncertain, low-confidence, or
-   transition-heavy intervals using zoom snapshots only.
+1. Render deterministic model-facing snapshots.
+2. Send the guidance prompt plus snapshot images to the Responses API.
+3. Parse structured Wake/REM segments from the model output.
+4. Write back model-returned segments.
+5. Optionally skip the overview pass and score fixed zoomed sections only.
 """
 
 from __future__ import annotations
@@ -38,6 +37,7 @@ from app_src.config import (
     CHATGPT_REASONING_EFFORT,
     CHATGPT_REFINEMENT_MODE,
     CHATGPT_SHOW_THOUGHTS,
+    CHATGPT_USE_OVERVIEW_PASS,
     CHATGPT_USE_REFERENCE_EXAMPLES,
 )
 from app_src.make_figure_chatgpt import make_chatgpt_vision_figure
@@ -49,16 +49,18 @@ DEFAULT_GUIDANCE_PROMPT_PATH = Path(__file__).with_name("chatgpt_scoring_guidanc
 DEFAULT_REFERENCE_EXAMPLES_DIR = (
     Path(__file__).resolve().parent / "assets" / "chatgpt_reference_examples"
 )
-DEFAULT_CONFIDENCE_THRESHOLD = 0.7
+DEFAULT_CONFIDENCE_THRESHOLD = 0.0
 DEFAULT_REASONING_EFFORT = CHATGPT_REASONING_EFFORT
 DEFAULT_SHOW_THOUGHTS = CHATGPT_SHOW_THOUGHTS
 DEFAULT_REFINEMENT_MODE = CHATGPT_REFINEMENT_MODE
 DEFAULT_FIXED_REFINEMENT_SECTION_COUNT = CHATGPT_FIXED_REFINEMENT_SECTION_COUNT
+DEFAULT_USE_OVERVIEW_PASS = CHATGPT_USE_OVERVIEW_PASS
 DEFAULT_USE_REFERENCE_EXAMPLES = CHATGPT_USE_REFERENCE_EXAMPLES
 DEFAULT_VISION_FIGURE_MODE = "focused"
 OPENAI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
 DEFAULT_REFINEMENT_MARGIN_S = 15
 DEFAULT_MAX_REFINEMENT_INTERVALS = 6
+DEFAULT_NREM_CONFIDENCE = 1.0
 MODEL_PRICING_USD_PER_1M_TOKENS = {
     "gpt-5.4": {
         "input": 2.50,
@@ -107,14 +109,13 @@ REFERENCE_EXAMPLE_IMAGE_SPECS = [
 
 RESPONSE_TEXT_FORMAT = {
     "type": "json_schema",
-    "name": "sleep_scoring_bouts",
+    "name": "sleep_scoring_segments",
     "strict": True,
     "schema": {
         "type": "object",
         "additionalProperties": False,
         "properties": {
-            "summary": {"type": "string"},
-            "bouts": {
+            "segments": {
                 "type": "array",
                 "items": {
                     "type": "object",
@@ -124,28 +125,16 @@ RESPONSE_TEXT_FORMAT = {
                         "end_s": {"type": "integer"},
                         "state": {
                             "type": "string",
-                            "enum": sorted(SLEEP_STAGE_TO_SCORE),
+                            "enum": ["REM", "Wake"],
                         },
+                        "reason": {"type": "string"},
                         "confidence": {"type": "number"},
                     },
-                    "required": ["start_s", "end_s", "state", "confidence"],
-                },
-            },
-            "uncertain_intervals": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "start_s": {"type": "integer"},
-                        "end_s": {"type": "integer"},
-                        "reason": {"type": "string"},
-                    },
-                    "required": ["start_s", "end_s", "reason"],
+                    "required": ["start_s", "end_s", "state", "reason", "confidence"],
                 },
             },
         },
-        "required": ["summary", "bouts", "uncertain_intervals"],
+        "required": ["segments"],
     },
 }
 
@@ -291,6 +280,14 @@ def _normalize_use_reference_examples(use_reference_examples: bool | None) -> bo
         return bool(DEFAULT_USE_REFERENCE_EXAMPLES)
 
     return bool(use_reference_examples)
+
+
+def _normalize_use_overview_pass(use_overview_pass: bool | None) -> bool:
+    """Return whether inference should begin with the full-recording overview pass."""
+    if use_overview_pass is None:
+        return bool(DEFAULT_USE_OVERVIEW_PASS)
+
+    return bool(use_overview_pass)
 
 
 def _normalize_vision_figure_mode(vision_figure_mode: str | None) -> str:
@@ -488,45 +485,77 @@ def _trace_interval_bounds(item: dict[str, Any]) -> tuple[Any, Any]:
     return start_value, end_value
 
 
-def _format_trace_bouts(bouts: list[dict[str, Any]]) -> list[str]:
-    """Format scored bouts for compact trace output."""
-    if not bouts:
+def _format_trace_segments(segments: list[dict[str, Any]]) -> list[str]:
+    """Format scored model segments for compact trace output."""
+    if not segments:
         return ["(none)"]
 
     lines = []
-    for bout in bouts:
-        start_value, end_value = _trace_interval_bounds(bout)
+    for segment in segments:
+        start_value, end_value = _trace_interval_bounds(segment)
+        reason = str(segment.get("reason", "")).strip() or "no reason provided"
         lines.append(
             "- "
             f"{start_value}s-{end_value}s | "
-            f"{bout['state']} | confidence {_format_confidence(bout.get('confidence'))}"
+            f"{segment['state']} | "
+            f"{_format_confidence(segment.get('confidence'))} | "
+            f"{reason}"
         )
-    return lines
-
-
-def _format_trace_uncertain_intervals(intervals: list[dict[str, Any]]) -> list[str]:
-    """Format uncertain intervals for compact trace output."""
-    if not intervals:
-        return ["(none)"]
-
-    lines = []
-    for interval in intervals:
-        start_value, end_value = _trace_interval_bounds(interval)
-        reason = interval.get("reason") or "uncertain"
-        lines.append(f"- {start_value}s-{end_value}s | {reason}")
     return lines
 
 
 def _format_trace_payload(payload: dict[str, Any]) -> dict[str, list[str]]:
     """Convert a structured model payload into compact visible-reasoning blocks."""
-    bouts = payload.get("bouts", [])
-    uncertain_intervals = payload.get("uncertain_intervals", [])
-    summary = str(payload.get("summary", "")).strip() or "(no summary)"
     return {
-        "summary": [summary],
-        "bouts": _format_trace_bouts(bouts),
-        "uncertain_intervals": _format_trace_uncertain_intervals(uncertain_intervals),
+        "segments": _format_trace_segments(payload.get("segments", [])),
     }
+
+
+def _segments_to_absolute_seconds(
+    segments: list[dict[str, Any]],
+    recording_start_s: float,
+) -> list[dict[str, Any]]:
+    """Return normalized segments with absolute-second bounds for JSON artifacts."""
+    absolute_segments = []
+    for segment in segments:
+        absolute_segments.append(
+            {
+                "start_s": int(round(recording_start_s + segment["start_idx"])),
+                "end_s": int(round(recording_start_s + segment["end_idx"])),
+                "state": segment["state"],
+                "reason": segment["reason"],
+                "confidence": segment["confidence"],
+            }
+        )
+
+    return absolute_segments
+
+
+def _record_model_call_artifact(
+    artifact_log: list[dict[str, Any]] | None,
+    *,
+    label: str,
+    kind: str,
+    snapshot_path: str | Path,
+    start_s: float,
+    end_s: float,
+    payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Append a JSON-serializable record for one model-facing request."""
+    if artifact_log is None:
+        return None
+
+    record = {
+        "label": label,
+        "kind": kind,
+        "start_s": float(start_s),
+        "end_s": float(end_s),
+        "image_path": str(Path(snapshot_path).resolve()),
+        "payload": payload,
+        "normalized_segments": [],
+    }
+    artifact_log.append(record)
+    return record
 
 
 def _format_refinement_window(
@@ -727,14 +756,9 @@ def _build_coarse_request_input(
 ) -> list[dict[str, Any]]:
     """Build a deterministic prompt for the full-session overview pass."""
     metadata_prompt = (
-        "Score this full recording from the overview plot.\n"
-        f"Recording start time: {recording_start_s:.3f} seconds.\n"
-        f"Recording end time: {recording_end_s:.3f} seconds.\n"
-        "Use absolute seconds that match the x-axis in the image.\n"
-        "Return only contiguous non-overlapping high-confidence bouts in `bouts`.\n"
-        "Put ambiguous regions in `uncertain_intervals` instead of forcing a label.\n"
-        "Do not invent extra sleep states.\n"
-        "Keep the summary concise."
+        "sleep score the figure based on the provided guidance to the best of your judgment.\n"
+        "If there truly are some parts that you cannot resolve, tell me the reasons "
+        "that prevent you from making the call."
     )
 
     request_input = [
@@ -774,14 +798,44 @@ def _build_refinement_request_input(
 ) -> list[dict[str, Any]]:
     """Build a bounded prompt for a local refinement pass."""
     metadata_prompt = (
-        "Refine only this local interval from the zoomed plot.\n"
-        f"Target interval start time: {interval_start_s:.3f} seconds.\n"
-        f"Target interval end time: {interval_end_s:.3f} seconds.\n"
-        f"Refinement reason: {refinement_reason}\n"
-        "Base the decision only on the image for this interval.\n"
-        "Only return bouts that stay entirely inside the target interval.\n"
-        "If any sub-interval remains ambiguous, include it in `uncertain_intervals`.\n"
-        "Do not rely on prior labels or non-image helper summaries."
+        "sleep score the figure based on the provided guidance to the best of your judgment.\n"
+        "If there truly are some parts that you cannot resolve, tell me the reasons "
+        "that prevent you from making the call."
+    )
+
+    return [
+        {
+            "role": "system",
+            "content": guidance_prompt,
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": metadata_prompt,
+                },
+                {
+                    "type": "input_image",
+                    "image_url": image_data_url,
+                },
+            ],
+        },
+    ]
+
+
+def _build_zoom_section_request_input(
+    guidance_prompt: str,
+    image_data_url: str,
+    interval_start_s: float,
+    interval_end_s: float,
+    section_reason: str,
+) -> list[dict[str, Any]]:
+    """Build a prompt for scoring one zoomed section without an overview pass."""
+    metadata_prompt = (
+        "sleep score the figure based on the provided guidance to the best of your judgment.\n"
+        "If there truly are some parts that you cannot resolve, tell me the reasons "
+        "that prevent you from making the call."
     )
 
     return [
@@ -843,103 +897,96 @@ def _normalize_interval_indices(
     return start_idx, end_idx
 
 
-def _normalize_bouts(
+def _normalize_segments(
     payload: dict[str, Any],
     recording_start_s: float,
     duration_s: int,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Validate and normalize structured bout output."""
-    raw_bouts = payload.get("bouts", [])
-    raw_uncertain_intervals = payload.get("uncertain_intervals", [])
+) -> list[dict[str, Any]]:
+    """Validate and normalize structured Wake/REM segment output."""
+    raw_segments = payload.get("segments", [])
 
-    if not isinstance(raw_bouts, list) or not isinstance(raw_uncertain_intervals, list):
-        raise ValueError(
-            "Structured output must contain list-valued bouts and uncertain_intervals."
-        )
+    if not isinstance(raw_segments, list):
+        raise ValueError("Structured output must contain list-valued segments.")
 
-    normalized_bouts = []
-    for raw_bout in raw_bouts:
-        if not isinstance(raw_bout, dict):
-            raise ValueError("Each bout must be an object.")
+    normalized_segments = []
+    for raw_segment in raw_segments:
+        if not isinstance(raw_segment, dict):
+            raise ValueError("Each segment must be an object.")
 
-        state = raw_bout.get("state")
-        if state not in SLEEP_STAGE_TO_SCORE:
+        state = raw_segment.get("state")
+        if state not in {"Wake", "REM"}:
             raise ValueError(f"Unsupported sleep state from ChatGPT: {state!r}.")
 
-        confidence = float(raw_bout["confidence"])
+        confidence = float(raw_segment["confidence"])
         if not np.isfinite(confidence) or confidence < 0 or confidence > 1:
-            raise ValueError("Bout confidence must be a finite value in [0, 1].")
+            raise ValueError("Segment confidence must be a finite value in [0, 1].")
+
+        reason = str(raw_segment.get("reason", "")).strip()
+        if not reason:
+            raise ValueError("Each segment must include a non-empty reason.")
 
         start_idx, end_idx = _normalize_interval_indices(
-            raw_bout["start_s"],
-            raw_bout["end_s"],
+            raw_segment["start_s"],
+            raw_segment["end_s"],
             recording_start_s=recording_start_s,
             duration_s=duration_s,
         )
-        normalized_bouts.append(
+        normalized_segments.append(
             {
                 "start_idx": start_idx,
                 "end_idx": end_idx,
                 "state": state,
+                "reason": reason,
                 "confidence": confidence,
             }
         )
 
-    normalized_bouts.sort(key=lambda bout: (bout["start_idx"], bout["end_idx"]))
+    normalized_segments.sort(key=lambda segment: (segment["start_idx"], segment["end_idx"]))
     previous_end_idx = 0
-    for bout in normalized_bouts:
-        if bout["start_idx"] < previous_end_idx:
-            raise ValueError("ChatGPT returned overlapping scored bouts.")
-        previous_end_idx = bout["end_idx"]
+    for segment in normalized_segments:
+        if segment["start_idx"] < previous_end_idx:
+            raise ValueError("ChatGPT returned overlapping scored segments.")
+        previous_end_idx = segment["end_idx"]
 
-    normalized_uncertain_intervals = []
-    for raw_interval in raw_uncertain_intervals:
-        if not isinstance(raw_interval, dict):
-            raise ValueError("Each uncertain interval must be an object.")
-
-        start_idx, end_idx = _normalize_interval_indices(
-            raw_interval["start_s"],
-            raw_interval["end_s"],
-            recording_start_s=recording_start_s,
-            duration_s=duration_s,
-        )
-        normalized_uncertain_intervals.append(
-            {
-                "start_idx": start_idx,
-                "end_idx": end_idx,
-                "reason": str(raw_interval.get("reason", "")).strip(),
-            }
-        )
-
-    return normalized_bouts, normalized_uncertain_intervals
+    return normalized_segments
 
 
 def _overlay_structured_scoring(
     current_predictions: np.ndarray,
     current_confidence: np.ndarray,
-    baseline_scores: np.ndarray,
-    bouts: list[dict[str, Any]],
-    uncertain_intervals: list[dict[str, Any]],
+    segments: list[dict[str, Any]],
     confidence_threshold: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Overlay confident bouts while restoring uncertain regions to the baseline."""
+    """Overlay model-returned Wake/REM segments onto the current scores."""
     predictions = current_predictions.copy()
     confidence = current_confidence.copy()
 
-    for bout in bouts:
-        if bout["confidence"] < confidence_threshold:
+    for segment in segments:
+        if segment["confidence"] < confidence_threshold:
             continue
 
-        predictions[bout["start_idx"] : bout["end_idx"]] = SLEEP_STAGE_TO_SCORE[bout["state"]]
-        confidence[bout["start_idx"] : bout["end_idx"]] = bout["confidence"]
-
-    for interval in uncertain_intervals:
-        predictions[interval["start_idx"] : interval["end_idx"]] = baseline_scores[
-            interval["start_idx"] : interval["end_idx"]
+        predictions[segment["start_idx"] : segment["end_idx"]] = SLEEP_STAGE_TO_SCORE[
+            segment["state"]
         ]
-        confidence[interval["start_idx"] : interval["end_idx"]] = np.nan
+        confidence[segment["start_idx"] : segment["end_idx"]] = segment["confidence"]
 
     return predictions, confidence
+
+
+def _fill_interval_with_stage(
+    predictions: np.ndarray,
+    confidence: np.ndarray,
+    start_idx: int,
+    end_idx: int,
+    state: str,
+    confidence_value: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return copies with one interval filled as a baseline stage."""
+    filled_predictions = predictions.copy()
+    filled_confidence = confidence.copy()
+    filled_predictions[start_idx:end_idx] = SLEEP_STAGE_TO_SCORE[state]
+    filled_confidence[start_idx:end_idx] = confidence_value
+    return filled_predictions, filled_confidence
 
 
 def _merge_refinement_candidates(
@@ -1069,12 +1116,11 @@ def _build_fixed_section_refinement_candidates(
 
 
 def _validate_intervals_within_candidate(
-    bouts: list[dict[str, Any]],
-    uncertain_intervals: list[dict[str, Any]],
+    segments: list[dict[str, Any]],
     candidate: dict[str, Any],
 ) -> None:
     """Reject refinement output that tries to rewrite outside the requested window."""
-    for item in [*bouts, *uncertain_intervals]:
+    for item in segments:
         if item["start_idx"] < candidate["start_idx"] or item["end_idx"] > candidate["end_idx"]:
             raise ValueError("Refinement output must stay inside the requested interval.")
 
@@ -1124,11 +1170,9 @@ def _request_structured_scoring(
             )
         trace_logger.add_text_block(f"{trace_label} API Usage", usage_lines)
         formatted_payload = _format_trace_payload(payload)
-        trace_logger.add_text_block(f"{trace_label} Summary", formatted_payload["summary"])
-        trace_logger.add_text_block(f"{trace_label} Proposed Bouts", formatted_payload["bouts"])
         trace_logger.add_text_block(
-            f"{trace_label} Proposed Uncertain Intervals",
-            formatted_payload["uncertain_intervals"],
+            f"{trace_label} Proposed Segments",
+            formatted_payload["segments"],
         )
 
     return payload
@@ -1153,7 +1197,9 @@ def _run_refinement_pass(
     refinement_mode: str,
     fixed_refinement_section_count: int,
     reasoning_effort: str,
+    zoom_section_only: bool = False,
     trace_logger: _TraceLogger | None = None,
+    artifact_log: list[dict[str, Any]] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Run zoomed local follow-up requests for ambiguous or transition-heavy regions."""
     if refinement_mode == "none":
@@ -1172,14 +1218,15 @@ def _run_refinement_pass(
         )
     predictions = current_predictions.copy()
     confidence = current_confidence.copy()
+    trace_prefix = "Zoom Section" if zoom_section_only else "Refinement"
 
     if trace_logger is not None:
         trace_logger.add_text_block(
-            "Refinement Mode",
+            f"{trace_prefix} Mode",
             [f"- {refinement_mode}"],
         )
         trace_logger.add_text_block(
-            "Refinement Windows",
+            f"{trace_prefix} Windows",
             [
                 line
                 for candidate in refinement_candidates
@@ -1194,8 +1241,15 @@ def _run_refinement_pass(
     for candidate_index, candidate in enumerate(refinement_candidates):
         interval_start_s = recording_start_s + candidate["start_idx"]
         interval_end_s = recording_start_s + candidate["end_idx"]
-        baseline_scores = predictions.copy()
-
+        if zoom_section_only:
+            predictions, confidence = _fill_interval_with_stage(
+                predictions=predictions,
+                confidence=confidence,
+                start_idx=candidate["start_idx"],
+                end_idx=candidate["end_idx"],
+                state="NREM",
+                confidence_value=DEFAULT_NREM_CONFIDENCE,
+            )
         try:
             _set_figure_title(
                 figure,
@@ -1217,38 +1271,62 @@ def _run_refinement_pass(
 
             if trace_logger is not None:
                 trace_logger.add_text_block(
-                    f"Refinement {candidate_index} Window",
+                    f"{trace_prefix} {candidate_index} Window",
                     _format_refinement_window(candidate, recording_start_s),
                 )
 
-            payload = _request_structured_scoring(
-                client=client,
-                model_name=model_name,
-                request_input=_build_refinement_request_input(
+            request_input = (
+                _build_zoom_section_request_input(
+                    guidance_prompt=guidance_prompt,
+                    image_data_url=image_data_url,
+                    interval_start_s=interval_start_s,
+                    interval_end_s=interval_end_s,
+                    section_reason=candidate["reason"],
+                )
+                if zoom_section_only
+                else _build_refinement_request_input(
                     guidance_prompt=guidance_prompt,
                     image_data_url=image_data_url,
                     interval_start_s=interval_start_s,
                     interval_end_s=interval_end_s,
                     refinement_reason=candidate["reason"],
-                ),
+                )
+            )
+            payload = _request_structured_scoring(
+                client=client,
+                model_name=model_name,
+                request_input=request_input,
                 reasoning_effort=reasoning_effort,
                 trace_logger=trace_logger,
-                trace_label=f"Refinement {candidate_index}",
+                trace_label=f"{trace_prefix} {candidate_index}",
             )
-            refined_bouts, refined_uncertain_intervals = _normalize_bouts(
+            artifact_record = _record_model_call_artifact(
+                artifact_log,
+                label=f"{trace_prefix} {candidate_index}",
+                kind="zoom_section" if zoom_section_only else "refinement",
+                snapshot_path=snapshot_path,
+                start_s=interval_start_s,
+                end_s=interval_end_s,
+                payload=payload,
+            )
+            refined_segments = _normalize_segments(
                 payload,
                 recording_start_s=recording_start_s,
                 duration_s=duration_s,
             )
             _validate_intervals_within_candidate(
-                refined_bouts,
-                refined_uncertain_intervals,
+                refined_segments,
                 candidate,
             )
+            if artifact_record is not None:
+                artifact_record["normalized_segments"] = _segments_to_absolute_seconds(
+                    refined_segments,
+                    recording_start_s=recording_start_s,
+                )
         except Exception as exc:
             if trace_logger is not None:
                 trace_logger.add(
-                    f"Refinement {candidate_index} Error",
+                    f"{trace_prefix} {candidate_index} Error",
                     {
                         "candidate": candidate,
                         "error": repr(exc),
@@ -1259,19 +1337,13 @@ def _run_refinement_pass(
         predictions, confidence = _overlay_structured_scoring(
             current_predictions=predictions,
             current_confidence=confidence,
-            baseline_scores=baseline_scores,
-            bouts=refined_bouts,
-            uncertain_intervals=refined_uncertain_intervals,
+            segments=refined_segments,
             confidence_threshold=confidence_threshold,
         )
         if trace_logger is not None:
             trace_logger.add_text_block(
-                f"Refinement {candidate_index} Applied Bouts",
-                _format_trace_bouts(refined_bouts),
-            )
-            trace_logger.add_text_block(
-                f"Refinement {candidate_index} Applied Uncertain Intervals",
-                _format_trace_uncertain_intervals(refined_uncertain_intervals),
+                f"{trace_prefix} {candidate_index} Applied Segments",
+                _format_trace_segments(refined_segments),
             )
 
     return predictions, confidence
@@ -1288,9 +1360,11 @@ def infer(
     fixed_refinement_section_count: int | None = None,
     vision_figure_mode: str | None = None,
     reasoning_effort: str | None = None,
+    use_overview_pass: bool | None = None,
     use_reference_examples: bool | None = None,
     reference_examples_dir: str | Path = DEFAULT_REFERENCE_EXAMPLES_DIR,
     guidance_prompt_path: str | Path = DEFAULT_GUIDANCE_PROMPT_PATH,
+    artifact_log: list[dict[str, Any]] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Return ChatGPT-generated sleep scores and confidence values.
@@ -1309,6 +1383,7 @@ def infer(
     )
     normalized_vision_figure_mode = _normalize_vision_figure_mode(vision_figure_mode)
     normalized_reasoning_effort = _normalize_reasoning_effort(reasoning_effort)
+    normalized_use_overview_pass = _normalize_use_overview_pass(use_overview_pass)
     normalized_use_reference_examples = _normalize_use_reference_examples(use_reference_examples)
     recording_label = _get_recording_label(mat)
     snapshot_dir = Path(snapshot_dir)
@@ -1326,6 +1401,7 @@ def infer(
             f"- refinement_mode: {normalized_refinement_mode}",
             f"- vision_figure_mode: {normalized_vision_figure_mode}",
             f"- reasoning_effort: {normalized_reasoning_effort}",
+            f"- overview_pass: {normalized_use_overview_pass}",
             f"- reference_examples: {normalized_use_reference_examples}",
         ],
     )
@@ -1342,7 +1418,7 @@ def infer(
     try:
         guidance_prompt = _load_guidance_prompt(guidance_prompt_path)
         reference_examples_message = None
-        if normalized_use_reference_examples:
+        if normalized_use_overview_pass and normalized_use_reference_examples:
             reference_examples_message = _build_reference_examples_message(reference_examples_dir)
         recording_start_s, duration_s, recording_end_s = _get_recording_window(mat)
         figure = _build_model_figure(
@@ -1354,51 +1430,70 @@ def infer(
             ),
             vision_figure_mode=normalized_vision_figure_mode,
         )
-        snapshot_path = _build_snapshot_path(
-            snapshot_dir,
-            recording_label,
-            recording_start_s,
-            recording_end_s,
-        )
-        snapshot_path = capture_overview_snapshot(figure, snapshot_path)
-        image_data_url = _image_path_to_data_url(snapshot_path)
+        if normalized_use_overview_pass:
+            snapshot_path = _build_snapshot_path(
+                snapshot_dir,
+                recording_label,
+                recording_start_s,
+                recording_end_s,
+            )
+            snapshot_path = capture_overview_snapshot(figure, snapshot_path)
+            image_data_url = _image_path_to_data_url(snapshot_path)
 
-        payload = _request_structured_scoring(
-            client=client,
-            model_name=model_name,
-            request_input=_build_coarse_request_input(
-                guidance_prompt=guidance_prompt,
-                image_data_url=image_data_url,
+            payload = _request_structured_scoring(
+                client=client,
+                model_name=model_name,
+                request_input=_build_coarse_request_input(
+                    guidance_prompt=guidance_prompt,
+                    image_data_url=image_data_url,
+                    recording_start_s=recording_start_s,
+                    recording_end_s=recording_end_s,
+                    reference_examples_message=reference_examples_message,
+                ),
+                reasoning_effort=normalized_reasoning_effort,
+                trace_logger=trace_logger,
+                trace_label="Coarse Pass",
+            )
+            artifact_record = _record_model_call_artifact(
+                artifact_log,
+                label="Coarse Pass",
+                kind="overview",
+                snapshot_path=snapshot_path,
+                start_s=recording_start_s,
+                end_s=recording_end_s,
+                payload=payload,
+            )
+
+            coarse_segments = _normalize_segments(
+                payload,
                 recording_start_s=recording_start_s,
-                recording_end_s=recording_end_s,
-                reference_examples_message=reference_examples_message,
-            ),
-            reasoning_effort=normalized_reasoning_effort,
-            trace_logger=trace_logger,
-            trace_label="Coarse Pass",
-        )
-
-        coarse_bouts, coarse_uncertain_intervals = _normalize_bouts(
-            payload,
-            recording_start_s=recording_start_s,
-            duration_s=duration_s,
-        )
-        predictions, confidence = _overlay_structured_scoring(
-            current_predictions=base_scores,
-            current_confidence=fallback_confidence,
-            baseline_scores=base_scores,
-            bouts=coarse_bouts,
-            uncertain_intervals=coarse_uncertain_intervals,
-            confidence_threshold=threshold,
-        )
-        trace_logger.add_text_block(
-            "Coarse Pass Applied Bouts",
-            _format_trace_bouts(coarse_bouts),
-        )
-        trace_logger.add_text_block(
-            "Coarse Pass Applied Uncertain Intervals",
-            _format_trace_uncertain_intervals(coarse_uncertain_intervals),
-        )
+                duration_s=duration_s,
+            )
+            if artifact_record is not None:
+                artifact_record["normalized_segments"] = _segments_to_absolute_seconds(
+                    coarse_segments,
+                    recording_start_s=recording_start_s,
+                )
+            coarse_uncertain_intervals = []
+            predictions, confidence = _overlay_structured_scoring(
+                current_predictions=base_scores,
+                current_confidence=fallback_confidence,
+                segments=coarse_segments,
+                confidence_threshold=threshold,
+            )
+            trace_logger.add_text_block(
+                "Coarse Pass Applied Segments",
+                _format_trace_segments(coarse_segments),
+            )
+        else:
+            coarse_segments = []
+            coarse_uncertain_intervals = []
+            predictions = base_scores.copy()
+            confidence = fallback_confidence.copy()
+            trace_logger.add_text_block(
+                "Coarse Pass",
+                ["- skipped; scoring fixed zoomed sections only."],
+            )
         predictions, confidence = _run_refinement_pass(
             mat=mat,
             figure=figure,
@@ -1411,13 +1506,15 @@ def infer(
             duration_s=duration_s,
             current_predictions=predictions,
             current_confidence=confidence,
-            coarse_bouts=coarse_bouts,
+            coarse_bouts=coarse_segments,
             coarse_uncertain_intervals=coarse_uncertain_intervals,
             confidence_threshold=threshold,
             refinement_mode=normalized_refinement_mode,
             fixed_refinement_section_count=normalized_fixed_refinement_section_count,
             reasoning_effort=normalized_reasoning_effort,
+            zoom_section_only=not normalized_use_overview_pass,
             trace_logger=trace_logger,
+            artifact_log=artifact_log,
         )
         trace_logger.add_text_block(
             "Final Writeback",
@@ -1441,3 +1538,51 @@ def infer(
             trace_logger.save()
         except Exception:
             pass
+
+
+def infer_with_artifacts(
+    mat: dict[str, Any],
+    model_name: str = DEFAULT_CHATGPT_MODEL,
+    snapshot_dir: str | Path = DEFAULT_SNAPSHOT_DIR,
+    client: Any = None,
+    confidence_threshold: float | None = None,
+    show_thoughts: bool | None = None,
+    refinement_mode: str | None = None,
+    fixed_refinement_section_count: int | None = None,
+    vision_figure_mode: str | None = None,
+    reasoning_effort: str | None = None,
+    use_overview_pass: bool | None = None,
+    use_reference_examples: bool | None = None,
+    reference_examples_dir: str | Path = DEFAULT_REFERENCE_EXAMPLES_DIR,
+    guidance_prompt_path: str | Path = DEFAULT_GUIDANCE_PROMPT_PATH,
+) -> dict[str, Any]:
+    """Run ChatGPT inference and return predictions plus dry-run artifacts."""
+    artifact_log: list[dict[str, Any]] = []
+    snapshot_dir = Path(snapshot_dir)
+    recording_label = _get_recording_label(mat)
+    trace_path = _build_trace_path(snapshot_dir, recording_label)
+
+    predictions, confidence = infer(
+        mat=mat,
+        model_name=model_name,
+        snapshot_dir=snapshot_dir,
+        client=client,
+        confidence_threshold=confidence_threshold,
+        show_thoughts=show_thoughts,
+        refinement_mode=refinement_mode,
+        fixed_refinement_section_count=fixed_refinement_section_count,
+        vision_figure_mode=vision_figure_mode,
+        reasoning_effort=reasoning_effort,
+        use_overview_pass=use_overview_pass,
+        use_reference_examples=use_reference_examples,
+        reference_examples_dir=reference_examples_dir,
+        guidance_prompt_path=guidance_prompt_path,
+        artifact_log=artifact_log,
+    )
+
+    return {
+        "predictions": predictions,
+        "confidence": confidence,
+        "model_calls": artifact_log,
+        "thoughts_path": trace_path if trace_path.exists() else None,
+    }
