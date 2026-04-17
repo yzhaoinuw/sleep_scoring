@@ -59,6 +59,29 @@ class TestGetFFTPlots:
         assert min(spectrogram.x) >= start_time
         assert min(theta_delta.x) >= start_time
 
+    def test_fractional_sample_rate_time_axis_does_not_drift(self):
+        """Test that fractional sampling rates stay anchored to exact time bins."""
+        eeg_frequency = 512.25
+        recording_duration = 120
+        signal = np.random.randn(round(eeg_frequency * recording_duration)).astype(np.float32)
+
+        spectrogram, theta_delta = get_fft_plots(signal, eeg_frequency=eeg_frequency, start_time=0)
+
+        expected_times = np.arange(len(spectrogram.x)) * 2.5
+        assert np.allclose(spectrogram.x, expected_times)
+        assert np.allclose(theta_delta.x, expected_times)
+
+    def test_time_axis_includes_final_overlapping_bin(self):
+        """Test that the final padded bin is included for non-grid-aligned recordings."""
+        eeg_frequency = 512.25
+        signal = np.random.randn(round(eeg_frequency * 121)).astype(np.float32)
+
+        spectrogram, _ = get_fft_plots(signal, eeg_frequency=eeg_frequency, start_time=0)
+
+        recording_duration = signal.size / eeg_frequency
+        expected_last_time = np.ceil(recording_duration / 2.5) * 2.5
+        assert np.isclose(spectrogram.x[-1], expected_last_time)
+
     def test_different_window_duration(self, mock_eeg_signal):
         """Test with different window duration."""
         spec_5s, _ = get_fft_plots(

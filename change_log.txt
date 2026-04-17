@@ -1,3 +1,7 @@
+#### v0.15.5
+1. Fixed EEG spectrogram alignment for non-integer sampling rates by anchoring spectrogram columns to exact time bins.
+2. Fixed EEG and EMG trace time axes to use true sample times instead of stretching traces to a rounded recording duration.
+
 #### v0.15.1
 1. Speed up annotations.
 2. Reduce Undo to only one step.
