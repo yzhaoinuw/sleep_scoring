@@ -12,7 +12,6 @@ Quick workflow:
 
 - Keep the existing app review flow.
 - Do not build extra beta review UI for now.
-- Only write ChatGPT scores where the model is confident enough.
 - Keep the backend support for unscored / unchanged intervals available, but note that the current prompt experiment now defaults mixed evidence to `NREM` instead of relying on uncertain intervals.
 - Make the confidence threshold user-configurable.
 
@@ -25,6 +24,7 @@ Quick workflow:
   - tighten the guidance prompt further so fewer examples may be needed to teach the same visual cues
   - consider a two-tier strategy: keep examples on the coarse pass only, but reduce or skip refinement windows when the coarse output already looks confident
 - Revisit whether sending all overview + zoom images in a single request is still worthwhile now that the curated example pack already improves recall, or whether it will just add latency and token cost without enough quality gain.
+- Future latency optimization: parallelize the independent fixed-section ChatGPT calls. For the current zoom-only fixed-section path, export the model-facing images first, send each section image in parallel with a configurable cap such as `CHATGPT_MAX_PARALLEL_REQUESTS`, then apply validated results back in deterministic section order. Keep the cap adjustable in case GPT-5.4 vision calls hit account rate limits.
 
 ## Current State
 
@@ -79,6 +79,7 @@ Quick workflow:
 - [x] Add optional prediction trace logging so the model can write its visible reasoning summaries, observations, and actions to a `.txt` file during sleep-score generation for debugging.
 - [x] Add curated ground-truth exemplar images and attach them to the coarse pass.
 - [ ] Reduce latency and token cost without losing the current quality gains from the example pack.
+- [ ] Parallelize fixed-section ChatGPT API calls with a configurable max concurrency while preserving deterministic trace/JSON ordering.
 - [ ] Decide whether the current coarse-pass example pack should be trimmed, reordered, or partially removed.
 - [ ] Re-test a single-request multi-image strategy only if the leaner prompt/example experiments still miss obvious bouts.
 

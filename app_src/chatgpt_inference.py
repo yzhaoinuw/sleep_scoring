@@ -1340,11 +1340,6 @@ def _run_refinement_pass(
             segments=refined_segments,
             confidence_threshold=confidence_threshold,
         )
-        if trace_logger is not None:
-            trace_logger.add_text_block(
-                f"{trace_prefix} {candidate_index} Applied Segments",
-                _format_trace_segments(refined_segments),
-            )
 
     return predictions, confidence
 
@@ -1480,10 +1475,6 @@ def infer(
                 current_confidence=fallback_confidence,
                 segments=coarse_segments,
                 confidence_threshold=threshold,
-            )
-            trace_logger.add_text_block(
-                "Coarse Pass Applied Segments",
-                _format_trace_segments(coarse_segments),
             )
         else:
             coarse_segments = []

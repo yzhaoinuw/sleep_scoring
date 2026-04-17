@@ -8,11 +8,13 @@ Prepend new session notes to the top of this file.
 
 - Added a non-app ChatGPT preview/dry-run pipeline in `app_src/chatgpt_preview.py`:
   - input is a `.mat` file path plus an output folder
-  - output folder receives the model-facing PNG snapshots, `model_output.json`, the thoughts trace when enabled, and `prediction_visualization.png`
+  - output folder receives the model-facing PNG snapshots, `model_output.json`, the thoughts trace when enabled, and prediction-overlaid model-facing PNG snapshots
   - the source `.mat` file is loaded for inference but is not saved or modified on disk
+- Changed the preview prediction visualization from one user-facing app PNG to one model-facing prediction PNG per model input image/window, so the prediction can be inspected against the exact view the model saw.
 - Added a Spyder-friendly direct-run block to `app_src/chatgpt_preview.py` while keeping the command-line entry point available via `python -m app_src.chatgpt_preview <mat_path> <output_dir>`.
 - Ignored local `chatgpt_preview_outputs/` folders because they contain generated dry-run artifacts.
 - Added artifact collection to `app_src/chatgpt_inference.py` so callers can retrieve each model-facing image path and parsed JSON payload while reusing the same scoring path as the app.
+- Removed redundant `Applied Segments` sections from ChatGPT thoughts traces; the trace now keeps only the model's `Proposed Segments` for each API call.
 - Replaced the active ChatGPT scoring guidance with the concise zero-shot prompt draft from `C:\Users\yzhao\Desktop\ChatGPT_Sleep_Scoring_Guidance_draft.txt`, adapted to the backend's structured `bouts` / `uncertain_intervals` output.
 - Follow-up correction: restored the guidance file to the user draft without adding an extra `uncertain_intervals` instruction. The backend request wrapper now says to make the call to the best of judgment, leave unresolved parts as `NREM`, keep `uncertain_intervals` empty, and put reasons in the summary.
 - Follow-up prompt simplification: stripped the backend metadata prompt wrappers down to only the user's two-sentence ChatGPT prompt and removed the extra structured-output guidance text from those wrappers.

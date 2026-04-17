@@ -47,19 +47,17 @@ class FakeFigure:
             self.title_updates.append(title.get("text"))
 
 
-class FakeExportFigure:
-    """Minimal export figure stub for preview visualization tests."""
-
-    def write_image(self, output_path, **_kwargs):
-        output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_bytes(b"preview-png")
-
-
 def _fake_write_snapshot(output_path):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(b"fake-png")
+    return output_path
+
+
+def _fake_write_prediction_snapshot(output_path):
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(b"prediction-png")
     return output_path
 
 
@@ -487,7 +485,8 @@ def test_chatgpt_backend_writes_trace_file_when_show_thoughts_is_enabled(
     assert "- estimated_cost_usd: $0.007050" in trace_text
     assert "## Coarse Pass Proposed Segments" in trace_text
     assert "- 0s-20s | Wake | 0.95 | clear wake at the start of the session" in trace_text
-    assert "## Coarse Pass Applied Segments" in trace_text
+    assert "## Coarse Pass Applied Segments" not in trace_text
+    assert "Applied Segments" not in trace_text
     assert "## Coarse Pass Summary" not in trace_text
     assert "## Coarse Pass Proposed Bouts" not in trace_text
     assert "## Guidance Prompt" not in trace_text
@@ -896,8 +895,8 @@ def test_chatgpt_preview_writes_dry_run_artifacts_without_modifying_mat_file(
     )
     monkeypatch.setattr(
         chatgpt_preview,
-        "make_figure",
-        lambda *args, **kwargs: FakeExportFigure(),
+        "capture_zoom_snapshot",
+        lambda _fig, _start_s, _end_s, output_path: _fake_write_prediction_snapshot(output_path),
     )
 
     result = chatgpt_preview.run_chatgpt_preview(
@@ -914,11 +913,18 @@ def test_chatgpt_preview_writes_dry_run_artifacts_without_modifying_mat_file(
     assert result["model_output_json_path"] == output_dir.resolve() / "model_output.json"
     assert result["model_output_json_path"].exists()
     assert result["thoughts_path"].exists()
-    assert result["visualization_path"].read_bytes() == b"preview-png"
     assert len(result["input_image_paths"]) == 2
     assert all(path.exists() for path in result["input_image_paths"])
+    assert len(result["prediction_image_paths"]) == 2
+    assert all(path.read_bytes() == b"prediction-png" for path in result["prediction_image_paths"])
     assert len(model_output["input_images"]) == 2
+    assert len(model_output["prediction_images"]) == 2
     assert len(model_output["model_calls"]) == 2
     assert model_output["model_calls"][0]["payload"]["segments"][0]["state"] == "Wake"
     assert model_output["model_calls"][1]["payload"]["segments"][0]["state"] == "REM"
+    assert "visualization_path" not in model_output
+    assert (
+        model_output["model_calls"][0]["prediction_image_path"]
+        == model_output["prediction_images"][0]["path"]
+    )
     assert np.array_equal(reloaded_mat["sleep_scores"], mock_mat_data["sleep_scores"])

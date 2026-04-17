@@ -13,10 +13,10 @@ from typing import Any
 from scipy.io import loadmat
 
 import app_src.chatgpt_inference as chatgpt_inference
-from app_src.make_figure_dev import make_figure
+from app_src.chatgpt_tools import capture_overview_snapshot, capture_zoom_snapshot
 
 DEFAULT_MODEL_OUTPUT_FILENAME = "model_output.json"
-DEFAULT_VISUALIZATION_FILENAME = "prediction_visualization.png"
+DEFAULT_PREDICTION_IMAGE_PREFIX = "prediction_"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -49,6 +49,72 @@ def _input_images_from_model_calls(model_calls: list[dict[str, Any]]) -> list[di
     ]
 
 
+def _prediction_snapshot_path(output_dir: Path, model_call: dict[str, Any]) -> Path:
+    """Return the prediction-overlaid model-facing PNG path for one model call."""
+    input_image_name = Path(model_call["image_path"]).name
+    return output_dir / f"{DEFAULT_PREDICTION_IMAGE_PREFIX}{input_image_name}"
+
+
+def _build_prediction_title(recording_label: str, model_call: dict[str, Any]) -> str:
+    """Build a compact title for a model-facing prediction snapshot."""
+    start_s = chatgpt_inference._format_title_second(model_call["start_s"])
+    end_s = chatgpt_inference._format_title_second(model_call["end_s"])
+    return f"{recording_label} | ChatGPT prediction | {start_s}s-{end_s}s"
+
+
+def _write_prediction_model_snapshots(
+    *,
+    mat: dict[str, Any],
+    model_calls: list[dict[str, Any]],
+    output_dir: Path,
+    recording_label: str,
+    vision_figure_mode: str | None,
+) -> list[dict[str, Any]]:
+    """Write prediction-overlaid model-facing snapshots matching each input image."""
+    if not model_calls:
+        return []
+
+    normalized_vision_figure_mode = chatgpt_inference._normalize_vision_figure_mode(
+        vision_figure_mode
+    )
+    figure = chatgpt_inference._build_model_figure(
+        mat=mat,
+        plot_name=f"{recording_label} | ChatGPT prediction",
+        vision_figure_mode=normalized_vision_figure_mode,
+    )
+
+    prediction_images = []
+    for model_call in model_calls:
+        output_path = _prediction_snapshot_path(output_dir, model_call)
+        chatgpt_inference._set_figure_title(
+            figure,
+            _build_prediction_title(recording_label, model_call),
+        )
+        if model_call["kind"] == "overview":
+            written_path = capture_overview_snapshot(figure, output_path)
+        else:
+            written_path = capture_zoom_snapshot(
+                figure,
+                model_call["start_s"],
+                model_call["end_s"],
+                output_path,
+            )
+
+        model_call["prediction_image_path"] = str(written_path.resolve())
+        prediction_images.append(
+            {
+                "label": model_call["label"],
+                "kind": model_call["kind"],
+                "start_s": model_call["start_s"],
+                "end_s": model_call["end_s"],
+                "path": str(written_path.resolve()),
+                "input_image_path": model_call["image_path"],
+            }
+        )
+
+    return prediction_images
+
+
 def run_chatgpt_preview(
     mat_path: str | Path,
     output_dir: str | Path,
@@ -73,7 +139,7 @@ def run_chatgpt_preview(
     - the PNG images sent to the model,
     - ``model_output.json`` with one entry per model call,
     - a thoughts trace when ``show_thoughts`` is enabled,
-    - ``prediction_visualization.png`` with the model prediction overlaid.
+    - prediction-overlaid model-facing PNGs matching each input image window.
     """
     mat_path = Path(mat_path).expanduser().resolve()
     output_dir = Path(output_dir).expanduser().resolve()
@@ -112,12 +178,16 @@ def run_chatgpt_preview(
     model_calls = inference_result["model_calls"]
     thoughts_path = inference_result["thoughts_path"]
 
-    plot_mat = dict(mat)
-    plot_mat["sleep_scores"] = predictions
-    plot_mat["confidence"] = confidence
-    user_figure = make_figure(plot_mat, plot_name=f"{mat_path.stem} | ChatGPT preview")
-    visualization_path = output_dir / DEFAULT_VISUALIZATION_FILENAME
-    user_figure.write_image(visualization_path, width=1800, height=900)
+    prediction_mat = dict(mat)
+    prediction_mat["sleep_scores"] = predictions
+    prediction_mat["confidence"] = confidence
+    prediction_images = _write_prediction_model_snapshots(
+        mat=prediction_mat,
+        model_calls=model_calls,
+        output_dir=output_dir,
+        recording_label=mat_path.stem,
+        vision_figure_mode=vision_figure_mode,
+    )
 
     model_output_path = output_dir / DEFAULT_MODEL_OUTPUT_FILENAME
     output_payload = {
@@ -127,8 +197,8 @@ def run_chatgpt_preview(
         "model": model_name,
         "reasoning_effort": reasoning_effort or chatgpt_inference.DEFAULT_REASONING_EFFORT,
         "thoughts_path": str(thoughts_path) if thoughts_path is not None else None,
-        "visualization_path": str(visualization_path),
         "input_images": _input_images_from_model_calls(model_calls),
+        "prediction_images": prediction_images,
         "model_calls": model_calls,
     }
     model_output_path.write_text(
@@ -139,9 +209,11 @@ def run_chatgpt_preview(
     return {
         "output_dir": output_dir,
         "input_image_paths": [Path(item["path"]) for item in output_payload["input_images"]],
+        "prediction_image_paths": [
+            Path(item["path"]) for item in output_payload["prediction_images"]
+        ],
         "model_output_json_path": model_output_path,
         "thoughts_path": thoughts_path,
-        "visualization_path": visualization_path,
         "predictions": predictions,
         "confidence": confidence,
     }
@@ -189,8 +261,8 @@ def main(argv: list[str] | None = None) -> int:
                 "thoughts_path": (
                     str(result["thoughts_path"]) if result["thoughts_path"] is not None else None
                 ),
-                "visualization_path": str(result["visualization_path"]),
                 "input_image_paths": [str(path) for path in result["input_image_paths"]],
+                "prediction_image_paths": [str(path) for path in result["prediction_image_paths"]],
             },
             indent=2,
         )
@@ -232,4 +304,6 @@ if __name__ == "__main__":
     print(f"Output folder: {result['output_dir']}")
     print(f"Model output JSON: {result['model_output_json_path']}")
     print(f"Thoughts file: {result['thoughts_path']}")
-    print(f"Visualization PNG: {result['visualization_path']}")
+    print("Prediction PNGs:")
+    for prediction_image_path in result["prediction_image_paths"]:
+        print(f"- {prediction_image_path}")
