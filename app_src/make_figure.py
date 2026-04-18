@@ -81,8 +81,8 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     sleep_scores = get_padded_sleep_scores(mat)
     eeg_end_time = duration + start_time
     # Create the time sequences
-    time_eeg = np.linspace(start_time, eeg_end_time, eeg.size)
-    time_emg = np.linspace(start_time, eeg_end_time, emg.size)
+    time_eeg = start_time + np.arange(eeg.size) / eeg_freq
+    time_emg = start_time + np.arange(emg.size) / eeg_freq
     eeg_end_time = math.ceil(time_eeg[-1])
     eeg_lower_range, eeg_upper_range = (
         np.nanquantile(eeg, 1 - RANGE_QUANTILE),
