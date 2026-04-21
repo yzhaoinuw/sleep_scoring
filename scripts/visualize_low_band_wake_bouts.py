@@ -38,8 +38,9 @@ from app_src.make_figure_dev import (  # noqa: E402
 
 SPECTROGRAM_Y_MAX_HZ = 15
 SPECTROGRAM_Y_TICKVALS_HZ = list(range(0, SPECTROGRAM_Y_MAX_HZ + 1, 5))
-CHATGPT_XAXIS_NTICKS = 24
+NTICKS = 24
 PLOTLY_CONFIG = {"scrollZoom": True}
+REM_STAGE_VALUE = 2
 
 
 def _as_scalar(value, default: float = 0.0) -> float:
@@ -48,14 +49,29 @@ def _as_scalar(value, default: float = 0.0) -> float:
     return float(np.asarray(value).item())
 
 
-def normalize_like_plotly_heatmap(z: np.ndarray) -> np.ndarray:
-    """Approximate Plotly's default heatmap color normalization for one trace."""
-    z_min = np.nanmin(z)
-    z_max = np.nanmax(z)
+def normalize_spectrogram_values(
+    z: np.ndarray,
+    lower_percentile: float | None = 5.0,
+    upper_percentile: float | None = 95.0,
+) -> tuple[np.ndarray, float, float]:
+    """Normalize spectrogram values after optional percentile clipping."""
+    if lower_percentile is None or upper_percentile is None:
+        z_min = np.nanmin(z)
+        z_max = np.nanmax(z)
+    else:
+        if not 0 <= lower_percentile < upper_percentile <= 100:
+            raise ValueError(
+                "Normalization percentiles must satisfy "
+                f"0 <= lower < upper <= 100, got {lower_percentile:g}, "
+                f"{upper_percentile:g}."
+            )
+        z_min, z_max = np.nanpercentile(z, [lower_percentile, upper_percentile])
+
     z_range = z_max - z_min
     if not np.isfinite(z_range) or z_range == 0:
-        return np.zeros_like(z, dtype=float)
-    return (z - z_min) / z_range
+        return np.zeros_like(z, dtype=float), float(z_min), float(z_max)
+    clipped_z = np.clip(z, z_min, z_max)
+    return (clipped_z - z_min) / z_range, float(z_min), float(z_max)
 
 
 def compute_spectrogram_feature(
@@ -63,13 +79,15 @@ def compute_spectrogram_feature(
     low_hz: float,
     high_hz: float,
     window_duration: float,
-) -> tuple[go.Heatmap, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    normalization_lower_percentile: float | None = 5.0,
+    normalization_upper_percentile: float | None = 95.0,
+) -> tuple[go.Heatmap, go.Scatter, np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple[float, float]]:
     """Return the app-style spectrogram and normalized low-band column means."""
     eeg = np.asarray(mat["eeg"]).flatten()
     eeg_frequency = _as_scalar(mat["eeg_frequency"])
     start_time = _as_scalar(mat.get("start_time"), default=0.0)
 
-    spectrogram, _ = get_fft_plots(
+    spectrogram, theta_delta_ratio = get_fft_plots(
         eeg,
         eeg_frequency,
         start_time,
@@ -79,7 +97,11 @@ def compute_spectrogram_feature(
     times = np.asarray(spectrogram.x, dtype=float)
     frequencies = np.asarray(spectrogram.y, dtype=float)
     z = np.asarray(spectrogram.z, dtype=float)
-    normalized_z = normalize_like_plotly_heatmap(z)
+    normalized_z, normalization_min, normalization_max = normalize_spectrogram_values(
+        z,
+        lower_percentile=normalization_lower_percentile,
+        upper_percentile=normalization_upper_percentile,
+    )
 
     band_mask = (frequencies >= low_hz) & (frequencies <= high_hz)
     if not np.any(band_mask):
@@ -89,7 +111,15 @@ def compute_spectrogram_feature(
         )
 
     low_band_means = np.nanmean(normalized_z[band_mask, :], axis=0)
-    return spectrogram, times, frequencies[band_mask], low_band_means, frequencies
+    return (
+        spectrogram,
+        theta_delta_ratio,
+        times,
+        frequencies[band_mask],
+        low_band_means,
+        frequencies,
+        (normalization_min, normalization_max),
+    )
 
 
 def threshold_wake_columns(
@@ -148,8 +178,6 @@ def merge_close_bouts(
 def wake_columns_to_bouts(
     wake_columns: np.ndarray,
     edges: np.ndarray,
-    min_bout_duration_s: float = 0.0,
-    merge_gap_s: float = 0.0,
 ) -> list[tuple[float, float]]:
     bouts = []
     run_start: int | None = None
@@ -164,6 +192,15 @@ def wake_columns_to_bouts(
     if run_start is not None:
         bouts.append((float(edges[run_start]), float(edges[wake_columns.size])))
 
+    return bouts
+
+
+def postprocess_wake_bouts(
+    bouts: list[tuple[float, float]],
+    min_bout_duration_s: float = 5.0,
+    merge_gap_s: float = 5.0,
+) -> list[tuple[float, float]]:
+    """Fill short non-Wake gaps, then remove isolated short Wake bouts."""
     bouts = merge_close_bouts(bouts, merge_gap_s=merge_gap_s)
     if min_bout_duration_s > 0:
         bouts = [(start, end) for start, end in bouts if end - start >= min_bout_duration_s]
@@ -180,33 +217,39 @@ def eeg_time_range(mat: dict) -> tuple[float, float]:
 
 def wake_bouts_to_sleep_score_heatmap(
     wake_bouts: list[tuple[float, float]],
+    rem_bouts: list[tuple[float, float]] | None,
     start_time: float,
     end_time: float,
 ) -> list[list[float]]:
-    """Create a one-row app-style sleep-score heatmap with Wake only."""
+    """Create a one-row app-style sleep-score heatmap with Wake and optional REM."""
     duration = math.ceil(end_time - start_time)
     sleep_scores = np.full(duration, np.nan)
     for bout_start, bout_end in wake_bouts:
         start_index = max(0, math.floor(bout_start - start_time))
         end_index = min(duration, math.ceil(bout_end - start_time))
         sleep_scores[start_index:end_index] = 0
+    for bout_start, bout_end in rem_bouts or []:
+        start_index = max(0, math.floor(bout_start - start_time))
+        end_index = min(duration, math.ceil(bout_end - start_time))
+        sleep_scores[start_index:end_index] = REM_STAGE_VALUE
     return np.expand_dims(sleep_scores, axis=0).tolist()
 
 
 def make_wake_sleep_score_trace(
     wake_bouts: list[tuple[float, float]],
+    rem_bouts: list[tuple[float, float]] | None,
     start_time: float,
     end_time: float,
     num_class: int,
 ) -> go.Heatmap:
-    """Build the Wake-only overlay using the app's sleep-stage colors."""
+    """Build the Wake/REM overlay using the app's sleep-stage colors."""
     return go.Heatmap(
         x0=start_time + 0.5,
         dx=1,
         y0=0,
         dy=HEATMAP_WIDTH,
-        z=wake_bouts_to_sleep_score_heatmap(wake_bouts, start_time, end_time),
-        name="Threshold Wake",
+        z=wake_bouts_to_sleep_score_heatmap(wake_bouts, rem_bouts, start_time, end_time),
+        name="Threshold Wake/REM",
         hoverinfo="none",
         colorscale=COLORSCALE[num_class],
         showscale=False,
@@ -218,6 +261,126 @@ def make_wake_sleep_score_trace(
     )
 
 
+def ne_time_axis(ne: np.ndarray, ne_frequency: float, start_time: float) -> np.ndarray:
+    ne_end_time = (ne.size - 1) / ne_frequency + start_time
+    return np.linspace(start_time, ne_end_time, ne.size)
+
+
+def moving_average_ne(ne: np.ndarray, ne_frequency: float, window_s: float) -> np.ndarray:
+    """Return a centered moving-average NE trace, preserving NaN gaps."""
+    if window_s <= 0:
+        return ne
+
+    window_samples = max(1, int(round(window_s * ne_frequency)))
+    if window_samples <= 1:
+        return ne
+
+    kernel = np.ones(window_samples, dtype=float)
+    finite_mask = np.isfinite(ne)
+    filled_ne = np.where(finite_mask, ne, 0.0)
+    summed_ne = np.convolve(filled_ne, kernel, mode="same")
+    sample_counts = np.convolve(finite_mask.astype(float), kernel, mode="same")
+
+    smoothed_ne = np.full(ne.shape, np.nan, dtype=float)
+    valid = sample_counts > 0
+    smoothed_ne[valid] = summed_ne[valid] / sample_counts[valid]
+    return smoothed_ne
+
+
+def split_ne_segment_into_thirds(ne_segment: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    left, middle, right = np.array_split(ne_segment, 3)
+    return left, middle, right
+
+
+def is_convex_ne_valley(ne_segment: np.ndarray, margin: float = 0.0) -> tuple[bool, float, float, float]:
+    """Return whether the middle third is lower than both outer thirds."""
+    if ne_segment.size < 3 or np.all(~np.isfinite(ne_segment)):
+        return False, np.nan, np.nan, np.nan
+
+    left, middle, right = split_ne_segment_into_thirds(ne_segment)
+    left_median = float(np.nanmedian(left))
+    middle_median = float(np.nanmedian(middle))
+    right_median = float(np.nanmedian(right))
+    is_convex = (
+        np.isfinite(left_median)
+        and np.isfinite(middle_median)
+        and np.isfinite(right_median)
+        and middle_median <= left_median - margin
+        and middle_median <= right_median - margin
+    )
+    return is_convex, left_median, middle_median, right_median
+
+
+def classify_rem_bouts_from_wake_bouts(
+    wake_bouts: list[tuple[float, float]],
+    ne: np.ndarray | None,
+    time_ne: np.ndarray | None,
+    min_duration_s: float = 30.0,
+    global_low_percentile: float = 10.0,
+    low_ne_stat: str = "min",
+    convexity_margin: float = 0.0,
+) -> tuple[list[tuple[float, float]], list[tuple[float, float]], list[dict[str, float | bool]]]:
+    """Relabel Wake bouts as REM when NE is globally low and valley-shaped."""
+    if ne is None or time_ne is None or ne.size == 0 or time_ne.size != ne.size:
+        return wake_bouts, [], []
+    if not 0 <= global_low_percentile <= 100:
+        raise ValueError(
+            "REM global low percentile must be between 0 and 100, "
+            f"got {global_low_percentile:g}."
+        )
+    if low_ne_stat not in {"min", "median"}:
+        raise ValueError(f"REM low NE stat must be 'min' or 'median', got {low_ne_stat!r}.")
+
+    finite_ne = ne[np.isfinite(ne)]
+    if finite_ne.size == 0:
+        return wake_bouts, [], []
+
+    global_low_threshold = float(np.nanpercentile(finite_ne, global_low_percentile))
+    remaining_wake_bouts = []
+    rem_bouts = []
+    diagnostics: list[dict[str, float | bool]] = []
+
+    for bout_start, bout_end in wake_bouts:
+        duration_s = bout_end - bout_start
+        in_bout = (time_ne >= bout_start) & (time_ne < bout_end)
+        ne_segment = ne[in_bout]
+        has_segment = ne_segment.size > 0 and np.any(np.isfinite(ne_segment))
+        min_ne = float(np.nanmin(ne_segment)) if has_segment else np.nan
+        median_ne = float(np.nanmedian(ne_segment)) if has_segment else np.nan
+        low_ne_value = min_ne if low_ne_stat == "min" else median_ne
+        reaches_global_low = bool(has_segment and low_ne_value <= global_low_threshold)
+        is_convex, left_median, middle_median, right_median = is_convex_ne_valley(
+            ne_segment,
+            margin=convexity_margin,
+        )
+        is_rem = bool(duration_s >= min_duration_s and reaches_global_low and is_convex)
+
+        diagnostics.append(
+            {
+                "start": float(bout_start),
+                "end": float(bout_end),
+                "duration_s": float(duration_s),
+                "min_ne": min_ne,
+                "median_ne": median_ne,
+                "low_ne_value": low_ne_value,
+                "global_low_threshold": global_low_threshold,
+                "left_median": left_median,
+                "middle_median": middle_median,
+                "right_median": right_median,
+                "reaches_global_low": reaches_global_low,
+                "is_convex": bool(is_convex),
+                "is_rem": is_rem,
+            }
+        )
+
+        if is_rem:
+            rem_bouts.append((bout_start, bout_end))
+        else:
+            remaining_wake_bouts.append((bout_start, bout_end))
+
+    return remaining_wake_bouts, rem_bouts, diagnostics
+
+
 def make_wake_bout_figure(
     mat: dict,
     mat_name: str,
@@ -226,24 +389,43 @@ def make_wake_bout_figure(
     low_hz: float = 1.0,
     high_hz: float = 5.0,
     window_duration: float = 5.0,
-    min_bout_duration_s: float = 0.0,
-    merge_gap_s: float = 0.0,
+    normalization_lower_percentile: float | None = 5.0,
+    normalization_upper_percentile: float | None = 95.0,
+    postprocess_wake_bouts_enabled: bool = True,
+    min_bout_duration_s: float = 5.0,
+    merge_gap_s: float = 5.0,
+    detect_rem_bouts: bool = True,
+    rem_min_bout_duration_s: float = 30.0,
+    rem_global_low_percentile: float = 10.0,
+    rem_low_ne_stat: str = "min",
+    rem_smoothing_window_s: float = 5.0,
+    rem_convexity_margin: float = 0.0,
     default_n_shown_samples: int = 2048,
     num_class: int = 3,
-) -> tuple[go.Figure, list[tuple[float, float]], np.ndarray]:
+) -> tuple[go.Figure, list[tuple[float, float]], list[tuple[float, float]], np.ndarray]:
     start_time, end_time = eeg_time_range(mat)
     if mat.get("num_class") is not None:
         num_class = int(_as_scalar(mat["num_class"]))
+    if detect_rem_bouts:
+        num_class = max(num_class, 3)
     if num_class not in COLORSCALE:
         num_class = 3
 
-    spectrogram, times, band_frequencies, low_band_means, _frequencies = (
-        compute_spectrogram_feature(
-            mat,
-            low_hz=low_hz,
-            high_hz=high_hz,
-            window_duration=window_duration,
-        )
+    (
+        spectrogram,
+        theta_delta_ratio,
+        times,
+        band_frequencies,
+        low_band_means,
+        _frequencies,
+        normalization_range,
+    ) = compute_spectrogram_feature(
+        mat,
+        low_hz=low_hz,
+        high_hz=high_hz,
+        window_duration=window_duration,
+        normalization_lower_percentile=normalization_lower_percentile,
+        normalization_upper_percentile=normalization_upper_percentile,
     )
     wake_columns = threshold_wake_columns(
         low_band_means,
@@ -251,12 +433,17 @@ def make_wake_bout_figure(
         wake_when=wake_when,
     )
     edges = spectrogram_column_edges(times, start_time=start_time, end_time=end_time)
-    wake_bouts = wake_columns_to_bouts(
-        wake_columns,
-        edges,
-        min_bout_duration_s=min_bout_duration_s,
-        merge_gap_s=merge_gap_s,
+    raw_wake_bouts = wake_columns_to_bouts(wake_columns, edges)
+    wake_bouts = (
+        postprocess_wake_bouts(
+            raw_wake_bouts,
+            min_bout_duration_s=min_bout_duration_s,
+            merge_gap_s=merge_gap_s,
+        )
+        if postprocess_wake_bouts_enabled
+        else raw_wake_bouts
     )
+    wake_bouts_before_rem = list(wake_bouts)
 
     fig = FigureResampler(
         make_subplots(
@@ -266,7 +453,7 @@ def make_wake_bout_figure(
             vertical_spacing=0.08,
             subplot_titles=("EEG Spectrogram", "NE"),
             row_heights=[0.45, 0.55],
-            specs=[[{"r": -0.05}], [{"r": -0.05}]],
+            specs=[[{"secondary_y": True, "r": -0.05}], [{"r": -0.05}]],
         ),
         default_n_shown_samples=default_n_shown_samples,
         default_downsampler=MinMaxLTTB(parallel=True),
@@ -289,11 +476,13 @@ def make_wake_bout_figure(
     ne = mat.get("ne")
     ne_frequency = mat.get("ne_frequency")
     ne_range = 1.0
+    time_ne = None
+    ne_for_rem = None
     if ne is not None and ne_frequency is not None and np.asarray(ne).size > 1:
         ne = np.asarray(ne).flatten()
         ne_frequency = _as_scalar(ne_frequency)
-        ne_end_time = (ne.size - 1) / ne_frequency + start_time
-        time_ne = np.linspace(start_time, ne_end_time, ne.size)
+        time_ne = ne_time_axis(ne, ne_frequency, start_time)
+        ne_for_rem = moving_average_ne(ne, ne_frequency, rem_smoothing_window_s)
         ne_lower_range, ne_upper_range = (
             np.nanquantile(ne, 1 - RANGE_QUANTILE),
             np.nanquantile(ne, RANGE_QUANTILE),
@@ -325,18 +514,51 @@ def make_wake_bout_figure(
             showarrow=False,
             font=dict(size=12, color="gray"),
         )
+        ne = None
+
+    rem_bouts: list[tuple[float, float]] = []
+    rem_diagnostics: list[dict[str, float | bool]] = []
+    if detect_rem_bouts:
+        wake_bouts, rem_bouts, rem_diagnostics = classify_rem_bouts_from_wake_bouts(
+            wake_bouts,
+            ne=ne_for_rem,
+            time_ne=time_ne,
+            min_duration_s=rem_min_bout_duration_s,
+            global_low_percentile=rem_global_low_percentile,
+            low_ne_stat=rem_low_ne_stat,
+            convexity_margin=rem_convexity_margin,
+        )
 
     wake_sleep_scores = make_wake_sleep_score_trace(
         wake_bouts,
+        rem_bouts=rem_bouts,
         start_time=start_time,
         end_time=end_time,
         num_class=num_class,
     )
 
-    fig.add_trace(spectrogram, row=1, col=1)
+    fig.add_trace(spectrogram, secondary_y=False, row=1, col=1)
+    fig.add_trace(theta_delta_ratio, secondary_y=True, row=1, col=1)
     fig.add_trace(wake_sleep_scores, row=2, col=1)
 
     total_wake_s = sum(end - start for start, end in wake_bouts)
+    total_rem_s = sum(end - start for start, end in rem_bouts)
+    cleanup_text = (
+        f"cleanup on: merge gaps <= {merge_gap_s:g}s, remove bouts < {min_bout_duration_s:g}s"
+        if postprocess_wake_bouts_enabled
+        else "cleanup off"
+    )
+    rem_text = (
+        f"REM on: Wake >= {rem_min_bout_duration_s:g}s, "
+        f"NE {rem_low_ne_stat} <= p{rem_global_low_percentile:g}, "
+        f"{rem_smoothing_window_s:g}s smooth, convex"
+        if detect_rem_bouts
+        else "REM off"
+    )
+    normalization_text = format_normalization_label(
+        normalization_lower_percentile,
+        normalization_upper_percentile,
+    )
     fig.update_layout(
         autosize=True,
         margin=dict(t=70, l=10, r=5, b=25),
@@ -345,9 +567,11 @@ def make_wake_bout_figure(
         hoverlabel=dict(bgcolor="rgba(255, 255, 255, 0.6)"),
         title=dict(
             text=(
-                f"{mat_name}: Wake-only low-band threshold view"
+                f"{mat_name}: Wake/REM low-band threshold view"
                 f"<br><sup>{low_hz:g}-{high_hz:g} Hz mean {wake_when} "
-                f"{threshold:g}; {len(wake_bouts)} bouts; {total_wake_s:.1f} s total</sup>"
+                f"{threshold:g}; {normalization_text}; {cleanup_text}; "
+                f"{rem_text}; Wake {len(wake_bouts)} bouts/{total_wake_s:.1f} s; "
+                f"REM {len(rem_bouts)} bouts/{total_rem_s:.1f} s</sup>"
             ),
             font=dict(size=16),
             xanchor="left",
@@ -360,7 +584,7 @@ def make_wake_bout_figure(
         clickmode="event",
         xaxis2=dict(
             tickformat="digits",
-            nticks=CHATGPT_XAXIS_NTICKS,
+            nticks=NTICKS,
             tickfont=dict(size=10),
             automargin=True,
         ),
@@ -381,6 +605,16 @@ def make_wake_bout_figure(
         tickmode="array",
         tickvals=SPECTROGRAM_Y_TICKVALS_HZ,
         fixedrange=True,
+        secondary_y=False,
+        row=1,
+        col=1,
+    )
+    fig.update_yaxes(
+        title="Theta/Delta",
+        overlaying="y",
+        side="right",
+        fixedrange=True,
+        secondary_y=True,
         row=1,
         col=1,
     )
@@ -401,8 +635,31 @@ def make_wake_bout_figure(
         f"Used {band_frequencies.size} frequency bins from "
         f"{band_frequencies.min():.3g}-{band_frequencies.max():.3g} Hz."
     )
+    print(
+        f"Normalization: {normalization_text}, "
+        f"value range {normalization_range[0]:.4g} to {normalization_range[1]:.4g}"
+    )
     print(f"Wake overlay color: {STAGE_COLORS[0]}")
-    return fig, wake_bouts, low_band_means
+    print(f"REM overlay color: {STAGE_COLORS[REM_STAGE_VALUE]}")
+    print(
+        f"Wake candidates: {len(raw_wake_bouts)} raw -> {len(wake_bouts_before_rem)} "
+        f"({'postprocessed' if postprocess_wake_bouts_enabled else 'raw'})"
+    )
+    if detect_rem_bouts:
+        evaluated_rem_candidates = len(rem_diagnostics)
+        print(
+            f"REM detection: on, {len(rem_bouts)} REM bout(s) from "
+            f"{evaluated_rem_candidates} Wake candidate(s)."
+        )
+        if rem_diagnostics:
+            threshold_value = rem_diagnostics[0]["global_low_threshold"]
+            print(
+                f"REM NE {rem_low_ne_stat} global p{rem_global_low_percentile:g} "
+                f"threshold after {rem_smoothing_window_s:g}s smoothing: {threshold_value:.4g}"
+            )
+    else:
+        print("REM detection: off")
+    return fig, wake_bouts, rem_bouts, low_band_means
 
 
 def format_threshold_for_filename(threshold: float) -> str:
@@ -410,17 +667,58 @@ def format_threshold_for_filename(threshold: float) -> str:
     return threshold_text
 
 
+def format_seconds_for_filename(seconds: float) -> str:
+    return f"{seconds:g}".replace("-", "neg_").replace(".", "p")
+
+
+def format_normalization_label(
+    lower_percentile: float | None,
+    upper_percentile: float | None,
+) -> str:
+    if lower_percentile is None or upper_percentile is None:
+        return "normalization min-max"
+    return f"normalization p{lower_percentile:g}-p{upper_percentile:g} clipped"
+
+
+def format_normalization_for_filename(
+    lower_percentile: float | None,
+    upper_percentile: float | None,
+) -> str:
+    if lower_percentile is None or upper_percentile is None:
+        return "norm_minmax"
+    lower_text = format_seconds_for_filename(lower_percentile)
+    upper_text = format_seconds_for_filename(upper_percentile)
+    return f"norm_p{lower_text}_p{upper_text}"
+
+
 def default_output_path(
     mat_path: Path,
     output_dir: Path | None,
     threshold: float,
     wake_when: str,
+    normalization_lower_percentile: float | None,
+    normalization_upper_percentile: float | None,
+    postprocess_wake_bouts_enabled: bool,
+    min_bout_duration_s: float,
+    merge_gap_s: float,
+    detect_rem_bouts: bool,
+    rem_min_bout_duration_s: float,
+    rem_global_low_percentile: float,
+    rem_low_ne_stat: str,
+    rem_smoothing_window_s: float,
+    rem_convexity_margin: float,
 ) -> Path:
     base_dir = output_dir if output_dir is not None else mat_path.parent
-    threshold_text = format_threshold_for_filename(threshold)
-    return base_dir / (
-        f"{mat_path.stem}_low_band_wake_bouts_" f"{wake_when}_threshold_{threshold_text}.html"
+    rem_text = (
+        "rem"
+        f"_{rem_low_ne_stat}"
+        f"_global_p{format_seconds_for_filename(rem_global_low_percentile)}"
+        f"_smooth_{format_seconds_for_filename(rem_smoothing_window_s)}s"
+        "_convex"
+        if detect_rem_bouts
+        else "wake_only"
     )
+    return base_dir / f"{mat_path.stem}_low_band_wake_bouts_{rem_text}.html"
 
 
 def run_wake_bout_visualization(
@@ -432,8 +730,17 @@ def run_wake_bout_visualization(
     low_hz: float = 1.0,
     high_hz: float = 5.0,
     window_duration: float = 5.0,
-    min_bout_duration_s: float = 0.0,
-    merge_gap_s: float = 0.0,
+    normalization_lower_percentile: float | None = 5.0,
+    normalization_upper_percentile: float | None = 95.0,
+    postprocess_wake_bouts_enabled: bool = True,
+    min_bout_duration_s: float = 5.0,
+    merge_gap_s: float = 5.0,
+    detect_rem_bouts: bool = True,
+    rem_min_bout_duration_s: float = 30.0,
+    rem_global_low_percentile: float = 10.0,
+    rem_low_ne_stat: str = "min",
+    rem_smoothing_window_s: float = 5.0,
+    rem_convexity_margin: float = 0.0,
     default_n_shown_samples: int = 2048,
     show: bool = False,
 ) -> Path:
@@ -442,7 +749,7 @@ def run_wake_bout_visualization(
         raise FileNotFoundError(mat_path)
 
     mat = loadmat(mat_path, squeeze_me=True)
-    fig, wake_bouts, low_band_means = make_wake_bout_figure(
+    fig, wake_bouts, rem_bouts, low_band_means = make_wake_bout_figure(
         mat,
         mat_name=mat_path.name,
         threshold=threshold,
@@ -450,8 +757,17 @@ def run_wake_bout_visualization(
         low_hz=low_hz,
         high_hz=high_hz,
         window_duration=window_duration,
+        normalization_lower_percentile=normalization_lower_percentile,
+        normalization_upper_percentile=normalization_upper_percentile,
+        postprocess_wake_bouts_enabled=postprocess_wake_bouts_enabled,
         min_bout_duration_s=min_bout_duration_s,
         merge_gap_s=merge_gap_s,
+        detect_rem_bouts=detect_rem_bouts,
+        rem_min_bout_duration_s=rem_min_bout_duration_s,
+        rem_global_low_percentile=rem_global_low_percentile,
+        rem_low_ne_stat=rem_low_ne_stat,
+        rem_smoothing_window_s=rem_smoothing_window_s,
+        rem_convexity_margin=rem_convexity_margin,
         default_n_shown_samples=default_n_shown_samples,
     )
 
@@ -463,6 +779,17 @@ def run_wake_bout_visualization(
             output_dir,
             threshold=threshold,
             wake_when=wake_when,
+            normalization_lower_percentile=normalization_lower_percentile,
+            normalization_upper_percentile=normalization_upper_percentile,
+            postprocess_wake_bouts_enabled=postprocess_wake_bouts_enabled,
+            min_bout_duration_s=min_bout_duration_s,
+            merge_gap_s=merge_gap_s,
+            detect_rem_bouts=detect_rem_bouts,
+            rem_min_bout_duration_s=rem_min_bout_duration_s,
+            rem_global_low_percentile=rem_global_low_percentile,
+            rem_low_ne_stat=rem_low_ne_stat,
+            rem_smoothing_window_s=rem_smoothing_window_s,
+            rem_convexity_margin=rem_convexity_margin,
         ).resolve()
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -473,7 +800,34 @@ def run_wake_bout_visualization(
     print(
         f"Wake rule: normalized {low_hz:g}-{high_hz:g} Hz column mean " f"{wake_when} {threshold:g}"
     )
+    print(
+        "Feature normalization: "
+        + format_normalization_label(
+            normalization_lower_percentile,
+            normalization_upper_percentile,
+        )
+    )
     print(f"Predicted Wake bouts: {len(wake_bouts)}")
+    print(f"Predicted REM bouts: {len(rem_bouts)}")
+    print(
+        "Post-processing: "
+        + (
+            f"on, merge gaps <= {merge_gap_s:g}s, remove bouts < {min_bout_duration_s:g}s"
+            if postprocess_wake_bouts_enabled
+            else "off"
+        )
+    )
+    print(
+        "REM detection: "
+        + (
+            f"on, Wake duration >= {rem_min_bout_duration_s:g}s, "
+            f"NE {rem_low_ne_stat} global p{rem_global_low_percentile:g}, "
+            f"smoothing {rem_smoothing_window_s:g}s, "
+            f"convexity margin {rem_convexity_margin:g}"
+            if detect_rem_bouts
+            else "off"
+        )
+    )
     print(
         "Column mean quantiles "
         "(min, p10, p25, median, p75, p90, max): "
@@ -512,8 +866,65 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--low-hz", type=float, default=1.0)
     parser.add_argument("--high-hz", type=float, default=5.0)
     parser.add_argument("--window-duration", type=float, default=5.0)
-    parser.add_argument("--min-bout-duration-s", type=float, default=0.0)
-    parser.add_argument("--merge-gap-s", type=float, default=0.0)
+    parser.add_argument(
+        "--normalization-lower-percentile",
+        type=float,
+        default=5.0,
+        help="Lower percentile cap before min-max normalization.",
+    )
+    parser.add_argument(
+        "--normalization-upper-percentile",
+        type=float,
+        default=95.0,
+        help="Upper percentile cap before min-max normalization.",
+    )
+    parser.add_argument(
+        "--use-raw-minmax-normalization",
+        action="store_true",
+        help="Disable percentile caps and normalize by raw min/max values.",
+    )
+    parser.add_argument(
+        "--no-postprocess",
+        action="store_true",
+        help="Plot raw threshold bouts without gap merging or tiny-bout removal.",
+    )
+    parser.add_argument("--min-bout-duration-s", type=float, default=5.0)
+    parser.add_argument("--merge-gap-s", type=float, default=5.0)
+    parser.add_argument(
+        "--no-rem-detection",
+        action="store_true",
+        help="Disable the optional NE-based Wake-to-REM relabeling pass.",
+    )
+    parser.add_argument(
+        "--rem-min-bout-duration-s",
+        type=float,
+        default=30.0,
+        help="Minimum Wake bout duration considered for REM relabeling.",
+    )
+    parser.add_argument(
+        "--rem-global-low-percentile",
+        type=float,
+        default=10.0,
+        help="Global NE percentile a candidate bout must reach to become REM.",
+    )
+    parser.add_argument(
+        "--rem-low-ne-stat",
+        choices=["median", "min"],
+        default="min",
+        help="NE summary statistic compared against the global REM percentile.",
+    )
+    parser.add_argument(
+        "--rem-smoothing-window-s",
+        type=float,
+        default=5.0,
+        help="Centered global moving-average window applied to NE before REM detection.",
+    )
+    parser.add_argument(
+        "--rem-convexity-margin",
+        type=float,
+        default=0.0,
+        help="Required NE median drop from each outer third to the middle third.",
+    )
     parser.add_argument("--default-n-shown-samples", type=int, default=2048)
     parser.add_argument("--show", action="store_true", help="Open the figure after writing HTML.")
     return parser.parse_args()
@@ -521,6 +932,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    normalization_lower_percentile = (
+        None if args.use_raw_minmax_normalization else args.normalization_lower_percentile
+    )
+    normalization_upper_percentile = (
+        None if args.use_raw_minmax_normalization else args.normalization_upper_percentile
+    )
     run_wake_bout_visualization(
         mat_file=args.mat_file,
         output=args.output,
@@ -530,8 +947,17 @@ def main() -> None:
         low_hz=args.low_hz,
         high_hz=args.high_hz,
         window_duration=args.window_duration,
+        normalization_lower_percentile=normalization_lower_percentile,
+        normalization_upper_percentile=normalization_upper_percentile,
+        postprocess_wake_bouts_enabled=not args.no_postprocess,
         min_bout_duration_s=args.min_bout_duration_s,
         merge_gap_s=args.merge_gap_s,
+        detect_rem_bouts=not args.no_rem_detection,
+        rem_min_bout_duration_s=args.rem_min_bout_duration_s,
+        rem_global_low_percentile=args.rem_global_low_percentile,
+        rem_low_ne_stat=args.rem_low_ne_stat,
+        rem_smoothing_window_s=args.rem_smoothing_window_s,
+        rem_convexity_margin=args.rem_convexity_margin,
         default_n_shown_samples=args.default_n_shown_samples,
         show=args.show,
     )
@@ -542,16 +968,25 @@ if __name__ == "__main__":
         main()
     else:
         # Editable parameters for direct console/Spyder-style runs.
-        MAT_FILE = REPO_ROOT / "user_test_files" / "830.mat"
+        MAT_FILE = REPO_ROOT / "user_test_files" / "115_gs.mat"
         OUTPUT = None  # Path to a specific .html file, or None for the default name.
         OUTPUT_DIR = REPO_ROOT / "test-artifacts"
-        THRESHOLD = 0.6
+        THRESHOLD = 0.7
         WAKE_WHEN = "below"  # "below" means low 1-5 Hz power marks Wake.
         LOW_HZ = 1.0
-        HIGH_HZ = 5.0
+        HIGH_HZ = 7.0
         WINDOW_DURATION = 5.0
-        MIN_BOUT_DURATION_S = 0.0
-        MERGE_GAP_S = 0.0
+        NORMALIZATION_LOWER_PERCENTILE = 5.0
+        NORMALIZATION_UPPER_PERCENTILE = 95.0
+        POSTPROCESS_WAKE_BOUTS = True
+        MIN_BOUT_DURATION_S = 10.0
+        MERGE_GAP_S = 5.0
+        DETECT_REM_BOUTS = True
+        REM_MIN_BOUT_DURATION_S = 30.0
+        REM_GLOBAL_LOW_PERCENTILE = 10.0
+        REM_LOW_NE_STAT = "min"
+        REM_SMOOTHING_WINDOW_S = 5.0
+        REM_CONVEXITY_MARGIN = 0.0
         DEFAULT_N_SHOWN_SAMPLES = 2048
         SHOW = False
 
@@ -564,8 +999,17 @@ if __name__ == "__main__":
             low_hz=LOW_HZ,
             high_hz=HIGH_HZ,
             window_duration=WINDOW_DURATION,
+            normalization_lower_percentile=NORMALIZATION_LOWER_PERCENTILE,
+            normalization_upper_percentile=NORMALIZATION_UPPER_PERCENTILE,
+            postprocess_wake_bouts_enabled=POSTPROCESS_WAKE_BOUTS,
             min_bout_duration_s=MIN_BOUT_DURATION_S,
             merge_gap_s=MERGE_GAP_S,
+            detect_rem_bouts=DETECT_REM_BOUTS,
+            rem_min_bout_duration_s=REM_MIN_BOUT_DURATION_S,
+            rem_global_low_percentile=REM_GLOBAL_LOW_PERCENTILE,
+            rem_low_ne_stat=REM_LOW_NE_STAT,
+            rem_smoothing_window_s=REM_SMOOTHING_WINDOW_S,
+            rem_convexity_margin=REM_CONVEXITY_MARGIN,
             default_n_shown_samples=DEFAULT_N_SHOWN_SAMPLES,
             show=SHOW,
         )

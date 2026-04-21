@@ -13,7 +13,6 @@ from scipy.signal.windows import hamming
 
 from app_src.config import (
     SPECTROGRAM_COLORSCALE,
-    THETA_DELTA_RATIO_LINE_COLOR,
     GAUSSIAN_FILTER_SIGMA,
 )
 
@@ -121,8 +120,8 @@ def get_fft_plots(
         customdata=time / 3600,
         hovertemplate="<b>time</b>: %{customdata:.2f}h<extra></extra>",
         showlegend=False,
-        line=dict(color=THETA_DELTA_RATIO_LINE_COLOR, width=1),
-        opacity=0.4,
+        line=dict(color="black", width=1),
+        opacity=0.5,
     )
     return spectrogram, theta_delta_ratio
 
