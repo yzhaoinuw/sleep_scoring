@@ -2,6 +2,102 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-22
+
+### Done Today
+
+- Changed the `thirds` REM shape test in `scripts/visualize_low_band_wake_bouts.py` from third medians to third means:
+  - compares middle-third mean against left- and right-third means
+  - makes `thirds` the default REM shape test after strict chord proved too restrictive and no shape test admitted too many imposters
+  - keeps `--rem-shape-test chord`, `thirds`, and `none` available
+
+### Next Steps
+
+- Tidy the experimental algorithm before app integration:
+  - rename tuning parameters so user-facing controls describe behavior rather than implementation details
+  - decide which parameters should be exposed to users and which should remain developer/debug settings
+  - integrate the Wake/REM/post-REM recovery logic into the app prediction path
+  - ship an early test build so users can visually review the statistical model on real recordings
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-shape-test thirds` and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Added `--rem-shape-test none` to `scripts/visualize_low_band_wake_bouts.py`:
+  - skips the REM convex/chord/shape gate
+  - keeps duration and global low-NE criteria active
+  - supports quick diagnosis of whether candidate REM bouts are being rejected by shape testing
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-shape-test none` and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Added a strict chord-based REM NE shape test to `scripts/visualize_low_band_wake_bouts.py`:
+  - connects the first and last finite NE point in a candidate bout with a straight line
+  - requires every finite interior NE point to sit on or below that line
+  - makes chord the default REM shape test
+  - keeps the previous thirds-median test available with `--rem-shape-test thirds`
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with default chord shape testing and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Added post-REM NE recovery splitting to `scripts/visualize_low_band_wake_bouts.py`:
+  - after REM detection, each REM bout computes cumulative NE diff across the bout
+  - after the NE trough, the first cumulative diff crossing above a small epsilon becomes the REM/Wake split
+  - the pre-split segment remains REM and the recovery tail is added back as Wake
+  - new CLI option is `--rem-recovery-epsilon-fraction`, defaulting to `0.02`
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-recovery-epsilon-fraction 0.02` and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Changed REM low-NE candidate scoring in `scripts/visualize_low_band_wake_bouts.py` from `min`/`median` choices to a numeric bout percentile:
+  - new CLI option is `--rem-low-ne-percentile`
+  - `0` matches previous min-like behavior and `50` matches median-like behavior
+  - global NE thresholding remains controlled separately by `--rem-global-low-percentile`
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-low-ne-percentile 50` and confirmed it writes an HTML plot.
+
+## 2026-04-21
+
+### Done Today
+
+- Replaced fixed Wake-bout gap merging in `scripts/visualize_low_band_wake_bouts.py` with a one-pass relative NREM-gap merge:
+  - converts non-Wake/NREM gaps to Wake when gap duration is less than `nrem_gap_merge_ratio` times the sum of neighboring Wake durations
+  - uses one Wake neighbor for edge gaps and two Wake neighbors for interior gaps
+  - supports optional `max_nrem_gap_s`, defaulting to `None`
+  - keeps short-Wake removal as a separate final cleanup step
+- Updated CLI/direct-run parameters from `merge_gap_s` to `nrem_gap_merge_ratio` and `max_nrem_gap_s`.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran small synthetic checks confirming sum-neighbor merging and one-pass non-cascading behavior.
+
 ## 2026-04-21
 
 ### Done Today

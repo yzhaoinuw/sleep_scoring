@@ -158,23 +158,6 @@ def spectrogram_column_edges(
     return np.clip(edges, start_time, end_time)
 
 
-def merge_close_bouts(
-    bouts: list[tuple[float, float]],
-    merge_gap_s: float,
-) -> list[tuple[float, float]]:
-    if not bouts or merge_gap_s <= 0:
-        return bouts
-
-    merged = [bouts[0]]
-    for start, end in bouts[1:]:
-        previous_start, previous_end = merged[-1]
-        if start - previous_end <= merge_gap_s:
-            merged[-1] = (previous_start, end)
-        else:
-            merged.append((start, end))
-    return merged
-
-
 def wake_columns_to_bouts(
     wake_columns: np.ndarray,
     edges: np.ndarray,
@@ -195,13 +178,62 @@ def wake_columns_to_bouts(
     return bouts
 
 
+def merge_relative_nrem_gaps_once(
+    wake_columns: np.ndarray,
+    edges: np.ndarray,
+    nrem_gap_merge_ratio: float = 0.5,
+    max_nrem_gap_s: float | None = None,
+) -> np.ndarray:
+    """Convert NREM gaps to Wake when they are small relative to neighboring Wake."""
+    if not 0 <= nrem_gap_merge_ratio:
+        raise ValueError(
+            "NREM gap merge ratio must be non-negative, "
+            f"got {nrem_gap_merge_ratio:g}."
+        )
+    if max_nrem_gap_s is not None and max_nrem_gap_s < 0:
+        raise ValueError(f"Max NREM gap duration must be non-negative, got {max_nrem_gap_s:g}.")
+
+    wake_columns = np.asarray(wake_columns, dtype=bool).copy()
+    if wake_columns.size == 0 or nrem_gap_merge_ratio == 0:
+        return wake_columns
+    if edges.size != wake_columns.size + 1:
+        raise ValueError(
+            "Edges must contain one more value than wake_columns, "
+            f"got {edges.size} edges for {wake_columns.size} columns."
+        )
+
+    change_points = np.flatnonzero(np.diff(wake_columns)) + 1
+    starts = np.r_[0, change_points]
+    ends = np.r_[change_points, wake_columns.size]
+    is_wake_run = wake_columns[starts]
+    durations = edges[ends] - edges[starts]
+
+    previous_is_wake = np.r_[False, is_wake_run[:-1]]
+    next_is_wake = np.r_[is_wake_run[1:], False]
+    previous_duration = np.r_[0.0, durations[:-1]]
+    next_duration = np.r_[durations[1:], 0.0]
+
+    neighboring_wake_duration = np.zeros_like(durations, dtype=float)
+    neighboring_wake_duration += np.where(previous_is_wake, previous_duration, 0.0)
+    neighboring_wake_duration += np.where(next_is_wake, next_duration, 0.0)
+
+    merge_runs = ~is_wake_run
+    merge_runs &= neighboring_wake_duration > 0
+    merge_runs &= durations < nrem_gap_merge_ratio * neighboring_wake_duration
+    if max_nrem_gap_s is not None:
+        merge_runs &= durations <= max_nrem_gap_s
+
+    for start, end in zip(starts[merge_runs], ends[merge_runs]):
+        wake_columns[start:end] = True
+
+    return wake_columns
+
+
 def postprocess_wake_bouts(
     bouts: list[tuple[float, float]],
     min_bout_duration_s: float = 5.0,
-    merge_gap_s: float = 5.0,
 ) -> list[tuple[float, float]]:
-    """Fill short non-Wake gaps, then remove isolated short Wake bouts."""
-    bouts = merge_close_bouts(bouts, merge_gap_s=merge_gap_s)
+    """Remove isolated short Wake bouts."""
     if min_bout_duration_s > 0:
         bouts = [(start, end) for start, end in bouts if end - start >= min_bout_duration_s]
     return bouts
@@ -293,22 +325,50 @@ def split_ne_segment_into_thirds(ne_segment: np.ndarray) -> tuple[np.ndarray, np
 
 
 def is_convex_ne_valley(ne_segment: np.ndarray, margin: float = 0.0) -> tuple[bool, float, float, float]:
-    """Return whether the middle third is lower than both outer thirds."""
+    """Return whether the middle third mean is lower than both outer third means."""
     if ne_segment.size < 3 or np.all(~np.isfinite(ne_segment)):
         return False, np.nan, np.nan, np.nan
 
     left, middle, right = split_ne_segment_into_thirds(ne_segment)
-    left_median = float(np.nanmedian(left))
-    middle_median = float(np.nanmedian(middle))
-    right_median = float(np.nanmedian(right))
+    left_mean = float(np.nanmean(left))
+    middle_mean = float(np.nanmean(middle))
+    right_mean = float(np.nanmean(right))
     is_convex = (
-        np.isfinite(left_median)
-        and np.isfinite(middle_median)
-        and np.isfinite(right_median)
-        and middle_median <= left_median - margin
-        and middle_median <= right_median - margin
+        np.isfinite(left_mean)
+        and np.isfinite(middle_mean)
+        and np.isfinite(right_mean)
+        and middle_mean <= left_mean - margin
+        and middle_mean <= right_mean - margin
     )
-    return is_convex, left_median, middle_median, right_median
+    return is_convex, left_mean, middle_mean, right_mean
+
+
+def is_chord_ne_valley(ne_segment: np.ndarray, margin: float = 0.0) -> tuple[bool, float]:
+    """Return whether every interior NE point is below the start-end chord."""
+    if ne_segment.size < 3 or np.all(~np.isfinite(ne_segment)):
+        return False, np.nan
+
+    first_finite = 0
+    while first_finite < ne_segment.size and not np.isfinite(ne_segment[first_finite]):
+        first_finite += 1
+    last_finite = ne_segment.size - 1
+    while last_finite >= 0 and not np.isfinite(ne_segment[last_finite]):
+        last_finite -= 1
+    if last_finite - first_finite < 2:
+        return False, np.nan
+
+    segment = ne_segment[first_finite : last_finite + 1]
+    chord = np.linspace(segment[0], segment[-1], segment.size)
+    interior = segment[1:-1]
+    interior_chord = chord[1:-1]
+    finite_interior = np.isfinite(interior)
+    if not np.any(finite_interior):
+        return False, np.nan
+
+    chord_minus_ne = interior_chord[finite_interior] - interior[finite_interior]
+    is_chord_valley = bool(np.all(chord_minus_ne >= margin))
+    min_chord_margin = float(np.nanmin(chord_minus_ne))
+    return is_chord_valley, min_chord_margin
 
 
 def classify_rem_bouts_from_wake_bouts(
@@ -317,7 +377,8 @@ def classify_rem_bouts_from_wake_bouts(
     time_ne: np.ndarray | None,
     min_duration_s: float = 30.0,
     global_low_percentile: float = 10.0,
-    low_ne_stat: str = "min",
+    low_ne_percentile: float = 0.0,
+    shape_test: str = "thirds",
     convexity_margin: float = 0.0,
 ) -> tuple[list[tuple[float, float]], list[tuple[float, float]], list[dict[str, float | bool]]]:
     """Relabel Wake bouts as REM when NE is globally low and valley-shaped."""
@@ -328,8 +389,15 @@ def classify_rem_bouts_from_wake_bouts(
             "REM global low percentile must be between 0 and 100, "
             f"got {global_low_percentile:g}."
         )
-    if low_ne_stat not in {"min", "median"}:
-        raise ValueError(f"REM low NE stat must be 'min' or 'median', got {low_ne_stat!r}.")
+    if not 0 <= low_ne_percentile <= 100:
+        raise ValueError(
+            "REM low NE bout percentile must be between 0 and 100, "
+            f"got {low_ne_percentile:g}."
+        )
+    if shape_test not in {"chord", "thirds", "none"}:
+        raise ValueError(
+            f"REM shape test must be 'chord', 'thirds', or 'none', got {shape_test!r}."
+        )
 
     finite_ne = ne[np.isfinite(ne)]
     if finite_ne.size == 0:
@@ -347,12 +415,24 @@ def classify_rem_bouts_from_wake_bouts(
         has_segment = ne_segment.size > 0 and np.any(np.isfinite(ne_segment))
         min_ne = float(np.nanmin(ne_segment)) if has_segment else np.nan
         median_ne = float(np.nanmedian(ne_segment)) if has_segment else np.nan
-        low_ne_value = min_ne if low_ne_stat == "min" else median_ne
+        low_ne_value = (
+            float(np.nanpercentile(ne_segment, low_ne_percentile)) if has_segment else np.nan
+        )
         reaches_global_low = bool(has_segment and low_ne_value <= global_low_threshold)
-        is_convex, left_median, middle_median, right_median = is_convex_ne_valley(
+        thirds_is_convex, left_mean, middle_mean, right_mean = is_convex_ne_valley(
             ne_segment,
             margin=convexity_margin,
         )
+        chord_is_convex, chord_min_margin = is_chord_ne_valley(
+            ne_segment,
+            margin=convexity_margin,
+        )
+        if shape_test == "chord":
+            is_convex = chord_is_convex
+        elif shape_test == "thirds":
+            is_convex = thirds_is_convex
+        else:
+            is_convex = True
         is_rem = bool(duration_s >= min_duration_s and reaches_global_low and is_convex)
 
         diagnostics.append(
@@ -362,12 +442,17 @@ def classify_rem_bouts_from_wake_bouts(
                 "duration_s": float(duration_s),
                 "min_ne": min_ne,
                 "median_ne": median_ne,
+                "low_ne_percentile": float(low_ne_percentile),
                 "low_ne_value": low_ne_value,
                 "global_low_threshold": global_low_threshold,
-                "left_median": left_median,
-                "middle_median": middle_median,
-                "right_median": right_median,
+                "left_mean": left_mean,
+                "middle_mean": middle_mean,
+                "right_mean": right_mean,
+                "chord_min_margin": chord_min_margin,
+                "shape_test": shape_test,
                 "reaches_global_low": reaches_global_low,
+                "thirds_is_convex": bool(thirds_is_convex),
+                "chord_is_convex": bool(chord_is_convex),
                 "is_convex": bool(is_convex),
                 "is_rem": is_rem,
             }
@@ -379,6 +464,75 @@ def classify_rem_bouts_from_wake_bouts(
             remaining_wake_bouts.append((bout_start, bout_end))
 
     return remaining_wake_bouts, rem_bouts, diagnostics
+
+
+def split_rem_bouts_at_ne_recovery(
+    rem_bouts: list[tuple[float, float]],
+    ne: np.ndarray | None,
+    time_ne: np.ndarray | None,
+    epsilon_fraction: float = 0.02,
+) -> tuple[
+    list[tuple[float, float]],
+    list[tuple[float, float]],
+    list[dict[str, float | bool]],
+]:
+    """Split post-trough NE recovery tails from REM bouts into Wake."""
+    if epsilon_fraction < 0:
+        raise ValueError(f"REM recovery epsilon fraction must be non-negative, got {epsilon_fraction:g}.")
+    if ne is None or time_ne is None or ne.size == 0 or time_ne.size != ne.size:
+        return rem_bouts, [], []
+
+    split_rem_bouts = []
+    recovery_wake_bouts = []
+    diagnostics: list[dict[str, float | bool]] = []
+
+    for bout_start, bout_end in rem_bouts:
+        in_bout = (time_ne >= bout_start) & (time_ne < bout_end)
+        segment = ne[in_bout]
+        segment_time = time_ne[in_bout]
+        finite_mask = np.isfinite(segment)
+        has_segment = segment.size > 1 and np.any(finite_mask)
+        split_found = False
+        split_time = np.nan
+        trough_time = np.nan
+        epsilon = np.nan
+
+        if has_segment:
+            finite_indices = np.flatnonzero(finite_mask)
+            trough_local_index = finite_indices[int(np.nanargmin(segment[finite_mask]))]
+            trough_time = float(segment_time[trough_local_index])
+            post_trough = segment[trough_local_index:]
+            finite_post = post_trough[np.isfinite(post_trough)]
+            if finite_post.size > 1:
+                ne_range = float(np.nanpercentile(finite_post, 90) - np.nanmin(finite_post))
+                epsilon = epsilon_fraction * ne_range if np.isfinite(ne_range) else 0.0
+                cumulative_diff = np.r_[0.0, np.cumsum(np.diff(segment))]
+                recovery_indices = np.flatnonzero(
+                    cumulative_diff[trough_local_index:] > epsilon
+                )
+                if recovery_indices.size > 0:
+                    split_index = int(trough_local_index + recovery_indices[0])
+                    split_time = float(segment_time[split_index])
+                    split_found = bool(bout_start < split_time < bout_end)
+
+        diagnostics.append(
+            {
+                "start": float(bout_start),
+                "end": float(bout_end),
+                "trough_time": trough_time,
+                "epsilon": epsilon,
+                "split_time": split_time,
+                "split_found": split_found,
+            }
+        )
+
+        if split_found:
+            split_rem_bouts.append((bout_start, split_time))
+            recovery_wake_bouts.append((split_time, bout_end))
+        else:
+            split_rem_bouts.append((bout_start, bout_end))
+
+    return split_rem_bouts, recovery_wake_bouts, diagnostics
 
 
 def make_wake_bout_figure(
@@ -393,13 +547,16 @@ def make_wake_bout_figure(
     normalization_upper_percentile: float | None = 95.0,
     postprocess_wake_bouts_enabled: bool = True,
     min_bout_duration_s: float = 5.0,
-    merge_gap_s: float = 5.0,
+    nrem_gap_merge_ratio: float = 0.5,
+    max_nrem_gap_s: float | None = None,
     detect_rem_bouts: bool = True,
     rem_min_bout_duration_s: float = 30.0,
     rem_global_low_percentile: float = 10.0,
-    rem_low_ne_stat: str = "min",
+    rem_low_ne_percentile: float = 0.0,
     rem_smoothing_window_s: float = 5.0,
+    rem_shape_test: str = "thirds",
     rem_convexity_margin: float = 0.0,
+    rem_recovery_epsilon_fraction: float = 0.02,
     default_n_shown_samples: int = 2048,
     num_class: int = 3,
 ) -> tuple[go.Figure, list[tuple[float, float]], list[tuple[float, float]], np.ndarray]:
@@ -433,27 +590,35 @@ def make_wake_bout_figure(
         wake_when=wake_when,
     )
     edges = spectrogram_column_edges(times, start_time=start_time, end_time=end_time)
-    raw_wake_bouts = wake_columns_to_bouts(wake_columns, edges)
-    wake_bouts = (
-        postprocess_wake_bouts(
-            raw_wake_bouts,
-            min_bout_duration_s=min_bout_duration_s,
-            merge_gap_s=merge_gap_s,
+    raw_wake_columns = wake_columns
+    if postprocess_wake_bouts_enabled:
+        wake_columns = merge_relative_nrem_gaps_once(
+            wake_columns,
+            edges,
+            nrem_gap_merge_ratio=nrem_gap_merge_ratio,
+            max_nrem_gap_s=max_nrem_gap_s,
         )
-        if postprocess_wake_bouts_enabled
-        else raw_wake_bouts
+    raw_wake_bouts = wake_columns_to_bouts(raw_wake_columns, edges)
+    merged_wake_bouts = wake_columns_to_bouts(wake_columns, edges)
+    wake_bouts = postprocess_wake_bouts(
+        merged_wake_bouts,
+        min_bout_duration_s=min_bout_duration_s,
     )
     wake_bouts_before_rem = list(wake_bouts)
 
     fig = FigureResampler(
         make_subplots(
-            rows=2,
+            rows=3,
             cols=1,
             shared_xaxes=True,
-            vertical_spacing=0.08,
-            subplot_titles=("EEG Spectrogram", "NE"),
-            row_heights=[0.45, 0.55],
-            specs=[[{"secondary_y": True, "r": -0.05}], [{"r": -0.05}]],
+            vertical_spacing=0.055,
+            subplot_titles=("EEG Spectrogram", "NE", "Smoothed NE for REM"),
+            row_heights=[0.40, 0.30, 0.30],
+            specs=[
+                [{"secondary_y": True, "r": -0.05}],
+                [{"r": -0.05}],
+                [{"r": -0.05}],
+            ],
         ),
         default_n_shown_samples=default_n_shown_samples,
         default_downsampler=MinMaxLTTB(parallel=True),
@@ -504,6 +669,20 @@ def make_wake_bout_figure(
             row=2,
             col=1,
         )
+        fig.add_trace(
+            go.Scattergl(
+                name=f"Smoothed NE ({rem_smoothing_window_s:g}s)",
+                line=dict(width=1.5, color="rgb(31, 119, 180)"),
+                marker=dict(size=2, color="rgb(31, 119, 180)"),
+                showlegend=False,
+                mode="lines",
+                hovertemplate="<b>time</b>: %{x:.2f}<br><b>smoothed y</b>: %{y}<extra></extra>",
+            ),
+            hf_x=time_ne,
+            hf_y=ne_for_rem,
+            row=3,
+            col=1,
+        )
     else:
         fig.add_annotation(
             text="NE unavailable",
@@ -514,10 +693,20 @@ def make_wake_bout_figure(
             showarrow=False,
             font=dict(size=12, color="gray"),
         )
+        fig.add_annotation(
+            text="Smoothed NE unavailable",
+            x=0.5,
+            xref="paper",
+            y=0.5,
+            yref="y3 domain",
+            showarrow=False,
+            font=dict(size=12, color="gray"),
+        )
         ne = None
 
     rem_bouts: list[tuple[float, float]] = []
     rem_diagnostics: list[dict[str, float | bool]] = []
+    rem_recovery_diagnostics: list[dict[str, float | bool]] = []
     if detect_rem_bouts:
         wake_bouts, rem_bouts, rem_diagnostics = classify_rem_bouts_from_wake_bouts(
             wake_bouts,
@@ -525,9 +714,17 @@ def make_wake_bout_figure(
             time_ne=time_ne,
             min_duration_s=rem_min_bout_duration_s,
             global_low_percentile=rem_global_low_percentile,
-            low_ne_stat=rem_low_ne_stat,
+            low_ne_percentile=rem_low_ne_percentile,
+            shape_test=rem_shape_test,
             convexity_margin=rem_convexity_margin,
         )
+        rem_bouts, recovery_wake_bouts, rem_recovery_diagnostics = split_rem_bouts_at_ne_recovery(
+            rem_bouts,
+            ne=ne_for_rem,
+            time_ne=time_ne,
+            epsilon_fraction=rem_recovery_epsilon_fraction,
+        )
+        wake_bouts = sorted(wake_bouts + recovery_wake_bouts)
 
     wake_sleep_scores = make_wake_sleep_score_trace(
         wake_bouts,
@@ -540,18 +737,22 @@ def make_wake_bout_figure(
     fig.add_trace(spectrogram, secondary_y=False, row=1, col=1)
     fig.add_trace(theta_delta_ratio, secondary_y=True, row=1, col=1)
     fig.add_trace(wake_sleep_scores, row=2, col=1)
+    fig.add_trace(wake_sleep_scores, row=3, col=1)
 
     total_wake_s = sum(end - start for start, end in wake_bouts)
     total_rem_s = sum(end - start for start, end in rem_bouts)
+    max_gap_text = "no max gap" if max_nrem_gap_s is None else f"max NREM gap {max_nrem_gap_s:g}s"
     cleanup_text = (
-        f"cleanup on: merge gaps <= {merge_gap_s:g}s, remove bouts < {min_bout_duration_s:g}s"
+        f"cleanup on: NREM < {nrem_gap_merge_ratio:g}x neighbor Wake sum, "
+        f"{max_gap_text}, remove Wake < {min_bout_duration_s:g}s"
         if postprocess_wake_bouts_enabled
         else "cleanup off"
     )
     rem_text = (
         f"REM on: Wake >= {rem_min_bout_duration_s:g}s, "
-        f"NE {rem_low_ne_stat} <= p{rem_global_low_percentile:g}, "
-        f"{rem_smoothing_window_s:g}s smooth, convex"
+        f"bout NE p{rem_low_ne_percentile:g} <= global p{rem_global_low_percentile:g}, "
+        f"{rem_smoothing_window_s:g}s smooth, {rem_shape_test} shape, recovery eps "
+        f"{rem_recovery_epsilon_fraction:g}x"
         if detect_rem_bouts
         else "REM off"
     )
@@ -562,7 +763,7 @@ def make_wake_bout_figure(
     fig.update_layout(
         autosize=True,
         margin=dict(t=70, l=10, r=5, b=25),
-        height=700,
+        height=820,
         hovermode="x unified",
         hoverlabel=dict(bgcolor="rgba(255, 255, 255, 0.6)"),
         title=dict(
@@ -582,18 +783,19 @@ def make_wake_bout_figure(
         modebar_remove=["lasso2d", "zoom", "autoScale"],
         dragmode="pan",
         clickmode="event",
-        xaxis2=dict(
+        xaxis3=dict(
             tickformat="digits",
             nticks=NTICKS,
             tickfont=dict(size=10),
             automargin=True,
         ),
     )
-    fig.update_traces(xaxis="x2")
+    fig.update_traces(xaxis="x3")
     fig.update_xaxes(range=[start_time, end_time], row=1, col=1)
+    fig.update_xaxes(range=[start_time, end_time], row=2, col=1)
     fig.update_xaxes(
         range=[start_time, end_time],
-        row=2,
+        row=3,
         col=1,
         title_text="<b>Time (s)</b>",
         title_standoff=10,
@@ -627,6 +829,15 @@ def make_wake_bout_figure(
         row=2,
         col=1,
     )
+    fig.update_yaxes(
+        range=[
+            ne_range * -(1 + RANGE_PADDING_PERCENT),
+            ne_range * (1 + RANGE_PADDING_PERCENT),
+        ],
+        fixedrange=FIX_NE_Y_RANGE,
+        row=3,
+        col=1,
+    )
     fig.update_annotations(font_size=14)
     if fig["layout"]["annotations"]:
         fig["layout"]["annotations"][-1]["font"]["size"] = 14
@@ -645,6 +856,12 @@ def make_wake_bout_figure(
         f"Wake candidates: {len(raw_wake_bouts)} raw -> {len(wake_bouts_before_rem)} "
         f"({'postprocessed' if postprocess_wake_bouts_enabled else 'raw'})"
     )
+    if postprocess_wake_bouts_enabled:
+        print(
+            f"Post-processing: {len(raw_wake_bouts)} raw Wake bout(s) -> "
+            f"{len(merged_wake_bouts)} after relative NREM-gap merging -> "
+            f"{len(wake_bouts_before_rem)} after short-Wake removal."
+        )
     if detect_rem_bouts:
         evaluated_rem_candidates = len(rem_diagnostics)
         print(
@@ -654,9 +871,14 @@ def make_wake_bout_figure(
         if rem_diagnostics:
             threshold_value = rem_diagnostics[0]["global_low_threshold"]
             print(
-                f"REM NE {rem_low_ne_stat} global p{rem_global_low_percentile:g} "
+                f"REM NE bout p{rem_low_ne_percentile:g} <= global p{rem_global_low_percentile:g} "
                 f"threshold after {rem_smoothing_window_s:g}s smoothing: {threshold_value:.4g}"
             )
+        split_count = sum(1 for item in rem_recovery_diagnostics if item["split_found"])
+        print(
+            f"REM recovery split: {split_count}/{len(rem_recovery_diagnostics)} REM bout(s), "
+            f"epsilon {rem_recovery_epsilon_fraction:g}x post-trough p90 range."
+        )
     else:
         print("REM detection: off")
     return fig, wake_bouts, rem_bouts, low_band_means
@@ -700,21 +922,25 @@ def default_output_path(
     normalization_upper_percentile: float | None,
     postprocess_wake_bouts_enabled: bool,
     min_bout_duration_s: float,
-    merge_gap_s: float,
+    nrem_gap_merge_ratio: float,
+    max_nrem_gap_s: float | None,
     detect_rem_bouts: bool,
     rem_min_bout_duration_s: float,
     rem_global_low_percentile: float,
-    rem_low_ne_stat: str,
+    rem_low_ne_percentile: float,
     rem_smoothing_window_s: float,
+    rem_shape_test: str,
     rem_convexity_margin: float,
+    rem_recovery_epsilon_fraction: float,
 ) -> Path:
     base_dir = output_dir if output_dir is not None else mat_path.parent
     rem_text = (
         "rem"
-        f"_{rem_low_ne_stat}"
+        f"_bout_p{format_seconds_for_filename(rem_low_ne_percentile)}"
         f"_global_p{format_seconds_for_filename(rem_global_low_percentile)}"
         f"_smooth_{format_seconds_for_filename(rem_smoothing_window_s)}s"
-        "_convex"
+        f"_{rem_shape_test}"
+        f"_recover_eps_{format_seconds_for_filename(rem_recovery_epsilon_fraction)}x"
         if detect_rem_bouts
         else "wake_only"
     )
@@ -734,13 +960,16 @@ def run_wake_bout_visualization(
     normalization_upper_percentile: float | None = 95.0,
     postprocess_wake_bouts_enabled: bool = True,
     min_bout_duration_s: float = 5.0,
-    merge_gap_s: float = 5.0,
+    nrem_gap_merge_ratio: float = 0.5,
+    max_nrem_gap_s: float | None = None,
     detect_rem_bouts: bool = True,
     rem_min_bout_duration_s: float = 30.0,
     rem_global_low_percentile: float = 10.0,
-    rem_low_ne_stat: str = "min",
+    rem_low_ne_percentile: float = 0.0,
     rem_smoothing_window_s: float = 5.0,
+    rem_shape_test: str = "thirds",
     rem_convexity_margin: float = 0.0,
+    rem_recovery_epsilon_fraction: float = 0.02,
     default_n_shown_samples: int = 2048,
     show: bool = False,
 ) -> Path:
@@ -761,13 +990,16 @@ def run_wake_bout_visualization(
         normalization_upper_percentile=normalization_upper_percentile,
         postprocess_wake_bouts_enabled=postprocess_wake_bouts_enabled,
         min_bout_duration_s=min_bout_duration_s,
-        merge_gap_s=merge_gap_s,
+        nrem_gap_merge_ratio=nrem_gap_merge_ratio,
+        max_nrem_gap_s=max_nrem_gap_s,
         detect_rem_bouts=detect_rem_bouts,
         rem_min_bout_duration_s=rem_min_bout_duration_s,
         rem_global_low_percentile=rem_global_low_percentile,
-        rem_low_ne_stat=rem_low_ne_stat,
+        rem_low_ne_percentile=rem_low_ne_percentile,
         rem_smoothing_window_s=rem_smoothing_window_s,
+        rem_shape_test=rem_shape_test,
         rem_convexity_margin=rem_convexity_margin,
+        rem_recovery_epsilon_fraction=rem_recovery_epsilon_fraction,
         default_n_shown_samples=default_n_shown_samples,
     )
 
@@ -783,13 +1015,16 @@ def run_wake_bout_visualization(
             normalization_upper_percentile=normalization_upper_percentile,
             postprocess_wake_bouts_enabled=postprocess_wake_bouts_enabled,
             min_bout_duration_s=min_bout_duration_s,
-            merge_gap_s=merge_gap_s,
+            nrem_gap_merge_ratio=nrem_gap_merge_ratio,
+            max_nrem_gap_s=max_nrem_gap_s,
             detect_rem_bouts=detect_rem_bouts,
             rem_min_bout_duration_s=rem_min_bout_duration_s,
             rem_global_low_percentile=rem_global_low_percentile,
-            rem_low_ne_stat=rem_low_ne_stat,
+            rem_low_ne_percentile=rem_low_ne_percentile,
             rem_smoothing_window_s=rem_smoothing_window_s,
+            rem_shape_test=rem_shape_test,
             rem_convexity_margin=rem_convexity_margin,
+            rem_recovery_epsilon_fraction=rem_recovery_epsilon_fraction,
         ).resolve()
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -809,10 +1044,13 @@ def run_wake_bout_visualization(
     )
     print(f"Predicted Wake bouts: {len(wake_bouts)}")
     print(f"Predicted REM bouts: {len(rem_bouts)}")
+    max_nrem_gap_label = "none" if max_nrem_gap_s is None else f"{max_nrem_gap_s:g}s"
     print(
         "Post-processing: "
         + (
-            f"on, merge gaps <= {merge_gap_s:g}s, remove bouts < {min_bout_duration_s:g}s"
+            f"on, merge NREM gaps < {nrem_gap_merge_ratio:g}x neighboring Wake sum, "
+            f"max NREM gap {max_nrem_gap_label}, "
+            f"remove Wake bouts < {min_bout_duration_s:g}s"
             if postprocess_wake_bouts_enabled
             else "off"
         )
@@ -821,9 +1059,10 @@ def run_wake_bout_visualization(
         "REM detection: "
         + (
             f"on, Wake duration >= {rem_min_bout_duration_s:g}s, "
-            f"NE {rem_low_ne_stat} global p{rem_global_low_percentile:g}, "
+            f"bout NE p{rem_low_ne_percentile:g} <= global p{rem_global_low_percentile:g}, "
             f"smoothing {rem_smoothing_window_s:g}s, "
-            f"convexity margin {rem_convexity_margin:g}"
+            f"{rem_shape_test} shape margin {rem_convexity_margin:g}, "
+            f"recovery epsilon {rem_recovery_epsilon_fraction:g}x post-trough p90 range"
             if detect_rem_bouts
             else "off"
         )
@@ -886,10 +1125,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-postprocess",
         action="store_true",
-        help="Plot raw threshold bouts without gap merging or tiny-bout removal.",
+        help="Plot raw threshold bouts without NREM-gap merging or tiny-Wake removal.",
     )
     parser.add_argument("--min-bout-duration-s", type=float, default=5.0)
-    parser.add_argument("--merge-gap-s", type=float, default=5.0)
+    parser.add_argument(
+        "--nrem-gap-merge-ratio",
+        type=float,
+        default=0.5,
+        help=(
+            "Convert a non-Wake/NREM gap to Wake when its duration is less than "
+            "this ratio times the sum of neighboring Wake durations."
+        ),
+    )
+    parser.add_argument(
+        "--max-nrem-gap-s",
+        type=float,
+        default=None,
+        help="Optional maximum NREM gap duration eligible for Wake merging.",
+    )
     parser.add_argument(
         "--no-rem-detection",
         action="store_true",
@@ -908,10 +1161,13 @@ def parse_args() -> argparse.Namespace:
         help="Global NE percentile a candidate bout must reach to become REM.",
     )
     parser.add_argument(
-        "--rem-low-ne-stat",
-        choices=["median", "min"],
-        default="min",
-        help="NE summary statistic compared against the global REM percentile.",
+        "--rem-low-ne-percentile",
+        type=float,
+        default=0.0,
+        help=(
+            "Within-bout NE percentile compared against the global REM percentile. "
+            "Use 0 for min-like behavior, 50 for median-like behavior."
+        ),
     )
     parser.add_argument(
         "--rem-smoothing-window-s",
@@ -920,10 +1176,25 @@ def parse_args() -> argparse.Namespace:
         help="Centered global moving-average window applied to NE before REM detection.",
     )
     parser.add_argument(
+        "--rem-shape-test",
+        choices=["chord", "thirds", "none"],
+        default="thirds",
+        help="NE valley shape test for REM candidates. 'thirds' compares third means; use 'none' to skip this gate.",
+    )
+    parser.add_argument(
         "--rem-convexity-margin",
         type=float,
         default=0.0,
-        help="Required NE median drop from each outer third to the middle third.",
+        help="Required NE drop for the selected REM shape test.",
+    )
+    parser.add_argument(
+        "--rem-recovery-epsilon-fraction",
+        type=float,
+        default=0.02,
+        help=(
+            "Post-REM Wake split threshold as a fraction of the post-trough NE p90 range. "
+            "Use 0 to split at the first positive cumulative NE diff."
+        ),
     )
     parser.add_argument("--default-n-shown-samples", type=int, default=2048)
     parser.add_argument("--show", action="store_true", help="Open the figure after writing HTML.")
@@ -951,13 +1222,16 @@ def main() -> None:
         normalization_upper_percentile=normalization_upper_percentile,
         postprocess_wake_bouts_enabled=not args.no_postprocess,
         min_bout_duration_s=args.min_bout_duration_s,
-        merge_gap_s=args.merge_gap_s,
+        nrem_gap_merge_ratio=args.nrem_gap_merge_ratio,
+        max_nrem_gap_s=args.max_nrem_gap_s,
         detect_rem_bouts=not args.no_rem_detection,
         rem_min_bout_duration_s=args.rem_min_bout_duration_s,
         rem_global_low_percentile=args.rem_global_low_percentile,
-        rem_low_ne_stat=args.rem_low_ne_stat,
+        rem_low_ne_percentile=args.rem_low_ne_percentile,
         rem_smoothing_window_s=args.rem_smoothing_window_s,
+        rem_shape_test=args.rem_shape_test,
         rem_convexity_margin=args.rem_convexity_margin,
+        rem_recovery_epsilon_fraction=args.rem_recovery_epsilon_fraction,
         default_n_shown_samples=args.default_n_shown_samples,
         show=args.show,
     )
@@ -968,7 +1242,7 @@ if __name__ == "__main__":
         main()
     else:
         # Editable parameters for direct console/Spyder-style runs.
-        MAT_FILE = REPO_ROOT / "user_test_files" / "115_gs.mat"
+        MAT_FILE = REPO_ROOT / "user_test_files" / "830.mat"
         OUTPUT = None  # Path to a specific .html file, or None for the default name.
         OUTPUT_DIR = REPO_ROOT / "test-artifacts"
         THRESHOLD = 0.7
@@ -979,14 +1253,17 @@ if __name__ == "__main__":
         NORMALIZATION_LOWER_PERCENTILE = 5.0
         NORMALIZATION_UPPER_PERCENTILE = 95.0
         POSTPROCESS_WAKE_BOUTS = True
-        MIN_BOUT_DURATION_S = 10.0
-        MERGE_GAP_S = 5.0
+        MIN_BOUT_DURATION_S = 5.0
+        NREM_GAP_MERGE_RATIO = 0.5
+        MAX_NREM_GAP_S = None
         DETECT_REM_BOUTS = True
         REM_MIN_BOUT_DURATION_S = 30.0
         REM_GLOBAL_LOW_PERCENTILE = 10.0
-        REM_LOW_NE_STAT = "min"
-        REM_SMOOTHING_WINDOW_S = 5.0
+        REM_LOW_NE_PERCENTILE = 5.0
+        REM_SMOOTHING_WINDOW_S = 10.0
+        REM_SHAPE_TEST = "thirds"
         REM_CONVEXITY_MARGIN = 0.0
+        REM_RECOVERY_EPSILON_FRACTION = 0.02
         DEFAULT_N_SHOWN_SAMPLES = 2048
         SHOW = False
 
@@ -1003,13 +1280,16 @@ if __name__ == "__main__":
             normalization_upper_percentile=NORMALIZATION_UPPER_PERCENTILE,
             postprocess_wake_bouts_enabled=POSTPROCESS_WAKE_BOUTS,
             min_bout_duration_s=MIN_BOUT_DURATION_S,
-            merge_gap_s=MERGE_GAP_S,
+            nrem_gap_merge_ratio=NREM_GAP_MERGE_RATIO,
+            max_nrem_gap_s=MAX_NREM_GAP_S,
             detect_rem_bouts=DETECT_REM_BOUTS,
             rem_min_bout_duration_s=REM_MIN_BOUT_DURATION_S,
             rem_global_low_percentile=REM_GLOBAL_LOW_PERCENTILE,
-            rem_low_ne_stat=REM_LOW_NE_STAT,
+            rem_low_ne_percentile=REM_LOW_NE_PERCENTILE,
             rem_smoothing_window_s=REM_SMOOTHING_WINDOW_S,
+            rem_shape_test=REM_SHAPE_TEST,
             rem_convexity_margin=REM_CONVEXITY_MARGIN,
+            rem_recovery_epsilon_fraction=REM_RECOVERY_EPSILON_FRACTION,
             default_n_shown_samples=DEFAULT_N_SHOWN_SAMPLES,
             show=SHOW,
         )
