@@ -1,3 +1,7 @@
+#### v0.16.0
+1. Added a statistical Wake/REM scoring pipeline as an alternative to sDREAMER. You can now choose the scoring backend in `app_src/config.py` by setting `SLEEP_SCORING_MODEL` to `"sdreamer"` or `"stats_model"`.
+2. Made the theta/delta trace styling configurable in `app_src/config.py`, including its line color and opacity. The default styling is now a black line with reduced opacity for less visual interference.
+
 #### v0.15.5
 1. Fixed EEG spectrogram alignment for non-integer sampling rates by anchoring spectrogram columns to exact time bins.
 2. Fixed EEG and EMG trace time axes to use true sample times instead of stretching traces to a rounded recording duration.
