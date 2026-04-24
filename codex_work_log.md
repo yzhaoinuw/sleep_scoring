@@ -2,6 +2,51 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-23
+
+### Done Today
+
+- Integrated the statistical Wake/REM model into the app as an alternative inference path:
+  - created `app_src/run_inference_stats_model.py` from the visualization prototype and trimmed it into an app-shaped module
+  - separated prediction from visualization with `predict_stats_model(...)`, `infer(...)`, and a developer-only `make_figure(...)`
+  - moved the stats model out of `scripts/` and into `app_src/`
+- Renamed the statistical model parameters to be easier to remember:
+  - `spectrogram_sleep_wave_range`
+  - `spectrogram_normalization_range`
+  - `min_wake_duration`
+  - `wake_merge_coefficient`
+  - `min_rem_duration`
+  - `rem_threshold_percentile`
+  - `rem_threshold_comparison_percentile`
+  - `ne_smoothing_window`
+- Exposed only the intended user-facing stats-model controls in `app_src/config.py`:
+  - `STATS_MODEL_WAKE_THRESHOLD`
+  - `STATS_MODEL_MIN_WAKE_DURATION`
+  - `STATS_MODEL_MIN_REM_DURATION`
+- Added a config-level app model selector in `app_src/config.py`:
+  - `SLEEP_SCORING_MODEL = "sdreamer"` or `"stats_model"`
+  - the UI was left unchanged; selection is config-only for now
+- Updated `app_src/inference.py` so:
+  - `sdreamer` keeps the existing learned-model path
+  - `stats_model` uses the new statistical inference path
+  - legacy app postprocessing only applies to `sdreamer`
+- Matched the app stats model to the validated `shape_test="none"` comparison behavior:
+  - removed the REM shape gate from the new pipeline
+  - left a short code comment explaining that this is intentional
+- Verified that the app stats model matches the old visualization pipeline on `35_app13.mat` when compared against the `shape_test="none"` configuration.
+
+### Next Steps
+
+- Improve REM detection so it can relabel a subsection of a long Wake bout as REM instead of promoting the entire Wake bout to REM.
+- Keep checking whether that subsection logic should happen:
+  - before Wake-to-REM relabeling finishes
+  - or as a follow-up split step after an initial REM candidate is found
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\config.py app_src\inference.py app_src\run_inference_stats_model.py`
+- Compared `app_src/run_inference_stats_model.py` against `scripts/visualize_low_band_wake_bouts.py` on `user_test_files\35_app13.mat` and confirmed matching Wake/REM results when the old visualization uses `shape_test='none'`.
+
 ## 2026-04-22
 
 ### Done Today

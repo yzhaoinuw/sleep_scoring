@@ -2,26 +2,73 @@
 
 Use this checklist alongside `codex_work_log.md`.
 
-## Statistical Wake Model
+## Current Statistical Model
 
-- Keep the first-pass feature simple:
+- Wake detection:
   - compute the app-style EEG spectrogram
-  - normalize the displayed spectrogram values globally
-  - average the normalized `1-5 Hz` rows column-wise
-  - label Wake where the feature falls below a threshold
-- Current best visual threshold candidate: `0.6`.
-- Continue testing nearby values, especially below `0.6`, using `scripts/visualize_low_band_wake_bouts.py`.
+  - clip and normalize the displayed spectrogram values
+  - average the normalized sleep-wave band column-wise
+  - label Wake where the feature falls below the threshold
+- Wake cleanup:
+  - merge short NREM gaps relative to neighboring Wake durations
+  - remove very short Wake bouts
+- REM detection:
+  - start from Wake bouts that pass the duration rule
+  - require low NE relative to a global low-percentile threshold
+  - currently skip REM shape gating to match the validated `shape_test="none"` behavior
+- Post-REM Wake:
+  - within each REM bout, find the NE trough
+  - after the trough, split at the first cumulative NE recovery crossing above epsilon
+  - relabel the recovery tail as Wake
 
-## Immediate Next Experiment
+## Immediate Goal
 
-- Add simple merge rules to reduce fragmented Wake labels:
-  - merge Wake bouts separated by very short non-Wake gaps
-  - optionally remove Wake bouts shorter than a minimum duration
-  - compare several gap and duration values visually before choosing defaults
-- Keep the merge-rule parameters editable in the script's direct-run block.
-- Preserve the raw threshold-only behavior as an option so the effect of merge rules is easy to compare.
+- Improve REM detection inside long Wake bouts without destabilizing the current working defaults.
+
+## Next Experiment
+
+- Instead of relabeling an entire Wake bout as REM, allow the REM detector to carve out a likely REM subsection from within a Wake bout.
+- Compare two approaches:
+  - identify a low-NE subsection before promoting Wake to REM
+  - or split a Wake-derived REM candidate after the initial REM relabeling step
+- Focus on files where merged Wake currently swallows a smaller REM region.
+
+## App Status
+
+- The app can now switch between:
+  - `sdreamer`
+  - `stats_model`
+- Selection is config-only through `app_src/config.py`.
+- Legacy app postprocessing should remain disabled for the stats model path.
+
+## User-Facing Controls
+
+- Current exposed stats-model controls in `app_src/config.py`:
+  - Wake threshold
+  - minimum Wake duration
+  - minimum REM duration
+
+## Developer Controls
+
+- Keep these internal for now:
+  - sleep-wave frequency range
+  - spectrogram normalization range
+  - Wake merge coefficient
+  - REM threshold percentile
+  - REM threshold comparison percentile
+  - NE smoothing window
+  - REM recovery epsilon
+
+## Validation Plan
+
+- Use side-by-side visual inspection in the app first.
+- Focus especially on:
+  - Wake bouts that contain a smaller likely REM subsection
+  - post-REM Wake boundary placement
+  - files where merged Wake looks too broad before REM relabeling
+  - how stable the defaults feel across files
 
 ## Notes
 
-- The current script already has `MERGE_GAP_S` and `MIN_BOUT_DURATION_S` parameters, but the next pass should tune and document useful defaults.
-- Visual inspection is the intended evaluation method for now; quantitative fitting against ground truth can come after the feature and merge rules look plausible.
+- `app_src/run_inference_stats_model.py` is now the active app-side stats model.
+- `scripts/visualize_low_band_wake_bouts.py` remains the broader sandbox for experiment history and visual debugging.
