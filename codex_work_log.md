@@ -1,0 +1,196 @@
+# Codex Work Log
+
+Prepend new session notes to the top of this file.
+
+## 2026-04-23
+
+### Done Today
+
+- Integrated the statistical Wake/REM model into the app as an alternative inference path:
+  - created `app_src/run_inference_stats_model.py` from the visualization prototype and trimmed it into an app-shaped module
+  - separated prediction from visualization with `predict_stats_model(...)`, `infer(...)`, and a developer-only `make_figure(...)`
+  - moved the stats model out of `scripts/` and into `app_src/`
+- Renamed the statistical model parameters to be easier to remember:
+  - `spectrogram_sleep_wave_range`
+  - `spectrogram_normalization_range`
+  - `min_wake_duration`
+  - `wake_merge_coefficient`
+  - `min_rem_duration`
+  - `rem_threshold_percentile`
+  - `rem_threshold_comparison_percentile`
+  - `ne_smoothing_window`
+- Exposed only the intended user-facing stats-model controls in `app_src/config.py`:
+  - `STATS_MODEL_WAKE_THRESHOLD`
+  - `STATS_MODEL_MIN_WAKE_DURATION`
+  - `STATS_MODEL_MIN_REM_DURATION`
+- Added a config-level app model selector in `app_src/config.py`:
+  - `SLEEP_SCORING_MODEL = "sdreamer"` or `"stats_model"`
+  - the UI was left unchanged; selection is config-only for now
+- Updated `app_src/inference.py` so:
+  - `sdreamer` keeps the existing learned-model path
+  - `stats_model` uses the new statistical inference path
+  - legacy app postprocessing only applies to `sdreamer`
+- Matched the app stats model to the validated `shape_test="none"` comparison behavior:
+  - removed the REM shape gate from the new pipeline
+  - left a short code comment explaining that this is intentional
+- Verified that the app stats model matches the old visualization pipeline on `35_app13.mat` when compared against the `shape_test="none"` configuration.
+
+### Next Steps
+
+- Improve REM detection so it can relabel a subsection of a long Wake bout as REM instead of promoting the entire Wake bout to REM.
+- Keep checking whether that subsection logic should happen:
+  - before Wake-to-REM relabeling finishes
+  - or as a follow-up split step after an initial REM candidate is found
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\config.py app_src\inference.py app_src\run_inference_stats_model.py`
+- Compared `app_src/run_inference_stats_model.py` against `scripts/visualize_low_band_wake_bouts.py` on `user_test_files\35_app13.mat` and confirmed matching Wake/REM results when the old visualization uses `shape_test='none'`.
+
+## 2026-04-22
+
+### Done Today
+
+- Changed the `thirds` REM shape test in `scripts/visualize_low_band_wake_bouts.py` from third medians to third means:
+  - compares middle-third mean against left- and right-third means
+  - makes `thirds` the default REM shape test after strict chord proved too restrictive and no shape test admitted too many imposters
+  - keeps `--rem-shape-test chord`, `thirds`, and `none` available
+
+### Next Steps
+
+- Tidy the experimental algorithm before app integration:
+  - rename tuning parameters so user-facing controls describe behavior rather than implementation details
+  - decide which parameters should be exposed to users and which should remain developer/debug settings
+  - integrate the Wake/REM/post-REM recovery logic into the app prediction path
+  - ship an early test build so users can visually review the statistical model on real recordings
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-shape-test thirds` and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Added `--rem-shape-test none` to `scripts/visualize_low_band_wake_bouts.py`:
+  - skips the REM convex/chord/shape gate
+  - keeps duration and global low-NE criteria active
+  - supports quick diagnosis of whether candidate REM bouts are being rejected by shape testing
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-shape-test none` and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Added a strict chord-based REM NE shape test to `scripts/visualize_low_band_wake_bouts.py`:
+  - connects the first and last finite NE point in a candidate bout with a straight line
+  - requires every finite interior NE point to sit on or below that line
+  - makes chord the default REM shape test
+  - keeps the previous thirds-median test available with `--rem-shape-test thirds`
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with default chord shape testing and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Added post-REM NE recovery splitting to `scripts/visualize_low_band_wake_bouts.py`:
+  - after REM detection, each REM bout computes cumulative NE diff across the bout
+  - after the NE trough, the first cumulative diff crossing above a small epsilon becomes the REM/Wake split
+  - the pre-split segment remains REM and the recovery tail is added back as Wake
+  - new CLI option is `--rem-recovery-epsilon-fraction`, defaulting to `0.02`
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-recovery-epsilon-fraction 0.02` and confirmed it writes an HTML plot.
+
+## 2026-04-22
+
+### Done Today
+
+- Changed REM low-NE candidate scoring in `scripts/visualize_low_band_wake_bouts.py` from `min`/`median` choices to a numeric bout percentile:
+  - new CLI option is `--rem-low-ne-percentile`
+  - `0` matches previous min-like behavior and `50` matches median-like behavior
+  - global NE thresholding remains controlled separately by `--rem-global-low-percentile`
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with `--rem-low-ne-percentile 50` and confirmed it writes an HTML plot.
+
+## 2026-04-21
+
+### Done Today
+
+- Replaced fixed Wake-bout gap merging in `scripts/visualize_low_band_wake_bouts.py` with a one-pass relative NREM-gap merge:
+  - converts non-Wake/NREM gaps to Wake when gap duration is less than `nrem_gap_merge_ratio` times the sum of neighboring Wake durations
+  - uses one Wake neighbor for edge gaps and two Wake neighbors for interior gaps
+  - supports optional `max_nrem_gap_s`, defaulting to `None`
+  - keeps short-Wake removal as a separate final cleanup step
+- Updated CLI/direct-run parameters from `merge_gap_s` to `nrem_gap_merge_ratio` and `max_nrem_gap_s`.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran small synthetic checks confirming sum-neighbor merging and one-pass non-cascading behavior.
+
+## 2026-04-21
+
+### Done Today
+
+- Extended `scripts/visualize_low_band_wake_bouts.py` from a Wake-only visualization into a Wake/REM experiment view:
+  - keeps Wake detection modular with postprocessing toggles for short-bout removal and gap merging
+  - adds optional NE-based Wake-to-REM relabeling controlled by `--no-rem-detection`
+  - starts REM detection from Wake bouts at least 30 seconds long
+  - supports global NE low-value tests by either `min` or `median`, controlled by `--rem-low-ne-stat`
+  - supports a centered global moving average on NE before REM detection, controlled by `--rem-smoothing-window-s`
+  - uses a simple thirds-based convexity check to require a valley-like NE shape
+  - simplifies default output filenames to focus on the REM experiment instead of every Wake parameter
+- Added the theta/delta ratio line back to the Wake/REM spectrogram subplot.
+- Updated the shared theta/delta trace styling in `app_src/get_fft_plots.py` to use a black line at 50% opacity.
+- Tried Plotly y-gridline overlays for the spectrogram, but reverted those changes after visual inspection showed they still did not draw above the heatmap reliably.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\get_fft_plots.py scripts\visualize_low_band_wake_bouts.py`
+- Ran the Wake/REM visualization script on `user_test_files\115_gs.mat` with the current smoothed-min REM settings and confirmed it writes an HTML plot.
+- Compared exploratory REM settings on `user_test_files\115_gs.mat`: unsmoothed min, median, and smoothed min.
+
+## 2026-04-17
+
+### Done Today
+
+- Created branch `codex/statistical_model` from `origin/dev` to explore a simple statistical Wake-detection approach.
+- Added `scripts/plot_low_band_spectrogram_distribution.py`:
+  - loads a `.mat` file
+  - reuses `app_src.get_fft_plots.get_fft_plots` so the feature is derived from the same smoothed dB spectrogram shown in the app
+  - globally min-max normalizes the displayed spectrogram values to approximate the Viridis/Plotly visual normalization
+  - averages the normalized `1-5 Hz` rows column-wise
+  - writes an interactive HTML distribution plot
+  - optionally splits the distribution by existing `sleep_scores` labels when they are present in the `.mat`
+- Added `scripts/visualize_low_band_wake_bouts.py`:
+  - thresholds the normalized `1-5 Hz` column mean into Wake-only predictions
+  - writes a two-panel HTML visualization with EEG spectrogram and NE, matching the focused ChatGPT-style layout
+  - overlays threshold-selected Wake predictions as an app-style sleep-score heatmap using the Wake color from `STAGE_COLORS`
+  - enables scroll zoom in the generated Plotly HTML
+  - includes the threshold and rule direction in the default output filename so multiple threshold experiments do not overwrite each other
+- Initial visual inspection suggested `0.6` is a better threshold candidate than `0.8`.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\plot_low_band_spectrogram_distribution.py`
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile scripts\visualize_low_band_wake_bouts.py`
+- Ran the distribution script on `demo_data\COM5_bin1_gs.mat` and confirmed it wrote an HTML plot.
+- Ran the Wake-bout visualization script on `demo_data\COM5_bin1_gs.mat` at multiple thresholds and confirmed:
+  - Wake overlay color is `rgb(124, 124, 251)`
+  - generated HTML includes `scrollZoom`
+  - threshold-specific filenames are created

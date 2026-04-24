@@ -55,3 +55,15 @@ Commit message bullets should describe high-level added or changed behavior, not
 For feature commits, mention only the user-facing behavior that was added or changed.
 
 Do not mention tests, docs, project memory updates, or behind-the-scenes implementation details in a feature commit message unless that internal work is itself the main purpose of the commit.
+
+## Pipeline Iteration Reminder
+
+When iterating on experimental scoring pipelines, do not rush to remove useful traces such as:
+
+- parameter-rich output filenames
+- debug visualizations
+- intermediate diagnostics
+- comparison-friendly breadcrumbs that make it easy to match one run against another
+
+These traces are often what makes it possible to explain behavior regressions later.
+Prefer keeping them until the behavior is stable and the comparison value is clearly gone, then clean them up deliberately.
