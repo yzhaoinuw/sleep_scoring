@@ -15,7 +15,7 @@ from app_src.config import (
     SPECTROGRAM_COLORSCALE,
     GAUSSIAN_FILTER_SIGMA,
     THETA_DELTA_RATIO_LINE_COLOR,
-    THETA_DELTA_RATIO_OPACITY,
+    THETA_DELTA_RATIO_LINE_OPACITY,
 )
 
 
@@ -123,7 +123,7 @@ def get_fft_plots(
         hovertemplate="<b>time</b>: %{customdata:.2f}h<extra></extra>",
         showlegend=False,
         line=dict(color=THETA_DELTA_RATIO_LINE_COLOR, width=1),
-        opacity=THETA_DELTA_RATIO_OPACITY,
+        opacity=THETA_DELTA_RATIO_LINE_OPACITY,
     )
     return spectrogram, theta_delta_ratio
 

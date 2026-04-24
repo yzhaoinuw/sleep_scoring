@@ -21,7 +21,7 @@ SPECTROGRAM_COLORSCALE = "viridis"  # "turbo", "jet", etc.
 
 # consider to change this too if you change the spectrogram colorscale above
 THETA_DELTA_RATIO_LINE_COLOR = "black"  # "black", "white", etc.
-THETA_DELTA_RATIO_OPACITY = 0.2
+THETA_DELTA_RATIO_LINE_OPACITY = 0.2
 
 GAUSSIAN_FILTER_SIGMA = 4  # how agressive to smooth the spectrogram or theta/delta line
 
