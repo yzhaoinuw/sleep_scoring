@@ -498,9 +498,9 @@ app.clientside_callback(
 
         patched_figure.assign(['layout', 'shapes'], [select_box]);
 
-        // Calculate final start and end
-        const start = Math.max(x0, eeg_start_time);
-        const end = Math.min(x1, eeg_end_time);
+        // Convert absolute plot times to sleep-score indices relative to start_time
+        const start = Math.max(x0, eeg_start_time) - eeg_start_time;
+        const end = Math.min(x1, eeg_end_time) - eeg_start_time;
 
         // Show video button if valid range
         let final_video_button_style = {"visibility": "hidden"};
