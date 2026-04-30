@@ -2,6 +2,109 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-04-30
+
+### Additional Notes
+
+- Revisited the double-click idea after the last working `B`-armed experiment had been documented, but treated it as a pilot only and rolled all app-code experiments back at the end of the session.
+- Tried a staged click-classifier approach in [`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py):
+  - first routed raw `graph.clickData` through a separate `check_click` path
+  - piloted timer-based single-vs-double classification
+  - confirmed that raw single clicks in annotation mode arrive reliably
+  - did not get reliable double-click classification from sequential `clickData`
+- Tried multiple browser-side double-click probes:
+  - `dcc.Interval`-based wait-out logic
+  - `setTimeout(...)`-based wait-out logic
+  - native DOM `dblclick` listeners from `assets/`
+  - Plotly `plotly_doubleclick`
+  - `config["doubleClick"] = False` to disable Plotly's built-in double-click reset behavior
+- What those pilots showed:
+  - single clicks can be delayed and classified in clientside code
+  - double clicks in graph whitespace can sometimes be seen by native listeners
+  - double clicks inside actual subplots still do not reach the app in a useful, reliable way
+  - disabling Plotly's built-in double-click behavior was not enough to make subplot double-click practical here
+- Current conclusion:
+  - a polished double-click interaction for subplot clicks is not impossible in theory
+  - but it is not practical with the current Dash/Plotly event surfaces we tested
+  - making it work would likely require a lower-level custom JS interaction layer on Plotly's internal drag/pointer surfaces
+- Ended the session by restoring the app files to the last committed baseline.
+- Important clarification:
+  - the `B`-armed bout-select interaction was a documented working experiment
+  - it is not the current committed app code
+  - the current committed baseline is the nonzero-`start_time` click-selection fix plus the normal thin-box click and box-drag selection behavior
+
+### Done Today
+
+- Fixed a real annotation indexing bug in [`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py):
+  - `read_click_select` had been storing absolute plot times from single-click selection
+  - `make_annotation` interprets the stored range as sleep-score indices
+  - this only behaved correctly when `start_time == 0`
+  - the fix was to store click-selected ranges relative to `metadata.start_time`, matching the existing box-select path
+- Verified that bug on a nonzero-start `.mat` by:
+  - applying the fix
+  - reverting it temporarily so the old behavior could be reproduced
+  - reapplying the fix after confirmation
+- Committed and pushed the nonzero-start click-selection fix, then merged it to `dev` and `main`.
+- Explored a new "select existing bout/unscored section" annotation workflow in the active app code:
+  - focused on [`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py)
+  - used annotation mode as the feature boundary
+  - preserved normal single-click thin-box selection and drag-box selection as the baseline behavior
+- Landed on a working interaction for now:
+  - press `M` to enter annotation mode
+  - press `B` to arm a one-shot bout-select action
+  - the next click expands to the full contiguous scored or unscored span around the clicked second
+  - after that click, the app automatically returns to normal click selection
+- Reverted a later refactor attempt and intentionally left the code at the earlier working `B`-armed version.
+
+### What We Tried
+
+- Double-click selection:
+  - attractive from a UX perspective
+  - not reliable in this Dash/Plotly setup
+  - regular `clickData` timing heuristics were flaky
+  - Plotly's own double-click behavior also competes with app-level logic
+- DOM/EventListener-based double-click detection:
+  - looked promising in theory
+  - did not reliably see the graph-surface interaction we needed
+- `Ctrl`/`Cmd` + click:
+  - also looked promising in theory
+  - modifier state and graph click state were not trustworthy enough together in this app
+  - one iteration also interfered with existing keyboard-driven mode switching
+- Segment-store refactor:
+  - introduced `sleep-segments-store` and a separate `read_bout_select` path
+  - conceptually cleaner for future features
+  - the refactor led to callback/debug-mode problems and was backed out
+
+### What Worked
+
+- The nonzero-`start_time` fix for normal click selection is good and should stay.
+- The simplest reliable select-existing-bout workflow so far is the explicit one-shot mode:
+  - `M` enters annotation mode
+  - `B` arms bout selection
+  - one click selects the whole contiguous scored or unscored segment
+  - the armed state resets immediately after use
+- Keeping the bout-selection logic inside the existing `read_click_select` path was more reliable than trying to split it into multiple overlapping click callbacks.
+
+### What Did Not Work Well
+
+- Gesture inference in this app is harder than it first appears.
+- Double-click and modifier-click ideas both ran into integration problems with Dash/Plotly event flow.
+- The separate `sleep-segments-store` / `read_bout_select` refactor is not ready to trust yet.
+- Debug-mode callback errors during that refactor were a sign to stop and return to the known-good baseline instead of continuing to pile changes on.
+
+### Current Baseline
+
+- The current committed app code now has:
+  - the nonzero-`start_time` fix for click selection
+  - normal single click thin-box selection
+  - box drag selection
+- The `B`-armed one-shot bout selection should be treated as a previously working experiment, not as the current committed baseline.
+- If the faster segment-store architecture or explicit bout-select mode is revisited later, start from the current committed baseline and reintroduce the experimental pieces incrementally with debug mode on.
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\components_dev.py` after the final rollback to the committed baseline.
+
 ## 2026-04-23
 
 ### Done Today

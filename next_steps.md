@@ -2,6 +2,29 @@
 
 Use this checklist alongside `codex_work_log.md`.
 
+## Annotation Feature Status
+
+- Current reliable baseline:
+  - normal click still creates the thin selection box
+  - drag-box selection still works
+- Keep the nonzero-`start_time` click-selection fix in place.
+- The `B`-armed full-bout selection should be treated as a previously working experiment, not as the current committed code.
+- If revisiting this feature, start from the current committed baseline and reintroduce explicit bout-select behavior incrementally rather than assuming it is already present.
+
+## Annotation Feature Next Experiment
+
+- If we return to the faster "select existing bout" architecture later:
+  - reintroduce a segment-store idea incrementally
+  - keep debug mode on from the start
+  - avoid overlapping click callbacks that write to the same outputs
+- Do not start with:
+  - double-click detection
+  - `Ctrl`/`Cmd` modifier-click
+  - large callback rewires before confirming event behavior in the live app
+- More promising candidate than double click:
+  - pilot a right-click / context-menu style gesture for full-bout selection, if the graph surface and desktop wrapper expose it cleanly
+  - treat it as an explicit alternate gesture, not as inferred timing logic
+
 ## Current Statistical Model
 
 - Wake detection:

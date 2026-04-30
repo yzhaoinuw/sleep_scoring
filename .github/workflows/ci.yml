@@ -11,9 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: psf/black@stable
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          options: "--check --diff"
+          python-version: "3.11"
+
+      - name: Install formatter
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Check formatting
+        run: python -m black --check --diff .
 
   test:
     runs-on: ubuntu-latest
