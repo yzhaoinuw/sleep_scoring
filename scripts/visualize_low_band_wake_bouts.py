@@ -81,7 +81,9 @@ def compute_spectrogram_feature(
     window_duration: float,
     normalization_lower_percentile: float | None = 5.0,
     normalization_upper_percentile: float | None = 95.0,
-) -> tuple[go.Heatmap, go.Scatter, np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple[float, float]]:
+) -> tuple[
+    go.Heatmap, go.Scatter, np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple[float, float]
+]:
     """Return the app-style spectrogram and normalized low-band column means."""
     eeg = np.asarray(mat["eeg"]).flatten()
     eeg_frequency = _as_scalar(mat["eeg_frequency"])
@@ -187,8 +189,7 @@ def merge_relative_nrem_gaps_once(
     """Convert NREM gaps to Wake when they are small relative to neighboring Wake."""
     if not 0 <= nrem_gap_merge_ratio:
         raise ValueError(
-            "NREM gap merge ratio must be non-negative, "
-            f"got {nrem_gap_merge_ratio:g}."
+            "NREM gap merge ratio must be non-negative, " f"got {nrem_gap_merge_ratio:g}."
         )
     if max_nrem_gap_s is not None and max_nrem_gap_s < 0:
         raise ValueError(f"Max NREM gap duration must be non-negative, got {max_nrem_gap_s:g}.")
@@ -319,12 +320,16 @@ def moving_average_ne(ne: np.ndarray, ne_frequency: float, window_s: float) -> n
     return smoothed_ne
 
 
-def split_ne_segment_into_thirds(ne_segment: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def split_ne_segment_into_thirds(
+    ne_segment: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     left, middle, right = np.array_split(ne_segment, 3)
     return left, middle, right
 
 
-def is_convex_ne_valley(ne_segment: np.ndarray, margin: float = 0.0) -> tuple[bool, float, float, float]:
+def is_convex_ne_valley(
+    ne_segment: np.ndarray, margin: float = 0.0
+) -> tuple[bool, float, float, float]:
     """Return whether the middle third mean is lower than both outer third means."""
     if ne_segment.size < 3 or np.all(~np.isfinite(ne_segment)):
         return False, np.nan, np.nan, np.nan
@@ -391,8 +396,7 @@ def classify_rem_bouts_from_wake_bouts(
         )
     if not 0 <= low_ne_percentile <= 100:
         raise ValueError(
-            "REM low NE bout percentile must be between 0 and 100, "
-            f"got {low_ne_percentile:g}."
+            "REM low NE bout percentile must be between 0 and 100, " f"got {low_ne_percentile:g}."
         )
     if shape_test not in {"chord", "thirds", "none"}:
         raise ValueError(
@@ -478,7 +482,9 @@ def split_rem_bouts_at_ne_recovery(
 ]:
     """Split post-trough NE recovery tails from REM bouts into Wake."""
     if epsilon_fraction < 0:
-        raise ValueError(f"REM recovery epsilon fraction must be non-negative, got {epsilon_fraction:g}.")
+        raise ValueError(
+            f"REM recovery epsilon fraction must be non-negative, got {epsilon_fraction:g}."
+        )
     if ne is None or time_ne is None or ne.size == 0 or time_ne.size != ne.size:
         return rem_bouts, [], []
 
@@ -507,9 +513,7 @@ def split_rem_bouts_at_ne_recovery(
                 ne_range = float(np.nanpercentile(finite_post, 90) - np.nanmin(finite_post))
                 epsilon = epsilon_fraction * ne_range if np.isfinite(ne_range) else 0.0
                 cumulative_diff = np.r_[0.0, np.cumsum(np.diff(segment))]
-                recovery_indices = np.flatnonzero(
-                    cumulative_diff[trough_local_index:] > epsilon
-                )
+                recovery_indices = np.flatnonzero(cumulative_diff[trough_local_index:] > epsilon)
                 if recovery_indices.size > 0:
                     split_index = int(trough_local_index + recovery_indices[0])
                     split_time = float(segment_time[split_index])

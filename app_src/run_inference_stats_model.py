@@ -217,8 +217,7 @@ def merge_relative_nrem_gaps_once(
     """Convert NREM gaps to Wake when small relative to neighboring Wake."""
     if not 0 <= wake_merge_coefficient:
         raise ValueError(
-            "Wake merge coefficient must be non-negative, "
-            f"got {wake_merge_coefficient:g}."
+            "Wake merge coefficient must be non-negative, " f"got {wake_merge_coefficient:g}."
         )
 
     wake_columns = np.asarray(wake_columns, dtype=bool).copy()
@@ -261,11 +260,7 @@ def remove_short_wake_bouts(
 ) -> list[tuple[float, float]]:
     if min_wake_duration <= 0:
         return bouts
-    return [
-        (start, end)
-        for start, end in bouts
-        if end - start >= min_wake_duration
-    ]
+    return [(start, end) for start, end in bouts if end - start >= min_wake_duration]
 
 
 def ne_time_axis(ne: np.ndarray, ne_frequency: float, start_time: float) -> np.ndarray:
@@ -326,10 +321,7 @@ def classify_rem_bouts_from_wake_bouts(
         reaches_global_low = bool(has_segment and low_ne_value <= global_low_threshold)
         # Shape gating is intentionally disabled here to match the working
         # "shape_test=none" comparison pipeline used during validation.
-        is_rem = bool(
-            duration_s >= config.min_rem_duration
-            and reaches_global_low
-        )
+        is_rem = bool(duration_s >= config.min_rem_duration and reaches_global_low)
 
         diagnostics.append(
             {
@@ -400,9 +392,7 @@ def split_rem_bouts_at_ne_recovery(
                     else 0.0
                 )
                 cumulative_diff = np.r_[0.0, np.cumsum(np.diff(segment))]
-                recovery_indices = np.flatnonzero(
-                    cumulative_diff[trough_local_index:] > epsilon
-                )
+                recovery_indices = np.flatnonzero(cumulative_diff[trough_local_index:] > epsilon)
                 if recovery_indices.size > 0:
                     split_index = int(trough_local_index + recovery_indices[0])
                     split_time = float(segment_time[split_index])
@@ -572,7 +562,9 @@ def make_sleep_score_trace(
     )
 
 
-def ne_for_plot(mat: dict, config: StatsModelConfig) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+def ne_for_plot(
+    mat: dict, config: StatsModelConfig
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     start_time, _end_time = eeg_time_range(mat)
     ne = mat.get("ne")
     ne_frequency = mat.get("ne_frequency")
