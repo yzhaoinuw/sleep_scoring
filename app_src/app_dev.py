@@ -526,6 +526,111 @@ app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# read_bout_context_select
+app.clientside_callback(
+    """
+    function(context_n_events, context_event, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!context_event || !figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const x_click = context_event["detail.x"];
+        if (x_click === undefined || x_click === null || Number.isNaN(x_click)) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const last_trace = figure.data[figure.data.length - 1];
+        const current_sleep_scores = last_trace.z && last_trace.z[0];
+        if (!Array.isArray(current_sleep_scores) || current_sleep_scores.length === 0) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        const clicked_index = Math.max(
+            0,
+            Math.min(current_sleep_scores.length - 1, Math.floor(x_click - eeg_start_time))
+        );
+
+        function scoreKey(value) {
+            if (value === null || value === undefined || Number.isNaN(value)) {
+                return "unscored";
+            }
+            return String(value);
+        }
+
+        const clicked_key = scoreKey(current_sleep_scores[clicked_index]);
+        let start = clicked_index;
+        let end = clicked_index + 1;
+
+        while (start > 0 && scoreKey(current_sleep_scores[start - 1]) === clicked_key) {
+            start -= 1;
+        }
+        while (
+            end < current_sleep_scores.length &&
+            scoreKey(current_sleep_scores[end]) === clicked_key
+        ) {
+            end += 1;
+        }
+
+        const absolute_start = Math.max(start + eeg_start_time, eeg_start_time);
+        const absolute_end = Math.min(end + eeg_start_time, eeg_end_time);
+        const final_start = absolute_start - eeg_start_time;
+        const final_end = absolute_end - eeg_start_time;
+
+        const yref = context_event["detail.yref"] || "y5";
+        function yAxisLayoutKey(axisRef) {
+            return axisRef === "y" ? "yaxis" : "yaxis" + axisRef.slice(1);
+        }
+
+        const yaxis = figure.layout[yAxisLayoutKey(yref)] || {};
+        const y_range = Array.isArray(yaxis.range) ? yaxis.range : [-30, 30];
+
+        const select_box = {
+            "type": "rect",
+            "xref": context_event["detail.xref"] || "x4",
+            "yref": yref,
+            "x0": absolute_start,
+            "x1": absolute_end,
+            "y0": y_range[0],
+            "y1": y_range[1],
+            "line": {"width": 2, "dash": "solid"}
+        };
+
+        var patched_figure = new dash_clientside.Patch;
+        patched_figure.assign(['layout', 'selections'], null);
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        let final_video_button_style = {"visibility": "hidden"};
+        if (final_end - final_start >= 1 && final_end - final_start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected bout [${final_start}, ${final_end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph-contextmenu", "n_events"),
+    State("graph-contextmenu", "event"),
+    State("graph", "figure"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
 # update_sleep_scores
 app.clientside_callback(
     """

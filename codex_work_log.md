@@ -2,6 +2,22 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-05-05
+
+### Right-click Bout Selection Pilot
+
+- Added a right-click bout-selection experiment to the active desktop app path:
+  - `app_src/assets/graphContextMenu.js` captures graph `contextmenu` events and forwards Plotly x/y axis details to Dash
+  - `app_src/components_dev.py` adds a `graph-contextmenu` event listener
+  - `app_src/app_dev.py` handles the custom event in annotation/select mode and expands the selection to the contiguous scored or unscored bout around the clicked second
+- Kept existing left-click thin-box selection and drag-box selection untouched.
+- Right-click selection stores the same relative `[start, end]` range used by normal annotation and clip generation.
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\components_dev.py`
+  - imported `app_src.app_dev` successfully
+  - confirmed Dash serves `/assets/graphContextMenu.js` with HTTP 200
+  - ran `node --check app_src\assets\graphContextMenu.js`
+
 ## 2026-04-30
 
 ### Additional Notes

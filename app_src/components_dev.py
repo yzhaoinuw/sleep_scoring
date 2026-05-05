@@ -48,6 +48,15 @@ backend_div = html.Div(
         dcc.Store(id="updated-sleep-scores-store"),
         dcc.Store(id="backup-sleep-scores-store"),
         EventListener(
+            id="graph-contextmenu",
+            events=[
+                {
+                    "event": "sleepboutcontextmenu",
+                    "props": ["detail.x", "detail.xref", "detail.yref", "detail.timeStamp"],
+                }
+            ],
+        ),
+        EventListener(
             id="keyboard",
             events=[{"event": "keydown", "props": ["key"]}],
         ),
