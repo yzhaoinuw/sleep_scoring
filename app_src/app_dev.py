@@ -409,10 +409,12 @@ app.clientside_callback(
             final_video_button_style = {"visibility": "visible"};
         }
 
+        const duration = final_end - final_start;
+
         return [
             [final_start, final_end],
             patched_figure.build(),
-            `You selected [${final_start}, ${final_end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
             final_video_button_style
         ];
     }
@@ -508,10 +510,12 @@ app.clientside_callback(
             final_video_button_style = {"visibility": "visible"};
         }
 
+        const duration = end - start;
+
         return [
             [start, end],
             patched_figure.build(),
-            `You selected [${start}, ${end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
             final_video_button_style
         ];
     }
@@ -612,10 +616,12 @@ app.clientside_callback(
             final_video_button_style = {"visibility": "visible"};
         }
 
+        const duration = final_end - final_start;
+
         return [
             [final_start, final_end],
             patched_figure.build(),
-            `You selected bout [${final_start}, ${final_end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
             final_video_button_style
         ];
     }
@@ -688,7 +694,7 @@ app.clientside_callback(
         }
 
         const label = keyboard_event.key;
-        if (!["1", "2", "3"].includes(label)) {
+        if (!["1", "2", "3", "4"].includes(label)) {
             return [no_update, no_update, no_update];
         }
 

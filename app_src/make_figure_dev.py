@@ -65,13 +65,15 @@ def get_padded_sleep_scores(mat) -> np.ndarray:
     return sleep_scores
 
 
-def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
+def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=4):
     # Time span and frequencies
     eeg, emg, ne = mat.get("eeg"), mat.get("emg"), mat.get("ne")
     eeg_freq, ne_freq = mat.get("eeg_frequency"), mat.get("ne_frequency")
     start_time = mat.get("start_time")
     if mat.get("num_class") is not None:
-        num_class = mat["num_class"]
+        num_class = int(np.asarray(mat["num_class"]).item())
+    if num_class not in COLORSCALE or num_class < 4:
+        num_class = 4
     if start_time is None:
         start_time = 0
 
