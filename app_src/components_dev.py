@@ -57,6 +57,15 @@ backend_div = html.Div(
             ],
         ),
         EventListener(
+            id="graph-relayout-coalesced",
+            events=[
+                {
+                    "event": "sleepgraphrelayout",
+                    "props": ["detail.x0", "detail.x1", "detail.source", "detail.timeStamp"],
+                }
+            ],
+        ),
+        EventListener(
             id="keyboard",
             events=[{"event": "keydown", "props": ["key"]}],
         ),

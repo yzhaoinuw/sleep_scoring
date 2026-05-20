@@ -320,9 +320,9 @@ app.clientside_callback(
 # pan_figure
 clientside_callback(
     """
-    function(keyboard_nevents, keyboard_event, relayoutdata, figure) {
+    function(keyboard_nevents, keyboard_event, figure) {
         if (!keyboard_event || !figure) {
-            return [dash_clientside.no_update, dash_clientside.no_update];
+            return dash_clientside.no_update;
         }
 
         var key = keyboard_event.key;
@@ -349,17 +349,19 @@ clientside_callback(
                 'xaxis4.range[1]': newRange[1]
             };
 
-            return [patched_figure.build(), newRelayoutData];
+            if (window.sleepScoringGraphRelayout) {
+                window.sleepScoringGraphRelayout.request(newRelayoutData, "keyboard");
+            }
+
+            return patched_figure.build();
         }
 
-        return [dash_clientside.no_update, dash_clientside.no_update];
+        return dash_clientside.no_update;
     }
     """,
     Output("graph", "figure", allow_duplicate=True),
-    Output("graph", "relayoutData"),
     Input("keyboard", "n_events"),
     State("keyboard", "event"),
-    State("graph", "relayoutData"),
     State("graph", "figure"),
     prevent_initial_call=True,
 )
@@ -920,18 +922,41 @@ def create_visualization(ready):
     return components.visualization_div, metadata
 
 
+def relayout_event_to_data(relayout_event):
+    if not relayout_event:
+        return None
+
+    x0 = relayout_event.get("detail.x0")
+    x1 = relayout_event.get("detail.x1")
+    if x0 is None or x1 is None:
+        return None
+
+    try:
+        x0 = float(x0)
+        x1 = float(x1)
+    except (TypeError, ValueError):
+        return None
+
+    return {
+        "xaxis4.range[0]": min(x0, x1),
+        "xaxis4.range[1]": max(x0, x1),
+    }
+
+
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
     # Output("debug-message", "children"),
-    Input("graph", "relayoutData"),
+    Input("graph-relayout-coalesced", "n_events"),
+    State("graph-relayout-coalesced", "event"),
     prevent_initial_call=True,
 )
-def update_fig_resampler(relayoutdata):
+def update_fig_resampler(_relayout_n_events, relayout_event):
     global RESAMPLER_PROFILE_ACTIVE_COUNT
     global RESAMPLER_PROFILE_LAST_FINISH
     global RESAMPLER_PROFILE_LAST_START
     global RESAMPLER_PROFILE_UPDATE_ID
 
+    relayoutdata = relayout_event_to_data(relayout_event)
     if relayoutdata is None:
         return dash.no_update
 

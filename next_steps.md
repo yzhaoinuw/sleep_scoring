@@ -31,7 +31,8 @@ Proposed plan:
   - Default `x1` payload dropped to roughly 180 KB with 9 patch operations.
 - Next optimization candidates.
   - Do not reduce EEG/EMG density by default unless users explicitly accept the visual tradeoff.
-  - Prototype debounce/coalescing for relayout updates during active pan/zoom.
+  - Debounce/coalescing prototype added in `app_src/assets/graphRelayoutCoalescer.js`.
+    - Next: validate subjectively in the live desktop app and compare profiler update spacing/payload counts during fast pan/zoom.
   - Consider a "coarse while moving, detailed after idle/release" mode if debounce alone is not enough.
   - Consider precomputed downsample tiers per loaded file if on-demand resampling remains the bottleneck.
 - Only after navigation feels responsive, revisit drag-select auto-pan.

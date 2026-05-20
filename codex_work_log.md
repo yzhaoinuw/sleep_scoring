@@ -4,6 +4,24 @@ Prepend new session notes to the top of this file.
 
 ## 2026-05-20
 
+### Relayout Coalescing Prototype
+
+- Added browser-side coalescing for visualization trace updates:
+  - `app_src/assets/graphRelayoutCoalescer.js` listens for Plotly `plotly_relayouting` and `plotly_relayout` events and emits one `sleepgraphrelayout` custom event after a short debounce or max wait
+  - keyboard left/right panning now sends its requested x-range into the same coalescer instead of writing directly to `graph.relayoutData`
+  - `app_src/components_dev.py` captures the coalesced custom event with `graph-relayout-coalesced`
+  - `app_src/app_dev.py` now runs the Plotly-resampler update callback from the coalesced event instead of raw `graph.relayoutData`
+- Intended behavior:
+  - browser axes can still move immediately during pan/zoom
+  - resampled EEG/EMG/NE trace payloads update from the latest coalesced x-range instead of every intermediate relayout event
+  - repeated arrow-key panning is also rate-limited through the same path
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\components_dev.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_smoke.py -q`
+  - imported `app_src.app_dev` successfully
+  - confirmed Dash serves `/assets/graphRelayoutCoalescer.js` with HTTP 200
+  - `node --check` could not run in this Codex desktop environment because the bundled `node.exe` returned Access denied
+
 ### Navigation Profiling And Payload Reduction
 
 - Added env-gated Plotly-resampler profiling in `app_src/app_dev.py`:
