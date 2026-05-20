@@ -2,6 +2,37 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-05-20
+
+### Navigation Profiling And Payload Reduction
+
+- Added env-gated Plotly-resampler profiling in `app_src/app_dev.py`:
+  - enabled with `SLEEP_SCORING_PROFILE_RESAMPLER=1`
+  - logs update id, overlap/idle timing, callback construction time, payload encoding time, total callback time, payload size, x-range width, and a trace/property payload breakdown
+- Measured pan/zoom updates on a user-style file:
+  - original default `x1` updates were roughly 300 KB with 22 patch operations
+  - callbacks usually did not backlog, but fast interactions could leave very small idle gaps or occasional overlap
+  - payload was dominated by resampled EEG/EMG/NE arrays and theta/delta updates
+- Reduced default-density update payload without making EEG/EMG sparse:
+  - removed point markers from EEG, EMG, and NE traces while keeping black signal lines
+  - removed duplicate theta/delta `customdata`
+  - made theta/delta a static full-resolution trace so it no longer updates on every relayout
+  - capped NE relayout updates at 1024 samples while keeping EEG/EMG at the default 2048
+  - kept optional `x0.5` sampling level for fast navigation testing, but left `x1` as the default
+- Observed profiling improvement:
+  - default `x1` update payload dropped from about 308 KB to about 182 KB
+  - patch operations dropped from 22 to 9
+  - NE updates dropped from about 38 KB per x/y field to about 18-19 KB
+- Current conclusion:
+  - the lighter payload is real, but the subjective improvement may still be modest
+  - remaining cost is mostly EEG/EMG x/y updates
+  - next deeper optimization should consider debounced/coalesced relayout updates during active pan/zoom rather than reducing EEG/EMG detail by default
+
+### Verification
+
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\get_fft_plots.py app_src\make_figure_dev.py app_src\app_dev.py app_src\components_dev.py app_src\config.py`
+- Ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_smoke.py -q`
+
 ## 2026-05-05
 
 ### Right-click Bout Selection Pilot

@@ -4,6 +4,8 @@ Created on Tue Dec  2 17:55:48 2025
 
 @author: yzhao
 """
+import os
+
 
 # %% Default app window size
 WINDOW_CONFIG = {
@@ -38,3 +40,6 @@ STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 
 # %% Others
 PORT = 8050
+
+# %% Profiling
+PROFILE_RESAMPLER_UPDATES = os.environ.get("SLEEP_SCORING_PROFILE_RESAMPLER", "0") == "1"

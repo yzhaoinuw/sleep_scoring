@@ -199,7 +199,7 @@ def make_utility_div(pred_disabled=True):
                 children=[
                     html.Div(["Sampling Level"]),
                     dcc.Dropdown(
-                        options=["x1", "x2", "x4"],
+                        options=["x0.5", "x1", "x2", "x4"],
                         value="x1",
                         id="n-sample-dropdown",
                         searchable=False,

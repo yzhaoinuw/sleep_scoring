@@ -2,6 +2,43 @@
 
 Use this checklist alongside `codex_work_log.md`.
 
+## Navigation And Extended Selection Feedback
+
+Users raised two related interaction problems:
+
+- In annotation mode, drag selection is limited to the currently visible x-range.
+  - Desired behavior: select a region that extends beyond the current view without stopping to pan manually.
+  - Likely implementation shape: custom client-side auto-pan while selection is active, preserving or extending the selected range until mouse release.
+- Trace updates feel too slow during zooming and panning.
+  - Current keyboard panning updates `relayoutData` client-side in `pan_figure`, but the waveform update still depends on the server-side Plotly-resampler callback.
+  - The slow part may be Python resampling, Dash transport/serialization, browser redraw, or a combination.
+
+Treat these as one engineering problem before implementing auto-pan selection. If normal pan/zoom latency is already high, auto-panning during selection may amplify the same bottleneck and feel worse.
+
+Proposed plan:
+
+- Measurement completed so far.
+  - Added env-gated resampler profiling with update timing, overlap/idle timing, payload size, x-range width, and patch breakdown.
+  - Original default `x1` updates were roughly 300 KB with 22 patch operations.
+  - The server usually keeps up with individual callbacks, but fast interaction can leave very small idle gaps or occasional overlap.
+  - The dominant cost is shipping/redrawing EEG, EMG, and NE x/y arrays.
+- Payload reductions completed so far.
+  - Removed point markers from EEG, EMG, and NE while keeping signal lines black.
+  - Removed theta/delta `customdata`.
+  - Made theta/delta static/full-resolution so it drops out of relayout patches.
+  - Capped NE relayout updates at 1024 samples while keeping EEG/EMG at normal `x1` density.
+  - Added optional `x0.5` sampling level for fast-mode testing, but kept `x1` as the default.
+  - Default `x1` payload dropped to roughly 180 KB with 9 patch operations.
+- Next optimization candidates.
+  - Do not reduce EEG/EMG density by default unless users explicitly accept the visual tradeoff.
+  - Prototype debounce/coalescing for relayout updates during active pan/zoom.
+  - Consider a "coarse while moving, detailed after idle/release" mode if debounce alone is not enough.
+  - Consider precomputed downsample tiers per loaded file if on-demand resampling remains the bottleneck.
+- Only after navigation feels responsive, revisit drag-select auto-pan.
+  - Prototype edge-triggered x-axis panning during annotation selection.
+  - Preserve the final selected `[start, end]` range for the existing annotation flow.
+  - Validate behavior across all subplots before making it the default.
+
 ## Annotation Feature Status
 
 - Current reliable baseline:

@@ -6,10 +6,11 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
-# import json
+import json
 import math
 import shutil
 import tempfile
+import time
 from collections import deque
 from pathlib import Path
 
@@ -23,13 +24,14 @@ from dash import Dash, clientside_callback
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from flask_caching import Cache
+from plotly.utils import PlotlyJSONEncoder
 from scipy.io import loadmat, savemat
 
 from app_src import VERSION
 
 # from app_src.debug_tool import Debug_Counter
 from app_src.components_dev import Components
-from app_src.config import POSTPROCESS
+from app_src.config import POSTPROCESS, PROFILE_RESAMPLER_UPDATES
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 from app_src.make_mp4 import make_mp4_clip
 from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
@@ -55,6 +57,51 @@ TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+RESAMPLER_PROFILE_UPDATE_ID = 0
+RESAMPLER_PROFILE_LAST_START = None
+RESAMPLER_PROFILE_LAST_FINISH = None
+RESAMPLER_PROFILE_ACTIVE_COUNT = 0
+
+
+def summarize_resampler_patch(update_patch, fig, max_items=6):
+    """Return a compact size breakdown for Dash Patch trace updates."""
+    if not hasattr(update_patch, "to_plotly_json"):
+        return "operations=n/a"
+
+    operations = update_patch.to_plotly_json().get("operations", [])
+    items = []
+    total_operation_size = 0
+    for operation in operations:
+        location = operation.get("location", [])
+        if len(location) < 3 or location[0] != "data":
+            continue
+
+        trace_index = location[1]
+        trace_property = location[2]
+        value = operation.get("params", {}).get("value")
+        value_json = json.dumps(value, cls=PlotlyJSONEncoder, separators=(",", ":"))
+        value_size_kb = len(value_json.encode("utf-8")) / 1024
+        total_operation_size += value_size_kb
+
+        trace_name = ""
+        try:
+            trace_name = fig.data[trace_index].name or ""
+        except (IndexError, TypeError, AttributeError):
+            pass
+        trace_label = f"{trace_index}:{trace_name or trace_property}"
+        items.append((value_size_kb, trace_label, trace_property))
+
+    items.sort(reverse=True)
+    item_text = ", ".join(
+        f"{trace_label}.{trace_property}={value_size_kb:.1f} KB"
+        for value_size_kb, trace_label, trace_property in items[:max_items]
+    )
+    return (
+        f"operations={len(operations)}, "
+        f"operation_values={total_operation_size:.1f} KB, "
+        f"top=[{item_text}]"
+    )
+
 
 # Note: np.nan is converted to None when reading from cache
 cache = Cache(
@@ -880,6 +927,11 @@ def create_visualization(ready):
     prevent_initial_call=True,
 )
 def update_fig_resampler(relayoutdata):
+    global RESAMPLER_PROFILE_ACTIVE_COUNT
+    global RESAMPLER_PROFILE_LAST_FINISH
+    global RESAMPLER_PROFILE_LAST_START
+    global RESAMPLER_PROFILE_UPDATE_ID
+
     if relayoutdata is None:
         return dash.no_update
 
@@ -891,7 +943,90 @@ def update_fig_resampler(relayoutdata):
         return dash.no_update
 
     # debug_counter.increment()
-    return fig.construct_update_data_patch(relayoutdata)
+    callback_start_time = time.perf_counter()
+    profile_id = None
+    active_at_start = None
+    since_prev_start_ms = None
+    since_prev_finish_ms = None
+
+    if PROFILE_RESAMPLER_UPDATES:
+        RESAMPLER_PROFILE_UPDATE_ID += 1
+        profile_id = RESAMPLER_PROFILE_UPDATE_ID
+        active_at_start = RESAMPLER_PROFILE_ACTIVE_COUNT + 1
+        RESAMPLER_PROFILE_ACTIVE_COUNT = active_at_start
+
+        if RESAMPLER_PROFILE_LAST_START is not None:
+            since_prev_start_ms = (callback_start_time - RESAMPLER_PROFILE_LAST_START) * 1000
+        if RESAMPLER_PROFILE_LAST_FINISH is not None:
+            since_prev_finish_ms = (callback_start_time - RESAMPLER_PROFILE_LAST_FINISH) * 1000
+        RESAMPLER_PROFILE_LAST_START = callback_start_time
+
+    try:
+        construct_start_time = time.perf_counter()
+        update_patch = fig.construct_update_data_patch(relayoutdata)
+        construct_ms = (time.perf_counter() - construct_start_time) * 1000
+
+        if PROFILE_RESAMPLER_UPDATES:
+            payload_start_time = time.perf_counter()
+            try:
+                payload_json = json.dumps(
+                    update_patch,
+                    cls=PlotlyJSONEncoder,
+                    separators=(",", ":"),
+                )
+                payload_size_kb = len(payload_json.encode("utf-8")) / 1024
+            except TypeError:
+                payload_json = json.dumps(update_patch, default=str, separators=(",", ":"))
+                payload_size_kb = len(payload_json.encode("utf-8")) / 1024
+            payload_ms = (time.perf_counter() - payload_start_time) * 1000
+            patch_summary = summarize_resampler_patch(update_patch, fig)
+
+            x_range = relayoutdata.get("xaxis4.range")
+            if x_range is None:
+                x_range = [
+                    relayoutdata.get("xaxis4.range[0]"),
+                    relayoutdata.get("xaxis4.range[1]"),
+                ]
+
+            x_width = None
+            if (
+                isinstance(x_range, list)
+                and len(x_range) == 2
+                and x_range[0] is not None
+                and x_range[1] is not None
+            ):
+                x_width = x_range[1] - x_range[0]
+
+            callback_total_ms = (time.perf_counter() - callback_start_time) * 1000
+            since_prev_start_text = (
+                "n/a" if since_prev_start_ms is None else f"{since_prev_start_ms:.1f} ms"
+            )
+            since_prev_finish_text = (
+                "n/a" if since_prev_finish_ms is None else f"{since_prev_finish_ms:.1f} ms"
+            )
+            x_width_text = "n/a" if x_width is None else f"{x_width:.1f} s"
+
+            print(
+                "[resampler] "
+                f"id={profile_id}, "
+                f"active_at_start={active_at_start}, "
+                f"since_prev_start={since_prev_start_text}, "
+                f"since_prev_finish={since_prev_finish_text}, "
+                f"construct={construct_ms:.1f} ms, "
+                f"payload_encode={payload_ms:.1f} ms, "
+                f"total={callback_total_ms:.1f} ms, "
+                f"payload={payload_size_kb:.1f} KB, "
+                f"x_width={x_width_text}, "
+                f"xaxis4.range={x_range}, "
+                f"{patch_summary}",
+                flush=True,
+            )
+
+        return update_patch
+    finally:
+        if PROFILE_RESAMPLER_UPDATES:
+            RESAMPLER_PROFILE_LAST_FINISH = time.perf_counter()
+            RESAMPLER_PROFILE_ACTIVE_COUNT = max(0, RESAMPLER_PROFILE_ACTIVE_COUNT - 1)
 
 
 @app.callback(
@@ -902,7 +1037,7 @@ def update_fig_resampler(relayoutdata):
 def change_sampling_level(sampling_level):
     if sampling_level is None:
         return dash.no_update
-    sampling_level_map = {"x1": 2048, "x2": 4096, "x4": 8192}
+    sampling_level_map = {"x0.5": 1024, "x1": 2048, "x2": 4096, "x4": 8192}
     n_samples = sampling_level_map[sampling_level]
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
