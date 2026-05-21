@@ -30,10 +30,16 @@ Proposed plan:
   - Added optional `x0.5` sampling level for fast-mode testing, but kept `x1` as the default.
   - Default `x1` payload dropped to roughly 180 KB with 9 patch operations.
 - Next optimization candidates.
-  - Do not reduce EEG/EMG density by default unless users explicitly accept the visual tradeoff.
+  - Do not lower the normal/default EEG/EMG display density unless users explicitly accept the visual tradeoff.
+  - Visualization-only EEG/EMG source downsampling to 128 Hz was tested and reverted:
+    - it did not noticeably improve interaction
+    - profiling stayed around 55-80 ms construction time
+    - payload increased to roughly 200 KB because the displayed point count stayed at `x1`
   - Debounce/coalescing prototype added in `app_src/assets/graphRelayoutCoalescer.js`.
     - Next: validate subjectively in the live desktop app and compare profiler update spacing/payload counts during fast pan/zoom.
-  - Consider a "coarse while moving, detailed after idle/release" mode if debounce alone is not enough.
+  - Next candidate: "coarse while moving, detailed after idle/release" mode.
+    - Use lower-density patches only for active movement.
+    - Restore normal `x1` detail after idle/release so the final view keeps user-facing detail.
   - Consider precomputed downsample tiers per loaded file if on-demand resampling remains the bottleneck.
 - Only after navigation feels responsive, revisit drag-select auto-pan.
   - Prototype edge-triggered x-axis panning during annotation selection.

@@ -320,13 +320,23 @@ app.clientside_callback(
 # pan_figure
 clientside_callback(
     """
-    function(keyboard_nevents, keyboard_event, figure) {
+    function(keyboard_nevents, keyboard_event, relayoutdata, figure) {
         if (!keyboard_event || !figure) {
-            return dash_clientside.no_update;
+            return [dash_clientside.no_update, dash_clientside.no_update];
         }
 
         var key = keyboard_event.key;
         var xaxisRange = figure.layout.xaxis4.range;
+        if (
+            relayoutdata &&
+            relayoutdata["xaxis4.range[0]"] !== undefined &&
+            relayoutdata["xaxis4.range[1]"] !== undefined
+        ) {
+            xaxisRange = [
+                relayoutdata["xaxis4.range[0]"],
+                relayoutdata["xaxis4.range[1]"]
+            ];
+        }
         var x0 = xaxisRange[0];
         var x1 = xaxisRange[1];
         var newRange;
@@ -344,7 +354,7 @@ clientside_callback(
 
             // Create NEW object instead of mutating
             var newRelayoutData = {
-                ...relayoutdata,  // Spread existing properties
+                ...(relayoutdata || {}),  // Spread existing properties
                 'xaxis4.range[0]': newRange[0],
                 'xaxis4.range[1]': newRange[1]
             };
@@ -353,15 +363,17 @@ clientside_callback(
                 window.sleepScoringGraphRelayout.request(newRelayoutData, "keyboard");
             }
 
-            return patched_figure.build();
+            return [patched_figure.build(), newRelayoutData];
         }
 
-        return dash_clientside.no_update;
+        return [dash_clientside.no_update, dash_clientside.no_update];
     }
     """,
     Output("graph", "figure", allow_duplicate=True),
+    Output("graph", "relayoutData"),
     Input("keyboard", "n_events"),
     State("keyboard", "event"),
+    State("graph", "relayoutData"),
     State("graph", "figure"),
     prevent_initial_call=True,
 )

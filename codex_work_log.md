@@ -4,6 +4,21 @@ Prepend new session notes to the top of this file.
 
 ## 2026-05-20
 
+### Visualization-Only EEG/EMG Downsampling Reverted
+
+- Tested a first-pass display-only downsampling experiment for the active desktop visualization path, then reverted it:
+  - EEG and EMG line traces were anti-aliased to 128 Hz with `scipy.signal.resample_poly`
+  - raw EEG/EMG arrays remained the source for spectrogram generation, prediction, annotation saving, and file output
+  - profiling did not show a meaningful interaction improvement
+  - callback construction stayed around 55-80 ms
+  - payload increased to roughly 200 KB because `x1` still displayed the same number of points and x-array serialization grew
+- Updated `next_steps.md` to mark 128 Hz source downsampling as a tested dead end and move the next experiment back to "coarse while moving, detailed after idle/release."
+- Verification:
+  - during the experiment, ran a synthetic helper check confirming 512 Hz input was reduced to 128 Hz
+  - during the experiment, ran a synthetic `make_figure` and `construct_update_data_patch` check successfully
+  - after revert, ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\make_figure_dev.py app_src\config.py`
+  - after revert, ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_smoke.py -q`
+
 ### Relayout Coalescing Prototype
 
 - Added browser-side coalescing for visualization trace updates:
