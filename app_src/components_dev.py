@@ -61,7 +61,13 @@ backend_div = html.Div(
             events=[
                 {
                     "event": "sleepgraphrelayout",
-                    "props": ["detail.x0", "detail.x1", "detail.source", "detail.timeStamp"],
+                    "props": [
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.source",
+                        "detail.mode",
+                        "detail.timeStamp",
+                    ],
                 }
             ],
         ),

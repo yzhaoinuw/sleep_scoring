@@ -9,9 +9,11 @@
     const GRAPH_ID = "graph";
     const DEBOUNCE_MS = 90;
     const MAX_WAIT_MS = 250;
+    const FINAL_IDLE_MS = 450;
 
     let pendingRange = null;
     let debounceTimer = null;
+    let finalTimer = null;
     let firstPendingAt = null;
     let lastDispatch = null;
     let attachedPlot = null;
@@ -52,45 +54,43 @@
         return [Math.min(x0, x1), Math.max(x0, x1)];
     }
 
+    function dispatchRange(range, source, mode) {
+        const [x0, x1] = range;
+        const now = Date.now();
+        if (
+            lastDispatch &&
+            lastDispatch.mode === mode &&
+            Math.abs(lastDispatch.x0 - x0) < 1e-9 &&
+            Math.abs(lastDispatch.x1 - x1) < 1e-9 &&
+            now - lastDispatch.timeStamp < MAX_WAIT_MS
+        ) {
+            return;
+        }
+
+        lastDispatch = { x0, x1, mode, timeStamp: now };
+        const event = new CustomEvent(EVENT_NAME, {
+            detail: {
+                x0,
+                x1,
+                source,
+                mode,
+                timeStamp: now,
+            },
+        });
+        document.dispatchEvent(event);
+    }
+
     function dispatchPending() {
         if (!pendingRange) {
             return;
         }
 
-        const [x0, x1] = pendingRange.range;
-        const now = Date.now();
-        if (
-            lastDispatch &&
-            Math.abs(lastDispatch.x0 - x0) < 1e-9 &&
-            Math.abs(lastDispatch.x1 - x1) < 1e-9 &&
-            now - lastDispatch.timeStamp < MAX_WAIT_MS
-        ) {
-            pendingRange = null;
-            firstPendingAt = null;
-            return;
-        }
-
-        lastDispatch = { x0, x1, timeStamp: now };
-        const event = new CustomEvent(EVENT_NAME, {
-            detail: {
-                x0,
-                x1,
-                source: pendingRange.source,
-                timeStamp: now,
-            },
-        });
-        document.dispatchEvent(event);
-
+        dispatchRange(pendingRange.range, pendingRange.source, "fast");
         pendingRange = null;
         firstPendingAt = null;
     }
 
-    function request(relayoutData, source) {
-        const range = extractXRange(relayoutData);
-        if (!range) {
-            return;
-        }
-
+    function requestFast(range, source) {
         const now = Date.now();
         pendingRange = { range, source: source || "plotly" };
         if (firstPendingAt === null) {
@@ -103,6 +103,23 @@
         } else {
             debounceTimer = window.setTimeout(dispatchPending, DEBOUNCE_MS);
         }
+    }
+
+    function requestFinal(range, source, delay) {
+        window.clearTimeout(finalTimer);
+        finalTimer = window.setTimeout(function () {
+            dispatchRange(range, source || "plotly", "final");
+        }, delay);
+    }
+
+    function request(relayoutData, source) {
+        const range = extractXRange(relayoutData);
+        if (!range) {
+            return;
+        }
+
+        requestFast(range, source);
+        requestFinal(range, source, FINAL_IDLE_MS);
     }
 
     function findPlot() {

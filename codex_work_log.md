@@ -4,6 +4,49 @@ Prepend new session notes to the top of this file.
 
 ## 2026-05-20
 
+### Fast/Final Navigation Resampler Prototype
+
+- Added a progressive navigation update prototype:
+  - browser-side relayout coalescer now emits `mode="fast"` during active movement and `mode="final"` after release or idle
+  - `fig_resampler_fast` is built and cached alongside the normal `fig_resampler`
+  - fast transient updates use `512` shown samples for EEG, EMG, and NE
+  - final updates keep the normal user-facing detail level
+  - profiling logs now include update mode, cache key, and cache retrieval time
+- Intended profiling signal:
+  - active movement should show `mode=fast` and `cache_key=fig_resampler_fast`
+  - idle/release correction should show `mode=final` and `cache_key=fig_resampler`
+  - fast payload should be meaningfully smaller than the previous roughly 180 KB full-detail payload
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\components_dev.py app_src\make_figure_dev.py app_src\config.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_smoke.py -q`
+  - ran a synthetic `create_fig` check confirming both normal and fast resamplers are cached
+  - ran a synthetic fast-mode `update_fig_resampler` check successfully
+  - confirmed Dash serves `/assets/graphRelayoutCoalescer.js` with the new mode support
+- Manual profiling after coalescer adjustment showed the fast path was working but still dominated by filesystem cache retrieval:
+  - fast payload dropped to roughly 55-56 KB
+  - fast callback totals were still often 300-500 ms while `cache_get` was roughly 230-680 ms
+
+### In-Memory Resampler Storage Prototype
+
+- Moved large Plotly-resampler objects out of Flask filesystem cache for the active desktop app path:
+  - `app_src/app_dev.py` now stores `fig_resampler` and `fig_resampler_fast` in module-level process memory
+  - opening a new file clears the in-memory resampler slots
+  - relayout callbacks read the in-memory slots instead of deserializing from filesystem cache
+  - profiling now reports `resampler_get` instead of `cache_get`
+- Intended profiling signal:
+  - `resampler_get` should be near zero compared with the previous 200-600 ms filesystem-cache retrieval cost
+  - fast updates should keep the roughly 55 KB payload from the fast/final prototype
+- Manual profiling after moving resamplers into process memory showed a large improvement:
+  - `resampler_get=0.0 ms` across sampled fast and final updates
+  - fast transient updates were roughly 11-15 ms total with a 55-56 KB payload
+  - final full-detail updates were roughly 20-30 ms total with a 180-185 KB payload
+  - before this change, the same fast/final path was roughly 300-500 ms because of filesystem cache retrieval
+  - compared with the earlier full-detail path, active movement updates are now about 5-8x faster by callback time and about 3x smaller by payload
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_smoke.py -q`
+  - ran a synthetic in-memory create/update/clear check successfully
+
 ### Visualization-Only EEG/EMG Downsampling Reverted
 
 - Tested a first-pass display-only downsampling experiment for the active desktop visualization path, then reverted it:

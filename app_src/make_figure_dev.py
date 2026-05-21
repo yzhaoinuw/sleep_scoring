@@ -65,7 +65,13 @@ def get_padded_sleep_scores(mat) -> np.ndarray:
     return sleep_scores
 
 
-def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=4):
+def make_figure(
+    mat,
+    plot_name="",
+    default_n_shown_samples=2048,
+    num_class=4,
+    ne_n_shown_samples=1024,
+):
     # Time span and frequencies
     eeg, emg, ne = mat.get("eeg"), mat.get("emg"), mat.get("ne")
     eeg_freq, ne_freq = mat.get("eeg_frequency"), mat.get("ne_frequency")
@@ -226,7 +232,7 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=4):
                 mode="lines",
                 hovertemplate="<b>time</b>: %{x:.2f}" + "<br><b>y</b>: %{y}<extra></extra>",
             ),
-            max_n_samples=1024,
+            max_n_samples=ne_n_shown_samples,
             hf_x=time_ne,
             hf_y=ne,
             row=4,

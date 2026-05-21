@@ -61,6 +61,25 @@ RESAMPLER_PROFILE_UPDATE_ID = 0
 RESAMPLER_PROFILE_LAST_START = None
 RESAMPLER_PROFILE_LAST_FINISH = None
 RESAMPLER_PROFILE_ACTIVE_COUNT = 0
+FAST_NAVIGATION_N_SHOWN_SAMPLES = 512
+FIG_RESAMPLERS = {
+    "fig_resampler": None,
+    "fig_resampler_fast": None,
+}
+
+
+def clear_fig_resamplers():
+    FIG_RESAMPLERS["fig_resampler"] = None
+    FIG_RESAMPLERS["fig_resampler_fast"] = None
+
+
+def store_fig_resamplers(fig, fig_fast):
+    FIG_RESAMPLERS["fig_resampler"] = fig
+    FIG_RESAMPLERS["fig_resampler_fast"] = fig_fast
+
+
+def get_fig_resampler(fig_key):
+    return FIG_RESAMPLERS.get(fig_key)
 
 
 def summarize_resampler_patch(update_patch, fig, max_items=6):
@@ -215,7 +234,14 @@ def save_file_dialog(file_type, filename):
 
 def create_fig(mat, filename, default_n_shown_samples=2048):
     fig = make_figure(mat, filename, default_n_shown_samples)
-    cache.set("fig_resampler", fig)
+
+    fig_fast = make_figure(
+        mat,
+        filename,
+        FAST_NAVIGATION_N_SHOWN_SAMPLES,
+        ne_n_shown_samples=FAST_NAVIGATION_N_SHOWN_SAMPLES,
+    )
+    store_fig_resamplers(fig, fig_fast)
     return fig
 
 
@@ -271,7 +297,7 @@ def initialize_cache(cache, filepath):
         file_video_record = {}
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
-    cache.set("fig_resampler", None)
+    clear_fig_resamplers()
 
 
 # %% client side callbacks below
@@ -955,6 +981,17 @@ def relayout_event_to_data(relayout_event):
     }
 
 
+def relayout_event_to_mode(relayout_event):
+    if not relayout_event:
+        return "final"
+
+    mode = relayout_event.get("detail.mode")
+    if mode == "fast":
+        return "fast"
+
+    return "final"
+
+
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
     # Output("debug-message", "children"),
@@ -975,12 +1012,22 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
     if "xaxis4.range[0]" not in relayoutdata and "xaxis4.range" not in relayoutdata:
         return dash.no_update
 
-    fig = cache.get("fig_resampler")
+    update_mode = relayout_event_to_mode(relayout_event)
+    fig_cache_key = "fig_resampler_fast" if update_mode == "fast" else "fig_resampler"
+
+    callback_start_time = time.perf_counter()
+    resampler_get_start_time = time.perf_counter()
+    fig = get_fig_resampler(fig_cache_key)
+    resampler_get_ms = (time.perf_counter() - resampler_get_start_time) * 1000
+    if fig is None and fig_cache_key != "fig_resampler":
+        fig_cache_key = "fig_resampler"
+        resampler_get_start_time = time.perf_counter()
+        fig = get_fig_resampler(fig_cache_key)
+        resampler_get_ms += (time.perf_counter() - resampler_get_start_time) * 1000
     if fig is None:
         return dash.no_update
 
     # debug_counter.increment()
-    callback_start_time = time.perf_counter()
     profile_id = None
     active_at_start = None
     since_prev_start_ms = None
@@ -1047,8 +1094,11 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
                 "[resampler] "
                 f"id={profile_id}, "
                 f"active_at_start={active_at_start}, "
+                f"mode={update_mode}, "
+                f"cache_key={fig_cache_key}, "
                 f"since_prev_start={since_prev_start_text}, "
                 f"since_prev_finish={since_prev_finish_text}, "
+                f"resampler_get={resampler_get_ms:.1f} ms, "
                 f"construct={construct_ms:.1f} ms, "
                 f"payload_encode={payload_ms:.1f} ms, "
                 f"total={callback_total_ms:.1f} ms, "

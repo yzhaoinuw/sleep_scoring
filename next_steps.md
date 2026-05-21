@@ -36,11 +36,18 @@ Proposed plan:
     - profiling stayed around 55-80 ms construction time
     - payload increased to roughly 200 KB because the displayed point count stayed at `x1`
   - Debounce/coalescing prototype added in `app_src/assets/graphRelayoutCoalescer.js`.
-    - Next: validate subjectively in the live desktop app and compare profiler update spacing/payload counts during fast pan/zoom.
-  - Next candidate: "coarse while moving, detailed after idle/release" mode.
+    - It now routes all range relayouts through fast transient updates and schedules final updates after idle.
+  - "Coarse while moving, detailed after idle/release" prototype added and manually validated:
     - Use lower-density patches only for active movement.
     - Restore normal `x1` detail after idle/release so the final view keeps user-facing detail.
-  - Consider precomputed downsample tiers per loaded file if on-demand resampling remains the bottleneck.
+    - Measured fast callbacks are roughly 11-15 ms with a 55-56 KB payload; final callbacks are roughly 20-30 ms with normal 180-185 KB detail.
+  - In-memory resampler storage added:
+    - `resampler_get` is now near zero instead of the previous 200-600 ms filesystem-cache retrieval cost.
+- Further optimization candidates, only if navigation still needs more polish.
+  - Tune `FINAL_IDLE_MS` in `app_src/assets/graphRelayoutCoalescer.js` if the final refresh feels too early or too late.
+  - Suppress duplicate fast updates for unchanged or near-unchanged ranges more aggressively.
+  - Explore deriving regular x arrays client-side or otherwise avoiding repeated x-array payloads.
+  - Consider precomputed downsample tiers per loaded file if on-demand resampling becomes a bottleneck again.
 - Only after navigation feels responsive, revisit drag-select auto-pan.
   - Prototype edge-triggered x-axis panning during annotation selection.
   - Preserve the final selected `[start, end]` range for the existing annotation flow.
