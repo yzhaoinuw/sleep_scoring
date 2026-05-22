@@ -1,0 +1,89 @@
+User Interface Optimization Summary
+===================================
+
+Scope
+-----
+
+This summary compares the early browser-measured navigation logs from
+2026-05-21 17:11 against the latest optimized final-only navigation logs from
+2026-05-22.
+
+The key end-to-end timing metric is browser_total. Server callback timing is a
+sub-measurement inside the browser apply path, so it should not be added on top
+of browser_total.
+
+
+1. Response Time Reduction
+--------------------------
+
+End-to-end browser response:
+
+- Early final refresh: 934.6 ms
+- Current final refresh: 370.8 ms
+- Improvement: 563.8 ms faster
+- Relative improvement: 60% reduction, 2.5x faster
+
+Non-overlapping timing areas:
+
+A. Client coalesce / intentional wait
+
+- What it measures:
+  Delay before sending or applying the final navigation update.
+- Early: 565.9 ms
+- Current: 42.7 ms
+- Improvement: 523.2 ms faster
+- Relative improvement: 92% reduction, 13.2x faster
+
+This was the largest response-time win. It came from removing the old long
+final-refresh wait and eliminating the fast/final double-update behavior.
+
+B. Dash + browser apply path
+
+- What it measures:
+  Remaining measured browser-side update time after coalescing.
+- Early: 368.7 ms
+- Current: 328.1 ms
+- Improvement: 40.6 ms faster
+- Relative improvement: 11% reduction, 1.1x faster
+
+Measured subcomponents inside this area:
+
+- Server callback total:
+  - Early: 22.9 ms
+  - Current: 15.8 ms
+  - Improvement: 7.1 ms faster, 31% reduction
+
+- Server construct:
+  - Early: 11.7 ms
+  - Current: 9.4 ms
+  - Improvement: 19% reduction
+
+- Payload encode:
+  - Early: 5.6 ms
+  - Current: 3.1 ms
+  - Improvement: 45% reduction
+
+
+2. Payload Size Reduction
+-------------------------
+
+Final update payload:
+
+- Early browser-logged baseline: 181.4 KB
+- Current: 98.3 KB
+- Improvement: 83.1 KB smaller
+- Relative improvement: 46% reduction, 1.8x smaller
+
+
+Short Version
+-------------
+
+End-to-end final navigation response dropped from about 935 ms to 371 ms.
+That is roughly a 60% reduction, or 2.5x faster.
+
+Most of the response-time improvement came from reducing the client-side
+coalesce/final-refresh wait. Payload size also dropped from about 181 KB to
+98 KB, which reduced encode time and likely eased some browser apply pressure.
+
+The remaining largest measured cost is Dash/Plotly browser apply time, which is
+now typically around 300-400 ms.

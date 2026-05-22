@@ -1,6 +1,12 @@
-# Codex Work Log
+# Work Log
 
 Prepend new session notes to the top of this file.
+
+Historical verification commands may include absolute paths from the original
+development machine. When replaying or adapting them, keep the project folder
+name `sleep_scoring` and conda environment name `sleep_scoring_dash3.0`, but
+replace the user/home prefix and clone location with the collaborator's local
+setup.
 
 ## 2026-05-22
 
@@ -60,7 +66,7 @@ Prepend new session notes to the top of this file.
   - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_smoke.py -q`
   - confirmed Dash serves the page and both profiler assets with HTTP 200 and that `_dash-layout` contains the profile event/store wiring
 - Browser plugin note:
-  - the Codex in-app browser blocked `localhost` / `127.0.0.1` navigation with `ERR_BLOCKED_BY_CLIENT` during this verification, so the live visual interaction pass still needs to be done in the desktop app or a normal browser.
+  - the in-app browser available in that agent environment blocked `localhost` / `127.0.0.1` navigation with `ERR_BLOCKED_BY_CLIENT` during this verification, so the live visual interaction pass still needs to be done in the desktop app or a normal browser.
 
 ### Area 1: Wasted Browser Redraw Suppression
 
@@ -216,7 +222,7 @@ Prepend new session notes to the top of this file.
   - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_smoke.py -q`
   - imported `app_src.app_dev` successfully
   - confirmed Dash serves `/assets/graphRelayoutCoalescer.js` with HTTP 200
-  - `node --check` could not run in this Codex desktop environment because the bundled `node.exe` returned Access denied
+  - `node --check` could not run in that desktop agent environment because the bundled `node.exe` returned Access denied
 
 ### Navigation Profiling And Payload Reduction
 

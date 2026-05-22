@@ -2,14 +2,14 @@
 
 ## What This Repo Is
 
-This repository contains a desktop sleep scoring application built around a Dash UI embedded inside a `pywebview` window. The current active user-facing path starts at [`run_desktop_app.py`](C:\Users\yzhao\python_projects\sleep_scoring\run_desktop_app.py), then flows into the newer `*_dev` modules under [`app_src`](C:\Users\yzhao\python_projects\sleep_scoring\app_src).
+This repository contains a desktop sleep scoring application built around a Dash UI embedded inside a `pywebview` window. The current active user-facing path starts at [`run_desktop_app.py`](run_desktop_app.py), then flows into the newer `*_dev` modules under [`app_src`](app_src).
 
 The app is designed to:
 
 - Load EEG/EMG `.mat` files, with optional NE and video metadata
 - Visualize spectrogram of EEG, EEG, EMG, NE, and sleep scores together
 - Support manual annotation with keyboard shortcuts
-- Optionally run automatic scoring using the `sdreamer` model in [`models/sdreamer`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer)
+- Optionally run automatic scoring using the `sdreamer` model in [`models/sdreamer`](models/sdreamer)
 - Export edited annotations back to `.mat`
 - Export sleep bout and summary statistics to Excel when scoring is complete
 - Extract and play a matching video clip for a selected time region
@@ -18,20 +18,20 @@ The app is designed to:
 
 ### 1. Desktop entrypoint
 
-[`run_desktop_app.py`](C:\Users\yzhao\python_projects\sleep_scoring\run_desktop_app.py)
+[`run_desktop_app.py`](run_desktop_app.py)
 
 - Detects whether the app is running from source or as a packaged executable
 - Adds the repo/app base directory to `sys.path`
 - Imports:
-  - [`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py)
-  - [`app_src/config.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\config.py)
-  - [`app_src/__init__.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\__init__.py)
+  - [`app_src/app_dev.py`](app_src/app_dev.py)
+  - [`app_src/config.py`](app_src/config.py)
+  - [`app_src/__init__.py`](app_src/__init__.py)
 - Starts the Dash server in a background thread
 - Opens the UI in a native `pywebview` window
 
 ### 2. Main app module
 
-[`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py) is the main active application.
+[`app_src/app_dev.py`](app_src/app_dev.py) is the main active application.
 
 Key responsibilities:
 
@@ -45,15 +45,15 @@ Key responsibilities:
 
 Important active imports:
 
-- [`app_src/components_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\components_dev.py)
-- [`app_src/make_figure_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_figure_dev.py)
-- [`app_src/inference.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\inference.py) if Torch is available
-- [`app_src/postprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\postprocessing.py)
-- [`app_src/make_mp4.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_mp4.py)
+- [`app_src/components_dev.py`](app_src/components_dev.py)
+- [`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+- [`app_src/inference.py`](app_src/inference.py) if Torch is available
+- [`app_src/postprocessing.py`](app_src/postprocessing.py)
+- [`app_src/make_mp4.py`](app_src/make_mp4.py)
 
 ### 3. UI component layer
 
-[`app_src/components_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\components_dev.py)
+[`app_src/components_dev.py`](app_src/components_dev.py)
 
 - Defines the home screen button to choose a `.mat` file
 - Defines hidden stores used by callbacks
@@ -62,7 +62,7 @@ Important active imports:
 
 ### 4. Figure generation
 
-[`app_src/make_figure_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_figure_dev.py)
+[`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
 
 - Pads or initializes `sleep_scores` to match recording duration
 - Builds a four-row Plotly layout:
@@ -72,18 +72,18 @@ Important active imports:
   - NE trace
 - Overlays sleep score heatmaps on EEG, EMG, and NE rows
 - Uses `plotly-resampler` for responsive navigation on large signals
-- Pulls FFT/spectrogram content from [`app_src/get_fft_plots.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\get_fft_plots.py)
+- Pulls FFT/spectrogram content from [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
 
-[`app_src/get_fft_plots.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\get_fft_plots.py)
+[`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
 
 - Computes a spectrogram using `scipy.signal.ShortTimeFFT`
 - Restricts display to 0-30 Hz
 - Computes the theta/delta ratio line
-- Applies configurable smoothing and colors from [`app_src/config.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\config.py)
+- Applies configurable smoothing and colors from [`app_src/config.py`](app_src/config.py)
 
 ### 5. Prediction path
 
-[`app_src/inference.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\inference.py)
+[`app_src/inference.py`](app_src/inference.py)
 
 - Selects the inference backend based on whether NE exists in the `.mat`
 - Writes `sleep_scores` and `confidence` back into the in-memory `mat`
@@ -91,12 +91,12 @@ Important active imports:
 
 Routing:
 
-- With NE present: [`app_src/run_inference_ne.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\run_inference_ne.py)
-- Without NE: [`app_src/run_inference_sdreamer.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\run_inference_sdreamer.py)
+- With NE present: [`app_src/run_inference_ne.py`](app_src/run_inference_ne.py)
+- Without NE: [`app_src/run_inference_sdreamer.py`](app_src/run_inference_sdreamer.py)
 
 Shared preprocessing:
 
-- [`app_src/preprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\preprocessing.py)
+- [`app_src/preprocessing.py`](app_src/preprocessing.py)
 
 What preprocessing does:
 
@@ -108,20 +108,20 @@ What preprocessing does:
 
 ### 6. Model files
 
-[`models/sdreamer`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer)
+[`models/sdreamer`](models/sdreamer)
 
 Relevant files:
 
-- [`models/sdreamer/n2nSeqNewMoE2.py`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer\n2nSeqNewMoE2.py): EEG/EMG-only model
-- [`models/sdreamer/n2nBaseLineNE.py`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer\n2nBaseLineNE.py): EEG/EMG/NE model
-- [`models/sdreamer/checkpoints`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer\checkpoints): checkpoint files expected by the inference scripts
-- [`models/sdreamer/layers`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer\layers): transformer and patch-encoding submodules
+- [`models/sdreamer/n2nSeqNewMoE2.py`](models/sdreamer/n2nSeqNewMoE2.py): EEG/EMG-only model
+- [`models/sdreamer/n2nBaseLineNE.py`](models/sdreamer/n2nBaseLineNE.py): EEG/EMG/NE model
+- [`models/sdreamer/checkpoints`](models/sdreamer/checkpoints): checkpoint files expected by the inference scripts
+- [`models/sdreamer/layers`](models/sdreamer/layers): transformer and patch-encoding submodules
 
 This model stack is active but optional. The app still runs without Torch; in that case the prediction button is disabled.
 
 ### 7. Postprocessing and export
 
-[`app_src/postprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\postprocessing.py)
+[`app_src/postprocessing.py`](app_src/postprocessing.py)
 
 - Converts dense sleep score arrays into contiguous bout tables
 - Applies heuristic cleanup rules to predictions
@@ -137,11 +137,11 @@ Heuristics include:
 
 ### 8. Video support
 
-[`app_src/make_mp4.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_mp4.py)
+[`app_src/make_mp4.py`](app_src/make_mp4.py)
 
 - Uses the `imageio-ffmpeg` bundled executable
 - Cuts a selected `[start, end]` time range into an `.mp4`
-- Stores clips under [`app_src/assets/videos`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\assets\videos)
+- Stores clips under [`app_src/assets/videos`](app_src/assets/videos)
 
 Within the app:
 
@@ -174,7 +174,7 @@ The README is still the best end-user description of expected inputs and runtime
 
 ### `user_test_files/`
 
-[`user_test_files`](C:\Users\yzhao\python_projects\sleep_scoring\user_test_files)
+[`user_test_files`](user_test_files)
 
 This is the main sandbox for trying the app and for understanding data variants. It contains:
 
@@ -190,13 +190,13 @@ This is the main sandbox for trying the app and for understanding data variants.
 
 Good representative files to start with:
 
-- [`user_test_files/115_gs.mat`](C:\Users\yzhao\python_projects\sleep_scoring\user_test_files\115_gs.mat)
-- [`user_test_files/F268_FP-Data.mat`](C:\Users\yzhao\python_projects\sleep_scoring\user_test_files\F268_FP-Data.mat)
-- [`user_test_files/788_bin1_gs.mat`](C:\Users\yzhao\python_projects\sleep_scoring\user_test_files\788_bin1_gs.mat)
+- [`user_test_files/115_gs.mat`](user_test_files/115_gs.mat)
+- [`user_test_files/F268_FP-Data.mat`](user_test_files/F268_FP-Data.mat)
+- [`user_test_files/788_bin1_gs.mat`](user_test_files/788_bin1_gs.mat)
 
 ### `tests/`
 
-[`tests`](C:\Users\yzhao\python_projects\sleep_scoring\tests)
+[`tests`](tests)
 
 Current tests focus on the active modules:
 
@@ -259,47 +259,47 @@ sleep_scoring/
 
 ### Active / relevant now
 
-- [`run_desktop_app.py`](C:\Users\yzhao\python_projects\sleep_scoring\run_desktop_app.py)
-- [`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py)
-- [`app_src/components_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\components_dev.py)
-- [`app_src/make_figure_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_figure_dev.py)
-- [`app_src/get_fft_plots.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\get_fft_plots.py)
-- [`app_src/preprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\preprocessing.py)
-- [`app_src/inference.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\inference.py)
-- [`app_src/run_inference_sdreamer.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\run_inference_sdreamer.py)
-- [`app_src/run_inference_ne.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\run_inference_ne.py)
-- [`app_src/postprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\postprocessing.py)
-- [`app_src/make_mp4.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_mp4.py)
-- [`models/sdreamer`](C:\Users\yzhao\python_projects\sleep_scoring\models\sdreamer)
-- [`user_test_files`](C:\Users\yzhao\python_projects\sleep_scoring\user_test_files)
-- [`tests`](C:\Users\yzhao\python_projects\sleep_scoring\tests)
+- [`run_desktop_app.py`](run_desktop_app.py)
+- [`app_src/app_dev.py`](app_src/app_dev.py)
+- [`app_src/components_dev.py`](app_src/components_dev.py)
+- [`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+- [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
+- [`app_src/preprocessing.py`](app_src/preprocessing.py)
+- [`app_src/inference.py`](app_src/inference.py)
+- [`app_src/run_inference_sdreamer.py`](app_src/run_inference_sdreamer.py)
+- [`app_src/run_inference_ne.py`](app_src/run_inference_ne.py)
+- [`app_src/postprocessing.py`](app_src/postprocessing.py)
+- [`app_src/make_mp4.py`](app_src/make_mp4.py)
+- [`models/sdreamer`](models/sdreamer)
+- [`user_test_files`](user_test_files)
+- [`tests`](tests)
 
 ### Likely older or secondary
 
-- [`app_src/app.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app.py)
-- [`app_src/components.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\components.py)
-- [`app_src/make_figure.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_figure.py)
-- [`app_src/app_background_callback.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_background_callback.py)
-- [`archive`](C:\Users\yzhao\python_projects\sleep_scoring\archive)
-- [`msda_version1.1`](C:\Users\yzhao\python_projects\sleep_scoring\msda_version1.1)
-- [`build`](C:\Users\yzhao\python_projects\sleep_scoring\build)
-- [`dist`](C:\Users\yzhao\python_projects\sleep_scoring\dist)
+- [`app_src/app.py`](app_src/app.py)
+- [`app_src/components.py`](app_src/components.py)
+- [`app_src/make_figure.py`](app_src/make_figure.py)
+- [`app_src/app_background_callback.py`](app_src/app_background_callback.py)
+- [`archive`](archive)
+- [`msda_version1.1`](msda_version1.1)
+- [`build`](build)
+- [`dist`](dist)
 - scratch files like `sketch_*`, `refactor_*`, and other experimental helpers under `app_src`
 
 ## Practical Mental Model
 
 If you only want to understand the current product, read files in this order:
 
-1. [`README.md`](C:\Users\yzhao\python_projects\sleep_scoring\README.md)
-2. [`run_desktop_app.py`](C:\Users\yzhao\python_projects\sleep_scoring\run_desktop_app.py)
-3. [`app_src/app_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\app_dev.py)
-4. [`app_src/components_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\components_dev.py)
-5. [`app_src/make_figure_dev.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_figure_dev.py)
-6. [`app_src/get_fft_plots.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\get_fft_plots.py)
-7. [`app_src/inference.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\inference.py)
-8. [`app_src/preprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\preprocessing.py)
-9. [`app_src/postprocessing.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\postprocessing.py)
-10. [`app_src/make_mp4.py`](C:\Users\yzhao\python_projects\sleep_scoring\app_src\make_mp4.py)
+1. [`README.md`](README.md)
+2. [`run_desktop_app.py`](run_desktop_app.py)
+3. [`app_src/app_dev.py`](app_src/app_dev.py)
+4. [`app_src/components_dev.py`](app_src/components_dev.py)
+5. [`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+6. [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
+7. [`app_src/inference.py`](app_src/inference.py)
+8. [`app_src/preprocessing.py`](app_src/preprocessing.py)
+9. [`app_src/postprocessing.py`](app_src/postprocessing.py)
+10. [`app_src/make_mp4.py`](app_src/make_mp4.py)
 
 ## Questions Worth Clarifying Later
 

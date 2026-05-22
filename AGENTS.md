@@ -1,4 +1,13 @@
-# Codex Memory For This Project
+# Agent Collaboration Notes For This Project
+
+## Local Path Conventions
+
+These notes assume collaborators keep the project folder named `sleep_scoring`
+and use the conda environment named `sleep_scoring_dash3.0`.
+
+Any absolute path shown below is only an example from the original development
+machine. Agents and collaborators should adapt the user/home prefix and clone
+location to their local workstation.
 
 ## Runtime Environment
 
@@ -24,24 +33,27 @@ After activation, use that environment for commands such as:
 If Git reports a "detected dubious ownership" warning for this repo, mark this repository as safe:
 
 ```powershell
-git config --global --add safe.directory C:/Users/yzhao/python_projects/sleep_scoring
+git config --global --add safe.directory (Get-Location).Path
 ```
 
 This is the preferred fix unless the repository ownership itself needs to be changed at the OS level.
+If running the command outside the repository root, replace `(Get-Location).Path` with the absolute path to the local `sleep_scoring` clone.
 
 ## Pre-commit Note
 
 If `pre-commit` cannot write to its default cache location, set a repo-local cache before running it:
 
 ```powershell
-$env:PRE_COMMIT_HOME = "C:\Users\yzhao\python_projects\sleep_scoring\.pre-commit-cache"
+$env:PRE_COMMIT_HOME = Join-Path (Get-Location).Path ".pre-commit-cache"
 ```
 
 Then run:
 
 ```powershell
-C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pre_commit run --all-files
+& "$env:USERPROFILE\miniconda3\envs\sleep_scoring_dash3.0\python.exe" -m pre_commit run --all-files
 ```
+
+If Miniconda is installed somewhere else, adjust the Python executable path while keeping the environment name `sleep_scoring_dash3.0`.
 
 ## Commit Message Guidelines
 
