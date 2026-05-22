@@ -10,6 +10,9 @@ user_test_files/
 # Local archival / historical materials
 archive/
 
+# Local-only notes and one-off summaries
+user_interface_optimization.txt
+
 # Generated or demo video assets
 *.mp4
 app_src/assets/videos/

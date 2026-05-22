@@ -28,6 +28,13 @@ After activation, use that environment for commands such as:
 - package import checks
 - one-off scripts
 
+## Work Log Reading Guidance
+
+`work_log.md` is prepended with new session notes and can become long. At the
+start of a session, read only the two most recent dated entries unless the task
+needs deeper history. Search the full work log with targeted terms when older
+context is needed instead of loading the whole file.
+
 ## Git Ownership Note
 
 If Git reports a "detected dubious ownership" warning for this repo, mark this repository as safe:

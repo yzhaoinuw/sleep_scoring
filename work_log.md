@@ -8,6 +8,10 @@ name `sleep_scoring` and conda environment name `sleep_scoring_dash3.0`, but
 replace the user/home prefix and clone location with the collaborator's local
 setup.
 
+Reading note for agents: this file is prepended each session and can become
+long. Start with only the two most recent dated entries, then search older
+entries with targeted terms if the task needs deeper history.
+
 ## 2026-05-22
 
 ### Patch Payload Precision Compaction
