@@ -10,14 +10,20 @@
     const DEBOUNCE_MS = 90;
     const MAX_WAIT_MS = 250;
     const FINAL_IDLE_MS = 450;
+    const KEYBOARD_FINAL_IDLE_MS = 120;
+    const RELEASE_FINAL_DELAY_MS = 25;
+    const NAVIGATION_OPTIONS_ID = "navigation-options";
     const RANGE_EQUAL_REL_TOLERANCE = 0.00005;
     const RANGE_EQUAL_ABS_TOLERANCE = 0.05;
+    const FINAL_RANGE_EQUAL_REL_TOLERANCE = 0.001;
+    const FINAL_RANGE_EQUAL_ABS_TOLERANCE = 0.25;
 
     let pendingRange = null;
     let debounceTimer = null;
     let finalTimer = null;
     let firstPendingAt = null;
     let lastDispatch = null;
+    let lastFinalDispatch = null;
     let attachedPlot = null;
     let profileId = 0;
     let suppressPlotlyRelayoutUntil = 0;
@@ -65,13 +71,13 @@
         return [Math.min(x0, x1), Math.max(x0, x1)];
     }
 
-    function rangesNearlyEqual(a, b) {
+    function rangesNearlyEqual(a, b, relTolerance, absTolerance) {
         if (!a || !b) {
             return false;
         }
 
         const width = Math.max(Math.abs(a[1] - a[0]), Math.abs(b[1] - b[0]), 1);
-        const tolerance = Math.max(RANGE_EQUAL_ABS_TOLERANCE, width * RANGE_EQUAL_REL_TOLERANCE);
+        const tolerance = Math.max(absTolerance, width * relTolerance);
         return Math.abs(a[0] - b[0]) <= tolerance && Math.abs(a[1] - b[1]) <= tolerance;
     }
 
@@ -81,8 +87,25 @@
         if (
             lastDispatch &&
             lastDispatch.mode === mode &&
-            rangesNearlyEqual([lastDispatch.x0, lastDispatch.x1], range) &&
+            rangesNearlyEqual(
+                [lastDispatch.x0, lastDispatch.x1],
+                range,
+                RANGE_EQUAL_REL_TOLERANCE,
+                RANGE_EQUAL_ABS_TOLERANCE
+            ) &&
             (mode === "fast" || now - lastDispatch.timeStamp < MAX_WAIT_MS)
+        ) {
+            return;
+        }
+        if (
+            mode === "final" &&
+            lastFinalDispatch &&
+            rangesNearlyEqual(
+                [lastFinalDispatch.x0, lastFinalDispatch.x1],
+                range,
+                FINAL_RANGE_EQUAL_REL_TOLERANCE,
+                FINAL_RANGE_EQUAL_ABS_TOLERANCE
+            )
         ) {
             return;
         }
@@ -90,6 +113,9 @@
         const dispatchPerformanceTime = nowPerformance();
         const currentProfileId = ++profileId;
         lastDispatch = { x0, x1, mode, timeStamp: now };
+        if (mode === "final") {
+            lastFinalDispatch = { x0, x1, timeStamp: now };
+        }
         if (window.sleepScoringNavigationProfiler) {
             window.sleepScoringNavigationProfiler.markDispatched({
                 profileId: currentProfileId,
@@ -131,7 +157,20 @@
         firstPendingAt = null;
     }
 
+    function shouldSendFastTraceEvents() {
+        const options = document.getElementById(NAVIGATION_OPTIONS_ID);
+        return Boolean(
+            options &&
+                options.dataset &&
+                options.dataset.sendFastTraceEvents === "true"
+        );
+    }
+
     function requestFast(range, source) {
+        if (!shouldSendFastTraceEvents()) {
+            return;
+        }
+
         const now = Date.now();
         pendingRange = {
             range,
@@ -158,6 +197,13 @@
         }, delay);
     }
 
+    function finalDelayForSource(source) {
+        if (source === "keyboard") {
+            return KEYBOARD_FINAL_IDLE_MS;
+        }
+        return FINAL_IDLE_MS;
+    }
+
     function request(relayoutData, source) {
         const range = extractXRange(relayoutData);
         if (!range) {
@@ -165,7 +211,7 @@
         }
 
         requestFast(range, source);
-        requestFinal(range, source, FINAL_IDLE_MS);
+        requestFinal(range, source, finalDelayForSource(source));
     }
 
     function requestFinalOnly(relayoutData, source, delay) {
@@ -194,6 +240,15 @@
         );
     }
 
+    function resetDispatchState() {
+        pendingRange = null;
+        firstPendingAt = null;
+        lastDispatch = null;
+        lastFinalDispatch = null;
+        window.clearTimeout(debounceTimer);
+        window.clearTimeout(finalTimer);
+    }
+
     function findPlot() {
         const graphRoot = document.getElementById(GRAPH_ID);
         if (!graphRoot) {
@@ -208,6 +263,7 @@
             return;
         }
 
+        resetDispatchState();
         attachedPlot = plot;
         plot.on("plotly_relayouting", function (relayoutData) {
             if (isCustomPointerPanActive()) {
@@ -219,7 +275,7 @@
             if (isCustomPointerPanActive()) {
                 return;
             }
-            request(relayoutData, "plotly");
+            requestFinalOnly(relayoutData, "plotly", RELEASE_FINAL_DELAY_MS);
         });
     }
 

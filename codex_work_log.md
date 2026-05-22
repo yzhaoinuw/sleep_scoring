@@ -2,6 +2,22 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-05-22
+
+### Final Refresh Cadence Optimization
+
+- Updated `app_src/assets/graphRelayoutCoalescer.js` so native Plotly release events request the final detail refresh immediately instead of waiting for the normal idle fallback.
+- Kept active movement client-side by having the browser coalescer read `ENABLE_FAST_NAVIGATION_TRACE_UPDATES` from hidden DOM configuration before sending fast server trace events.
+- Added final-range duplicate suppression with a small movement tolerance so relayout echoes and unchanged ranges do not trigger redundant Dash/Plotly-resampler updates.
+- Reset coalescer dispatch state when Dash replaces the graph so opening a new file is not blocked by stale duplicate-range memory.
+- Area 1 cadence follow-up:
+  - keyboard navigation now uses a shorter `120 ms` final-refresh settle window instead of the generic `450 ms` idle fallback
+  - native Plotly release final refresh now uses a tiny `25 ms` debounce so same-frame release echoes can collapse before reaching Dash
+- Verification:
+  - ran bundled Node `--check` on `app_src\assets\graphRelayoutCoalescer.js`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\components_dev.py app_src\app_dev.py app_src\config.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_smoke.py -q`
+
 ## 2026-05-21
 
 ### Browser Navigation Profiling Prototype
