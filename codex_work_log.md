@@ -2,6 +2,107 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-05-21
+
+### Browser Navigation Profiling Prototype
+
+- Created branch `codex/next-level-navigation` for the next navigation-performance push.
+- Added an opt-in browser-side navigation profiler:
+  - `app_src/assets/graphRelayoutCoalescer.js` now tags each coalesced relayout event with a browser profile id and `performance.now()` timestamps
+  - `app_src/assets/graphNavigationProfiler.js` listens for Plotly `plotly_afterplot`, matches redraw completion back to the profile id carried by the Dash patch, and emits a compact `sleepgraphprofile` event
+  - `app_src/components_dev.py` captures browser profile events through `graph-navigation-profile`
+  - `app_src/app_dev.py` writes browser profile markers into resampler patches and prints `[browser-nav]` lines with coalescing, Dash/apply-to-afterplot, browser-total, frame-gap, and visible-range timing
+- Profiling controls:
+  - `ENABLE_BROWSER_NAVIGATION_PERF_LOG = True` in `app_src/config.py` enables browser navigation profiling
+  - `ENABLE_RESAMPLER_PERF_LOG = True` in `app_src/config.py` enables server resampler logs and browser navigation logs
+  - `SLEEP_SCORING_BROWSER_NAV_PERF_LOG=1` enables only browser navigation profiling
+  - `SLEEP_SCORING_RESAMPLER_PERF_LOG=1` or legacy `SLEEP_SCORING_PROFILE_RESAMPLER=1` enables both server resampler logs and browser navigation logs
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\components_dev.py app_src\config.py run_desktop_app.py`
+  - ran bundled Node `--check` on `app_src\assets\graphRelayoutCoalescer.js` and `app_src\assets\graphNavigationProfiler.js`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_smoke.py -q`
+  - confirmed Dash serves the page and both profiler assets with HTTP 200 and that `_dash-layout` contains the profile event/store wiring
+- Browser plugin note:
+  - the Codex in-app browser blocked `localhost` / `127.0.0.1` navigation with `ERR_BLOCKED_BY_CLIENT` during this verification, so the live visual interaction pass still needs to be done in the desktop app or a normal browser.
+
+### Area 1: Wasted Browser Redraw Suppression
+
+- Added first low-risk stale-update suppression experiment:
+  - browser coalescer now suppresses repeated fast dispatches when the x-range is unchanged or nearly unchanged
+  - server callback tracks the newest browser profile id and returns `dash.no_update` for older/stale profile ids
+  - stale drops are logged as `[resampler-stale]` when resampler profiling is enabled
+  - opening a new file resets the profile-id guard
+- Expected test signal:
+  - fewer duplicate fast updates for the same or nearly same range
+  - fewer unmatched fast `[resampler]` lines that never produce `[browser-nav]`
+  - no loss of final detail refresh after idle/release
+
+### Area 2: Final-Only Trace Refresh Experiment
+
+- Added `ENABLE_FAST_NAVIGATION_TRACE_UPDATES` in `app_src/config.py`.
+- Current experiment value is `False`:
+  - fast relayout events still update Plotly axes immediately in the browser
+  - fast server trace patches are skipped with `[resampler-skip]`
+  - final idle/release patches still refresh the detailed traces
+- Expected test signal:
+  - active pan/zoom should feel smoother if fast trace patch redraws were the main interaction tax
+  - logs should show many `[resampler-skip]` fast entries and only final `[browser-nav]` timing entries
+  - final detail should still settle after stopping movement
+- Human-in-loop result:
+  - keyboard panning felt smooth
+  - mouse dragging did not feel faster
+  - conclusion: built-in Plotly drag/pan is likely a separate interaction bottleneck from server trace patch redraws
+
+### Area 4: Custom Pointer Drag Pan Prototype
+
+- Added `app_src/assets/graphCustomPointerPan.js` as a mouse-drag experiment:
+  - only activates in Plotly pan mode
+  - leaves annotation/select mode untouched
+  - intercepts left-button pointer drag before native Plotly drag handling
+  - computes a horizontal x-axis range shift from pointer movement
+  - applies the range with a lean `Plotly.relayout` on `xaxis4.range`
+  - requests final resampler refresh on pointer release through the existing coalescer path
+- Expected test signal:
+  - dragging should feel closer to keyboard panning if native Plotly drag was the bottleneck
+  - logs should still show `[resampler-skip]` for active fast events and final `[browser-nav]` after release/idle
+  - if drag direction feels inverted, flip the sign of the custom pan shift
+  - if vertical EEG/EMG drag is missed, decide whether to restore native drag for y-axis or add custom y-pan later
+- Human-in-loop result:
+  - custom drag direction was correct
+  - final trace settled correctly
+  - custom drag still felt slightly slower than keyboard panning
+  - vertical EEG/EMG drag was missing
+- Follow-up patch:
+  - coalescer now ignores Plotly relayout events during custom pointer drag
+  - custom pointer drag requests final-only refresh on release with source `custom-drag`
+  - custom pointer drag now pans EEG/EMG y-axis ranges when the drag starts inside those rows
+- Expected follow-up signal:
+  - drag movement should no longer produce active `[resampler-skip]` POSTs
+  - final drag refresh should show `source=custom-drag`
+  - EEG/EMG vertical drag should work again
+- Human-in-loop result:
+  - EEG vertical drag worked, EMG vertical drag did not
+  - drag still felt slightly slower than keyboard panning
+  - logs still showed active `[resampler-skip]` entries and final `source=plotly`
+- Follow-up patch:
+  - fixed custom y-axis candidates to EEG/EMG axes after accounting for the spectrogram secondary y-axis
+  - added a temporary coalescer suppression window around custom `Plotly.relayout` calls and release so custom drag relayout echoes do not re-enter the normal Plotly coalescer path
+- Expected follow-up signal:
+  - EMG vertical drag should work
+  - custom drag final should show `source=custom-drag`
+  - drag movement should produce fewer or no `[resampler-skip]` entries
+- Confirmed human-in-loop result:
+  - EEG and EMG vertical drag both work
+  - mouse drag panning is noticeably faster
+  - custom drag final refresh logs now show `source=custom-drag`
+  - custom drag final coalescing dropped from the normal roughly `450 ms` idle wait to roughly `2-12 ms`
+  - custom drag final browser-total samples were roughly `304-400 ms`, compared with roughly `745-853 ms` for the normal Plotly/coalesced final path in the same run
+  - final trace refresh still settles correctly after release
+- Current conclusion:
+  - Python/resampler callback time is no longer the navigation bottleneck
+  - active movement is fastest when it stays client-side and avoids trace patch redraws
+  - custom mouse drag is now close to keyboard panning because it bypasses native Plotly drag/coalescer churn and only requests one final detail refresh on release
+
 ## 2026-05-20
 
 ### Fast/Final Navigation Resampler Prototype

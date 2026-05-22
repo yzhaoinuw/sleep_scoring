@@ -44,6 +44,29 @@ Proposed plan:
   - In-memory resampler storage added:
     - `resampler_get` is now near zero instead of the previous 200-600 ms filesystem-cache retrieval cost.
 - Further optimization candidates, only if navigation still needs more polish.
+  - Use the new browser navigation profiler to measure input-to-afterplot timing:
+    - enable browser-only logs with `ENABLE_BROWSER_NAVIGATION_PERF_LOG = True` in `app_src/config.py`
+    - enable server and browser logs with `ENABLE_RESAMPLER_PERF_LOG = True` in `app_src/config.py`
+    - env vars `SLEEP_SCORING_BROWSER_NAV_PERF_LOG=1` and `SLEEP_SCORING_RESAMPLER_PERF_LOG=1` still work for one-off runs
+    - compare `[resampler] total` against `[browser-nav] dash_apply` and `browser_total`
+    - if browser timing dominates, prioritize client-side active navigation and x-array payload elimination
+  - Current cadence experiment:
+    - `ENABLE_FAST_NAVIGATION_TRACE_UPDATES = False`
+    - active movement skips fast trace patches and only applies final trace refresh after idle/release
+    - compare subjective pan/zoom feel and final settle delay against the fast/final baseline
+  - Current custom drag experiment:
+    - `app_src/assets/graphCustomPointerPan.js`
+    - custom horizontal pointer drag bypasses native Plotly drag in pan mode
+    - coalescer ignores Plotly relayout events during custom drag, and custom drag requests final-only refresh on release
+    - custom drag also pans EEG/EMG y-axis ranges when dragging inside those rows
+    - relayout echo suppression is active around custom drag so logs should show `source=custom-drag`
+    - confirmed: EEG/EMG vertical drag works, mouse drag panning is noticeably faster, and final refresh still settles
+    - measured custom-drag final browser totals are roughly 304-400 ms versus roughly 745-853 ms on the normal Plotly/coalesced final path in the same run
+  - Current best status:
+    - keyboard panning feels smooth
+    - mouse drag panning is noticeably faster after custom pointer pan
+    - active trace updates are disabled during movement, with final detail refresh after release/idle
+    - remaining gap: mouse drag still feels a little slower than keyboard panning
   - Tune `FINAL_IDLE_MS` in `app_src/assets/graphRelayoutCoalescer.js` if the final refresh feels too early or too late.
   - Suppress duplicate fast updates for unchanged or near-unchanged ranges more aggressively.
   - Explore deriving regular x arrays client-side or otherwise avoiding repeated x-array payloads.

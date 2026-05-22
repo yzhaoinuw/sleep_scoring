@@ -47,6 +47,7 @@ backend_div = html.Div(
         dcc.Store(id="clip-range-store"),
         dcc.Store(id="updated-sleep-scores-store"),
         dcc.Store(id="backup-sleep-scores-store"),
+        dcc.Store(id="navigation-profile-store"),
         EventListener(
             id="graph-contextmenu",
             events=[
@@ -67,6 +68,28 @@ backend_div = html.Div(
                         "detail.source",
                         "detail.mode",
                         "detail.timeStamp",
+                        "detail.profileId",
+                        "detail.inputPerformanceTime",
+                        "detail.dispatchPerformanceTime",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-navigation-profile",
+            events=[
+                {
+                    "event": "sleepgraphprofile",
+                    "props": [
+                        "detail.profileId",
+                        "detail.mode",
+                        "detail.source",
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.coalesceMs",
+                        "detail.dashApplyMs",
+                        "detail.browserTotalMs",
+                        "detail.frameGapMs",
                     ],
                 }
             ],

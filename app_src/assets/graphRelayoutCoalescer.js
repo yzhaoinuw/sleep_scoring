@@ -10,6 +10,8 @@
     const DEBOUNCE_MS = 90;
     const MAX_WAIT_MS = 250;
     const FINAL_IDLE_MS = 450;
+    const RANGE_EQUAL_REL_TOLERANCE = 0.00005;
+    const RANGE_EQUAL_ABS_TOLERANCE = 0.05;
 
     let pendingRange = null;
     let debounceTimer = null;
@@ -17,6 +19,15 @@
     let firstPendingAt = null;
     let lastDispatch = null;
     let attachedPlot = null;
+    let profileId = 0;
+    let suppressPlotlyRelayoutUntil = 0;
+
+    function nowPerformance() {
+        if (window.performance && typeof window.performance.now === "function") {
+            return window.performance.now();
+        }
+        return Date.now();
+    }
 
     function getValue(data, dottedKey, bracketIndex) {
         if (!data) {
@@ -54,20 +65,42 @@
         return [Math.min(x0, x1), Math.max(x0, x1)];
     }
 
-    function dispatchRange(range, source, mode) {
+    function rangesNearlyEqual(a, b) {
+        if (!a || !b) {
+            return false;
+        }
+
+        const width = Math.max(Math.abs(a[1] - a[0]), Math.abs(b[1] - b[0]), 1);
+        const tolerance = Math.max(RANGE_EQUAL_ABS_TOLERANCE, width * RANGE_EQUAL_REL_TOLERANCE);
+        return Math.abs(a[0] - b[0]) <= tolerance && Math.abs(a[1] - b[1]) <= tolerance;
+    }
+
+    function dispatchRange(range, source, mode, inputPerformanceTime) {
         const [x0, x1] = range;
         const now = Date.now();
         if (
             lastDispatch &&
             lastDispatch.mode === mode &&
-            Math.abs(lastDispatch.x0 - x0) < 1e-9 &&
-            Math.abs(lastDispatch.x1 - x1) < 1e-9 &&
-            now - lastDispatch.timeStamp < MAX_WAIT_MS
+            rangesNearlyEqual([lastDispatch.x0, lastDispatch.x1], range) &&
+            (mode === "fast" || now - lastDispatch.timeStamp < MAX_WAIT_MS)
         ) {
             return;
         }
 
+        const dispatchPerformanceTime = nowPerformance();
+        const currentProfileId = ++profileId;
         lastDispatch = { x0, x1, mode, timeStamp: now };
+        if (window.sleepScoringNavigationProfiler) {
+            window.sleepScoringNavigationProfiler.markDispatched({
+                profileId: currentProfileId,
+                mode,
+                source,
+                x0,
+                x1,
+                inputPerformanceTime,
+                dispatchPerformanceTime,
+            });
+        }
         const event = new CustomEvent(EVENT_NAME, {
             detail: {
                 x0,
@@ -75,6 +108,9 @@
                 source,
                 mode,
                 timeStamp: now,
+                profileId: currentProfileId,
+                inputPerformanceTime,
+                dispatchPerformanceTime,
             },
         });
         document.dispatchEvent(event);
@@ -85,14 +121,23 @@
             return;
         }
 
-        dispatchRange(pendingRange.range, pendingRange.source, "fast");
+        dispatchRange(
+            pendingRange.range,
+            pendingRange.source,
+            "fast",
+            pendingRange.inputPerformanceTime
+        );
         pendingRange = null;
         firstPendingAt = null;
     }
 
     function requestFast(range, source) {
         const now = Date.now();
-        pendingRange = { range, source: source || "plotly" };
+        pendingRange = {
+            range,
+            source: source || "plotly",
+            inputPerformanceTime: nowPerformance(),
+        };
         if (firstPendingAt === null) {
             firstPendingAt = now;
         }
@@ -106,9 +151,10 @@
     }
 
     function requestFinal(range, source, delay) {
+        const inputPerformanceTime = nowPerformance();
         window.clearTimeout(finalTimer);
         finalTimer = window.setTimeout(function () {
-            dispatchRange(range, source || "plotly", "final");
+            dispatchRange(range, source || "plotly", "final", inputPerformanceTime);
         }, delay);
     }
 
@@ -120,6 +166,32 @@
 
         requestFast(range, source);
         requestFinal(range, source, FINAL_IDLE_MS);
+    }
+
+    function requestFinalOnly(relayoutData, source, delay) {
+        const range = extractXRange(relayoutData);
+        if (!range) {
+            return;
+        }
+
+        window.clearTimeout(debounceTimer);
+        pendingRange = null;
+        firstPendingAt = null;
+        requestFinal(range, source, delay === undefined ? 0 : delay);
+    }
+
+    function isCustomPointerPanActive() {
+        return Boolean(
+            window.sleepScoringCustomPointerPan &&
+                window.sleepScoringCustomPointerPan.isActive === true
+        ) || Date.now() < suppressPlotlyRelayoutUntil;
+    }
+
+    function suppressPlotlyRelayoutFor(durationMs) {
+        suppressPlotlyRelayoutUntil = Math.max(
+            suppressPlotlyRelayoutUntil,
+            Date.now() + durationMs
+        );
     }
 
     function findPlot() {
@@ -138,15 +210,23 @@
 
         attachedPlot = plot;
         plot.on("plotly_relayouting", function (relayoutData) {
+            if (isCustomPointerPanActive()) {
+                return;
+            }
             request(relayoutData, "plotly-moving");
         });
         plot.on("plotly_relayout", function (relayoutData) {
+            if (isCustomPointerPanActive()) {
+                return;
+            }
             request(relayoutData, "plotly");
         });
     }
 
     window.sleepScoringGraphRelayout = {
         request,
+        requestFinalOnly,
+        suppressPlotlyRelayoutFor,
     };
 
     if (document.readyState === "loading") {

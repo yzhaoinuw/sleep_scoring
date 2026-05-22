@@ -31,7 +31,12 @@ from app_src import VERSION
 
 # from app_src.debug_tool import Debug_Counter
 from app_src.components_dev import Components
-from app_src.config import POSTPROCESS, PROFILE_RESAMPLER_UPDATES
+from app_src.config import (
+    BROWSER_NAVIGATION_PERF_LOG,
+    ENABLE_FAST_NAVIGATION_TRACE_UPDATES,
+    POSTPROCESS,
+    RESAMPLER_PERF_LOG,
+)
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 from app_src.make_mp4 import make_mp4_clip
 from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
@@ -61,6 +66,7 @@ RESAMPLER_PROFILE_UPDATE_ID = 0
 RESAMPLER_PROFILE_LAST_START = None
 RESAMPLER_PROFILE_LAST_FINISH = None
 RESAMPLER_PROFILE_ACTIVE_COUNT = 0
+NAVIGATION_LATEST_PROFILE_ID = 0
 FAST_NAVIGATION_N_SHOWN_SAMPLES = 512
 FIG_RESAMPLERS = {
     "fig_resampler": None,
@@ -69,8 +75,11 @@ FIG_RESAMPLERS = {
 
 
 def clear_fig_resamplers():
+    global NAVIGATION_LATEST_PROFILE_ID
+
     FIG_RESAMPLERS["fig_resampler"] = None
     FIG_RESAMPLERS["fig_resampler_fast"] = None
+    NAVIGATION_LATEST_PROFILE_ID = 0
 
 
 def store_fig_resamplers(fig, fig_fast):
@@ -992,6 +1001,61 @@ def relayout_event_to_mode(relayout_event):
     return "final"
 
 
+def relayout_event_to_profile_marker(relayout_event):
+    if not relayout_event:
+        return None
+
+    profile_id = relayout_event.get("detail.profileId")
+    if profile_id is None:
+        return None
+
+    try:
+        profile_id = int(profile_id)
+    except (TypeError, ValueError):
+        return None
+
+    return {
+        "profileId": profile_id,
+        "mode": relayout_event_to_mode(relayout_event),
+        "source": relayout_event.get("detail.source") or "",
+    }
+
+
+def format_profile_ms(value):
+    if value is None:
+        return "n/a"
+
+    try:
+        return f"{float(value):.1f} ms"
+    except (TypeError, ValueError):
+        return "n/a"
+
+
+def navigation_profile_id(profile_marker):
+    if not profile_marker:
+        return None
+    return profile_marker.get("profileId")
+
+
+def mark_navigation_profile_seen(profile_id):
+    global NAVIGATION_LATEST_PROFILE_ID
+
+    if profile_id is None:
+        return False
+
+    if profile_id < NAVIGATION_LATEST_PROFILE_ID:
+        return True
+
+    if profile_id > NAVIGATION_LATEST_PROFILE_ID:
+        NAVIGATION_LATEST_PROFILE_ID = profile_id
+
+    return False
+
+
+def is_stale_navigation_profile(profile_id):
+    return profile_id is not None and profile_id < NAVIGATION_LATEST_PROFILE_ID
+
+
 @app.callback(
     Output("graph", "figure", allow_duplicate=True),
     # Output("debug-message", "children"),
@@ -1000,6 +1064,7 @@ def relayout_event_to_mode(relayout_event):
     prevent_initial_call=True,
 )
 def update_fig_resampler(_relayout_n_events, relayout_event):
+    global NAVIGATION_LATEST_PROFILE_ID
     global RESAMPLER_PROFILE_ACTIVE_COUNT
     global RESAMPLER_PROFILE_LAST_FINISH
     global RESAMPLER_PROFILE_LAST_START
@@ -1014,6 +1079,28 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
 
     update_mode = relayout_event_to_mode(relayout_event)
     fig_cache_key = "fig_resampler_fast" if update_mode == "fast" else "fig_resampler"
+    browser_profile_marker = relayout_event_to_profile_marker(relayout_event)
+    browser_profile_id = navigation_profile_id(browser_profile_marker)
+    if update_mode == "fast" and not ENABLE_FAST_NAVIGATION_TRACE_UPDATES:
+        if RESAMPLER_PERF_LOG:
+            print(
+                "[resampler-skip] "
+                f"browser_profile_id={browser_profile_id if browser_profile_id is not None else 'n/a'}, "
+                "mode=fast, reason=fast_trace_updates_disabled",
+                flush=True,
+            )
+        return dash.no_update
+
+    if mark_navigation_profile_seen(browser_profile_id):
+        if RESAMPLER_PERF_LOG:
+            print(
+                "[resampler-stale] "
+                f"browser_profile_id={browser_profile_id}, "
+                f"latest_browser_profile_id={NAVIGATION_LATEST_PROFILE_ID}, "
+                f"mode={update_mode}, phase=start",
+                flush=True,
+            )
+        return dash.no_update
 
     callback_start_time = time.perf_counter()
     resampler_get_start_time = time.perf_counter()
@@ -1033,7 +1120,7 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
     since_prev_start_ms = None
     since_prev_finish_ms = None
 
-    if PROFILE_RESAMPLER_UPDATES:
+    if RESAMPLER_PERF_LOG:
         RESAMPLER_PROFILE_UPDATE_ID += 1
         profile_id = RESAMPLER_PROFILE_UPDATE_ID
         active_at_start = RESAMPLER_PROFILE_ACTIVE_COUNT + 1
@@ -1049,8 +1136,21 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
         construct_start_time = time.perf_counter()
         update_patch = fig.construct_update_data_patch(relayoutdata)
         construct_ms = (time.perf_counter() - construct_start_time) * 1000
+        if is_stale_navigation_profile(browser_profile_id):
+            if RESAMPLER_PERF_LOG:
+                print(
+                    "[resampler-stale] "
+                    f"browser_profile_id={browser_profile_id}, "
+                    f"latest_browser_profile_id={NAVIGATION_LATEST_PROFILE_ID}, "
+                    f"mode={update_mode}, phase=after_construct",
+                    flush=True,
+                )
+            return dash.no_update
 
-        if PROFILE_RESAMPLER_UPDATES:
+        if BROWSER_NAVIGATION_PERF_LOG and browser_profile_marker is not None:
+            update_patch["layout"]["meta"]["sleepScoringNavigationProfile"] = browser_profile_marker
+
+        if RESAMPLER_PERF_LOG:
             payload_start_time = time.perf_counter()
             try:
                 payload_json = json.dumps(
@@ -1089,10 +1189,12 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
                 "n/a" if since_prev_finish_ms is None else f"{since_prev_finish_ms:.1f} ms"
             )
             x_width_text = "n/a" if x_width is None else f"{x_width:.1f} s"
+            browser_profile_text = browser_profile_id if browser_profile_id is not None else "n/a"
 
             print(
                 "[resampler] "
                 f"id={profile_id}, "
+                f"browser_profile_id={browser_profile_text}, "
                 f"active_at_start={active_at_start}, "
                 f"mode={update_mode}, "
                 f"cache_key={fig_cache_key}, "
@@ -1111,9 +1213,45 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
 
         return update_patch
     finally:
-        if PROFILE_RESAMPLER_UPDATES:
+        if RESAMPLER_PERF_LOG:
             RESAMPLER_PROFILE_LAST_FINISH = time.perf_counter()
             RESAMPLER_PROFILE_ACTIVE_COUNT = max(0, RESAMPLER_PROFILE_ACTIVE_COUNT - 1)
+
+
+@app.callback(
+    Output("navigation-profile-store", "data"),
+    Input("graph-navigation-profile", "n_events"),
+    State("graph-navigation-profile", "event"),
+    prevent_initial_call=True,
+)
+def log_browser_navigation_profile(_n_events, profile_event):
+    if not BROWSER_NAVIGATION_PERF_LOG or not profile_event:
+        return dash.no_update
+
+    profile_id = profile_event.get("detail.profileId", "n/a")
+    mode = profile_event.get("detail.mode", "n/a")
+    source = profile_event.get("detail.source", "n/a")
+    x0 = profile_event.get("detail.x0")
+    x1 = profile_event.get("detail.x1")
+    x_width_text = "n/a"
+    try:
+        x_width_text = f"{float(x1) - float(x0):.1f} s"
+    except (TypeError, ValueError):
+        pass
+
+    print(
+        "[browser-nav] "
+        f"profile_id={profile_id}, "
+        f"mode={mode}, "
+        f"source={source}, "
+        f"coalesce={format_profile_ms(profile_event.get('detail.coalesceMs'))}, "
+        f"dash_apply={format_profile_ms(profile_event.get('detail.dashApplyMs'))}, "
+        f"browser_total={format_profile_ms(profile_event.get('detail.browserTotalMs'))}, "
+        f"frame_gap={format_profile_ms(profile_event.get('detail.frameGapMs'))}, "
+        f"x_width={x_width_text}",
+        flush=True,
+    )
+    return profile_event
 
 
 @app.callback(
