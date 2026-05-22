@@ -11,16 +11,14 @@ Current status:
 - Final refresh payloads are compacted, usually around `95-110 KB`.
 - Direct browser-side `Plotly.restyle` is the active final refresh path.
 - Remaining cost is mostly Plotly/WebGL redraw time.
+- UI response optimization is paused until real user feedback after the next shipped version.
 
-Next experiment:
+No active pre-ship experiment:
 
-- Explore whether final refresh can avoid full redraw work while preserving normal visual detail.
-- Compare:
-  - `[browser-nav] dash_apply`
-  - `[browser-nav] frame_gap`
-  - visual correctness after keyboard, wheel, reset, custom drag, annotation, and sampling-level changes
+- Do not chase more UI response optimizations before shipping the annotation auto-pan feature.
+- Let users decide whether the current responsiveness is sufficient in practice.
 
-Secondary ideas:
+Possible later ideas:
 
 - Explore whether regular or partly regular `x` arrays can be derived client-side.
 - Consider precomputed downsample tiers only if on-demand resampling becomes a bottleneck again.

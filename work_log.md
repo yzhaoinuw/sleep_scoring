@@ -14,6 +14,46 @@ entries with targeted terms if the task needs deeper history.
 
 ## 2026-05-22
 
+### UI Response Optimization Pause
+
+- Decided to pause UI response optimization after the direct-restyle checkpoint:
+  - the high-return changes have already landed
+  - recent follow-up experiments show diminishing marginal returns
+  - additional attempts now carry more risk of disrupting working navigation than likely speed benefit
+- Current shipping plan:
+  - keep direct browser-side `Plotly.restyle` as the active final refresh path
+  - implement edge-triggered auto-pan while drag-selecting in annotation mode next
+  - ship that version and let user feedback determine whether the current responsiveness is sufficient
+- Deferred optimization ideas:
+  - derive regular or partly regular `x` arrays client-side
+  - revisit deeper Plotly/WebGL redraw avoidance only if user feedback says current responsiveness is not enough
+
+### Minimal Direct Restyle Payload Experiment Dismissed
+
+- Followed up the direct-restyle checkpoint with a smaller browser restyle payload, then reverted it:
+  - added `ENABLE_DIRECT_RESTYLE_TRACE_NAME_UPDATES = False` in `app_src/config.py`
+  - `build_direct_restyle_payload` now sends only direct trace data operations by default
+  - trace `name` updates and layout meta are omitted from the direct-restyle payload
+  - `[resampler]` logs now include `direct_ops`, which should be `6` for EEG/EMG/NE `x` and `y`
+- Synthetic representative callback on `user_test_files/115_gs.mat`:
+  - returned `applyPath=direct-restyle`
+  - reduced direct operation count from `10` to `6`
+  - confirmed operations were only `data[0].x/y`, `data[1].x/y`, and `data[6].x/y`
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\config.py app_src\components_dev.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_app_helpers.py tests\test_smoke.py -q`
+  - ran bundled Node `--check` on `app_src\assets\graphDirectRestyle.js`
+- Human-in-loop validation:
+  - zooming, arrow-key panning, custom drag panning, annotation, and sampling-level changes felt smooth
+  - logs showed `apply_path=direct-restyle` and `direct_ops=6`
+  - `x1` payloads around `93-97 KB` still showed browser apply roughly `277-393 ms`
+  - `x2` payloads around `175-177 KB` showed browser apply roughly `284-345 ms`
+  - lower-density payloads around `59 KB` still showed browser apply roughly `269-311 ms`
+- Current conclusion:
+  - omitting trace-name/layout-meta restyle operations is behaviorally safe
+  - timing gains are not clear; the remaining cost still looks dominated by Plotly/WebGL redraw
+  - dismissed to avoid accumulating changes that do not clearly support the speed goal
+
 ### Direct Plotly Restyle Final Refresh Path
 
 - Added a guarded direct browser restyle path for final resampler refreshes:
