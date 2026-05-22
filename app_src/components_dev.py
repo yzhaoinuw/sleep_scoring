@@ -10,8 +10,6 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash_extensions import EventListener
 
-from app_src.config import ENABLE_FAST_NAVIGATION_TRACE_UPDATES
-
 # %% home div, aka inital layout
 
 upload_button_style = {
@@ -39,11 +37,6 @@ mat_upload_button = html.Button(
 
 backend_div = html.Div(
     children=[
-        html.Div(
-            id="navigation-options",
-            **{"data-send-fast-trace-events": str(ENABLE_FAST_NAVIGATION_TRACE_UPDATES).lower()},
-            style={"display": "none"},
-        ),
         dcc.Store(id="mat-metadata-store"),
         dcc.Store(id="prediction-ready-store"),
         dcc.Store(id="visualization-ready-store"),

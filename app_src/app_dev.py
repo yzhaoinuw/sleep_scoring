@@ -33,7 +33,6 @@ from app_src import VERSION
 from app_src.components_dev import Components
 from app_src.config import (
     BROWSER_NAVIGATION_PERF_LOG,
-    ENABLE_FAST_NAVIGATION_TRACE_UPDATES,
     POSTPROCESS,
     RESAMPLER_PERF_LOG,
 )
@@ -67,30 +66,26 @@ RESAMPLER_PROFILE_LAST_START = None
 RESAMPLER_PROFILE_LAST_FINISH = None
 RESAMPLER_PROFILE_ACTIVE_COUNT = 0
 NAVIGATION_LATEST_PROFILE_ID = 0
-FAST_NAVIGATION_N_SHOWN_SAMPLES = 512
-RESAMPLER_PATCH_X_DECIMALS = 5
+RESAMPLER_PATCH_X_DECIMALS = 3
 RESAMPLER_PATCH_Y_DECIMALS = 7
-FIG_RESAMPLERS = {
-    "fig_resampler": None,
-    "fig_resampler_fast": None,
-}
+FIG_RESAMPLER = None
 
 
 def clear_fig_resamplers():
-    global NAVIGATION_LATEST_PROFILE_ID
+    global FIG_RESAMPLER, NAVIGATION_LATEST_PROFILE_ID
 
-    FIG_RESAMPLERS["fig_resampler"] = None
-    FIG_RESAMPLERS["fig_resampler_fast"] = None
+    FIG_RESAMPLER = None
     NAVIGATION_LATEST_PROFILE_ID = 0
 
 
-def store_fig_resamplers(fig, fig_fast):
-    FIG_RESAMPLERS["fig_resampler"] = fig
-    FIG_RESAMPLERS["fig_resampler_fast"] = fig_fast
+def store_fig_resampler(fig):
+    global FIG_RESAMPLER
+
+    FIG_RESAMPLER = fig
 
 
-def get_fig_resampler(fig_key):
-    return FIG_RESAMPLERS.get(fig_key)
+def get_fig_resampler():
+    return FIG_RESAMPLER
 
 
 def compact_resampler_patch(update_patch):
@@ -279,13 +274,7 @@ def save_file_dialog(file_type, filename):
 def create_fig(mat, filename, default_n_shown_samples=2048):
     fig = make_figure(mat, filename, default_n_shown_samples)
 
-    fig_fast = make_figure(
-        mat,
-        filename,
-        FAST_NAVIGATION_N_SHOWN_SAMPLES,
-        ne_n_shown_samples=FAST_NAVIGATION_N_SHOWN_SAMPLES,
-    )
-    store_fig_resamplers(fig, fig_fast)
+    store_fig_resampler(fig)
     return fig
 
 
@@ -1099,7 +1088,6 @@ def is_stale_navigation_profile(profile_id):
     prevent_initial_call=True,
 )
 def update_fig_resampler(_relayout_n_events, relayout_event):
-    global NAVIGATION_LATEST_PROFILE_ID
     global RESAMPLER_PROFILE_ACTIVE_COUNT
     global RESAMPLER_PROFILE_LAST_FINISH
     global RESAMPLER_PROFILE_LAST_START
@@ -1113,18 +1101,8 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
         return dash.no_update
 
     update_mode = relayout_event_to_mode(relayout_event)
-    fig_cache_key = "fig_resampler_fast" if update_mode == "fast" else "fig_resampler"
     browser_profile_marker = relayout_event_to_profile_marker(relayout_event)
     browser_profile_id = navigation_profile_id(browser_profile_marker)
-    if update_mode == "fast" and not ENABLE_FAST_NAVIGATION_TRACE_UPDATES:
-        if RESAMPLER_PERF_LOG:
-            print(
-                "[resampler-skip] "
-                f"browser_profile_id={browser_profile_id if browser_profile_id is not None else 'n/a'}, "
-                "mode=fast, reason=fast_trace_updates_disabled",
-                flush=True,
-            )
-        return dash.no_update
 
     if mark_navigation_profile_seen(browser_profile_id):
         if RESAMPLER_PERF_LOG:
@@ -1139,13 +1117,8 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
 
     callback_start_time = time.perf_counter()
     resampler_get_start_time = time.perf_counter()
-    fig = get_fig_resampler(fig_cache_key)
+    fig = get_fig_resampler()
     resampler_get_ms = (time.perf_counter() - resampler_get_start_time) * 1000
-    if fig is None and fig_cache_key != "fig_resampler":
-        fig_cache_key = "fig_resampler"
-        resampler_get_start_time = time.perf_counter()
-        fig = get_fig_resampler(fig_cache_key)
-        resampler_get_ms += (time.perf_counter() - resampler_get_start_time) * 1000
     if fig is None:
         return dash.no_update
 
@@ -1234,7 +1207,7 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
                 f"browser_profile_id={browser_profile_text}, "
                 f"active_at_start={active_at_start}, "
                 f"mode={update_mode}, "
-                f"cache_key={fig_cache_key}, "
+                "cache_key=fig_resampler, "
                 f"since_prev_start={since_prev_start_text}, "
                 f"since_prev_finish={since_prev_finish_text}, "
                 f"resampler_get={resampler_get_ms:.1f} ms, "

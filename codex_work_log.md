@@ -7,15 +7,22 @@ Prepend new session notes to the top of this file.
 ### Patch Payload Precision Compaction
 
 - Added a conservative resampler patch compaction step in `app_src/app_dev.py`:
-  - trace `x` arrays are rounded to 5 decimal places before Dash serializes the patch
+  - trace `x` arrays are rounded to 3 decimal places before Dash serializes the patch
   - trace `y` arrays are rounded to 7 decimal places before Dash serializes the patch
   - compaction runs after stale-update checks so stale patches do not pay extra work
 - Synthetic representative final update on `user_test_files/115_gs.mat`:
-  - payload dropped from `184.6 KB` to `108.6 KB`
-  - saved roughly `75.9 KB` per final detail refresh
+  - initial `x5/y7` compaction dropped one representative payload from `184.6 KB` to `108.6 KB`
+  - tightening x precision to milliseconds dropped a comparable representative payload to `99.2 KB`
+- Follow-up tidy:
+  - removed the dormant fast trace-update path now that active navigation is final-only and client-side
+  - removed `fig_resampler_fast`, `FAST_NAVIGATION_N_SHOWN_SAMPLES`, `ENABLE_FAST_NAVIGATION_TRACE_UPDATES`, the hidden navigation-options bridge, and unused fast coalescer state
+  - simplified in-memory resampler storage to a single active `FIG_RESAMPLER`
+  - kept the profiling counters and latest-profile stale guard because they still explain overlap and browser timing in live logs
 - Verification:
   - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py`
-  - ran a synthetic compacted-patch size check
+  - ran bundled Node `--check` on `app_src\assets\graphRelayoutCoalescer.js`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\components_dev.py app_src\config.py`
+  - ran a synthetic compacted-patch size check confirming `99.2 KB`
   - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_smoke.py -q`
 
 ### Final Refresh Cadence Optimization

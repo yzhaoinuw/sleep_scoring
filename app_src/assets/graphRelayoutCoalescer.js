@@ -7,21 +7,16 @@
 
     const EVENT_NAME = "sleepgraphrelayout";
     const GRAPH_ID = "graph";
-    const DEBOUNCE_MS = 90;
-    const MAX_WAIT_MS = 250;
+    const DUPLICATE_DISPATCH_WINDOW_MS = 250;
     const FINAL_IDLE_MS = 450;
     const KEYBOARD_FINAL_IDLE_MS = 120;
     const RELEASE_FINAL_DELAY_MS = 25;
-    const NAVIGATION_OPTIONS_ID = "navigation-options";
     const RANGE_EQUAL_REL_TOLERANCE = 0.00005;
     const RANGE_EQUAL_ABS_TOLERANCE = 0.05;
     const FINAL_RANGE_EQUAL_REL_TOLERANCE = 0.001;
     const FINAL_RANGE_EQUAL_ABS_TOLERANCE = 0.25;
 
-    let pendingRange = null;
-    let debounceTimer = null;
     let finalTimer = null;
-    let firstPendingAt = null;
     let lastDispatch = null;
     let lastFinalDispatch = null;
     let attachedPlot = null;
@@ -93,7 +88,7 @@
                 RANGE_EQUAL_REL_TOLERANCE,
                 RANGE_EQUAL_ABS_TOLERANCE
             ) &&
-            (mode === "fast" || now - lastDispatch.timeStamp < MAX_WAIT_MS)
+            now - lastDispatch.timeStamp < DUPLICATE_DISPATCH_WINDOW_MS
         ) {
             return;
         }
@@ -142,53 +137,6 @@
         document.dispatchEvent(event);
     }
 
-    function dispatchPending() {
-        if (!pendingRange) {
-            return;
-        }
-
-        dispatchRange(
-            pendingRange.range,
-            pendingRange.source,
-            "fast",
-            pendingRange.inputPerformanceTime
-        );
-        pendingRange = null;
-        firstPendingAt = null;
-    }
-
-    function shouldSendFastTraceEvents() {
-        const options = document.getElementById(NAVIGATION_OPTIONS_ID);
-        return Boolean(
-            options &&
-                options.dataset &&
-                options.dataset.sendFastTraceEvents === "true"
-        );
-    }
-
-    function requestFast(range, source) {
-        if (!shouldSendFastTraceEvents()) {
-            return;
-        }
-
-        const now = Date.now();
-        pendingRange = {
-            range,
-            source: source || "plotly",
-            inputPerformanceTime: nowPerformance(),
-        };
-        if (firstPendingAt === null) {
-            firstPendingAt = now;
-        }
-
-        window.clearTimeout(debounceTimer);
-        if (now - firstPendingAt >= MAX_WAIT_MS) {
-            dispatchPending();
-        } else {
-            debounceTimer = window.setTimeout(dispatchPending, DEBOUNCE_MS);
-        }
-    }
-
     function requestFinal(range, source, delay) {
         const inputPerformanceTime = nowPerformance();
         window.clearTimeout(finalTimer);
@@ -210,7 +158,6 @@
             return;
         }
 
-        requestFast(range, source);
         requestFinal(range, source, finalDelayForSource(source));
     }
 
@@ -220,9 +167,6 @@
             return;
         }
 
-        window.clearTimeout(debounceTimer);
-        pendingRange = null;
-        firstPendingAt = null;
         requestFinal(range, source, delay === undefined ? 0 : delay);
     }
 
@@ -241,11 +185,8 @@
     }
 
     function resetDispatchState() {
-        pendingRange = null;
-        firstPendingAt = null;
         lastDispatch = null;
         lastFinalDispatch = null;
-        window.clearTimeout(debounceTimer);
         window.clearTimeout(finalTimer);
     }
 
