@@ -9,17 +9,16 @@ Current status:
 - Navigation now feels smooth across keyboard, mouse drag, wheel zoom, and reset.
 - Server-side resampler work is no longer the main bottleneck.
 - Final refresh payloads are compacted, usually around `95-110 KB`.
-- Remaining cost is mostly browser-side Plotly/Dash apply time.
+- Direct browser-side `Plotly.restyle` is the active final refresh path.
+- Remaining cost is mostly Plotly/WebGL redraw time.
 
 Next experiment:
 
-- Test whether final refresh browser apply time is point-count-bound.
-- Try a lower final display density for EEG/EMG/NE as an experiment, not as a default commitment.
+- Explore whether final refresh can avoid full redraw work while preserving normal visual detail.
 - Compare:
-  - final payload size
   - `[browser-nav] dash_apply`
-  - subjective visual acceptability at normal inspection zoom levels
-- If lower final density helps but looks too coarse, try adaptive density by visible x-window width.
+  - `[browser-nav] frame_gap`
+  - visual correctness after keyboard, wheel, reset, custom drag, annotation, and sampling-level changes
 
 Secondary ideas:
 
@@ -28,6 +27,7 @@ Secondary ideas:
 
 Do not revisit for now:
 
+- Adaptive final refresh density by visible window width.
 - Fast server trace updates during active movement.
 - Visualization-only source downsampling to 128 Hz.
 

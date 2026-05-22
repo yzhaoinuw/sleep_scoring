@@ -48,6 +48,8 @@ backend_div = html.Div(
         dcc.Store(id="updated-sleep-scores-store"),
         dcc.Store(id="backup-sleep-scores-store"),
         dcc.Store(id="navigation-profile-store"),
+        dcc.Store(id="graph-direct-restyle-payload-store"),
+        dcc.Store(id="graph-direct-restyle-status-store"),
         EventListener(
             id="graph-contextmenu",
             events=[

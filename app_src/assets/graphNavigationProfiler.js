@@ -74,19 +74,33 @@
         document.dispatchEvent(event);
     }
 
-    function onAfterplot() {
-        const afterplotTime = nowPerformance();
-        const marker = readProfileMarker(attachedPlot);
+    function dispatchProfileForMarker(marker, afterplotTime) {
         if (!marker) {
-            lastAfterplotTime = afterplotTime;
-            return;
+            return false;
         }
 
         const profileId = Number(marker.profileId);
         const profile = pendingProfiles.get(profileId);
         if (profile) {
             dispatchProfile(profile, marker, afterplotTime);
+            return true;
         }
+        return false;
+    }
+
+    function emitProfileForMarker(marker, afterplotTime) {
+        const profileTime = afterplotTime === undefined ? nowPerformance() : afterplotTime;
+        const didDispatch = dispatchProfileForMarker(marker, profileTime);
+        if (didDispatch) {
+            lastAfterplotTime = profileTime;
+        }
+        return didDispatch;
+    }
+
+    function onAfterplot() {
+        const afterplotTime = nowPerformance();
+        const marker = readProfileMarker(attachedPlot);
+        dispatchProfileForMarker(marker, afterplotTime);
         lastAfterplotTime = afterplotTime;
     }
 
@@ -110,6 +124,7 @@
 
     window.sleepScoringNavigationProfiler = {
         markDispatched,
+        emitProfileForMarker,
     };
 
     if (document.readyState === "loading") {

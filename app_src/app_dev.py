@@ -33,6 +33,7 @@ from app_src import VERSION
 from app_src.components_dev import Components
 from app_src.config import (
     BROWSER_NAVIGATION_PERF_LOG,
+    ENABLE_DIRECT_PLOTLY_RESTYLE,
     POSTPROCESS,
     RESAMPLER_PERF_LOG,
 )
@@ -159,6 +160,18 @@ def summarize_resampler_patch(update_patch, fig, max_items=6):
         f"operation_values={total_operation_size:.1f} KB, "
         f"top=[{item_text}]"
     )
+
+
+def build_direct_restyle_payload(update_patch, browser_profile_marker):
+    """Serialize resampler Patch operations for browser-side Plotly.restyle."""
+    if not hasattr(update_patch, "to_plotly_json"):
+        return update_patch
+
+    return {
+        "applyPath": "direct-restyle",
+        "profileMarker": browser_profile_marker,
+        "operations": update_patch.to_plotly_json().get("operations", []),
+    }
 
 
 # Note: np.nan is converted to None when reading from cache
@@ -434,6 +447,44 @@ clientside_callback(
     State("keyboard", "event"),
     State("graph", "relayoutData"),
     State("graph", "figure"),
+    prevent_initial_call=True,
+)
+
+
+clientside_callback(
+    """
+    function(payload) {
+        if (!payload) {
+            return dash_clientside.no_update;
+        }
+
+        if (!window.sleepScoringDirectRestyle) {
+            return {
+                ok: false,
+                error: "sleepScoringDirectRestyle asset is not loaded",
+                profileId: payload.profileMarker && payload.profileMarker.profileId,
+                timeStamp: Date.now()
+            };
+        }
+
+        try {
+            const result = window.sleepScoringDirectRestyle.apply(payload);
+            return {
+                ...result,
+                timeStamp: Date.now()
+            };
+        } catch (error) {
+            return {
+                ok: false,
+                error: error && error.message ? error.message : String(error),
+                profileId: payload.profileMarker && payload.profileMarker.profileId,
+                timeStamp: Date.now()
+            };
+        }
+    }
+    """,
+    Output("graph-direct-restyle-status-store", "data"),
+    Input("graph-direct-restyle-payload-store", "data"),
     prevent_initial_call=True,
 )
 
@@ -1080,8 +1131,15 @@ def is_stale_navigation_profile(profile_id):
     return profile_id is not None and profile_id < NAVIGATION_LATEST_PROFILE_ID
 
 
+RESAMPLER_CALLBACK_OUTPUT = (
+    Output("graph-direct-restyle-payload-store", "data")
+    if ENABLE_DIRECT_PLOTLY_RESTYLE
+    else Output("graph", "figure", allow_duplicate=True)
+)
+
+
 @app.callback(
-    Output("graph", "figure", allow_duplicate=True),
+    RESAMPLER_CALLBACK_OUTPUT,
     # Output("debug-message", "children"),
     Input("graph-relayout-coalesced", "n_events"),
     State("graph-relayout-coalesced", "event"),
@@ -1160,17 +1218,24 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
         if BROWSER_NAVIGATION_PERF_LOG and browser_profile_marker is not None:
             update_patch["layout"]["meta"]["sleepScoringNavigationProfile"] = browser_profile_marker
 
+        callback_payload = (
+            build_direct_restyle_payload(update_patch, browser_profile_marker)
+            if ENABLE_DIRECT_PLOTLY_RESTYLE
+            else update_patch
+        )
+        apply_path = "direct-restyle" if ENABLE_DIRECT_PLOTLY_RESTYLE else "dash-figure-patch"
+
         if RESAMPLER_PERF_LOG:
             payload_start_time = time.perf_counter()
             try:
                 payload_json = json.dumps(
-                    update_patch,
+                    callback_payload,
                     cls=PlotlyJSONEncoder,
                     separators=(",", ":"),
                 )
                 payload_size_kb = len(payload_json.encode("utf-8")) / 1024
             except TypeError:
-                payload_json = json.dumps(update_patch, default=str, separators=(",", ":"))
+                payload_json = json.dumps(callback_payload, default=str, separators=(",", ":"))
                 payload_size_kb = len(payload_json.encode("utf-8")) / 1024
             payload_ms = (time.perf_counter() - payload_start_time) * 1000
             patch_summary = summarize_resampler_patch(update_patch, fig)
@@ -1215,13 +1280,14 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
                 f"payload_encode={payload_ms:.1f} ms, "
                 f"total={callback_total_ms:.1f} ms, "
                 f"payload={payload_size_kb:.1f} KB, "
+                f"apply_path={apply_path}, "
                 f"x_width={x_width_text}, "
                 f"xaxis4.range={x_range}, "
                 f"{patch_summary}",
                 flush=True,
             )
 
-        return update_patch
+        return callback_payload
     finally:
         if RESAMPLER_PERF_LOG:
             RESAMPLER_PROFILE_LAST_FINISH = time.perf_counter()

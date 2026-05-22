@@ -154,3 +154,30 @@ class TestInitializeCache:
         history_calls = [c for c in set_calls if c[0][0] == "sleep_scores_history"]
         # When same file, history is NOT reset
         assert len(history_calls) == 0
+
+
+class TestDirectRestylePayload:
+    """Tests for browser-side Plotly.restyle payload helpers."""
+
+    def test_build_direct_restyle_payload_serializes_patch_operations(self):
+        from dash import Patch
+
+        from app_src.app_dev import build_direct_restyle_payload
+
+        profile_marker = {"profileId": 12, "mode": "final", "source": "keyboard"}
+        patch = Patch()
+        patch["data"][0]["x"] = [1.0, 2.0]
+        patch["data"][0]["y"] = [3.0, 4.0]
+        patch["layout"]["meta"]["sleepScoringNavigationProfile"] = profile_marker
+
+        payload = build_direct_restyle_payload(patch, profile_marker)
+
+        assert payload["applyPath"] == "direct-restyle"
+        assert payload["profileMarker"] == profile_marker
+        assert payload["operations"][0]["location"] == ["data", 0, "x"]
+        assert payload["operations"][1]["location"] == ["data", 0, "y"]
+        assert payload["operations"][2]["location"] == [
+            "layout",
+            "meta",
+            "sleepScoringNavigationProfile",
+        ]

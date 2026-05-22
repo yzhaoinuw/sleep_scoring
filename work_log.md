@@ -14,6 +14,62 @@ entries with targeted terms if the task needs deeper history.
 
 ## 2026-05-22
 
+### Direct Plotly Restyle Final Refresh Path
+
+- Added a guarded direct browser restyle path for final resampler refreshes:
+  - `ENABLE_DIRECT_PLOTLY_RESTYLE = True` in `app_src/config.py` routes the resampler callback to a hidden store instead of directly patching `graph.figure`
+  - `app_src/assets/graphDirectRestyle.js` reads the serialized Dash Patch operations and applies trace `x`, `y`, and `name` updates with one `Plotly.restyle` call
+  - `app_src/assets/graphNavigationProfiler.js` can now emit profile completion from direct-update promise completion if a normal `plotly_afterplot` marker path does not fire first
+  - `app_src/components_dev.py` adds hidden stores for direct-restyle payload and status
+  - `[resampler]` logs now include `apply_path=direct-restyle` or `apply_path=dash-figure-patch`
+- Synthetic representative callback on `user_test_files/115_gs.mat`:
+  - returned a `dict` payload with `applyPath=direct-restyle`
+  - preserved full-density final payload around `94.4 KB`
+  - emitted `10` serialized patch operations for the browser-side restyle path
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\config.py app_src\components_dev.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_app_helpers.py tests\test_smoke.py -q`
+  - ran bundled Node `--check` on `app_src\assets\graphDirectRestyle.js` and `app_src\assets\graphNavigationProfiler.js`
+  - confirmed Dash serves both assets and `_dash-layout` contains the direct-restyle stores
+- Human-in-loop validation:
+  - annotation, mode switch, and sampling-level changes (`x0.5`, `x1`, `x2`, `x4`) did not show stale-trace snapback or final-settle issues
+  - `x1` / normal full-detail payloads around `94-100 KB` generally kept browser apply around roughly `270-370 ms`
+  - `x4` payloads around `320-331 KB` generally kept browser apply around roughly `300-360 ms`, with one custom-drag outlier around `408 ms`
+  - `x0.5` payloads around `59 KB` generally kept browser apply around roughly `269-311 ms`
+- Current conclusion:
+  - keep direct restyle as the active final refresh path because it works behaviorally and may shave a little overhead
+  - the dominant remaining cost is still Plotly/WebGL redraw rather than Dash figure reconciliation
+
+### Adaptive Final Refresh Density Experiment Dismissed
+
+- Tried adaptive final-refresh density in `app_src/app_dev.py`, then reverted it:
+  - tight windows kept the active full-detail density unchanged
+  - broad final refreshes temporarily lowered only EEG, EMG, and NE `max_n_samples`
+  - the active resampler trace limits were restored immediately after each patch was built
+  - `[resampler]` logs included the active density band and trace limits
+- The tested bands scaled from the user's active sampling setting:
+  - `<=30 min`: full density
+  - `<=2 h`: `0.75x`
+  - `<=6 h`: `0.5x`
+  - `>6 h`: `0.25x`
+- Synthetic representative final update on `user_test_files/115_gs.mat`:
+  - `300 s`: full density, `94.2 KB`
+  - `1800 s`: full density, `95.1 KB`
+  - `3600 s`: adaptive `0.75x`, `71.8 KB`
+  - `10800 s`: adaptive `0.5x`, `49.5 KB`
+  - `28800 s`: adaptive `0.25x`, `25.7 KB`
+- Desktop-app profiling showed browser `dash_apply` remained noisy and mostly fixed-cost:
+  - full density around `93-94 KB` still landed roughly `304-351 ms`
+  - `0.75x` around `71-73 KB` landed roughly `294-402 ms`
+  - `0.5x` around `48-51 KB` landed roughly `283-359 ms`
+- Dismissal reason:
+  - timing gains were inconsistent
+  - the initial zoomed-out view looked visually worse and could give users the wrong impression
+  - next optimization should focus on fixed Plotly/Dash redraw cost rather than lowering broad-window detail
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py app_src\config.py app_src\components_dev.py`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_app_helpers.py tests\test_smoke.py -q`
+
 ### Patch Payload Precision Compaction
 
 - Added a conservative resampler patch compaction step in `app_src/app_dev.py`:
