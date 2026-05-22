@@ -68,6 +68,8 @@ RESAMPLER_PROFILE_LAST_FINISH = None
 RESAMPLER_PROFILE_ACTIVE_COUNT = 0
 NAVIGATION_LATEST_PROFILE_ID = 0
 FAST_NAVIGATION_N_SHOWN_SAMPLES = 512
+RESAMPLER_PATCH_X_DECIMALS = 5
+RESAMPLER_PATCH_Y_DECIMALS = 7
 FIG_RESAMPLERS = {
     "fig_resampler": None,
     "fig_resampler_fast": None,
@@ -89,6 +91,39 @@ def store_fig_resamplers(fig, fig_fast):
 
 def get_fig_resampler(fig_key):
     return FIG_RESAMPLERS.get(fig_key)
+
+
+def compact_resampler_patch(update_patch):
+    """Trim numeric precision in resampler trace updates before Dash serializes them."""
+    if not hasattr(update_patch, "_operations"):
+        return update_patch
+
+    for operation in update_patch._operations:
+        location = operation.get("location", [])
+        if len(location) < 3 or location[0] != "data":
+            continue
+
+        trace_property = location[2]
+        if trace_property == "x":
+            decimals = RESAMPLER_PATCH_X_DECIMALS
+        elif trace_property == "y":
+            decimals = RESAMPLER_PATCH_Y_DECIMALS
+        else:
+            continue
+
+        value = operation.get("params", {}).get("value")
+        if value is None:
+            continue
+
+        try:
+            operation["params"]["value"] = np.round(
+                np.asarray(value, dtype=float),
+                decimals,
+            ).tolist()
+        except (TypeError, ValueError):
+            continue
+
+    return update_patch
 
 
 def summarize_resampler_patch(update_patch, fig, max_items=6):
@@ -1146,6 +1181,8 @@ def update_fig_resampler(_relayout_n_events, relayout_event):
                     flush=True,
                 )
             return dash.no_update
+
+        update_patch = compact_resampler_patch(update_patch)
 
         if BROWSER_NAVIGATION_PERF_LOG and browser_profile_marker is not None:
             update_patch["layout"]["meta"]["sleepScoringNavigationProfile"] = browser_profile_marker

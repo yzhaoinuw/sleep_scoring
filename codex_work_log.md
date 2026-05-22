@@ -4,6 +4,20 @@ Prepend new session notes to the top of this file.
 
 ## 2026-05-22
 
+### Patch Payload Precision Compaction
+
+- Added a conservative resampler patch compaction step in `app_src/app_dev.py`:
+  - trace `x` arrays are rounded to 5 decimal places before Dash serializes the patch
+  - trace `y` arrays are rounded to 7 decimal places before Dash serializes the patch
+  - compaction runs after stale-update checks so stale patches do not pay extra work
+- Synthetic representative final update on `user_test_files/115_gs.mat`:
+  - payload dropped from `184.6 KB` to `108.6 KB`
+  - saved roughly `75.9 KB` per final detail refresh
+- Verification:
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m py_compile app_src\app_dev.py`
+  - ran a synthetic compacted-patch size check
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_smoke.py -q`
+
 ### Final Refresh Cadence Optimization
 
 - Updated `app_src/assets/graphRelayoutCoalescer.js` so native Plotly release events request the final detail refresh immediately instead of waiting for the normal idle fallback.
