@@ -4,10 +4,7 @@ This project is increasingly worked on by a mix of human collaborators and agent
 
 ## Before You Start
 
-- Read `AGENTS.md`, `project_overview.md`, and `next_steps.md`.
-- For `work_log.md`, read only the two most recent dated entries by default. Search the full log only when older context is relevant.
-- Use the `sleep_scoring_dash3.0` conda environment unless the task explicitly needs a different environment.
-- Check `git status` before editing. Preserve unrelated local changes and untracked files.
+- Agents should start with `AGENTS.md`; it is the canonical project-specific instruction file.
 - Treat `app_src/app_dev.py`, `components_dev.py`, and `make_figure_dev.py` as the current active UI path unless the task says otherwise.
 
 ## Branches
@@ -49,7 +46,7 @@ python -m pytest tests/test_smoke.py -q
 - Commit message bullets should describe high-level added or changed behavior, not implementation details.
 - For feature commits, do not mention tests, docs, project memory updates, or behind-the-scenes implementation details unless that internal work is the main purpose of the commit.
 
-## Agent Collaboration Notes
+## Collaboration Notes
 
 - Prefer small, inspectable edits over broad rewrites.
 - Do not remove useful experimental traces, output filenames, diagnostics, or comparison breadcrumbs until the behavior is stable and their value is clearly gone.

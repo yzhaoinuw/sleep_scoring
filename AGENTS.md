@@ -1,5 +1,12 @@
 # Agent Collaboration Notes For This Project
 
+## Startup Rule
+
+At the beginning of a new chat or agent session for this project, read this
+file first and do not automatically read every markdown file in the repository.
+Use the documentation map below to decide which other files are relevant to the
+current task.
+
 ## Local Path Conventions
 
 These notes assume collaborators keep the project folder named `sleep_scoring`
@@ -28,12 +35,33 @@ After activation, use that environment for commands such as:
 - package import checks
 - one-off scripts
 
-## Work Log Reading Guidance
+## Worktree Hygiene
 
-`work_log.md` is prepended with new session notes and can become long. At the
-start of a session, read only the two most recent dated entries unless the task
-needs deeper history. Search the full work log with targeted terms when older
-context is needed instead of loading the whole file.
+Before editing, inspect the current worktree with `git status`. Preserve
+unrelated local changes and untracked files. If a task touches files that
+already have user changes, work with those changes instead of reverting them.
+
+## Documentation
+Read these documents only as needed:
+
+- `work_log.md`
+  - Use when the task needs recent implementation history, experiment outcomes, or verification breadcrumbs.
+  - This file is prepended each session and can become long. Read only the two most recent dated entries by default.
+  - Search the full log with targeted terms when older context is needed instead of loading the whole file.
+  - Prepend a dated entry when a task creates a durable result future collaborators should know about.
+
+- `next_steps.md`
+  - Use when planning or continuing unfinished work from previous sessions.
+  - Remove items after they are completed. Add new planned follow-ups when they become concrete.
+
+- `project_overview.md`
+  - Use when onboarding to the codebase structure or when a task touches an unfamiliar area.
+
+- `README.md`
+  - Use when changing user-facing setup, packaging, usage, or input-file expectations.
+
+- `CONTRIBUTING.md`
+  - Use when changing collaboration workflow, branch/test expectations, or documentation conventions.
 
 ## Git Ownership Note
 
