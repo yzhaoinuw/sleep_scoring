@@ -23,6 +23,7 @@ import webview
 from dash import Dash, clientside_callback
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from flask import abort, request
 from flask_caching import Cache
 from plotly.utils import PlotlyJSONEncoder
 from scipy.io import loadmat, savemat
@@ -243,6 +244,39 @@ def create_fig(mat, filename, default_n_shown_samples=2048):
     )
     store_fig_resamplers(fig, fig_fast)
     return fig
+
+
+@app.server.get("/_sleep_scoring/resample")
+def resample_graph_data():
+    """Return a Plotly-resampler data patch for direct browser-side restyle."""
+    try:
+        x0 = float(request.args["x0"])
+        x1 = float(request.args["x1"])
+    except (KeyError, TypeError, ValueError):
+        abort(400)
+
+    if not np.isfinite(x0) or not np.isfinite(x1) or x0 == x1:
+        abort(400)
+
+    fig = get_fig_resampler("fig_resampler")
+    if fig is None:
+        abort(404)
+
+    update_patch = fig.construct_update_data_patch(
+        {
+            "xaxis4.range[0]": min(x0, x1),
+            "xaxis4.range[1]": max(x0, x1),
+        }
+    )
+    patch_json = (
+        update_patch.to_plotly_json() if hasattr(update_patch, "to_plotly_json") else update_patch
+    )
+
+    return app.server.response_class(
+        json.dumps(patch_json, cls=PlotlyJSONEncoder, separators=(",", ":")),
+        mimetype="application/json",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 def clear_temp_dir(filename):
@@ -513,6 +547,135 @@ app.clientside_callback(
     Input("graph", "selectedData"),
     State("graph", "figure"),
     State("graph", "clickData"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+# read_annotation_auto_pan_select
+app.clientside_callback(
+    """
+    function(annotation_n_events, annotation_event, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!annotation_n_events || !annotation_event || !figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const raw_x0 = Number(annotation_event["detail.x0"]);
+        const raw_x1 = Number(annotation_event["detail.x1"]);
+        if (!Number.isFinite(raw_x0) || !Number.isFinite(raw_x1) || raw_x0 === raw_x1) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const eeg_start_time = Number(metadata.start_time);
+        const eeg_end_time = Number(metadata.end_time);
+        if (!Number.isFinite(eeg_start_time) || !Number.isFinite(eeg_end_time)) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const video_button_style = {"visibility": "hidden"};
+        const start = Math.min(raw_x0, raw_x1);
+        const end = Math.max(raw_x0, raw_x1);
+
+        var patched_figure = new dash_clientside.Patch;
+        patched_figure.assign(['layout', 'selections'], null);
+
+        if (end < eeg_start_time || start > eeg_end_time) {
+            patched_figure.assign(['layout', 'shapes'], null);
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+
+        let start_round = Math.round(start);
+        let end_round = Math.round(end);
+
+        if (start_round === end_round) {
+            if (start_round - start > end - end_round) {
+                end_round = Math.ceil(start);
+                start_round = Math.floor(start);
+            } else {
+                end_round = Math.ceil(end);
+                start_round = Math.floor(end);
+            }
+        }
+
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+
+        if (end_round <= start_round) {
+            if (start_round < eeg_end_time) {
+                end_round = start_round + 1;
+            } else if (end_round > eeg_start_time) {
+                start_round = end_round - 1;
+            }
+        }
+
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+        if (end_round <= start_round) {
+            patched_figure.assign(['layout', 'shapes'], null);
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+
+        const final_start = start_round - eeg_start_time;
+        const final_end = end_round - eeg_start_time;
+        const duration = final_end - final_start;
+
+        let y0 = Number(annotation_event["detail.y0"]);
+        let y1 = Number(annotation_event["detail.y1"]);
+        if (!Number.isFinite(y0) || !Number.isFinite(y1)) {
+            y0 = -30;
+            y1 = 30;
+        }
+
+        const select_box = {
+            "type": "rect",
+            "xref": annotation_event["detail.xref"] || "x4",
+            "yref": annotation_event["detail.yref"] || "y5",
+            "x0": start_round,
+            "x1": end_round,
+            "y0": y0,
+            "y1": y1,
+            "fillcolor": "rgba(99, 110, 250, 0.14)",
+            "line": {"color": "rgba(99, 110, 250, 0.95)", "width": 1, "dash": "dot"},
+            "layer": "above"
+        };
+
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        let final_video_button_style = {"visibility": "hidden"};
+        if (duration >= 1 && duration <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph-annotation-select", "n_events"),
+    State("graph-annotation-select", "event"),
+    State("graph", "figure"),
     State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )

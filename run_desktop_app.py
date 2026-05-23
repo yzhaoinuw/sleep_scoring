@@ -27,8 +27,9 @@ def run_dash():
     app.run(
         host="127.0.0.1",
         port=PORT,
-        debug=True,
+        debug=False,
         dev_tools_hot_reload=False,
+        use_reloader=False,
     )
 
 

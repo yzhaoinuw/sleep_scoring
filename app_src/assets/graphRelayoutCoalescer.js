@@ -7,14 +7,13 @@
 
     const EVENT_NAME = "sleepgraphrelayout";
     const GRAPH_ID = "graph";
-    const DEBOUNCE_MS = 90;
-    const MAX_WAIT_MS = 250;
     const FINAL_IDLE_MS = 450;
+    const LIVE_UPDATE_MS = 180;
 
-    let pendingRange = null;
-    let debounceTimer = null;
+    let pendingLiveRange = null;
     let finalTimer = null;
-    let firstPendingAt = null;
+    let liveTimer = null;
+    let lastLiveDispatchAt = null;
     let lastDispatch = null;
     let attachedPlot = null;
 
@@ -54,15 +53,24 @@
         return [Math.min(x0, x1), Math.max(x0, x1)];
     }
 
+    function isSameRange(range, otherRange) {
+        if (!range || !otherRange) {
+            return false;
+        }
+
+        return (
+            Math.abs(range[0] - otherRange[0]) < 1e-9 &&
+            Math.abs(range[1] - otherRange[1]) < 1e-9
+        );
+    }
+
     function dispatchRange(range, source, mode) {
         const [x0, x1] = range;
         const now = Date.now();
         if (
             lastDispatch &&
             lastDispatch.mode === mode &&
-            Math.abs(lastDispatch.x0 - x0) < 1e-9 &&
-            Math.abs(lastDispatch.x1 - x1) < 1e-9 &&
-            now - lastDispatch.timeStamp < MAX_WAIT_MS
+            isSameRange(range, [lastDispatch.x0, lastDispatch.x1])
         ) {
             return;
         }
@@ -80,31 +88,6 @@
         document.dispatchEvent(event);
     }
 
-    function dispatchPending() {
-        if (!pendingRange) {
-            return;
-        }
-
-        dispatchRange(pendingRange.range, pendingRange.source, "fast");
-        pendingRange = null;
-        firstPendingAt = null;
-    }
-
-    function requestFast(range, source) {
-        const now = Date.now();
-        pendingRange = { range, source: source || "plotly" };
-        if (firstPendingAt === null) {
-            firstPendingAt = now;
-        }
-
-        window.clearTimeout(debounceTimer);
-        if (now - firstPendingAt >= MAX_WAIT_MS) {
-            dispatchPending();
-        } else {
-            debounceTimer = window.setTimeout(dispatchPending, DEBOUNCE_MS);
-        }
-    }
-
     function requestFinal(range, source, delay) {
         window.clearTimeout(finalTimer);
         finalTimer = window.setTimeout(function () {
@@ -118,8 +101,39 @@
             return;
         }
 
-        requestFast(range, source);
         requestFinal(range, source, FINAL_IDLE_MS);
+    }
+
+    function dispatchPendingLive() {
+        if (!pendingLiveRange) {
+            return;
+        }
+
+        dispatchRange(pendingLiveRange.range, pendingLiveRange.source, "final");
+        lastLiveDispatchAt = Date.now();
+        pendingLiveRange = null;
+    }
+
+    function requestLive(relayoutData, source) {
+        const range = extractXRange(relayoutData);
+        if (!range) {
+            return;
+        }
+
+        const now = Date.now();
+        const liveSource = source || "plotly-live";
+        pendingLiveRange = { range, source: liveSource };
+
+        if (lastLiveDispatchAt === null || now - lastLiveDispatchAt >= LIVE_UPDATE_MS) {
+            window.clearTimeout(liveTimer);
+            dispatchPendingLive();
+        } else {
+            window.clearTimeout(liveTimer);
+            liveTimer = window.setTimeout(
+                dispatchPendingLive,
+                LIVE_UPDATE_MS - (now - lastLiveDispatchAt)
+            );
+        }
     }
 
     function findPlot() {
@@ -138,15 +152,22 @@
 
         attachedPlot = plot;
         plot.on("plotly_relayouting", function (relayoutData) {
+            if (window.sleepScoringAnnotationAutoPanActive) {
+                return;
+            }
             request(relayoutData, "plotly-moving");
         });
         plot.on("plotly_relayout", function (relayoutData) {
+            if (window.sleepScoringAnnotationAutoPanActive) {
+                return;
+            }
             request(relayoutData, "plotly");
         });
     }
 
     window.sleepScoringGraphRelayout = {
         request,
+        requestLive,
     };
 
     if (document.readyState === "loading") {
