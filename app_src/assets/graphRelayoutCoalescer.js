@@ -9,6 +9,7 @@
     const GRAPH_ID = "graph";
     const FINAL_IDLE_MS = 450;
     const LIVE_UPDATE_MS = 180;
+    const PROFILE_LOG_ENDPOINT = "/_sleep_scoring/profile-log";
 
     let pendingLiveRange = null;
     let finalTimer = null;
@@ -16,6 +17,35 @@
     let lastLiveDispatchAt = null;
     let lastDispatch = null;
     let attachedPlot = null;
+    let nextProfileId = 0;
+    const pendingProfiles = [];
+
+    function postProfileLog(payload) {
+        const body = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+            const blob = new Blob([body], { type: "application/json" });
+            if (navigator.sendBeacon(PROFILE_LOG_ENDPOINT, blob)) {
+                return;
+            }
+        }
+
+        window
+            .fetch(PROFILE_LOG_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body,
+                keepalive: true,
+            })
+            .catch(function () {});
+    }
+
+    function formatMs(value) {
+        return Number.isFinite(value) ? value.toFixed(1) + " ms" : null;
+    }
+
+    function rangeWidth(range) {
+        return Array.isArray(range) && range.length === 2 ? Math.abs(range[1] - range[0]) : null;
+    }
 
     function getValue(data, dottedKey, bracketIndex) {
         if (!data) {
@@ -76,6 +106,18 @@
         }
 
         lastDispatch = { x0, x1, mode, timeStamp: now };
+        pendingProfiles.push({
+            id: ++nextProfileId,
+            range: [x0, x1],
+            source,
+            mode,
+            startedAt: performance.now(),
+            wallStartedAt: now,
+        });
+        while (pendingProfiles.length > 12) {
+            pendingProfiles.shift();
+        }
+
         const event = new CustomEvent(EVENT_NAME, {
             detail: {
                 x0,
@@ -163,12 +205,30 @@
             }
             request(relayoutData, "plotly");
         });
+        plot.on("plotly_afterplot", function () {
+            if (pendingProfiles.length === 0) {
+                return;
+            }
+
+            const profile = pendingProfiles.shift();
+            postProfileLog({
+                event: "browser-relayout",
+                id: profile.id,
+                source: profile.source,
+                mode: profile.mode,
+                browser_total: formatMs(performance.now() - profile.startedAt),
+                x_width: rangeWidth(profile.range),
+                x0: profile.range[0],
+                x1: profile.range[1],
+            });
+        });
     }
 
     window.sleepScoringGraphRelayout = {
         request,
         requestLive,
     };
+    window.sleepScoringProfileLog = postProfileLog;
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", attachPlotlyListener);

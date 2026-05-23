@@ -13,7 +13,12 @@
     const PAN_VIEW_WIDTH_PER_SECOND = 0.45;
     const AUTO_PAN_FRAME_MS = 33;
     const TRACE_REFRESH_MS = 180;
+    const LEAD_OVERLAP_FRACTION = 0.2;
+    const TRAIL_BUFFER_FRACTION = 0.2;
+    const LEAD_BUFFER_FRACTION = 0.7;
+    const BUFFER_SAMPLE_MULTIPLIER = 1.6;
     const RESAMPLE_ENDPOINT = "/_sleep_scoring/resample";
+    const PROFILE_LOG_ENDPOINT = "/_sleep_scoring/profile-log";
 
     let dragState = null;
     let panFrame = null;
@@ -33,6 +38,38 @@
             return null;
         }
         return graphRoot.querySelector(".js-plotly-plot");
+    }
+
+    function postProfileLog(payload) {
+        if (typeof window.sleepScoringProfileLog === "function") {
+            window.sleepScoringProfileLog(payload);
+            return;
+        }
+
+        const body = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+            const blob = new Blob([body], { type: "application/json" });
+            if (navigator.sendBeacon(PROFILE_LOG_ENDPOINT, blob)) {
+                return;
+            }
+        }
+
+        window
+            .fetch(PROFILE_LOG_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body,
+                keepalive: true,
+            })
+            .catch(function () {});
+    }
+
+    function formatMs(value) {
+        return Number.isFinite(value) ? value.toFixed(1) + " ms" : null;
+    }
+
+    function formatKb(value) {
+        return Number.isFinite(value) ? value.toFixed(1) + " KB" : null;
     }
 
     function getSharedXAxis(fullLayout) {
@@ -213,13 +250,103 @@
         return grouped;
     }
 
-    function applyTracePatch(plot, patch, requestId) {
-        if (!plot || !window.Plotly || requestId < latestAppliedTraceRequestId) {
-            return;
+    function getLeadRange(visibleRange, pressure) {
+        const width = visibleRange[1] - visibleRange[0];
+        if (!Number.isFinite(width) || width <= 0 || pressure === 0) {
+            return visibleRange;
         }
 
-        latestAppliedTraceRequestId = requestId;
-        const groupedOperations = groupPatchOperations(patch);
+        if (pressure > 0) {
+            return [
+                visibleRange[1] - width * LEAD_OVERLAP_FRACTION,
+                visibleRange[1] + width * (1 - LEAD_OVERLAP_FRACTION),
+            ];
+        }
+
+        return [
+            visibleRange[0] - width * (1 - LEAD_OVERLAP_FRACTION),
+            visibleRange[0] + width * LEAD_OVERLAP_FRACTION,
+        ];
+    }
+
+    function getTrimRange(visibleRange, pressure) {
+        const width = visibleRange[1] - visibleRange[0];
+        if (!Number.isFinite(width) || width <= 0 || pressure === 0) {
+            return visibleRange;
+        }
+
+        if (pressure > 0) {
+            return [
+                visibleRange[0] - width * TRAIL_BUFFER_FRACTION,
+                visibleRange[1] + width * LEAD_BUFFER_FRACTION,
+            ];
+        }
+
+        return [
+            visibleRange[0] - width * LEAD_BUFFER_FRACTION,
+            visibleRange[1] + width * TRAIL_BUFFER_FRACTION,
+        ];
+    }
+
+    function toArray(values) {
+        if (!values) {
+            return [];
+        }
+
+        return Array.from(values);
+    }
+
+    function decimatePoints(points, maxPoints) {
+        if (points.length <= maxPoints || maxPoints < 2) {
+            return points;
+        }
+
+        const decimated = [];
+        const lastIndex = points.length - 1;
+        for (let index = 0; index < maxPoints; index += 1) {
+            const sourceIndex = Math.round((index * lastIndex) / (maxPoints - 1));
+            decimated.push(points[sourceIndex]);
+        }
+        return decimated;
+    }
+
+    function mergeTraceArrays(existingX, existingY, incomingX, incomingY, trimRange) {
+        const points = [];
+        const incomingXs = toArray(incomingX);
+        const incomingYs = toArray(incomingY);
+        const maxPoints = Math.max(2, Math.ceil(incomingXs.length * BUFFER_SAMPLE_MULTIPLIER));
+
+        function addPoints(xs, ys) {
+            const count = Math.min(xs.length, ys.length);
+            for (let index = 0; index < count; index += 1) {
+                const x = Number(xs[index]);
+                if (!Number.isFinite(x) || x < trimRange[0] || x > trimRange[1]) {
+                    continue;
+                }
+                points.push({ x, y: ys[index] });
+            }
+        }
+
+        addPoints(toArray(existingX), toArray(existingY));
+        addPoints(incomingXs, incomingYs);
+        points.sort((left, right) => left.x - right.x);
+
+        const mergedX = [];
+        const mergedY = [];
+        for (const point of decimatePoints(points, maxPoints)) {
+            const lastIndex = mergedX.length - 1;
+            if (lastIndex >= 0 && mergedX[lastIndex] === point.x) {
+                mergedY[lastIndex] = point.y;
+            } else {
+                mergedX.push(point.x);
+                mergedY.push(point.y);
+            }
+        }
+
+        return { x: mergedX, y: mergedY };
+    }
+
+    function buildTraceUpdates(plot, groupedOperations, requestConfig) {
         const traceIndices = Array.from(groupedOperations.keys())
             .filter((traceIndex) => {
                 const update = groupedOperations.get(traceIndex);
@@ -227,18 +354,56 @@
             })
             .sort((left, right) => left - right);
 
-        if (traceIndices.length === 0) {
-            return;
+        const xUpdates = [];
+        const yUpdates = [];
+        const updatedTraceIndices = [];
+        const shouldMerge = requestConfig.mode === "merge";
+        const trimRange = getTrimRange(requestConfig.visibleRange, requestConfig.pressure);
+
+        for (const traceIndex of traceIndices) {
+            const update = groupedOperations.get(traceIndex);
+            let x = update.x[0];
+            let y = update.y[0];
+
+            if (shouldMerge && plot.data && plot.data[traceIndex]) {
+                const merged = mergeTraceArrays(
+                    plot.data[traceIndex].x,
+                    plot.data[traceIndex].y,
+                    x,
+                    y,
+                    trimRange
+                );
+                x = merged.x;
+                y = merged.y;
+            }
+
+            updatedTraceIndices.push(traceIndex);
+            xUpdates.push(x);
+            yUpdates.push(y);
         }
 
-        window.Plotly.restyle(
-            plot,
-            {
-                x: traceIndices.map((traceIndex) => groupedOperations.get(traceIndex).x[0]),
-                y: traceIndices.map((traceIndex) => groupedOperations.get(traceIndex).y[0]),
-            },
-            traceIndices
-        );
+        return {
+            traceIndices: updatedTraceIndices,
+            update: { x: xUpdates, y: yUpdates },
+        };
+    }
+
+    function applyTracePatch(plot, patch, requestId, requestConfig) {
+        if (!plot || !window.Plotly || requestId < latestAppliedTraceRequestId) {
+            return { applied: false, traces: 0, points: 0 };
+        }
+
+        latestAppliedTraceRequestId = requestId;
+        const groupedOperations = groupPatchOperations(patch);
+        const tracePatch = buildTraceUpdates(plot, groupedOperations, requestConfig);
+
+        if (tracePatch.traceIndices.length === 0) {
+            return { applied: false, traces: 0, points: 0 };
+        }
+
+        window.Plotly.restyle(plot, tracePatch.update, tracePatch.traceIndices);
+        const points = tracePatch.update.x.reduce((total, traceX) => total + traceX.length, 0);
+        return { applied: true, traces: tracePatch.traceIndices.length, points };
     }
 
     function buildResampleUrl(range) {
@@ -258,6 +423,11 @@
         lastTraceRequestAt = Date.now();
         const requestId = ++latestTraceRequestId;
         const plot = requestConfig.plot;
+        const requestStartedAt = performance.now();
+        const queuedMs = requestStartedAt - requestConfig.queuedAt;
+        let fetchMs = null;
+        let payloadKb = null;
+        let parseMs = null;
 
         window
             .fetch(buildResampleUrl(requestConfig.range), { cache: "no-store" })
@@ -265,9 +435,40 @@
                 if (!response.ok) {
                     throw new Error(`Resample request failed: ${response.status}`);
                 }
-                return response.json();
+                const fetchFinishedAt = performance.now();
+                fetchMs = fetchFinishedAt - requestStartedAt;
+                return response.text();
             })
-            .then((patch) => applyTracePatch(plot, patch, requestId))
+            .then((text) => {
+                payloadKb = new Blob([text]).size / 1024;
+                const parseStartedAt = performance.now();
+                const patch = JSON.parse(text);
+                parseMs = performance.now() - parseStartedAt;
+                return patch;
+            })
+            .then((patch) => {
+                const applyStartedAt = performance.now();
+                const applyStats = applyTracePatch(plot, patch, requestId, requestConfig);
+                const applyMs = performance.now() - applyStartedAt;
+                postProfileLog({
+                    event: "browser-autopan",
+                    id: requestId,
+                    mode: requestConfig.mode,
+                    queued: formatMs(queuedMs),
+                    fetch: formatMs(fetchMs),
+                    parse: formatMs(parseMs),
+                    apply: formatMs(applyMs),
+                    browser_total: formatMs(performance.now() - requestConfig.queuedAt),
+                    payload: formatKb(payloadKb),
+                    x_width: Math.abs(requestConfig.range[1] - requestConfig.range[0]).toFixed(1) + " s",
+                    visible_width:
+                        Math.abs(requestConfig.visibleRange[1] - requestConfig.visibleRange[0]).toFixed(1) +
+                        " s",
+                    traces: applyStats.traces,
+                    points: applyStats.points,
+                    applied: applyStats.applied,
+                });
+            })
             .catch(() => {
                 // Keep dragging responsive even if one live refresh misses.
             })
@@ -276,17 +477,33 @@
                 if (pendingTraceRequest) {
                     const nextRequest = pendingTraceRequest;
                     pendingTraceRequest = null;
-                    requestTraceRefresh(nextRequest.rawRange, nextRequest.pressure, true, nextRequest.plot);
+                    requestTraceRefresh(
+                        nextRequest.visibleRange,
+                        nextRequest.pressure,
+                        true,
+                        nextRequest.plot,
+                        nextRequest.mode
+                    );
                 }
             });
     }
 
-    function requestTraceRefresh(rawRange, pressure, immediate, plot) {
-        if (!rawRange || !plot) {
+    function requestTraceRefresh(visibleRange, pressure, immediate, plot, mode) {
+        if (!visibleRange || !plot) {
             return;
         }
 
-        const requestConfig = { rawRange, range: rawRange, pressure, plot };
+        const requestMode = mode || "replace";
+        const requestRange =
+            requestMode === "merge" ? getLeadRange(visibleRange, pressure) : visibleRange;
+        const requestConfig = {
+            visibleRange,
+            range: requestRange,
+            pressure,
+            plot,
+            mode: requestMode,
+            queuedAt: performance.now(),
+        };
         pendingTraceRequest = requestConfig;
 
         window.clearTimeout(traceTimer);
@@ -368,7 +585,7 @@
             selections: [],
             shapes: shape ? [shape] : [],
         });
-        requestTraceRefresh(nextRange, pressure, false, dragState.plot);
+        requestTraceRefresh(nextRange, pressure, false, dragState.plot, "merge");
 
         panFrame = window.requestAnimationFrame(autoPanStep);
     }
@@ -527,7 +744,7 @@
         const finalInfo = updateCurrentTimeFromPointer();
         const finalRange = finalInfo ? getAxisRange(finalInfo.xaxis) : null;
         if (finalRange) {
-            requestTraceRefresh(finalRange, 0, true, dragState.plot);
+            requestTraceRefresh(finalRange, 0, true, dragState.plot, "replace");
         } else {
             finishTraceRefresh();
         }

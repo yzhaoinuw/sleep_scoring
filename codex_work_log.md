@@ -2,6 +2,36 @@
 
 Prepend new session notes to the top of this file.
 
+## 2026-05-23
+
+### Annotation Drag Auto-Pan
+
+- Added browser-side auto-pan for annotation drag selection:
+  - dragging a selection beyond the left or right graph edge now pans the x-axis while preserving the selection range
+  - the final selected range is sent through the existing annotation selection flow on mouse release
+  - normal relayout coalescing is suppressed while annotation auto-pan is active so the live selection does not compete with regular navigation callbacks
+- Added direct trace refreshes for auto-pan:
+  - `/_sleep_scoring/resample` returns Plotly-resampler patches for browser-side refreshes
+  - auto-pan requests a lead window in the drag direction and merges returned x/y data into the active graph
+  - release uses a final replace refresh for the exact visible range
+- Tuned the merge path after profiling:
+  - bounded the browser-side merge buffer to prevent point-count growth during long auto-pan drags
+  - long manual drags now stayed around 7k-8k active points instead of climbing into the 20k+ range
+  - direct resampler server work was usually about 13-16 ms, while browser merge apply was usually about 230-305 ms
+- Added response-time logging for the current profiling pass:
+  - server logs include `[resampler]` for normal Dash updates and `[resampler-direct]` for direct auto-pan refreshes
+  - browser logs include `[browser-relayout]` and `[browser-autopan]` via `/_sleep_scoring/profile-log`
+  - profiling is enabled by default through `PROFILE_RESAMPLER_UPDATES`; set `SLEEP_SCORING_PROFILE_RESAMPLER=0` to quiet it
+- Known follow-up:
+  - dragging briefly past the recording end can request a lead window beyond available data
+  - this may produce a momentary straight-line trace before the final replace refresh recovers
+  - clamp the lead request to recording bounds in the next polish pass
+- Verification:
+  - manually tested long-distance annotation auto-pan without observed selection failures
+  - parsed the changed browser assets through dynamic import in the Codex Node REPL
+  - ran `git diff --check`
+  - ran `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests -q --basetemp .pytest_tmp\response_logging_buffer_cap -p no:cacheprovider`
+
 ## 2026-05-20
 
 ### Fast/Final Navigation Resampler Prototype

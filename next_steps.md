@@ -4,11 +4,13 @@ Use this checklist alongside `codex_work_log.md`.
 
 ## Navigation And Extended Selection Feedback
 
+Status: implemented and manually validated.
+
 Users raised two related interaction problems:
 
 - In annotation mode, drag selection is limited to the currently visible x-range.
-  - Desired behavior: select a region that extends beyond the current view without stopping to pan manually.
-  - Likely implementation shape: custom client-side auto-pan while selection is active, preserving or extending the selected range until mouse release.
+  - Implemented behavior: client-side annotation drag auto-pan keeps extending the selected range beyond the current view until mouse release.
+  - Trace updates during auto-pan use direct browser fetches to `/_sleep_scoring/resample`, request a small lead window in the drag direction, merge the returned trace data into the visible graph, and replace with the exact final range on release.
 - Trace updates feel too slow during zooming and panning.
   - Current keyboard panning updates `relayoutData` client-side in `pan_figure`, but the waveform update still depends on the server-side Plotly-resampler callback.
   - The slow part may be Python resampling, Dash transport/serialization, browser redraw, or a combination.
@@ -48,10 +50,18 @@ Proposed plan:
   - Suppress duplicate fast updates for unchanged or near-unchanged ranges more aggressively.
   - Explore deriving regular x arrays client-side or otherwise avoiding repeated x-array payloads.
   - Consider precomputed downsample tiers per loaded file if on-demand resampling becomes a bottleneck again.
-- Only after navigation feels responsive, revisit drag-select auto-pan.
-  - Prototype edge-triggered x-axis panning during annotation selection.
-  - Preserve the final selected `[start, end]` range for the existing annotation flow.
-  - Validate behavior across all subplots before making it the default.
+- Drag-select auto-pan status.
+  - Edge-triggered x-axis panning during annotation selection is now implemented in `app_src/assets/annotationAutoPan.js`.
+  - The final selected `[start, end]` range is preserved for the existing annotation flow.
+  - Browser-side merge buffers are capped so long auto-pan drags stay around 7k-8k active points instead of growing without bound.
+  - Profiling from long manual drags showed direct resampler requests usually around 13-16 ms server time, browser merge applies usually around 230-305 ms, and no progressive point-count growth.
+
+Remaining polish:
+
+- Clamp auto-pan lead requests at the recording bounds.
+  - When dragging briefly past the end of the recording, the lead request can go beyond available trace data.
+  - Manual testing showed a momentary straight-line trace before the final replace refresh recovers.
+  - The next small fix should clamp or skip out-of-bounds lead windows while still allowing the selection frontier to reach the true recording end.
 
 ## Annotation Feature Status
 

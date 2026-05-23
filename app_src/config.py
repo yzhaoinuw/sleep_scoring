@@ -42,4 +42,4 @@ STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 PORT = 8050
 
 # %% Profiling
-PROFILE_RESAMPLER_UPDATES = os.environ.get("SLEEP_SCORING_PROFILE_RESAMPLER", "0") == "1"
+PROFILE_RESAMPLER_UPDATES = os.environ.get("SLEEP_SCORING_PROFILE_RESAMPLER", "1") == "1"
