@@ -2,6 +2,15 @@
 
 Use this checklist alongside `codex_work_log.md`.
 
+## Currently Hot
+
+Active threads — read these first to know what work is in flight:
+
+- Navigation latency and annotation drag auto-pan — see [Navigation And Extended Selection Feedback](#navigation-and-extended-selection-feedback). The remaining polish item is clamping auto-pan lead requests at recording bounds.
+- Statistical scoring model — see [Current Statistical Model](#current-statistical-model), [Immediate Goal](#immediate-goal), and [Next Experiment](#next-experiment). The current focus is improving REM detection inside long Wake bouts.
+
+Other sections below are background or paused; treat them as reference unless a new request reopens them.
+
 ## Navigation And Extended Selection Feedback
 
 Status: implemented and manually validated.
