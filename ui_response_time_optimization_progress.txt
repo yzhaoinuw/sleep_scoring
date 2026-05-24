@@ -8,20 +8,65 @@ Significant progress. Default navigation is about 2.5x faster end to end:
 the measured final response dropped from roughly 935 ms to a typical
 300-370 ms range, with most tested interactions under 400 ms.
 
-The remaining response time is now mostly browser-side Plotly/WebGL redraw
-cost, not Python resampling.
+Annotation auto-pan while drag-selecting is now integrated on top of the
+optimized navigation path and feels smooth in manual testing.
+
+The remaining response time is mostly browser-side Plotly/WebGL redraw cost,
+not Python resampling.
 
 
 Scope
 -----
 
-This summary compares early browser-measured navigation logs from
-2026-05-21 against the latest optimized navigation behavior validated on
-2026-05-22.
+This summary compares early browser-measured navigation logs from 2026-05-21
+against the latest optimized navigation and annotation auto-pan behavior
+validated through manual testing on 2026-05-23 and documented on 2026-05-24.
 
 The key end-to-end timing metric is `browser_total`. Server callback timing is
 a sub-measurement inside the browser apply path, so it should not be added on
 top of `browser_total`.
+
+
+Benchmark Environment
+---------------------
+
+These numbers are local manual-test measurements, not synthetic benchmarks.
+Collaborators should compare against them with hardware, browser, and test data
+in mind.
+
+Local machine used for the retained measurements:
+
+- OS reported by registry: Windows 10 Home, DisplayVersion 25H2, build
+  26200.8457, 64-bit (`Microsoft Windows NT 10.0.26200.0`)
+- CPU: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60 GHz
+- CPU reading at documentation time: about 3302 MHz
+- Logical processors visible to the process: 16
+- RAM: about 31.7 GB
+- GPU/browser version: not recorded; this matters because current remaining
+  cost is mostly browser-side Plotly/WebGL redraw
+
+Runtime used:
+
+- Conda environment: `sleep_scoring_dash3.0`
+- Python: 3.11.14
+- Dash: 3.3.0
+- Plotly: 6.5.0
+- NumPy: 2.3.5
+- Pandas: 2.3.3
+- Flask: 3.1.2
+
+Code/test context:
+
+- Branch: `codex/next-level-navigation`
+- Latest validated code commit before this document-only update:
+  `8048101 Restore annotation auto-pan edge motion`
+- Test recording duration visible in logs: about 15,295 seconds
+- Tested trace groups in logged resampler patches: EEG, EMG, and NE
+- Default sampling level: `x1`
+- Additional sampling levels tested during optimization: `x0.5`, `x2`, `x4`
+- Interaction coverage: zooming, drag panning, keyboard panning, custom drag,
+  annotation mode, mode switches, sampling-level changes, and annotation
+  drag-select auto-pan at both recording edges
 
 
 What Improved
@@ -87,6 +132,26 @@ path and was validated across:
 - mode switches
 - sampling levels `x0.5`, `x1`, `x2`, and `x4`
 
+6. Annotation auto-pan while drag-selecting
+
+Annotation auto-pan uses a direct `/_sleep_scoring/resample` endpoint for live
+trace refreshes during selection, then keeps the optimized final-refresh path
+for normal graph updates.
+
+Latest manual logs showed:
+
+- Direct auto-pan server resample total: usually about 11-15 ms
+- Direct auto-pan payload: about 87-99 KB in the tested edge/visible ranges
+- Browser auto-pan apply: usually about 220-330 ms for the Plotly trace update
+- Auto-pan merge buffers: generally around 5k-8k points across EEG, EMG, and NE
+- Edge behavior: fetch windows clamp to valid recording bounds, for example
+  `[0, 564.1]` near the left edge and `[14606.0, 15295.0]` near the right edge
+
+The browser-side pan loop intentionally keeps natural viewport motion while
+only the resample fetch window is clamped. This avoids empty out-of-bounds
+payloads without reintroducing the stalled edge-pan behavior seen in the first
+clamp attempt.
+
 
 Sampling-Level Observations
 ---------------------------
@@ -119,6 +184,8 @@ Tried And Kept
 - Smaller final payloads while preserving default EEG/EMG detail.
 - Direct browser-side `Plotly.restyle` for final trace refreshes.
 - Optional sampling levels for user-controlled tradeoffs.
+- Annotation drag-select auto-pan on the optimized navigation branch.
+- Direct auto-pan resample endpoint with recording-bound fetch clamping.
 
 
 Tried And Dismissed
@@ -155,10 +222,11 @@ Current Conclusion
 ------------------
 
 The app has made meaningful UI response progress and now feels smooth in manual
-testing for zooming, panning, annotation, mode switching, and sampling-level
-changes.
+testing for zooming, panning, annotation, mode switching, sampling-level
+changes, and annotation drag-select auto-pan.
 
 Further UI response optimization is likely in diminishing-returns territory
-unless user feedback shows a remaining pain point. The next planned product
-work is auto-pan while drag-selecting in annotation mode, then user feedback
-should decide whether the current navigation responsiveness is sufficient.
+unless user feedback shows a remaining pain point. Future comparisons should
+include the local OS, CPU, RAM, browser/GPU, package versions, recording
+duration, sampling level, and interaction type so collaborators can separate
+machine differences from app regressions.

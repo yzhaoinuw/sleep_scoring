@@ -47,6 +47,8 @@ Read these documents only as needed:
 - `work_log.md`
   - Use when the task needs recent implementation history, experiment outcomes, or verification breadcrumbs.
   - This file is prepended each session and can become long. Read only the two most recent dated entries by default.
+  - Find date anchors with ripgrep and read only the slice you need:
+    `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md`
   - Search the full log with targeted terms when older context is needed instead of loading the whole file.
   - Prepend a dated entry when a task creates a durable result future collaborators should know about.
 
