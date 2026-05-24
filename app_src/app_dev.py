@@ -23,6 +23,7 @@ import webview
 from dash import Dash, clientside_callback
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from flask import abort, request
 from flask_caching import Cache
 from plotly.utils import PlotlyJSONEncoder
 from scipy.io import loadmat, savemat
@@ -35,6 +36,7 @@ from app_src.config import (
     BROWSER_NAVIGATION_PERF_LOG,
     ENABLE_DIRECT_PLOTLY_RESTYLE,
     POSTPROCESS,
+    PROFILE_RESAMPLER_UPDATES,
     RESAMPLER_PERF_LOG,
 )
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
@@ -289,6 +291,77 @@ def create_fig(mat, filename, default_n_shown_samples=2048):
 
     store_fig_resampler(fig)
     return fig
+
+
+@app.server.get("/_sleep_scoring/resample")
+def resample_graph_data():
+    """Return a Plotly-resampler data patch for direct browser-side restyle."""
+    request_start_time = time.perf_counter()
+    try:
+        x0 = float(request.args["x0"])
+        x1 = float(request.args["x1"])
+    except (KeyError, TypeError, ValueError):
+        abort(400)
+
+    if not np.isfinite(x0) or not np.isfinite(x1) or x0 == x1:
+        abort(400)
+
+    fig = get_fig_resampler()
+    if fig is None:
+        abort(404)
+
+    construct_start_time = time.perf_counter()
+    update_patch = fig.construct_update_data_patch(
+        {
+            "xaxis4.range[0]": min(x0, x1),
+            "xaxis4.range[1]": max(x0, x1),
+        }
+    )
+    construct_ms = (time.perf_counter() - construct_start_time) * 1000
+    update_patch = compact_resampler_patch(update_patch)
+    patch_json = (
+        update_patch.to_plotly_json() if hasattr(update_patch, "to_plotly_json") else update_patch
+    )
+    payload_start_time = time.perf_counter()
+    payload = json.dumps(patch_json, cls=PlotlyJSONEncoder, separators=(",", ":"))
+    payload_ms = (time.perf_counter() - payload_start_time) * 1000
+
+    if PROFILE_RESAMPLER_UPDATES:
+        payload_size_kb = len(payload.encode("utf-8")) / 1024
+        callback_total_ms = (time.perf_counter() - request_start_time) * 1000
+        patch_summary = summarize_resampler_patch(update_patch, fig)
+        print(
+            "[resampler-direct] "
+            f"construct={construct_ms:.1f} ms, "
+            f"payload_encode={payload_ms:.1f} ms, "
+            f"total={callback_total_ms:.1f} ms, "
+            f"payload={payload_size_kb:.1f} KB, "
+            f"x_width={abs(x1 - x0):.1f} s, "
+            f"xaxis4.range={[min(x0, x1), max(x0, x1)]}, "
+            f"{patch_summary}",
+            flush=True,
+        )
+
+    return app.server.response_class(
+        payload,
+        mimetype="application/json",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.server.post("/_sleep_scoring/profile-log")
+def browser_profile_log():
+    """Mirror browser-side response-time logs into the app terminal."""
+    if not PROFILE_RESAMPLER_UPDATES:
+        return ("", 204)
+
+    payload = request.get_json(silent=True) or {}
+    event = payload.get("event", "browser")
+    details = [
+        f"{key}={value}" for key, value in payload.items() if key != "event" and value is not None
+    ]
+    print(f"[{event}] " + ", ".join(details), flush=True)
+    return ("", 204)
 
 
 def clear_temp_dir(filename):
@@ -597,6 +670,135 @@ app.clientside_callback(
     Input("graph", "selectedData"),
     State("graph", "figure"),
     State("graph", "clickData"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+# read_annotation_auto_pan_select
+app.clientside_callback(
+    """
+    function(annotation_n_events, annotation_event, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!annotation_n_events || !annotation_event || !figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const raw_x0 = Number(annotation_event["detail.x0"]);
+        const raw_x1 = Number(annotation_event["detail.x1"]);
+        if (!Number.isFinite(raw_x0) || !Number.isFinite(raw_x1) || raw_x0 === raw_x1) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const eeg_start_time = Number(metadata.start_time);
+        const eeg_end_time = Number(metadata.end_time);
+        if (!Number.isFinite(eeg_start_time) || !Number.isFinite(eeg_end_time)) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const video_button_style = {"visibility": "hidden"};
+        const start = Math.min(raw_x0, raw_x1);
+        const end = Math.max(raw_x0, raw_x1);
+
+        var patched_figure = new dash_clientside.Patch;
+        patched_figure.assign(['layout', 'selections'], null);
+
+        if (end < eeg_start_time || start > eeg_end_time) {
+            patched_figure.assign(['layout', 'shapes'], null);
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+
+        let start_round = Math.round(start);
+        let end_round = Math.round(end);
+
+        if (start_round === end_round) {
+            if (start_round - start > end - end_round) {
+                end_round = Math.ceil(start);
+                start_round = Math.floor(start);
+            } else {
+                end_round = Math.ceil(end);
+                start_round = Math.floor(end);
+            }
+        }
+
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+
+        if (end_round <= start_round) {
+            if (start_round < eeg_end_time) {
+                end_round = start_round + 1;
+            } else if (end_round > eeg_start_time) {
+                start_round = end_round - 1;
+            }
+        }
+
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+        if (end_round <= start_round) {
+            patched_figure.assign(['layout', 'shapes'], null);
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+
+        const final_start = start_round - eeg_start_time;
+        const final_end = end_round - eeg_start_time;
+        const duration = final_end - final_start;
+
+        let y0 = Number(annotation_event["detail.y0"]);
+        let y1 = Number(annotation_event["detail.y1"]);
+        if (!Number.isFinite(y0) || !Number.isFinite(y1)) {
+            y0 = -30;
+            y1 = 30;
+        }
+
+        const select_box = {
+            "type": "rect",
+            "xref": annotation_event["detail.xref"] || "x4",
+            "yref": annotation_event["detail.yref"] || "y5",
+            "x0": start_round,
+            "x1": end_round,
+            "y0": y0,
+            "y1": y1,
+            "fillcolor": "rgba(99, 110, 250, 0.14)",
+            "line": {"color": "rgba(99, 110, 250, 0.95)", "width": 1, "dash": "dot"},
+            "layer": "above"
+        };
+
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        let final_video_button_style = {"visibility": "hidden"};
+        if (duration >= 1 && duration <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph-annotation-select", "n_events"),
+    State("graph-annotation-select", "event"),
+    State("graph", "figure"),
     State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )

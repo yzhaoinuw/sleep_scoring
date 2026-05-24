@@ -1,6 +1,7 @@
 # Next Steps
 
-Use this as the forward-looking checklist. Completed experiments and measured outcomes live in `work_log.md`.
+Use this as the forward-looking checklist. Completed experiments and measured
+outcomes live in `work_log.md`.
 
 ## Visualization Performance
 
@@ -15,7 +16,7 @@ Current status:
 
 No active pre-ship experiment:
 
-- Do not chase more UI response optimizations before shipping the annotation auto-pan feature.
+- Do not chase more UI response optimizations before shipping annotation auto-pan.
 - Let users decide whether the current responsiveness is sufficient in practice.
 
 Possible later ideas:
@@ -31,11 +32,34 @@ Do not revisit for now:
 
 ## Annotation Selection
 
-Next experiment:
+Current status:
 
-- Prototype edge-triggered auto-pan while drag-selecting in annotation mode.
-- Preserve the final selected `[start, end]` range for the existing annotation flow.
-- Validate across spectrogram, EEG, EMG, NE, and sleep-score overlay rows.
+- Edge-triggered x-axis panning during annotation drag selection is implemented in
+  `app_src/assets/annotationAutoPan.js`.
+- The final selected `[start, end]` range is preserved for the existing annotation flow.
+- Auto-pan direct trace refreshes use `/_sleep_scoring/resample` and browser-side
+  `Plotly.restyle` so live selection does not compete with normal Dash graph updates.
+- Browser-side merge buffers are capped so long auto-pan drags stay around `7k-8k`
+  active points instead of growing without bound.
+- This work still needs manual validation on top of the optimized
+  `codex/next-level-navigation` stack after the branch integration.
+
+Pre-ship validation:
+
+- Re-test normal zooming, keyboard panning, mouse-drag panning, and reset.
+- Re-test annotation click selection, normal drag selection, and drag-select auto-pan.
+- Re-test mode switches and sampling levels `x0.5`, `x1`, `x2`, and `x4`.
+- Watch for stale-trace snapback, lost final detail refresh, or annotation selection drift.
+
+Remaining polish:
+
+- Clamp auto-pan lead requests at recording bounds.
+  - When dragging briefly past the end of the recording, the lead request can go beyond
+    available trace data.
+  - Manual testing on the dev-line feature showed a momentary straight-line trace before
+    the final replace refresh recovered.
+  - The next small fix should clamp or skip out-of-bounds lead windows while still
+    allowing the selection frontier to reach the true recording end.
 
 Guardrails:
 
@@ -55,7 +79,8 @@ Immediate goal:
 
 Next experiment:
 
-- Allow the REM detector to carve out a likely REM subsection from within a Wake bout instead of relabeling the entire Wake bout.
+- Allow the REM detector to carve out a likely REM subsection from within a Wake bout
+  instead of relabeling the entire Wake bout.
 - Compare:
   - identifying a low-NE subsection before Wake-to-REM promotion
   - splitting a Wake-derived REM candidate after initial REM relabeling
@@ -64,7 +89,8 @@ Next experiment:
 Validation plan:
 
 - Use side-by-side visual inspection in the app first.
-- Prioritize Wake bouts containing likely REM subsections, post-REM Wake boundary placement, and files where merged Wake is too broad.
+- Prioritize Wake bouts containing likely REM subsections, post-REM Wake boundary
+  placement, and files where merged Wake is too broad.
 
 Notes:
 

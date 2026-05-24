@@ -12,6 +12,55 @@ Reading note for agents: this file is prepended each session and can become
 long. Start with only the two most recent dated entries, then search older
 entries with targeted terms if the task needs deeper history.
 
+## 2026-05-23
+
+### Annotation Auto-Pan Integration Repair
+
+- Corrected the integration direction after `dev` had advanced without the
+  `codex/next-level-navigation` optimization stack:
+  - switched back to `codex/next-level-navigation`
+  - merged the newer `dev` auto-pan work into the optimization branch
+  - resolved conflicts so the optimized final-refresh path remains the base
+- Combined behavior:
+  - normal navigation keeps the optimized final-only coalescer path
+  - direct browser-side `Plotly.restyle` remains enabled for final resampler refreshes
+  - annotation auto-pan suppresses normal relayout coalescing while selection is active
+  - annotation auto-pan direct trace refreshes use the in-memory resampler through
+    `get_fig_resampler()` instead of the old cache lookup path
+  - direct auto-pan resampler patches now use the same numeric compaction as normal
+    final refreshes
+- Follow-up validation needed:
+  - manually retest navigation and annotation auto-pan together on this branch before
+    merging back to `dev`
+  - pay special attention to stale-trace snapback, final-detail settling, and selection
+    range drift during long auto-pan drags
+
+### Annotation Drag Auto-Pan
+
+- Added browser-side auto-pan for annotation drag selection:
+  - dragging a selection beyond the left or right graph edge now pans the x-axis while
+    preserving the selection range
+  - the final selected range is sent through the existing annotation selection flow on
+    mouse release
+  - normal relayout coalescing is suppressed while annotation auto-pan is active so the
+    live selection does not compete with regular navigation callbacks
+- Added direct trace refreshes for auto-pan:
+  - `/_sleep_scoring/resample` returns Plotly-resampler patches for browser-side refreshes
+  - auto-pan requests a lead window in the drag direction and merges returned x/y data
+    into the active graph
+  - release uses a final replace refresh for the exact visible range
+- Tuned the merge path after profiling:
+  - bounded the browser-side merge buffer to prevent point-count growth during long
+    auto-pan drags
+  - long manual drags on the dev-line feature stayed around `7k-8k` active points
+    instead of climbing into the `20k+` range
+  - direct resampler server work was usually about `13-16 ms`, while browser merge
+    apply was usually about `230-305 ms`
+- Known follow-up:
+  - dragging briefly past the recording end can request a lead window beyond available data
+  - this may produce a momentary straight-line trace before the final replace refresh recovers
+  - clamp the lead request to recording bounds in the next polish pass
+
 ## 2026-05-22
 
 ### UI Response Optimization Pause

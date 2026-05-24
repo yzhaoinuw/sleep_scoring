@@ -57,6 +57,7 @@ In annotation mode, you can annotate sleep scores or use [automatic sleep scorin
 - Click a region to highlight it with a thin selection box.
 - Assign a score by pressing 1, 2, or 3 on your keyboard. The selected region will be colored correspondingly.
 - To annotate a wider region, click-and-drag to draw a wider box.
+- If you keep dragging past the left or right edge of the visible graph, the view will auto-pan so you can continue selecting a longer region without leaving annotation mode.
 - You can overwrite existing annotations by selecting and reassigning them.
 - Use the Undo Annotation button in the bottom-left below the graph to undo the last annotation. This button only appears when there is something to undo.
 

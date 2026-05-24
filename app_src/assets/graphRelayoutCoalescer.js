@@ -7,6 +7,7 @@
 
     const EVENT_NAME = "sleepgraphrelayout";
     const GRAPH_ID = "graph";
+    const PROFILE_LOG_ENDPOINT = "/_sleep_scoring/profile-log";
     const DUPLICATE_DISPATCH_WINDOW_MS = 250;
     const FINAL_IDLE_MS = 450;
     const KEYBOARD_FINAL_IDLE_MS = 120;
@@ -28,6 +29,25 @@
             return window.performance.now();
         }
         return Date.now();
+    }
+
+    function postProfileLog(payload) {
+        const body = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+            const blob = new Blob([body], { type: "application/json" });
+            if (navigator.sendBeacon(PROFILE_LOG_ENDPOINT, blob)) {
+                return;
+            }
+        }
+
+        window
+            .fetch(PROFILE_LOG_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body,
+                keepalive: true,
+            })
+            .catch(function () {});
     }
 
     function getValue(data, dottedKey, bracketIndex) {
@@ -122,6 +142,7 @@
                 dispatchPerformanceTime,
             });
         }
+
         const event = new CustomEvent(EVENT_NAME, {
             detail: {
                 x0,
@@ -170,11 +191,16 @@
         requestFinal(range, source, delay === undefined ? 0 : delay);
     }
 
-    function isCustomPointerPanActive() {
-        return Boolean(
+    function shouldSuppressPlotlyRelayout() {
+        const customPointerPanActive = Boolean(
             window.sleepScoringCustomPointerPan &&
                 window.sleepScoringCustomPointerPan.isActive === true
-        ) || Date.now() < suppressPlotlyRelayoutUntil;
+        );
+        return (
+            customPointerPanActive ||
+            window.sleepScoringAnnotationAutoPanActive === true ||
+            Date.now() < suppressPlotlyRelayoutUntil
+        );
     }
 
     function suppressPlotlyRelayoutFor(durationMs) {
@@ -207,13 +233,13 @@
         resetDispatchState();
         attachedPlot = plot;
         plot.on("plotly_relayouting", function (relayoutData) {
-            if (isCustomPointerPanActive()) {
+            if (shouldSuppressPlotlyRelayout()) {
                 return;
             }
             request(relayoutData, "plotly-moving");
         });
         plot.on("plotly_relayout", function (relayoutData) {
-            if (isCustomPointerPanActive()) {
+            if (shouldSuppressPlotlyRelayout()) {
                 return;
             }
             requestFinalOnly(relayoutData, "plotly", RELEASE_FINAL_DELAY_MS);
@@ -225,6 +251,7 @@
         requestFinalOnly,
         suppressPlotlyRelayoutFor,
     };
+    window.sleepScoringProfileLog = postProfileLog;
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", attachPlotlyListener);

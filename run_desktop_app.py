@@ -29,6 +29,7 @@ def run_dash():
         port=PORT,
         debug=False,
         dev_tools_hot_reload=False,
+        use_reloader=False,
     )
 
 

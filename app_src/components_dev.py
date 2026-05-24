@@ -60,6 +60,24 @@ backend_div = html.Div(
             ],
         ),
         EventListener(
+            id="graph-annotation-select",
+            events=[
+                {
+                    "event": "sleepannotationselect",
+                    "props": [
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.xref",
+                        "detail.yref",
+                        "detail.y0",
+                        "detail.y1",
+                        "detail.kind",
+                        "detail.timeStamp",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
             id="graph-relayout-coalesced",
             events=[
                 {

@@ -1,0 +1,164 @@
+UI Response Time Optimization Progress
+======================================
+
+Current one-line summary
+------------------------
+
+Significant progress. Default navigation is about 2.5x faster end to end:
+the measured final response dropped from roughly 935 ms to a typical
+300-370 ms range, with most tested interactions under 400 ms.
+
+The remaining response time is now mostly browser-side Plotly/WebGL redraw
+cost, not Python resampling.
+
+
+Scope
+-----
+
+This summary compares early browser-measured navigation logs from
+2026-05-21 against the latest optimized navigation behavior validated on
+2026-05-22.
+
+The key end-to-end timing metric is `browser_total`. Server callback timing is
+a sub-measurement inside the browser apply path, so it should not be added on
+top of `browser_total`.
+
+
+What Improved
+-------------
+
+1. End-to-end response time
+
+- Early final refresh: about 935 ms
+- Current default final refresh: typically about 300-370 ms
+- Practical improvement: about 560 ms faster
+- Relative improvement: about 60% reduction, or roughly 2.5x faster
+
+Occasional individual samples can still land a little over 400 ms, but the
+tested default navigation path is now usually below that threshold.
+
+2. Client coalescing and final-refresh timing
+
+- Early client wait / coalescing: about 566 ms
+- Current client wait / coalescing: usually about 25-30 ms for plotly events
+- Improvement: about 92% reduction
+
+This was the largest speed win. It came from removing the old long final
+refresh wait, eliminating redundant fast/final update behavior, and coalescing
+navigation events so the app updates from the latest useful range.
+
+3. Server callback work
+
+Typical current default final refresh:
+
+- Resampler retrieval: about 0 ms
+- Construct update payload: about 8-11 ms
+- Encode payload: about 2-3 ms
+- Server callback total: about 14-17 ms
+
+The important structural win here was moving active Plotly-resampler objects
+out of filesystem cache and into process memory. That removed the previous
+200-600 ms cache retrieval cost.
+
+4. Payload size
+
+- Early browser-logged baseline: about 181 KB after the first payload cleanup
+- Current default final refresh: usually about 95-110 KB
+- Improvement from that baseline: about 40-50% smaller
+
+Earlier in the optimization process, payloads were around 300 KB before marker,
+customdata, theta/delta, and NE relayout reductions. Compared with that earlier
+state, current default updates are roughly one third of the original payload
+size.
+
+5. Browser apply path
+
+The latest retained path sends final trace updates through direct browser-side
+`Plotly.restyle` instead of asking Dash to apply the graph patch through the
+full Graph component update path.
+
+This did not eliminate the browser redraw floor, but it is the cleaner current
+path and was validated across:
+
+- zooming
+- drag panning
+- keyboard panning
+- annotation mode
+- mode switches
+- sampling levels `x0.5`, `x1`, `x2`, and `x4`
+
+
+Sampling-Level Observations
+---------------------------
+
+Sampling-level tests were useful because they showed the remaining bottleneck
+is not simply Python callback time or payload size.
+
+Approximate tested behavior:
+
+- `x0.5`: about 59 KB payload, about 12 ms server callback, browser total
+  usually around 295-340 ms
+- `x1`: about 95-110 KB payload, about 14-17 ms server callback, browser total
+  usually around 300-370 ms
+- `x2`: about 175 KB payload, about 21-24 ms server callback, browser total
+  usually around 310-370 ms
+- `x4`: about 320-331 KB payload, about 33-38 ms server callback, browser
+  total usually around 325-385 ms, with occasional higher samples
+
+Because browser totals remain in a similar range across these sampling levels,
+the current floor appears to be Plotly/WebGL redraw and browser-side trace
+application rather than server-side resampling.
+
+
+Tried And Kept
+--------------
+
+- In-memory Plotly-resampler storage for the active desktop app path.
+- Coalesced relayout/navigation updates.
+- Final-only trace refresh after pan/zoom settles.
+- Smaller final payloads while preserving default EEG/EMG detail.
+- Direct browser-side `Plotly.restyle` for final trace refreshes.
+- Optional sampling levels for user-controlled tradeoffs.
+
+
+Tried And Dismissed
+-------------------
+
+Adaptive final density by zoom level:
+
+- Reduced payload at wide zoom levels.
+- Gave inconsistent speed gains.
+- Looked visually worse at the initial zoomed-out view.
+- Dismissed because it risked giving users the wrong first impression.
+
+Visualization-only EEG/EMG downsampling to 128 Hz:
+
+- Did not noticeably improve interaction.
+- Increased or failed to meaningfully reduce the effective payload in the
+  tested path.
+- Dismissed because it added complexity without a speed win.
+
+Extra minimal direct-restyle payload simplification:
+
+- Was functionally safe in manual testing.
+- Did not produce a meaningful browser-total improvement.
+- Dismissed to avoid accumulating code that does not support the speed goal.
+
+Fast server trace updates during active movement:
+
+- Helped reveal where costs were, but was not the final best user-facing path.
+- Dismissed in favor of immediate browser axis motion plus a compact final
+  refresh after navigation settles.
+
+
+Current Conclusion
+------------------
+
+The app has made meaningful UI response progress and now feels smooth in manual
+testing for zooming, panning, annotation, mode switching, and sampling-level
+changes.
+
+Further UI response optimization is likely in diminishing-returns territory
+unless user feedback shows a remaining pain point. The next planned product
+work is auto-pan while drag-selecting in annotation mode, then user feedback
+should decide whether the current navigation responsiveness is sufficient.
