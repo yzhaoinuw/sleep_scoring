@@ -22,9 +22,9 @@ When running code, tests, or the desktop app for this repository, use the conda 
 
 - `sleep_scoring_dash3.0`
 
-Typical startup:
+Typical startup (the same command works in PowerShell, bash, and zsh):
 
-```powershell
+```
 conda activate sleep_scoring_dash3.0
 ```
 
@@ -53,9 +53,9 @@ experimental-branch changes are only local, unmerged, or unverified. If related
 work accidentally lands on `dev`, move that work back onto the experimental
 branch first and retest the combined behavior there before updating `dev`.
 
-Useful checks before switching or merging:
+Useful checks before switching or merging (portable git commands; run in any shell):
 
-```powershell
+```
 git status --short --branch
 git log --oneline --left-right --cherry-pick dev...HEAD
 git merge-base --is-ancestor dev HEAD
@@ -64,13 +64,15 @@ git merge-base --is-ancestor dev HEAD
 ## Documentation
 Read these documents only as needed:
 
-- `work_log.md`
+- `work_log.md` and `work_log_archive/`
   - Use when the task needs recent implementation history, experiment outcomes, or verification breadcrumbs.
-  - This file is prepended each session and can become long. Read only the two most recent dated entries by default.
+  - The live `work_log.md` holds at most the 5 most recent unique calendar dates. Default to reading only the two most recent dated entries.
   - Find date anchors with ripgrep and read only the slice you need:
     `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md`
-  - Search the full log with targeted terms when older context is needed instead of loading the whole file.
-  - Prepend a dated entry when a task creates a durable result future collaborators should know about.
+  - When older context is needed, open the matching file under `work_log_archive/` by its date-range filename, or grep across both at once:
+    `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md work_log_archive/`
+  - When prepending a dated entry, if today's calendar date already has a `## YYYY-MM-DD` header at the top, add a new `###` session subsection under it. Do not start a second `## YYYY-MM-DD` header for the same date.
+  - When prepending a new date would push the live log past 5 unique calendar dates, move the oldest 5 dates as a chunk into a new file at `work_log_archive/work_log_<earliest>_to_<latest>.md`. The live file always holds at most 5 unique dates; each archive file always holds exactly 5.
 
 - `next_steps.md`
   - Use when planning or continuing unfinished work from previous sessions.
@@ -85,33 +87,6 @@ Read these documents only as needed:
 - `CONTRIBUTING.md`
   - Use when changing collaboration workflow, branch/test expectations, or documentation conventions.
 
-## Git Ownership Note
-
-If Git reports a "detected dubious ownership" warning for this repo, mark this repository as safe:
-
-```powershell
-git config --global --add safe.directory (Get-Location).Path
-```
-
-This is the preferred fix unless the repository ownership itself needs to be changed at the OS level.
-If running the command outside the repository root, replace `(Get-Location).Path` with the absolute path to the local `sleep_scoring` clone.
-
-## Pre-commit Note
-
-If `pre-commit` cannot write to its default cache location, set a repo-local cache before running it:
-
-```powershell
-$env:PRE_COMMIT_HOME = Join-Path (Get-Location).Path ".pre-commit-cache"
-```
-
-Then run:
-
-```powershell
-& "$env:USERPROFILE\miniconda3\envs\sleep_scoring_dash3.0\python.exe" -m pre_commit run --all-files
-```
-
-If Miniconda is installed somewhere else, adjust the Python executable path while keeping the environment name `sleep_scoring_dash3.0`.
-
 ## Commit Message Guidelines
 
 Commit messages should use:
@@ -124,15 +99,3 @@ Commit message bullets should describe high-level added or changed behavior, not
 For feature commits, mention only the user-facing behavior that was added or changed.
 
 Do not mention tests, docs, project memory updates, or behind-the-scenes implementation details in a feature commit message unless that internal work is itself the main purpose of the commit.
-
-## Pipeline Iteration Reminder
-
-When iterating on experimental scoring pipelines, do not rush to remove useful traces such as:
-
-- parameter-rich output filenames
-- debug visualizations
-- intermediate diagnostics
-- comparison-friendly breadcrumbs that make it easy to match one run against another
-
-These traces are often what makes it possible to explain behavior regressions later.
-Prefer keeping them until the behavior is stable and the comparison value is clearly gone, then clean them up deliberately.

@@ -63,9 +63,11 @@ Possible later experiment:
 
 ## Statistical Model
 
-Immediate goal:
+Current status:
 
-- Improve REM detection inside long Wake bouts without destabilizing current defaults.
+- `app_src/run_inference_stats_model.py` is the active app-side stats model.
+- `scripts/visualize_low_band_wake_bouts.py` remains the broader experiment sandbox.
+- Immediate goal: improve REM detection inside long Wake bouts.
 
 Next experiment:
 
@@ -76,13 +78,12 @@ Next experiment:
   - splitting a Wake-derived REM candidate after initial REM relabeling
 - Focus on files where merged Wake currently swallows a smaller likely REM region.
 
-Validation plan:
+Validation:
 
 - Use side-by-side visual inspection in the app first.
 - Prioritize Wake bouts containing likely REM subsections, post-REM Wake boundary
   placement, and files where merged Wake is too broad.
 
-Notes:
+Guardrails:
 
-- `app_src/run_inference_stats_model.py` is the active app-side stats model.
-- `scripts/visualize_low_band_wake_bouts.py` remains the broader experiment sandbox.
+- Do not destabilize current defaults while improving REM-in-Wake detection.
