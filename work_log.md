@@ -21,9 +21,12 @@ entries with targeted terms if the task needs deeper history.
   - auto-pan direct resampler requests remained around `6-15 ms` server time
   - browser-side auto-pan merge buffers stayed bounded around `7k-8k` points
 - Fixed the remaining edge behavior seen in the logs:
-  - auto-pan lead/trim/replace requests now clamp to recording bounds
-  - the direct resample endpoint also clamps requested ranges before constructing patches
-  - the graph figure stores recording x-bounds in layout meta for browser-side clamping
+  - the direct resample endpoint clamps requested ranges before constructing patches
+  - the graph figure stores recording x-bounds in layout meta for browser-side fetch clamping
+- Followed up manual retest feedback that the first browser-side clamp was too aggressive:
+  - restored the original auto-pan viewport motion and trim semantics
+  - now only the fetch window is clamped in the browser before calling the direct endpoint
+  - the pan loop can advance naturally while the server still avoids empty out-of-bounds patches
 - Expected effect:
   - dragging past the left or right recording edge should no longer issue fully
     out-of-bounds resample requests such as negative-only x-ranges
