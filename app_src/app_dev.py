@@ -91,6 +91,55 @@ def get_fig_resampler():
     return FIG_RESAMPLER
 
 
+def mat_x_bounds(mat):
+    eeg = mat.get("eeg")
+    eeg_freq = mat.get("eeg_frequency")
+    start_time = mat.get("start_time", 0)
+    if eeg is None or not eeg_freq:
+        return None
+
+    try:
+        start = float(start_time)
+        end = start + math.ceil((eeg.size - 1) / float(eeg_freq))
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+    if not np.isfinite(start) or not np.isfinite(end) or end <= start:
+        return None
+    return [start, end]
+
+
+def fig_x_bounds(fig):
+    meta = getattr(getattr(fig, "layout", None), "meta", None)
+    if isinstance(meta, dict):
+        bounds = meta.get("sleepScoringXBounds")
+        if isinstance(bounds, (list, tuple)) and len(bounds) == 2:
+            try:
+                x0 = float(bounds[0])
+                x1 = float(bounds[1])
+            except (TypeError, ValueError):
+                return None
+            if np.isfinite(x0) and np.isfinite(x1) and x1 > x0:
+                return [x0, x1]
+    return None
+
+
+def clamp_x_range_to_bounds(x0, x1, bounds):
+    low = min(x0, x1)
+    high = max(x0, x1)
+    if not bounds:
+        return [low, high]
+
+    bound_low, bound_high = bounds
+    span = bound_high - bound_low
+    width = high - low
+    if width >= span:
+        return [bound_low, bound_high]
+
+    clamped_low = min(max(low, bound_low), bound_high - width)
+    return [clamped_low, clamped_low + width]
+
+
 def compact_resampler_patch(update_patch):
     """Trim numeric precision in resampler trace updates before Dash serializes them."""
     if not hasattr(update_patch, "_operations"):
@@ -288,6 +337,10 @@ def save_file_dialog(file_type, filename):
 
 def create_fig(mat, filename, default_n_shown_samples=2048):
     fig = make_figure(mat, filename, default_n_shown_samples)
+    bounds = mat_x_bounds(mat)
+    if bounds is not None:
+        meta = fig.layout.meta if isinstance(fig.layout.meta, dict) else {}
+        fig.update_layout(meta={**meta, "sleepScoringXBounds": bounds})
 
     store_fig_resampler(fig)
     return fig
@@ -310,11 +363,12 @@ def resample_graph_data():
     if fig is None:
         abort(404)
 
+    x_range = clamp_x_range_to_bounds(x0, x1, fig_x_bounds(fig))
     construct_start_time = time.perf_counter()
     update_patch = fig.construct_update_data_patch(
         {
-            "xaxis4.range[0]": min(x0, x1),
-            "xaxis4.range[1]": max(x0, x1),
+            "xaxis4.range[0]": x_range[0],
+            "xaxis4.range[1]": x_range[1],
         }
     )
     construct_ms = (time.perf_counter() - construct_start_time) * 1000
@@ -336,8 +390,8 @@ def resample_graph_data():
             f"payload_encode={payload_ms:.1f} ms, "
             f"total={callback_total_ms:.1f} ms, "
             f"payload={payload_size_kb:.1f} KB, "
-            f"x_width={abs(x1 - x0):.1f} s, "
-            f"xaxis4.range={[min(x0, x1), max(x0, x1)]}, "
+            f"x_width={x_range[1] - x_range[0]:.1f} s, "
+            f"xaxis4.range={x_range}, "
             f"{patch_summary}",
             flush=True,
         )

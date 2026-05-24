@@ -14,6 +14,21 @@ entries with targeted terms if the task needs deeper history.
 
 ## 2026-05-23
 
+### Annotation Auto-Pan Bounds Clamp
+
+- Followed up manual validation logs from the repaired integration branch:
+  - normal navigation stayed on the optimized direct-restyle path
+  - auto-pan direct resampler requests remained around `6-15 ms` server time
+  - browser-side auto-pan merge buffers stayed bounded around `7k-8k` points
+- Fixed the remaining edge behavior seen in the logs:
+  - auto-pan lead/trim/replace requests now clamp to recording bounds
+  - the direct resample endpoint also clamps requested ranges before constructing patches
+  - the graph figure stores recording x-bounds in layout meta for browser-side clamping
+- Expected effect:
+  - dragging past the left or right recording edge should no longer issue fully
+    out-of-bounds resample requests such as negative-only x-ranges
+  - selection can still reach the recording edge while trace refreshes stay within valid data
+
 ### Annotation Auto-Pan Integration Repair
 
 - Corrected the integration direction after `dev` had advanced without the

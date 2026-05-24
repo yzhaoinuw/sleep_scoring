@@ -87,6 +87,45 @@
         return null;
     }
 
+    function getRecordingBounds(plot) {
+        const meta =
+            (plot && plot.layout && plot.layout.meta) ||
+            (plot && plot._fullLayout && plot._fullLayout.meta);
+        const bounds = meta && meta.sleepScoringXBounds;
+        if (!Array.isArray(bounds) || bounds.length !== 2) {
+            return null;
+        }
+
+        const x0 = Number(bounds[0]);
+        const x1 = Number(bounds[1]);
+        if (!Number.isFinite(x0) || !Number.isFinite(x1) || x0 === x1) {
+            return null;
+        }
+        return [Math.min(x0, x1), Math.max(x0, x1)];
+    }
+
+    function clampRangeToBounds(range, bounds) {
+        if (!bounds) {
+            return range;
+        }
+
+        const width = range[1] - range[0];
+        const boundsWidth = bounds[1] - bounds[0];
+        if (!Number.isFinite(width) || width <= 0 || width >= boundsWidth) {
+            return bounds;
+        }
+
+        const x0 = Math.min(Math.max(range[0], bounds[0]), bounds[1] - width);
+        return [x0, x0 + width];
+    }
+
+    function rangesNearlyEqual(left, right) {
+        if (!left || !right) {
+            return false;
+        }
+        return Math.abs(left[0] - right[0]) < 1e-6 && Math.abs(left[1] - right[1]) < 1e-6;
+    }
+
     function getPrimaryYAxis(fullLayout, clientY, plotRect) {
         const plotY = clientY - plotRect.top;
 
@@ -250,42 +289,42 @@
         return grouped;
     }
 
-    function getLeadRange(visibleRange, pressure) {
+    function getLeadRange(visibleRange, pressure, bounds) {
         const width = visibleRange[1] - visibleRange[0];
         if (!Number.isFinite(width) || width <= 0 || pressure === 0) {
-            return visibleRange;
+            return clampRangeToBounds(visibleRange, bounds);
         }
 
         if (pressure > 0) {
-            return [
+            return clampRangeToBounds([
                 visibleRange[1] - width * LEAD_OVERLAP_FRACTION,
                 visibleRange[1] + width * (1 - LEAD_OVERLAP_FRACTION),
-            ];
+            ], bounds);
         }
 
-        return [
+        return clampRangeToBounds([
             visibleRange[0] - width * (1 - LEAD_OVERLAP_FRACTION),
             visibleRange[0] + width * LEAD_OVERLAP_FRACTION,
-        ];
+        ], bounds);
     }
 
-    function getTrimRange(visibleRange, pressure) {
+    function getTrimRange(visibleRange, pressure, bounds) {
         const width = visibleRange[1] - visibleRange[0];
         if (!Number.isFinite(width) || width <= 0 || pressure === 0) {
-            return visibleRange;
+            return clampRangeToBounds(visibleRange, bounds);
         }
 
         if (pressure > 0) {
-            return [
+            return clampRangeToBounds([
                 visibleRange[0] - width * TRAIL_BUFFER_FRACTION,
                 visibleRange[1] + width * LEAD_BUFFER_FRACTION,
-            ];
+            ], bounds);
         }
 
-        return [
+        return clampRangeToBounds([
             visibleRange[0] - width * LEAD_BUFFER_FRACTION,
             visibleRange[1] + width * TRAIL_BUFFER_FRACTION,
-        ];
+        ], bounds);
     }
 
     function toArray(values) {
@@ -358,7 +397,11 @@
         const yUpdates = [];
         const updatedTraceIndices = [];
         const shouldMerge = requestConfig.mode === "merge";
-        const trimRange = getTrimRange(requestConfig.visibleRange, requestConfig.pressure);
+        const trimRange = getTrimRange(
+            requestConfig.visibleRange,
+            requestConfig.pressure,
+            requestConfig.bounds
+        );
 
         for (const traceIndex of traceIndices) {
             const update = groupedOperations.get(traceIndex);
@@ -494,13 +537,18 @@
         }
 
         const requestMode = mode || "replace";
+        const bounds = getRecordingBounds(plot);
+        const clampedVisibleRange = clampRangeToBounds(visibleRange, bounds);
         const requestRange =
-            requestMode === "merge" ? getLeadRange(visibleRange, pressure) : visibleRange;
+            requestMode === "merge"
+                ? getLeadRange(clampedVisibleRange, pressure, bounds)
+                : clampedVisibleRange;
         const requestConfig = {
-            visibleRange,
+            visibleRange: clampedVisibleRange,
             range: requestRange,
             pressure,
             plot,
+            bounds,
             mode: requestMode,
             queuedAt: performance.now(),
         };
@@ -573,7 +621,8 @@
 
         const width = range[1] - range[0];
         const delta = pressure * Math.abs(pressure) * width * PAN_VIEW_WIDTH_PER_SECOND * dtSeconds;
-        const nextRange = [range[0] + delta, range[1] + delta];
+        const bounds = getRecordingBounds(dragState.plot);
+        const nextRange = clampRangeToBounds([range[0] + delta, range[1] + delta], bounds);
         lastPanFrameAt = now;
 
         const clippedPlotX = Math.max(0, Math.min(info.xaxis._length, info.plotX));
@@ -587,7 +636,11 @@
         });
         requestTraceRefresh(nextRange, pressure, false, dragState.plot, "merge");
 
-        panFrame = window.requestAnimationFrame(autoPanStep);
+        if (rangesNearlyEqual(nextRange, range)) {
+            stopAutoPan();
+        } else {
+            panFrame = window.requestAnimationFrame(autoPanStep);
+        }
     }
 
     function updateAutoPan() {

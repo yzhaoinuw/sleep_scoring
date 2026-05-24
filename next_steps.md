@@ -51,16 +51,6 @@ Pre-ship validation:
 - Re-test mode switches and sampling levels `x0.5`, `x1`, `x2`, and `x4`.
 - Watch for stale-trace snapback, lost final detail refresh, or annotation selection drift.
 
-Remaining polish:
-
-- Clamp auto-pan lead requests at recording bounds.
-  - When dragging briefly past the end of the recording, the lead request can go beyond
-    available trace data.
-  - Manual testing on the dev-line feature showed a momentary straight-line trace before
-    the final replace refresh recovered.
-  - The next small fix should clamp or skip out-of-bounds lead windows while still
-    allowing the selection frontier to reach the true recording end.
-
 Guardrails:
 
 - Keep normal click thin-box selection and drag-box selection intact.
