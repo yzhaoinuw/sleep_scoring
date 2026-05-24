@@ -27,6 +27,23 @@ python -m pytest tests/test_smoke.py -q
 - Broaden tests when touching preprocessing, postprocessing, FFT, inference, or shared app behavior.
 - If a check cannot be run locally, record why in the final handoff or work log.
 
+## Local Troubleshooting
+
+- If Git reports a "detected dubious ownership" warning, mark the repository as safe:
+
+```
+git config --global --add safe.directory (Get-Location).Path
+```
+
+- If `pre-commit` cannot write to its default cache location, set a repo-local cache before running it:
+
+```
+$env:PRE_COMMIT_HOME = Join-Path (Get-Location).Path ".pre-commit-cache"
+& "$env:USERPROFILE\miniconda3\envs\sleep_scoring_dash3.0\python.exe" -m pre_commit run --all-files
+```
+
+- If Miniconda is installed somewhere else, adjust the Python executable path while keeping the environment name `sleep_scoring_dash3.0`.
+
 ## Documentation
 
 - Keep `next_steps.md` forward-looking. Put completed experiments, measurements, and outcomes in `work_log.md`.
