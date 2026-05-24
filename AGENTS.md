@@ -41,6 +41,26 @@ Before editing, inspect the current worktree with `git status`. Preserve
 unrelated local changes and untracked files. If a task touches files that
 already have user changes, work with those changes instead of reverting them.
 
+## Branch Handoff Discipline
+
+Before switching away from an experimental or feature branch, fully resolve the
+work on that branch. Confirm whether the branch contains all intended changes,
+whether those changes are committed, and whether the user expects them merged,
+pushed, or intentionally left parked.
+
+Do not switch to `dev` or start new work on another branch while important
+experimental-branch changes are only local, unmerged, or unverified. If related
+work accidentally lands on `dev`, move that work back onto the experimental
+branch first and retest the combined behavior there before updating `dev`.
+
+Useful checks before switching or merging:
+
+```powershell
+git status --short --branch
+git log --oneline --left-right --cherry-pick dev...HEAD
+git merge-base --is-ancestor dev HEAD
+```
+
 ## Documentation
 Read these documents only as needed:
 
