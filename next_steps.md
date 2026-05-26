@@ -19,37 +19,14 @@ Active branch:
 
 - `optimization/further_ui_speedup`, branched from `dev` at `7a867bb`.
 
-Active experiments, in order:
+Active experiments:
 
-1. TypedArray probe on the direct-restyle apply path.
-   - Modify `app_src/assets/graphDirectRestyle.js` so the `x` and `y`
-     values inside each restyle update are wrapped in `Float32Array`
-     before the `Plotly.restyle` call.
-   - No server change. No new endpoint. No transport change.
-   - Measure: does `dash_apply` in `[browser-nav]` move when Plotly
-     receives typed inputs instead of plain JS arrays?
-   - If yes (meaningful drop), expand to a full server-side binary
-     transport in a follow-up item.
-   - If no, scrap the typed-array angle and move on.
+- None remaining on this branch. All planned probes have been resolved
+  (see "Do not revisit for now" below for each outcome). Perf-logging
+  defaults flipped to `False` in `app_src/config.py` on 2026-05-26 as
+  the final shipped cleanup; env-var overrides remain intact.
 
-2. A/B `hovermode`.
-   - Quick timing pass with `hovermode` set to `"x"` or `"closest"` vs.
-     the current `"x unified"` to see if unified-hover bookkeeping is
-     part of the residual `Plotly.restyle` apply cost.
-
-3. Compare `Plotly.react` vs `Plotly.restyle`.
-   - Profile a versioned-data `Plotly.react` path against the current
-     `Plotly.restyle` in `graphDirectRestyle.js` on the same recording.
-
-4. Default perf logging to off in shipped config (final cleanup).
-   - Flip `ENABLE_RESAMPLER_PERF_LOG` and
-     `ENABLE_BROWSER_NAVIGATION_PERF_LOG` to `False` in `app_src/config.py`
-     so the resampler callback stops paying the JSON-encode + summarize
-     cost on every update for users; keep the env-var override path intact.
-   - Deferred to last so each item above can be measured against the
-     baseline with logs still on.
-
-Measurement protocol:
+Measurement protocol (for any future probe on this branch):
 
 - Use the 2026-05-25 Mac M4 baseline in
   `ui_response_time_optimization_progress.txt` as the anchor.
@@ -66,6 +43,25 @@ Do not revisit for now:
 - Adaptive final refresh density by visible window width.
 - Fast server trace updates during active movement.
 - Visualization-only source downsampling to 128 Hz.
+- Wrapping `x`/`y` as `Float32Array` before `Plotly.restyle`. Probed on
+  2026-05-26 with no measurable change in `dash_apply` or auto-pan
+  `apply` vs the baseline; Plotly already converts internally.
+- Switching `hovermode` from `"x unified"` to `"x"`. Probed on
+  2026-05-26. Apply time dropped by a real but modest ~5-10 ms across
+  gesture types, but this drops the cross-subplot synchronized spike
+  line and combined tooltip. Multiple users specifically requested
+  the unified-crosshair behavior, so the UX trade-off is not worth
+  the speedup. Do not revisit unless we find a way to keep the
+  unified visual.
+- Swapping `Plotly.restyle` for `Plotly.react` (with bumped
+  `layout.datarevision`) in `graphDirectRestyle.js`. Probed on
+  2026-05-26 and clearly regressed: `dash_apply` jumped by ~100-150 ms
+  across native release, keyboard, and custom-drag gestures vs the
+  baseline. Cause is that `react` re-diffs the full figure
+  (spectrogram heatmap, sleep-score Heatmap, legend, layout) on every
+  call, while `restyle` patches only the named props on the named
+  trace indices. Auto-pan was unaffected because it lives in
+  `annotationAutoPan.js` and has its own merge path.
 
 ## Annotation Selection
 

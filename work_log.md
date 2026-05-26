@@ -18,6 +18,110 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-05-26
+
+### TypedArray Probe On Direct-Restyle Apply Path
+
+- Tested whether wrapping `x` and `y` per-trace values as `Float32Array`
+  inside `app_src/assets/graphDirectRestyle.js` before `Plotly.restyle`
+  would reduce the residual apply cost. Browser-side change only; no
+  server, transport, or endpoint changes.
+- Apples-to-apples manual measurement against the 2026-05-25 Mac M4
+  baseline (`830.mat`, ~15,295 s) showed no movement in apply time:
+  - Native Plotly release at `x_width=15295 s`: `browser_total=261 ms`
+    vs baseline 251-259 ms.
+  - Native Plotly release at `x_width=457 s`: `browser_total=232-237 ms`
+    vs baseline 224-295 ms.
+  - Keyboard at `x_width=457 s`: `dash_apply=189-196 ms`,
+    `browser_total=502-524 ms` vs baseline ~190 ms / 480-549 ms.
+  - Annotation auto-pan at `x_width=446-457 s`: steady-state
+    `apply=152-178 ms`, `browser_total=273-318 ms` vs baseline
+    `apply=145-180 ms`, `browser_total=254-330 ms`.
+- Conclusion: Plotly's WebGL path appears to convert plain JS arrays
+  to typed arrays internally, so pre-wrapping does not help. Reverted
+  the change rather than committing it. Logged under
+  `next_steps.md` "Do not revisit for now" so future probes do not
+  re-litigate this.
+- Next probe queued: `hovermode` A/B. Switched
+  `app_src/make_figure_dev.py` from `"x unified"` to `"x"` to test
+  whether unified-hover bookkeeping is part of the residual apply
+  cost. Pending manual measurement before commit-or-revert.
+
+### Hovermode A/B (`"x unified"` vs `"x"`)
+
+- Tested `app_src/make_figure_dev.py` hovermode switched from
+  `"x unified"` to `"x"`. Note: this keeps a per-subplot vertical
+  hover guide but drops the spike line synchronized across all four
+  subplots and the combined multi-trace tooltip.
+- Measurement against the 2026-05-25 Mac M4 baseline showed a small
+  but consistent improvement on apply time:
+  - Native Plotly release at `x_width=15295 s`: `browser_total=259 ms`
+    vs baseline 251-259 ms (no change at this width).
+  - Native Plotly release at `~457 s`: `browser_total=210-225 ms`
+    vs baseline 224-295 ms (~5-15 ms lower).
+  - Keyboard at `~457 s`: `dash_apply=180-186 ms`,
+    `browser_total=497-511 ms` vs baseline ~190 ms / 480-549 ms
+    (~5-10 ms apply drop).
+  - Custom-drag at `~457 s`: `dash_apply=180-194 ms` vs the prior
+    TypedArray-run baseline of 190-249 ms (~5-15 ms apply drop).
+  - Annotation auto-pan steady-state at `~357 s`: `apply=149-171 ms`
+    (~157 ms), `browser_total=268-316 ms` vs baseline `apply=145-180 ms`
+    (~165 ms), `browser_total=254-330 ms` (~5-10 ms tighter).
+- Conclusion: real but modest gain (~5-10 ms on apply). Multiple
+  users specifically requested the unified-crosshair feature, so the
+  UX trade-off does not justify the speedup. Reverted; logged under
+  `next_steps.md` "Do not revisit for now" with the user-facing
+  reason so future probes know it has been tried.
+- Next planned probe: `Plotly.react` vs `Plotly.restyle` in
+  `graphDirectRestyle.js` via a bumped `layout.datarevision`.
+
+### Plotly.react vs Plotly.restyle Probe
+
+- Swapped `Plotly.restyle` for `Plotly.react` in
+  `app_src/assets/graphDirectRestyle.js`: mutated `plot.data` in place
+  with the per-trace x/y/name/marker updates, bumped
+  `plot.layout.datarevision`, and called
+  `Plotly.react(plot, plot.data, plot.layout)`. No server change.
+- Apples-to-apples measurement against the 2026-05-25 Mac M4 baseline
+  showed a clear regression on every direct-restyle gesture:
+  - Native Plotly release at `x_width=15295 s`: `dash_apply=379 ms`
+    (`browser_total=405 ms`) vs baseline ~233-240 ms
+    (`browser_total=251-259 ms`) — **+140 ms**.
+  - Native Plotly release at `~65-500 s`: `dash_apply=314-347 ms`
+    vs baseline ~190-205 ms — **+110-140 ms**.
+  - Keyboard at `~269 s`: `dash_apply=325-331 ms`
+    (`browser_total=649-657 ms`) vs baseline ~190 ms (480-549 ms total)
+    — **+130-140 ms**.
+  - Custom-drag at `~269 s`: `dash_apply=327-338 ms` vs baseline
+    ~190-195 ms — **+130-140 ms**.
+  - Annotation auto-pan: unchanged at `apply=149-171 ms` matched
+    widths, confirming auto-pan uses a separate merge path in
+    `annotationAutoPan.js` and never went through `graphDirectRestyle`.
+- Conclusion: `Plotly.react` re-diffs the entire figure (4 subplots,
+  spectrogram heatmap, sleep-score Heatmap, legend traces, layout) on
+  every call. The `datarevision` bump tells react the data changed but
+  does not skip the full reconciliation. `Plotly.restyle` with explicit
+  trace indices patches only named props on named traces, which is
+  much cheaper for this figure shape. Reverted; logged under
+  `next_steps.md` "Do not revisit for now" with the cause.
+
+### Default Perf Logging To Off In Shipped Config
+
+- Flipped `ENABLE_RESAMPLER_PERF_LOG` and
+  `ENABLE_BROWSER_NAVIGATION_PERF_LOG` to `False` in
+  `app_src/config.py` so the resampler callback and browser navigation
+  profiler stop paying the JSON-encode and summarize cost on every
+  update for shipped users.
+- Env-var override paths are intact. To re-enable per-run, set any of:
+  - `SLEEP_SCORING_RESAMPLER_PERF_LOG=1` for resampler logs.
+  - `SLEEP_SCORING_PROFILE_RESAMPLER=1` (umbrella; turns both on).
+  - `SLEEP_SCORING_BROWSER_NAV_PERF_LOG=1` for browser-nav logs.
+  - The kill switch `SLEEP_SCORING_PROFILE_RESAMPLER=0` still
+    suppresses everything regardless of other env vars.
+- Final cleanup item on this branch; with this and the revert above,
+  the active-experiments list for Visualization Performance is now
+  empty.
+
 ## 2026-05-25
 
 ### Mac M4 Baseline And Branch Setup

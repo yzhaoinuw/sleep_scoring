@@ -42,8 +42,10 @@ STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 PORT = 8050
 
 # %% Profiling
-ENABLE_RESAMPLER_PERF_LOG = True
-ENABLE_BROWSER_NAVIGATION_PERF_LOG = True
+# Off by default for shipped users. Override per-run with one of the
+# SLEEP_SCORING_* env vars below.
+ENABLE_RESAMPLER_PERF_LOG = False
+ENABLE_BROWSER_NAVIGATION_PERF_LOG = False
 
 # %% Navigation performance
 ENABLE_DIRECT_PLOTLY_RESTYLE = True
