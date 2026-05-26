@@ -59,6 +59,31 @@ app = Dash(
 )
 app.layout = components.home_div
 
+# Surface a small runtime config to the browser before Dash assets load, so the
+# coalescer can decide whether to route the final refresh through the direct
+# /_sleep_scoring/resample fetch path or fall back to the Dash callback path.
+app.index_string = """<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <script>window.sleepScoringConfig = __SLEEP_SCORING_CONFIG__;</script>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>""".replace(
+    "__SLEEP_SCORING_CONFIG__",
+    json.dumps({"directRestyleFinal": bool(ENABLE_DIRECT_PLOTLY_RESTYLE)}),
+)
+
 # debug_counter = Debug_Counter()
 TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
@@ -363,6 +388,42 @@ def resample_graph_data():
     if fig is None:
         abort(404)
 
+    # Optional profile marker passed by the final-refresh fetch path so the
+    # response can pair with the browser-side navigation profiler logs.
+    profile_marker = None
+    profile_id = None
+    update_mode = request.args.get("mode")
+    update_source = request.args.get("source")
+    profile_id_raw = request.args.get("profile_id")
+    if profile_id_raw is not None:
+        try:
+            profile_id = int(profile_id_raw)
+        except (TypeError, ValueError):
+            profile_id = None
+    if profile_id is not None:
+        profile_marker = {
+            "profileId": profile_id,
+            "mode": update_mode,
+            "source": update_source,
+        }
+        # Use the same stale-guard as the Dash callback path so older requests
+        # do not clobber a newer one when they overlap.
+        if mark_navigation_profile_seen(profile_id):
+            if RESAMPLER_PERF_LOG:
+                print(
+                    "[resampler-stale] "
+                    f"browser_profile_id={profile_id}, "
+                    f"latest_browser_profile_id={NAVIGATION_LATEST_PROFILE_ID}, "
+                    f"mode={update_mode}, source={update_source}, "
+                    "path=direct-fetch, phase=start",
+                    flush=True,
+                )
+            return app.server.response_class(
+                json.dumps({"operations": [], "profileMarker": profile_marker}),
+                mimetype="application/json",
+                headers={"Cache-Control": "no-store"},
+            )
+
     x_range = clamp_x_range_to_bounds(x0, x1, fig_x_bounds(fig))
     construct_start_time = time.perf_counter()
     update_patch = fig.construct_update_data_patch(
@@ -372,10 +433,30 @@ def resample_graph_data():
         }
     )
     construct_ms = (time.perf_counter() - construct_start_time) * 1000
+
+    if profile_id is not None and is_stale_navigation_profile(profile_id):
+        if RESAMPLER_PERF_LOG:
+            print(
+                "[resampler-stale] "
+                f"browser_profile_id={profile_id}, "
+                f"latest_browser_profile_id={NAVIGATION_LATEST_PROFILE_ID}, "
+                f"mode={update_mode}, source={update_source}, "
+                "path=direct-fetch, phase=after_construct",
+                flush=True,
+            )
+        return app.server.response_class(
+            json.dumps({"operations": [], "profileMarker": profile_marker}),
+            mimetype="application/json",
+            headers={"Cache-Control": "no-store"},
+        )
+
     update_patch = compact_resampler_patch(update_patch)
     patch_json = (
         update_patch.to_plotly_json() if hasattr(update_patch, "to_plotly_json") else update_patch
     )
+    if profile_marker is not None and isinstance(patch_json, dict):
+        patch_json["profileMarker"] = profile_marker
+
     payload_start_time = time.perf_counter()
     payload = json.dumps(patch_json, cls=PlotlyJSONEncoder, separators=(",", ":"))
     payload_ms = (time.perf_counter() - payload_start_time) * 1000
@@ -384,8 +465,13 @@ def resample_graph_data():
         payload_size_kb = len(payload.encode("utf-8")) / 1024
         callback_total_ms = (time.perf_counter() - request_start_time) * 1000
         patch_summary = summarize_resampler_patch(update_patch, fig)
+        profile_id_text = profile_id if profile_id is not None else "n/a"
+        mode_text = update_mode or "n/a"
+        source_text = update_source or "n/a"
         print(
             "[resampler-direct] "
+            f"browser_profile_id={profile_id_text}, "
+            f"mode={mode_text}, source={source_text}, "
             f"construct={construct_ms:.1f} ms, "
             f"payload_encode={payload_ms:.1f} ms, "
             f"total={callback_total_ms:.1f} ms, "

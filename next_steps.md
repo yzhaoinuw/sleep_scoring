@@ -12,17 +12,63 @@ Current status:
 - Final refresh payloads are compacted, usually around `95-110 KB`.
 - Direct browser-side `Plotly.restyle` is the active final refresh path.
 - Remaining cost is mostly Plotly/WebGL redraw time.
-- UI response optimization is paused until real user feedback after the next shipped version.
+- Mac M4 baseline captured on 2026-05-25 (see
+  `ui_response_time_optimization_progress.txt`).
+- The final refresh now fetches `/_sleep_scoring/resample` directly and applies
+  via `graphDirectRestyle`, bypassing the Dash callback and store roundtrip
+  (landed 2026-05-25). Apples-to-apples measurement against the baseline
+  showed no measurable change in browser_total; kept as structural cleanup
+  before further items.
 
-No active pre-ship experiment:
+Active branch:
 
-- Do not chase more UI response optimizations before shipping annotation auto-pan.
-- Let users decide whether the current responsiveness is sufficient in practice.
+- `optimization/further_ui_speedup`, branched from `dev` at `7a867bb`.
+
+Active experiments, in order:
+
+1. Synthesize regular `x` arrays client-side.
+   - EEG/EMG `x` is uniform (`start_time + i / eeg_freq`); the resampler
+     picks indices that are recoverable from `(x0, dx, n)`.
+   - Send `{x0, dx, n, y}` in the resampler patch; reconstruct `x` in the
+     browser before `Plotly.restyle`.
+   - Expected gain: halves the EEG/EMG payload and skips the WebGL
+     x-buffer rebuild on apply. Biggest impact at wide zoom-outs where
+     payload doubles to about 168 KB.
+
+2. Send `y` as Float32 binary.
+   - Once the final refresh uses the direct fetch endpoint, switch `y`
+     arrays to `application/octet-stream` `Float32Array` to skip JSON
+     encode/parse on both ends.
+   - Pairs naturally with item 1.
+
+3. A/B `hovermode`.
+   - Quick timing pass with `hovermode` set to `"x"` or `"closest"` vs.
+     the current `"x unified"` to see if unified-hover bookkeeping is
+     part of the residual `Plotly.restyle` apply cost.
+
+4. Compare `Plotly.react` vs `Plotly.restyle`.
+   - Profile a versioned-data `Plotly.react` path against the current
+     `Plotly.restyle` in `graphDirectRestyle.js` on the same recording.
+
+5. Default perf logging to off in shipped config (final cleanup).
+   - Flip `ENABLE_RESAMPLER_PERF_LOG` and
+     `ENABLE_BROWSER_NAVIGATION_PERF_LOG` to `False` in `app_src/config.py`
+     so the resampler callback stops paying the JSON-encode + summarize
+     cost on every update for users; keep the env-var override path intact.
+   - Deferred to last so each item above can be measured against the
+     baseline with logs still on.
+
+Measurement protocol:
+
+- Use the 2026-05-25 Mac M4 baseline in
+  `ui_response_time_optimization_progress.txt` as the anchor.
+- Each item lands as its own commit so per-item before/after numbers stay
+  attributable.
 
 Possible later ideas:
 
-- Explore whether regular or partly regular `x` arrays can be derived client-side.
-- Consider precomputed downsample tiers only if on-demand resampling becomes a bottleneck again.
+- Consider precomputed downsample tiers only if on-demand resampling
+  becomes a bottleneck again.
 
 Do not revisit for now:
 
