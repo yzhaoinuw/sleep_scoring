@@ -143,27 +143,18 @@
             });
         }
 
-        const detail = {
-            x0,
-            x1,
-            source,
-            mode,
-            timeStamp: now,
-            profileId: currentProfileId,
-            inputPerformanceTime,
-            dispatchPerformanceTime,
-        };
-
-        if (
-            mode === "final" &&
-            window.sleepScoringFinalRefresh &&
-            typeof window.sleepScoringFinalRefresh.tryDirectFetch === "function" &&
-            window.sleepScoringFinalRefresh.tryDirectFetch(detail)
-        ) {
-            return;
-        }
-
-        const event = new CustomEvent(EVENT_NAME, { detail });
+        const event = new CustomEvent(EVENT_NAME, {
+            detail: {
+                x0,
+                x1,
+                source,
+                mode,
+                timeStamp: now,
+                profileId: currentProfileId,
+                inputPerformanceTime,
+                dispatchPerformanceTime,
+            },
+        });
         document.dispatchEvent(event);
     }
 

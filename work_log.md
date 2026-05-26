@@ -95,3 +95,36 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   - Manual run on Mac confirmed `[resampler-direct] browser_profile_id=N`
     fires on each final refresh with no accompanying
     `POST /_dash-update-component` for the resampler callback.
+
+### Revert Bypass Dash Store On Navigation Final Refresh
+
+- Reverted the code portion of `bdfd36c` after apples-to-apples
+  measurement on the 2026-05-25 Mac M4 baseline showed no
+  `browser_total` change versus the prior direct-restyle path.
+- Kept the baseline document, work-log archive rotation, and
+  `next_steps.md` simplification from the same commit. Only the code
+  files come back out:
+  - `app_src/assets/graphFinalRefresh.js` removed
+  - `app_src/assets/graphRelayoutCoalescer.js` restored to its
+    pre-item-1 state
+  - `app_src/app_dev.py` restored (drops the `app.index_string`
+    `window.sleepScoringConfig` injection and the `profile_id`/`mode`/
+    `source` query params plus `profileMarker` echo on
+    `/_sleep_scoring/resample`)
+- Corrected reasoning for skipping items 2-3:
+  - MinMaxLTTB picks min/max within uniform buckets, so the resampled
+    `x` array is not uniformly spaced; sending `(x0, dx, n)` would not
+    represent the actual sampled positions.
+  - Baseline shows `parse=0-1 ms` and `apply=145-180 ms` dominated by
+    Plotly WebGL trace replacement. Transport is not the bottleneck,
+    so neither item 2 (client-side `x` synthesis) nor item 3
+    (binary `y`) would move `browser_total` meaningfully. For typical
+    EEG/EMG magnitudes the JSON `y` array is already ~19 KB; a
+    `Float32Array` would be 28 KB (larger).
+- Next planned probe: TypedArray wrapping inside
+  `graphDirectRestyle.js` (browser-side only, no server change) to
+  test whether `Plotly.restyle` apply is faster with `Float32Array`
+  inputs. See `next_steps.md`.
+- Verification:
+  - `python -m py_compile app_src/app_dev.py app_src/components_dev.py app_src/config.py`
+  - `python -m pytest tests/test_app_helpers.py tests/test_smoke.py -q`

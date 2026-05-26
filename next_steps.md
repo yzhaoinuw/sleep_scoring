@@ -14,11 +14,6 @@ Current status:
 - Remaining cost is mostly Plotly/WebGL redraw time.
 - Mac M4 baseline captured on 2026-05-25 (see
   `ui_response_time_optimization_progress.txt`).
-- The final refresh now fetches `/_sleep_scoring/resample` directly and applies
-  via `graphDirectRestyle`, bypassing the Dash callback and store roundtrip
-  (landed 2026-05-25). Apples-to-apples measurement against the baseline
-  showed no measurable change in browser_total; kept as structural cleanup
-  before further items.
 
 Active branch:
 
@@ -26,31 +21,27 @@ Active branch:
 
 Active experiments, in order:
 
-1. Synthesize regular `x` arrays client-side.
-   - EEG/EMG `x` is uniform (`start_time + i / eeg_freq`); the resampler
-     picks indices that are recoverable from `(x0, dx, n)`.
-   - Send `{x0, dx, n, y}` in the resampler patch; reconstruct `x` in the
-     browser before `Plotly.restyle`.
-   - Expected gain: halves the EEG/EMG payload and skips the WebGL
-     x-buffer rebuild on apply. Biggest impact at wide zoom-outs where
-     payload doubles to about 168 KB.
+1. TypedArray probe on the direct-restyle apply path.
+   - Modify `app_src/assets/graphDirectRestyle.js` so the `x` and `y`
+     values inside each restyle update are wrapped in `Float32Array`
+     before the `Plotly.restyle` call.
+   - No server change. No new endpoint. No transport change.
+   - Measure: does `dash_apply` in `[browser-nav]` move when Plotly
+     receives typed inputs instead of plain JS arrays?
+   - If yes (meaningful drop), expand to a full server-side binary
+     transport in a follow-up item.
+   - If no, scrap the typed-array angle and move on.
 
-2. Send `y` as Float32 binary.
-   - Once the final refresh uses the direct fetch endpoint, switch `y`
-     arrays to `application/octet-stream` `Float32Array` to skip JSON
-     encode/parse on both ends.
-   - Pairs naturally with item 1.
-
-3. A/B `hovermode`.
+2. A/B `hovermode`.
    - Quick timing pass with `hovermode` set to `"x"` or `"closest"` vs.
      the current `"x unified"` to see if unified-hover bookkeeping is
      part of the residual `Plotly.restyle` apply cost.
 
-4. Compare `Plotly.react` vs `Plotly.restyle`.
+3. Compare `Plotly.react` vs `Plotly.restyle`.
    - Profile a versioned-data `Plotly.react` path against the current
      `Plotly.restyle` in `graphDirectRestyle.js` on the same recording.
 
-5. Default perf logging to off in shipped config (final cleanup).
+4. Default perf logging to off in shipped config (final cleanup).
    - Flip `ENABLE_RESAMPLER_PERF_LOG` and
      `ENABLE_BROWSER_NAVIGATION_PERF_LOG` to `False` in `app_src/config.py`
      so the resampler callback stops paying the JSON-encode + summarize
