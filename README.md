@@ -63,6 +63,10 @@ In annotation mode, you can annotate sleep scores or use [automatic sleep scorin
 
 https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
 
+### Select a Contiguous Segment
+
+While in annotation mode, right-click inside an existing scored or unscored segment to select that whole contiguous segment. You can then press 1, 2, or 3 to assign a score to the selected segment.
+
 ### Check Video
 
 While in annotation mode:

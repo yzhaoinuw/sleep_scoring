@@ -18,6 +18,16 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-05-27
+
+### v0.17.0 Release Prep
+
+- Added README documentation for right-click contiguous-segment selection in annotation mode.
+- Bumped the app version from `v0.16.0` to `v0.17.0`.
+- Aligned the legacy `setup.py` version with the release version.
+- Added a `v0.17.0` changelog entry covering right-click segment selection, UI response work, annotation auto-pan responsiveness, and default-off performance logging.
+- Confirmed before release that resampler/browser navigation performance logging remains off by default and can still be enabled with `SLEEP_SCORING_PROFILE_RESAMPLER=1`.
+
 ## 2026-05-26
 
 ### TypedArray Probe On Direct-Restyle Apply Path
