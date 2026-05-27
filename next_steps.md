@@ -12,21 +12,18 @@ Current status:
 - Final refresh payloads are compacted, usually around `95-110 KB`.
 - Direct browser-side `Plotly.restyle` is the active final refresh path.
 - Remaining cost is mostly Plotly/WebGL redraw time.
+- Perf logging is off by default for shipped users; env-var overrides remain
+  available for opt-in profiling.
 - Mac M4 baseline captured on 2026-05-25 (see
   `ui_response_time_optimization_progress.txt`).
 
-Active branch:
-
-- `optimization/further_ui_speedup`, branched from `dev` at `7a867bb`.
-
 Active experiments:
 
-- None remaining on this branch. All planned probes have been resolved
-  (see "Do not revisit for now" below for each outcome). Perf-logging
-  defaults flipped to `False` in `app_src/config.py` on 2026-05-26 as
-  the final shipped cleanup; env-var overrides remain intact.
+- None before the next shipped build. The latest low-hanging UI optimization
+  probes have been resolved; see "Do not revisit for now" below for each
+  outcome.
 
-Measurement protocol (for any future probe on this branch):
+Measurement protocol (for any future probe):
 
 - Use the 2026-05-25 Mac M4 baseline in
   `ui_response_time_optimization_progress.txt` as the anchor.
