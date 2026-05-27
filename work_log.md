@@ -20,6 +20,12 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-05-27
 
+### Remove Local Experiment Scripts From Tracked App Source
+
+- Stopped tracking the `scripts/` folder because it contains local experiment utilities rather than app runtime files.
+- Added `scripts/` to `.gitignore` so collaborators can keep local scripts without shipping them with the app source.
+- Updated `next_steps.md` so active follow-up notes no longer point to a tracked `scripts/` file.
+
 ### v0.16.1 Release Prep
 
 - Added README documentation for right-click contiguous-segment selection in annotation mode.

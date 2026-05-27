@@ -10,6 +10,9 @@ user_test_files/
 # Local archival / historical materials
 archive/
 
+# Local experiment scripts
+scripts/
+
 # Local-only notes and one-off summaries
 user_interface_optimization.txt
 

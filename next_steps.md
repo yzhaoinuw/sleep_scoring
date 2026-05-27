@@ -96,7 +96,8 @@ Possible later experiment:
 Current status:
 
 - `app_src/run_inference_stats_model.py` is the active app-side stats model.
-- `scripts/visualize_low_band_wake_bouts.py` remains the broader experiment sandbox.
+- Broader experiment scripts are local-only and ignored under `scripts/`, not
+  part of the shipped app source.
 - Immediate goal: improve REM detection inside long Wake bouts.
 
 Next experiment:
