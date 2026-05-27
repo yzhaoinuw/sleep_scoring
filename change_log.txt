@@ -1,4 +1,4 @@
-#### v0.17.0
+#### v0.16.1
 1. Added right-click selection for contiguous scored or unscored segments in annotation mode.
 2. Improved navigation and annotation auto-pan responsiveness for large recordings.
 3. Turned detailed performance logging off by default for shipped users while keeping environment-variable opt-in profiling available.
