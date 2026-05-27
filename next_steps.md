@@ -12,23 +12,53 @@ Current status:
 - Final refresh payloads are compacted, usually around `95-110 KB`.
 - Direct browser-side `Plotly.restyle` is the active final refresh path.
 - Remaining cost is mostly Plotly/WebGL redraw time.
-- UI response optimization is paused until real user feedback after the next shipped version.
+- Perf logging is off by default for shipped users; env-var overrides remain
+  available for opt-in profiling.
+- Mac M4 baseline captured on 2026-05-25 (see
+  `ui_response_time_optimization_progress.txt`).
 
-No active pre-ship experiment:
+Active experiments:
 
-- Do not chase more UI response optimizations before shipping annotation auto-pan.
-- Let users decide whether the current responsiveness is sufficient in practice.
+- None before the next shipped build. The latest low-hanging UI optimization
+  probes have been resolved; see "Do not revisit for now" below for each
+  outcome.
+
+Measurement protocol (for any future probe):
+
+- Use the 2026-05-25 Mac M4 baseline in
+  `ui_response_time_optimization_progress.txt` as the anchor.
+- Each item lands as its own commit so per-item before/after numbers stay
+  attributable.
 
 Possible later ideas:
 
-- Explore whether regular or partly regular `x` arrays can be derived client-side.
-- Consider precomputed downsample tiers only if on-demand resampling becomes a bottleneck again.
+- Consider precomputed downsample tiers only if on-demand resampling
+  becomes a bottleneck again.
 
 Do not revisit for now:
 
 - Adaptive final refresh density by visible window width.
 - Fast server trace updates during active movement.
 - Visualization-only source downsampling to 128 Hz.
+- Wrapping `x`/`y` as `Float32Array` before `Plotly.restyle`. Probed on
+  2026-05-26 with no measurable change in `dash_apply` or auto-pan
+  `apply` vs the baseline; Plotly already converts internally.
+- Switching `hovermode` from `"x unified"` to `"x"`. Probed on
+  2026-05-26. Apply time dropped by a real but modest ~5-10 ms across
+  gesture types, but this drops the cross-subplot synchronized spike
+  line and combined tooltip. Multiple users specifically requested
+  the unified-crosshair behavior, so the UX trade-off is not worth
+  the speedup. Do not revisit unless we find a way to keep the
+  unified visual.
+- Swapping `Plotly.restyle` for `Plotly.react` (with bumped
+  `layout.datarevision`) in `graphDirectRestyle.js`. Probed on
+  2026-05-26 and clearly regressed: `dash_apply` jumped by ~100-150 ms
+  across native release, keyboard, and custom-drag gestures vs the
+  baseline. Cause is that `react` re-diffs the full figure
+  (spectrogram heatmap, sleep-score Heatmap, legend, layout) on every
+  call, while `restyle` patches only the named props on the named
+  trace indices. Auto-pan was unaffected because it lives in
+  `annotationAutoPan.js` and has its own merge path.
 
 ## Annotation Selection
 
