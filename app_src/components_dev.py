@@ -47,6 +47,73 @@ backend_div = html.Div(
         dcc.Store(id="clip-range-store"),
         dcc.Store(id="updated-sleep-scores-store"),
         dcc.Store(id="backup-sleep-scores-store"),
+        dcc.Store(id="navigation-profile-store"),
+        dcc.Store(id="graph-direct-restyle-payload-store"),
+        dcc.Store(id="graph-direct-restyle-status-store"),
+        EventListener(
+            id="graph-contextmenu",
+            events=[
+                {
+                    "event": "sleepboutcontextmenu",
+                    "props": ["detail.x", "detail.xref", "detail.yref", "detail.timeStamp"],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-annotation-select",
+            events=[
+                {
+                    "event": "sleepannotationselect",
+                    "props": [
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.xref",
+                        "detail.yref",
+                        "detail.y0",
+                        "detail.y1",
+                        "detail.kind",
+                        "detail.timeStamp",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-relayout-coalesced",
+            events=[
+                {
+                    "event": "sleepgraphrelayout",
+                    "props": [
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.source",
+                        "detail.mode",
+                        "detail.timeStamp",
+                        "detail.profileId",
+                        "detail.inputPerformanceTime",
+                        "detail.dispatchPerformanceTime",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-navigation-profile",
+            events=[
+                {
+                    "event": "sleepgraphprofile",
+                    "props": [
+                        "detail.profileId",
+                        "detail.mode",
+                        "detail.source",
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.coalesceMs",
+                        "detail.dashApplyMs",
+                        "detail.browserTotalMs",
+                        "detail.frameGapMs",
+                    ],
+                }
+            ],
+        ),
         EventListener(
             id="keyboard",
             events=[{"event": "keydown", "props": ["key"]}],
@@ -190,7 +257,7 @@ def make_utility_div(pred_disabled=True):
                 children=[
                     html.Div(["Sampling Level"]),
                     dcc.Dropdown(
-                        options=["x1", "x2", "x4"],
+                        options=["x0.5", "x1", "x2", "x4"],
                         value="x1",
                         id="n-sample-dropdown",
                         searchable=False,

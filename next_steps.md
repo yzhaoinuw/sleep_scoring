@@ -1,97 +1,120 @@
 # Next Steps
 
-Use this checklist alongside `codex_work_log.md`.
+Use this as the forward-looking checklist. Completed experiments and measured
+outcomes live in `work_log.md`.
 
-## Annotation Feature Status
+## Visualization Performance
 
-- Current reliable baseline:
-  - normal click still creates the thin selection box
-  - drag-box selection still works
-- Keep the nonzero-`start_time` click-selection fix in place.
-- The `B`-armed full-bout selection should be treated as a previously working experiment, not as the current committed code.
-- If revisiting this feature, start from the current committed baseline and reintroduce explicit bout-select behavior incrementally rather than assuming it is already present.
+Current status:
 
-## Annotation Feature Next Experiment
+- Navigation now feels smooth across keyboard, mouse drag, wheel zoom, and reset.
+- Server-side resampler work is no longer the main bottleneck.
+- Final refresh payloads are compacted, usually around `95-110 KB`.
+- Direct browser-side `Plotly.restyle` is the active final refresh path.
+- Remaining cost is mostly Plotly/WebGL redraw time.
+- Perf logging is off by default for shipped users; env-var overrides remain
+  available for opt-in profiling.
+- Mac M4 baseline captured on 2026-05-25 (see
+  `ui_response_time_optimization_progress.txt`).
 
-- If we return to the faster "select existing bout" architecture later:
-  - reintroduce a segment-store idea incrementally
-  - keep debug mode on from the start
-  - avoid overlapping click callbacks that write to the same outputs
-- Do not start with:
-  - double-click detection
-  - `Ctrl`/`Cmd` modifier-click
-  - large callback rewires before confirming event behavior in the live app
-- More promising candidate than double click:
-  - pilot a right-click / context-menu style gesture for full-bout selection, if the graph surface and desktop wrapper expose it cleanly
-  - treat it as an explicit alternate gesture, not as inferred timing logic
+Active experiments:
 
-## Current Statistical Model
+- None before the next shipped build. The latest low-hanging UI optimization
+  probes have been resolved; see "Do not revisit for now" below for each
+  outcome.
 
-- Wake detection:
-  - compute the app-style EEG spectrogram
-  - clip and normalize the displayed spectrogram values
-  - average the normalized sleep-wave band column-wise
-  - label Wake where the feature falls below the threshold
-- Wake cleanup:
-  - merge short NREM gaps relative to neighboring Wake durations
-  - remove very short Wake bouts
-- REM detection:
-  - start from Wake bouts that pass the duration rule
-  - require low NE relative to a global low-percentile threshold
-  - currently skip REM shape gating to match the validated `shape_test="none"` behavior
-- Post-REM Wake:
-  - within each REM bout, find the NE trough
-  - after the trough, split at the first cumulative NE recovery crossing above epsilon
-  - relabel the recovery tail as Wake
+Measurement protocol (for any future probe):
 
-## Immediate Goal
+- Use the 2026-05-25 Mac M4 baseline in
+  `ui_response_time_optimization_progress.txt` as the anchor.
+- Each item lands as its own commit so per-item before/after numbers stay
+  attributable.
 
-- Improve REM detection inside long Wake bouts without destabilizing the current working defaults.
+Possible later ideas:
 
-## Next Experiment
+- Consider precomputed downsample tiers only if on-demand resampling
+  becomes a bottleneck again.
 
-- Instead of relabeling an entire Wake bout as REM, allow the REM detector to carve out a likely REM subsection from within a Wake bout.
-- Compare two approaches:
-  - identify a low-NE subsection before promoting Wake to REM
-  - or split a Wake-derived REM candidate after the initial REM relabeling step
-- Focus on files where merged Wake currently swallows a smaller REM region.
+Do not revisit for now:
 
-## App Status
+- Adaptive final refresh density by visible window width.
+- Fast server trace updates during active movement.
+- Visualization-only source downsampling to 128 Hz.
+- Wrapping `x`/`y` as `Float32Array` before `Plotly.restyle`. Probed on
+  2026-05-26 with no measurable change in `dash_apply` or auto-pan
+  `apply` vs the baseline; Plotly already converts internally.
+- Switching `hovermode` from `"x unified"` to `"x"`. Probed on
+  2026-05-26. Apply time dropped by a real but modest ~5-10 ms across
+  gesture types, but this drops the cross-subplot synchronized spike
+  line and combined tooltip. Multiple users specifically requested
+  the unified-crosshair behavior, so the UX trade-off is not worth
+  the speedup. Do not revisit unless we find a way to keep the
+  unified visual.
+- Swapping `Plotly.restyle` for `Plotly.react` (with bumped
+  `layout.datarevision`) in `graphDirectRestyle.js`. Probed on
+  2026-05-26 and clearly regressed: `dash_apply` jumped by ~100-150 ms
+  across native release, keyboard, and custom-drag gestures vs the
+  baseline. Cause is that `react` re-diffs the full figure
+  (spectrogram heatmap, sleep-score Heatmap, legend, layout) on every
+  call, while `restyle` patches only the named props on the named
+  trace indices. Auto-pan was unaffected because it lives in
+  `annotationAutoPan.js` and has its own merge path.
 
-- The app can now switch between:
-  - `sdreamer`
-  - `stats_model`
-- Selection is config-only through `app_src/config.py`.
-- Legacy app postprocessing should remain disabled for the stats model path.
+## Annotation Selection
 
-## User-Facing Controls
+Current status:
 
-- Current exposed stats-model controls in `app_src/config.py`:
-  - Wake threshold
-  - minimum Wake duration
-  - minimum REM duration
+- Edge-triggered x-axis panning during annotation drag selection is implemented in
+  `app_src/assets/annotationAutoPan.js`.
+- The final selected `[start, end]` range is preserved for the existing annotation flow.
+- Auto-pan direct trace refreshes use `/_sleep_scoring/resample` and browser-side
+  `Plotly.restyle` so live selection does not compete with normal Dash graph updates.
+- Browser-side merge buffers are capped so long auto-pan drags stay around `7k-8k`
+  active points instead of growing without bound.
+- This work still needs manual validation on top of the optimized
+  `codex/next-level-navigation` stack after the branch integration.
 
-## Developer Controls
+Pre-ship validation:
 
-- Keep these internal for now:
-  - sleep-wave frequency range
-  - spectrogram normalization range
-  - Wake merge coefficient
-  - REM threshold percentile
-  - REM threshold comparison percentile
-  - NE smoothing window
-  - REM recovery epsilon
+- Re-test normal zooming, keyboard panning, mouse-drag panning, and reset.
+- Re-test annotation click selection, normal drag selection, and drag-select auto-pan.
+- Re-test mode switches and sampling levels `x0.5`, `x1`, `x2`, and `x4`.
+- Watch for stale-trace snapback, lost final detail refresh, or annotation selection drift.
 
-## Validation Plan
+Guardrails:
+
+- Keep normal click thin-box selection and drag-box selection intact.
+- Keep the nonzero-`start_time` click-selection fix intact.
+- Do not start with double-click or modifier-click gesture inference.
+
+Possible later experiment:
+
+- Revisit explicit full-bout selection with a right-click/context-menu style gesture.
+
+## Statistical Model
+
+Current status:
+
+- `app_src/run_inference_stats_model.py` is the active app-side stats model.
+- Broader experiment scripts are local-only and ignored under `scripts/`, not
+  part of the shipped app source.
+- Immediate goal: improve REM detection inside long Wake bouts.
+
+Next experiment:
+
+- Allow the REM detector to carve out a likely REM subsection from within a Wake bout
+  instead of relabeling the entire Wake bout.
+- Compare:
+  - identifying a low-NE subsection before Wake-to-REM promotion
+  - splitting a Wake-derived REM candidate after initial REM relabeling
+- Focus on files where merged Wake currently swallows a smaller likely REM region.
+
+Validation:
 
 - Use side-by-side visual inspection in the app first.
-- Focus especially on:
-  - Wake bouts that contain a smaller likely REM subsection
-  - post-REM Wake boundary placement
-  - files where merged Wake looks too broad before REM relabeling
-  - how stable the defaults feel across files
+- Prioritize Wake bouts containing likely REM subsections, post-REM Wake boundary
+  placement, and files where merged Wake is too broad.
 
-## Notes
+Guardrails:
 
-- `app_src/run_inference_stats_model.py` is now the active app-side stats model.
-- `scripts/visualize_low_band_wake_bouts.py` remains the broader sandbox for experiment history and visual debugging.
+- Do not destabilize current defaults while improving REM-in-Wake detection.

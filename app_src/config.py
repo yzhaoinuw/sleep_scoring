@@ -5,6 +5,8 @@ Created on Tue Dec  2 17:55:48 2025
 @author: yzhao
 """
 
+import os
+
 # %% Default app window size
 WINDOW_CONFIG = {
     "width": 1600,
@@ -27,7 +29,7 @@ GAUSSIAN_FILTER_SIGMA = 4  # how agressive to smooth the spectrogram or theta/de
 
 # %% Automatic sleep scoring customization
 POSTPROCESS = True
-SLEEP_SCORING_MODEL = "sdreamer"  # "sdreamer" or "stats_model"
+SLEEP_SCORING_MODEL = "stats_model"  # "sdreamer" or "stats_model"
 
 # Statistical Wake/REM model user-facing tuning
 STATS_MODEL_WAKE_THRESHOLD = (
@@ -38,3 +40,24 @@ STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 
 # %% Others
 PORT = 8050
+
+# %% Profiling
+# Off by default for shipped users. Override per-run with one of the
+# SLEEP_SCORING_* env vars below.
+ENABLE_RESAMPLER_PERF_LOG = False
+ENABLE_BROWSER_NAVIGATION_PERF_LOG = False
+
+# %% Navigation performance
+ENABLE_DIRECT_PLOTLY_RESTYLE = True
+
+RESAMPLER_PERF_LOG = os.environ.get("SLEEP_SCORING_PROFILE_RESAMPLER", "1") != "0" and (
+    ENABLE_RESAMPLER_PERF_LOG
+    or os.environ.get("SLEEP_SCORING_RESAMPLER_PERF_LOG", "0") == "1"
+    or os.environ.get("SLEEP_SCORING_PROFILE_RESAMPLER", "0") == "1"
+)
+BROWSER_NAVIGATION_PERF_LOG = os.environ.get("SLEEP_SCORING_BROWSER_NAV_PERF_LOG", "1") != "0" and (
+    ENABLE_BROWSER_NAVIGATION_PERF_LOG
+    or os.environ.get("SLEEP_SCORING_BROWSER_NAV_PERF_LOG", "0") == "1"
+    or RESAMPLER_PERF_LOG
+)
+PROFILE_RESAMPLER_UPDATES = RESAMPLER_PERF_LOG

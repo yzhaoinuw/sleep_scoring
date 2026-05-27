@@ -1,0 +1,407 @@
+UI Response Time Optimization Progress
+======================================
+
+Current one-line summary
+------------------------
+
+Significant progress. Default navigation is about 2.5x faster end to end:
+the measured final response dropped from roughly 935 ms to a typical
+300-370 ms range, with most tested interactions under 400 ms.
+
+Annotation auto-pan while drag-selecting is now integrated on top of the
+optimized navigation path and feels smooth in manual testing.
+
+The remaining response time is mostly browser-side Plotly/WebGL redraw cost,
+not Python resampling.
+
+
+Scope
+-----
+
+This summary compares early browser-measured navigation logs from 2026-05-21
+against the latest optimized navigation and annotation auto-pan behavior
+validated through manual testing on 2026-05-23 and documented on 2026-05-24.
+
+The key end-to-end timing metric is `browser_total`. Server callback timing is
+a sub-measurement inside the browser apply path, so it should not be added on
+top of `browser_total`.
+
+
+Benchmark Environment
+---------------------
+
+These numbers are local manual-test measurements, not synthetic benchmarks.
+Collaborators should compare against them with hardware, browser, and test data
+in mind.
+
+Local machine used for the retained measurements:
+
+- OS reported by registry: Windows 10 Home, DisplayVersion 25H2, build
+  26200.8457, 64-bit (`Microsoft Windows NT 10.0.26200.0`)
+- CPU: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60 GHz
+- CPU reading at documentation time: about 3302 MHz
+- Logical processors visible to the process: 16
+- RAM: about 31.7 GB
+- GPU/browser version: not recorded; this matters because current remaining
+  cost is mostly browser-side Plotly/WebGL redraw
+
+Runtime used:
+
+- Conda environment: `sleep_scoring_dash3.0`
+- Python: 3.11.14
+- Dash: 3.3.0
+- Plotly: 6.5.0
+- NumPy: 2.3.5
+- Pandas: 2.3.3
+- Flask: 3.1.2
+
+Code/test context:
+
+- Branch: `codex/next-level-navigation`
+- Latest validated code commit before this document-only update:
+  `8048101 Restore annotation auto-pan edge motion`
+- Test recording duration visible in logs: about 15,295 seconds
+- Tested trace groups in logged resampler patches: EEG, EMG, and NE
+- Default sampling level: `x1`
+- Additional sampling levels tested during optimization: `x0.5`, `x2`, `x4`
+- Interaction coverage: zooming, drag panning, keyboard panning, custom drag,
+  annotation mode, mode switches, sampling-level changes, and annotation
+  drag-select auto-pan at both recording edges
+
+
+What Improved
+-------------
+
+1. End-to-end response time
+
+- Early final refresh: about 935 ms
+- Current default final refresh: typically about 300-370 ms
+- Practical improvement: about 560 ms faster
+- Relative improvement: about 60% reduction, or roughly 2.5x faster
+
+Occasional individual samples can still land a little over 400 ms, but the
+tested default navigation path is now usually below that threshold.
+
+2. Client coalescing and final-refresh timing
+
+- Early client wait / coalescing: about 566 ms
+- Current client wait / coalescing: usually about 25-30 ms for plotly events
+- Improvement: about 92% reduction
+
+This was the largest speed win. It came from removing the old long final
+refresh wait, eliminating redundant fast/final update behavior, and coalescing
+navigation events so the app updates from the latest useful range.
+
+3. Server callback work
+
+Typical current default final refresh:
+
+- Resampler retrieval: about 0 ms
+- Construct update payload: about 8-11 ms
+- Encode payload: about 2-3 ms
+- Server callback total: about 14-17 ms
+
+The important structural win here was moving active Plotly-resampler objects
+out of filesystem cache and into process memory. That removed the previous
+200-600 ms cache retrieval cost.
+
+4. Payload size
+
+- Early browser-logged baseline: about 181 KB after the first payload cleanup
+- Current default final refresh: usually about 95-110 KB
+- Improvement from that baseline: about 40-50% smaller
+
+Earlier in the optimization process, payloads were around 300 KB before marker,
+customdata, theta/delta, and NE relayout reductions. Compared with that earlier
+state, current default updates are roughly one third of the original payload
+size.
+
+5. Browser apply path
+
+The latest retained path sends final trace updates through direct browser-side
+`Plotly.restyle` instead of asking Dash to apply the graph patch through the
+full Graph component update path.
+
+This did not eliminate the browser redraw floor, but it is the cleaner current
+path and was validated across:
+
+- zooming
+- drag panning
+- keyboard panning
+- annotation mode
+- mode switches
+- sampling levels `x0.5`, `x1`, `x2`, and `x4`
+
+6. Annotation auto-pan while drag-selecting
+
+Annotation auto-pan uses a direct `/_sleep_scoring/resample` endpoint for live
+trace refreshes during selection, then keeps the optimized final-refresh path
+for normal graph updates.
+
+Latest manual logs showed:
+
+- Direct auto-pan server resample total: usually about 11-15 ms
+- Direct auto-pan payload: about 87-99 KB in the tested edge/visible ranges
+- Browser auto-pan apply: usually about 220-330 ms for the Plotly trace update
+- Auto-pan merge buffers: generally around 5k-8k points across EEG, EMG, and NE
+- Edge behavior: fetch windows clamp to valid recording bounds, for example
+  `[0, 564.1]` near the left edge and `[14606.0, 15295.0]` near the right edge
+
+The browser-side pan loop intentionally keeps natural viewport motion while
+only the resample fetch window is clamped. This avoids empty out-of-bounds
+payloads without reintroducing the stalled edge-pan behavior seen in the first
+clamp attempt.
+
+
+Sampling-Level Observations
+---------------------------
+
+Sampling-level tests were useful because they showed the remaining bottleneck
+is not simply Python callback time or payload size.
+
+Approximate tested behavior:
+
+- `x0.5`: about 59 KB payload, about 12 ms server callback, browser total
+  usually around 295-340 ms
+- `x1`: about 95-110 KB payload, about 14-17 ms server callback, browser total
+  usually around 300-370 ms
+- `x2`: about 175 KB payload, about 21-24 ms server callback, browser total
+  usually around 310-370 ms
+- `x4`: about 320-331 KB payload, about 33-38 ms server callback, browser
+  total usually around 325-385 ms, with occasional higher samples
+
+Because browser totals remain in a similar range across these sampling levels,
+the current floor appears to be Plotly/WebGL redraw and browser-side trace
+application rather than server-side resampling.
+
+
+Tried And Kept
+--------------
+
+- In-memory Plotly-resampler storage for the active desktop app path.
+- Coalesced relayout/navigation updates.
+- Final-only trace refresh after pan/zoom settles.
+- Smaller final payloads while preserving default EEG/EMG detail.
+- Direct browser-side `Plotly.restyle` for final trace refreshes.
+- Optional sampling levels for user-controlled tradeoffs.
+- Annotation drag-select auto-pan on the optimized navigation branch.
+- Direct auto-pan resample endpoint with recording-bound fetch clamping.
+
+
+Tried And Dismissed
+-------------------
+
+Adaptive final density by zoom level:
+
+- Reduced payload at wide zoom levels.
+- Gave inconsistent speed gains.
+- Looked visually worse at the initial zoomed-out view.
+- Dismissed because it risked giving users the wrong first impression.
+
+Visualization-only EEG/EMG downsampling to 128 Hz:
+
+- Did not noticeably improve interaction.
+- Increased or failed to meaningfully reduce the effective payload in the
+  tested path.
+- Dismissed because it added complexity without a speed win.
+
+Extra minimal direct-restyle payload simplification:
+
+- Was functionally safe in manual testing.
+- Did not produce a meaningful browser-total improvement.
+- Dismissed to avoid accumulating code that does not support the speed goal.
+
+Fast server trace updates during active movement:
+
+- Helped reveal where costs were, but was not the final best user-facing path.
+- Dismissed in favor of immediate browser axis motion plus a compact final
+  refresh after navigation settles.
+
+
+Current Conclusion
+------------------
+
+The app has made meaningful UI response progress and now feels smooth in manual
+testing for zooming, panning, annotation, mode switching, sampling-level
+changes, and annotation drag-select auto-pan.
+
+Further UI response optimization is likely in diminishing-returns territory
+unless user feedback shows a remaining pain point. Future comparisons should
+include the local OS, CPU, RAM, browser/GPU, package versions, recording
+duration, sampling level, and interaction type so collaborators can separate
+machine differences from app regressions.
+
+
+2026-05-25 Mac M4 Air Baseline — Prep For optimization/further_ui_speedup
+========================================================================
+
+This baseline anchors the next round of UI response work on branch
+`optimization/further_ui_speedup`, branched from `dev` at commit
+`7a867bb`. It establishes Mac response numbers on the same test recording
+the Windows contributor used (`830.mat`, about 15,295 s) so cross-platform
+and cross-branch comparisons stay on a known footing.
+
+The earlier baseline above documents the Windows i9-11980HK / 31.7 GB
+configuration. This block adds a Mac Apple Silicon configuration captured
+just before any further optimization work begins.
+
+
+Environment
+-----------
+
+- Mac model: MacBook Air (Mac16,13)
+- Chip: Apple M4, 10 cores (4 performance / 6 efficiency)
+- RAM: 16 GB
+- macOS: 26.3.1, build 25D771280a
+- Safari / WebKit (backs pywebview's WKWebView backend): 26.3.1
+- Python: 3.11.0
+- Dash: 3.3.0
+- Plotly: 6.5.0
+- plotly_resampler: 0.11.0
+- pywebview: 6.1
+
+Branch and commit:
+
+- Branch: `optimization/further_ui_speedup` (branched from `dev`)
+- Base commit: `7a867bb Merge pull request #3 from yzhaoinuw/docs/agent-collab-polish`
+
+
+Test Conditions
+---------------
+
+- Test recording: `830.mat`, full duration about 15,295 seconds (about
+  4 h 15 min). Same file used by the Windows contributor for cross-platform
+  parity.
+- Default sampling level: `x1`.
+- Interaction coverage: keyboard panning, native Plotly drag/release,
+  custom pointer pan, annotation drag-select auto-pan, and zoom-to-full
+  reset.
+- Concurrent load on the Mac: Chrome open with a few tabs; no other heavy
+  applications.
+- Memory pressure at check time: about 15 GB of 16 GB used with about
+  4.4 GB in the macOS compressor and about 140 MB free. Plausible
+  contributor to apply-time variance.
+- Mac uptime: 62 days, no recent reboot.
+- Perf logging flags in `app_src/config.py`: both
+  `ENABLE_RESAMPLER_PERF_LOG` and `ENABLE_BROWSER_NAVIGATION_PERF_LOG`
+  set to `True`. Server timing logs and browser navigation events were
+  emitted on every update. Recorded here so the post-change runs can match
+  the same logging conditions.
+
+
+Measured Response Times By Source
+---------------------------------
+
+End-to-end metric is `browser_total`, consistent with the convention used
+above. Server work is a sub-measurement inside that.
+
+Native Plotly drag release (`source=plotly`):
+
+- Coalesce: about 26-27 ms (settled at the `RELEASE_FINAL_DELAY_MS = 25`
+  debounce)
+- Apply (`dash_apply`): about 197-269 ms
+- Browser total: about 224-295 ms
+- Behavior held across visible windows from 464 s to the full 15,295 s
+  zoom-out.
+
+Keyboard arrow-key panning (`source=keyboard`):
+
+- Coalesce: about 303-380 ms. This is the 120 ms idle settle plus the
+  duration of key-hold or repeated key events, not pure overhead. The
+  perceived latency from "stopped pressing" to "trace updates" is closer
+  to 120 ms plus apply.
+- Apply (`dash_apply`): about 172-245 ms
+- Browser total: about 480-622 ms (lower at 344 s windows, higher at wider
+  windows around 1320 s)
+
+Custom pointer-drag pan (`source=custom-drag`):
+
+- Coalesce: about 2-8 ms (essentially immediate, matching the design)
+- Apply (`dash_apply`): about 191-245 ms
+- Browser total: about 193-253 ms
+
+This is the fastest interactive refresh path in the current build.
+
+Annotation drag-select auto-pan (`[browser-autopan]`, mode=merge):
+
+- Fetch (direct `/_sleep_scoring/resample` GET): about 110-145 ms typical
+- Parse: 0-1 ms
+- Apply: about 145-180 ms
+- Browser total: about 260-310 ms
+- Merge buffers stayed around 5k-8k points across EEG, EMG, and NE,
+  consistent with the documented design.
+- Final `mode=replace` after release: about 141-156 ms apply, about
+  163-487 ms total depending on whether a fetch was still in flight.
+- Two fetch outliers were observed at about 295 ms and 330 ms versus the
+  typical 110-145 ms band, almost certainly Flask's default development
+  server serializing a burst of GETs during fast auto-pan. The subsequent
+  `replace` finale came back in 21 ms once the queue drained.
+
+
+Server-Side Resampler
+---------------------
+
+Independent of source, the in-memory resampler callback stays well below
+the apply floor:
+
+- 344 s windows: construct about 8-11 ms, payload encode about 3.2-3.4 ms,
+  total about 14-18 ms, payload about 94 KB.
+- 1320 s windows: construct about 12-17 ms, payload encode about 5.8 ms,
+  total about 24-28 ms, payload about 168-174 KB.
+- Full 15,295 s zoom-out: construct about 11-13 ms, total about 18-19 ms,
+  payload about 98-100 KB.
+- `resampler_get` (in-memory retrieval) stayed at 0.0 ms across the run.
+- No `[resampler-stale]` or `[resampler-skip]` events fired; the
+  coalescer and stale guards were not pressed.
+
+
+Observations
+------------
+
+1. Browser-side Plotly apply is still the dominant cost.
+
+   Across every source, `dash_apply` is the largest single component
+   (about 150-270 ms), and it scales with payload size. Server callback
+   time never exceeded 30 ms.
+
+2. Annotation auto-pan apply is consistently faster than direct-restyle
+   apply on the same-sized payload.
+
+   - Auto-pan apply on about 94-99 KB payloads: about 145-180 ms
+   - Direct-restyle apply on about 94 KB payloads: about 170-270 ms
+
+   Both paths run the same `Plotly.restyle` call. The difference is that
+   auto-pan applies straight off a fetched JSON response, while the
+   direct-restyle path routes the same patch through Dash's
+   `graph-direct-restyle-payload-store` and a clientside callback. The
+   roughly 30-50 ms gap is the Dash store roundtrip cost. Bypassing the
+   Dash store on the normal final refresh path is the targeted next change.
+
+3. Wide zoom-outs are the worst-case payload path.
+
+   When the visible window widens to about 1320 s, payload roughly doubles
+   (94 KB to about 168 KB), `payload_encode` roughly doubles (3.3 ms to
+   about 5.8 ms), and `dash_apply` climbs to about 245-260 ms. EEG and EMG
+   `x` arrays alone are about 36 KB each in this case. Client-side x
+   synthesis and binary `y` transport are aimed primarily at this regime.
+
+4. Memory pressure context.
+
+   The Mac was running near memory capacity during the test (about
+   15 GB of 16 GB used, about 4.4 GB compressed). Some of the apply-time
+   variance is plausibly attributable to that, separate from the app
+   itself. The Windows baseline above had 31.7 GB RAM and no comparable
+   pressure reading was recorded.
+
+
+Cross-Reference With Windows Baseline
+-------------------------------------
+
+The earlier Windows baseline above documented "current default final
+refresh: typically about 300-370 ms" on an 11th-gen i9 with 31.7 GB RAM.
+The Mac M4 baseline lands in a similar range for native release and custom
+drag (about 220-295 ms) and a higher range for keyboard panning when the
+key-hold portion of coalescing is included. The two configurations are
+broadly comparable on the dominant Plotly apply cost, which is consistent
+with the conclusion that the remaining cost is browser-side WebGL redraw
+rather than platform-specific resampling work.

@@ -65,13 +65,21 @@ def get_padded_sleep_scores(mat) -> np.ndarray:
     return sleep_scores
 
 
-def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
+def make_figure(
+    mat,
+    plot_name="",
+    default_n_shown_samples=2048,
+    num_class=4,
+    ne_n_shown_samples=1024,
+):
     # Time span and frequencies
     eeg, emg, ne = mat.get("eeg"), mat.get("emg"), mat.get("ne")
     eeg_freq, ne_freq = mat.get("eeg_frequency"), mat.get("ne_frequency")
     start_time = mat.get("start_time")
     if mat.get("num_class") is not None:
-        num_class = mat["num_class"]
+        num_class = int(np.asarray(mat["num_class"]).item())
+    if num_class not in COLORSCALE or num_class < 4:
+        num_class = 4
     if start_time is None:
         start_time = 0
 
@@ -167,10 +175,9 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     fig.add_trace(
         go.Scattergl(
             name="EEG",
-            line=dict(width=1),
-            marker=dict(size=2, color="black"),
+            line=dict(width=1, color="black"),
             showlegend=False,
-            mode="lines+markers",
+            mode="lines",
             hovertemplate="<b>time</b>: %{x:.2f}" + "<br><b>y</b>: %{y}<extra></extra>",
         ),
         hf_x=time_eeg,
@@ -181,10 +188,9 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
     fig.add_trace(
         go.Scattergl(
             name="EMG",
-            line=dict(width=1),
-            marker=dict(size=2, color="black"),
+            line=dict(width=1, color="black"),
             showlegend=False,
-            mode="lines+markers",
+            mode="lines",
             hovertemplate="<b>time</b>: %{x:.2f}" + "<br><b>y</b>: %{y}<extra></extra>",
         ),
         hf_x=time_emg,
@@ -221,12 +227,12 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
         fig.add_trace(
             go.Scattergl(
                 name="NE",
-                line=dict(width=1),
-                marker=dict(size=2, color="black"),
+                line=dict(width=1, color="black"),
                 showlegend=False,
-                mode="lines+markers",
+                mode="lines",
                 hovertemplate="<b>time</b>: %{x:.2f}" + "<br><b>y</b>: %{y}<extra></extra>",
             ),
+            max_n_samples=ne_n_shown_samples,
             hf_x=time_ne,
             hf_y=ne,
             row=4,
@@ -237,7 +243,13 @@ def make_figure(mat, plot_name="", default_n_shown_samples=2048, num_class=3):
 
     # add the heatmap last so that their indices can be accessed using last indices
     fig.add_trace(spectrogram, secondary_y=False, row=1, col=1)
-    fig.add_trace(theta_delta_ratio, secondary_y=True, row=1, col=1)
+    fig.add_trace(
+        theta_delta_ratio,
+        max_n_samples=len(theta_delta_ratio.x),
+        secondary_y=True,
+        row=1,
+        col=1,
+    )
     fig.add_trace(sleep_scores, row=2, col=1)
     fig.add_trace(sleep_scores, row=3, col=1)
     fig.add_trace(sleep_scores, row=4, col=1)

@@ -6,10 +6,11 @@ Created on Fri Oct 20 15:45:29 2023
 """
 
 # import os
-# import json
+import json
 import math
 import shutil
 import tempfile
+import time
 from collections import deque
 from pathlib import Path
 
@@ -22,14 +23,22 @@ import webview
 from dash import Dash, clientside_callback
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from flask import abort, request
 from flask_caching import Cache
+from plotly.utils import PlotlyJSONEncoder
 from scipy.io import loadmat, savemat
 
 from app_src import VERSION
 
 # from app_src.debug_tool import Debug_Counter
 from app_src.components_dev import Components
-from app_src.config import POSTPROCESS
+from app_src.config import (
+    BROWSER_NAVIGATION_PERF_LOG,
+    ENABLE_DIRECT_PLOTLY_RESTYLE,
+    POSTPROCESS,
+    PROFILE_RESAMPLER_UPDATES,
+    RESAMPLER_PERF_LOG,
+)
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
 from app_src.make_mp4 import make_mp4_clip
 from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
@@ -55,6 +64,166 @@ TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
 VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+RESAMPLER_PROFILE_UPDATE_ID = 0
+RESAMPLER_PROFILE_LAST_START = None
+RESAMPLER_PROFILE_LAST_FINISH = None
+RESAMPLER_PROFILE_ACTIVE_COUNT = 0
+NAVIGATION_LATEST_PROFILE_ID = 0
+RESAMPLER_PATCH_X_DECIMALS = 3
+RESAMPLER_PATCH_Y_DECIMALS = 7
+FIG_RESAMPLER = None
+
+
+def clear_fig_resamplers():
+    global FIG_RESAMPLER, NAVIGATION_LATEST_PROFILE_ID
+
+    FIG_RESAMPLER = None
+    NAVIGATION_LATEST_PROFILE_ID = 0
+
+
+def store_fig_resampler(fig):
+    global FIG_RESAMPLER
+
+    FIG_RESAMPLER = fig
+
+
+def get_fig_resampler():
+    return FIG_RESAMPLER
+
+
+def mat_x_bounds(mat):
+    eeg = mat.get("eeg")
+    eeg_freq = mat.get("eeg_frequency")
+    start_time = mat.get("start_time", 0)
+    if eeg is None or not eeg_freq:
+        return None
+
+    try:
+        start = float(start_time)
+        end = start + math.ceil((eeg.size - 1) / float(eeg_freq))
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+    if not np.isfinite(start) or not np.isfinite(end) or end <= start:
+        return None
+    return [start, end]
+
+
+def fig_x_bounds(fig):
+    meta = getattr(getattr(fig, "layout", None), "meta", None)
+    if isinstance(meta, dict):
+        bounds = meta.get("sleepScoringXBounds")
+        if isinstance(bounds, (list, tuple)) and len(bounds) == 2:
+            try:
+                x0 = float(bounds[0])
+                x1 = float(bounds[1])
+            except (TypeError, ValueError):
+                return None
+            if np.isfinite(x0) and np.isfinite(x1) and x1 > x0:
+                return [x0, x1]
+    return None
+
+
+def clamp_x_range_to_bounds(x0, x1, bounds):
+    low = min(x0, x1)
+    high = max(x0, x1)
+    if not bounds:
+        return [low, high]
+
+    bound_low, bound_high = bounds
+    span = bound_high - bound_low
+    width = high - low
+    if width >= span:
+        return [bound_low, bound_high]
+
+    clamped_low = min(max(low, bound_low), bound_high - width)
+    return [clamped_low, clamped_low + width]
+
+
+def compact_resampler_patch(update_patch):
+    """Trim numeric precision in resampler trace updates before Dash serializes them."""
+    if not hasattr(update_patch, "_operations"):
+        return update_patch
+
+    for operation in update_patch._operations:
+        location = operation.get("location", [])
+        if len(location) < 3 or location[0] != "data":
+            continue
+
+        trace_property = location[2]
+        if trace_property == "x":
+            decimals = RESAMPLER_PATCH_X_DECIMALS
+        elif trace_property == "y":
+            decimals = RESAMPLER_PATCH_Y_DECIMALS
+        else:
+            continue
+
+        value = operation.get("params", {}).get("value")
+        if value is None:
+            continue
+
+        try:
+            operation["params"]["value"] = np.round(
+                np.asarray(value, dtype=float),
+                decimals,
+            ).tolist()
+        except (TypeError, ValueError):
+            continue
+
+    return update_patch
+
+
+def summarize_resampler_patch(update_patch, fig, max_items=6):
+    """Return a compact size breakdown for Dash Patch trace updates."""
+    if not hasattr(update_patch, "to_plotly_json"):
+        return "operations=n/a"
+
+    operations = update_patch.to_plotly_json().get("operations", [])
+    items = []
+    total_operation_size = 0
+    for operation in operations:
+        location = operation.get("location", [])
+        if len(location) < 3 or location[0] != "data":
+            continue
+
+        trace_index = location[1]
+        trace_property = location[2]
+        value = operation.get("params", {}).get("value")
+        value_json = json.dumps(value, cls=PlotlyJSONEncoder, separators=(",", ":"))
+        value_size_kb = len(value_json.encode("utf-8")) / 1024
+        total_operation_size += value_size_kb
+
+        trace_name = ""
+        try:
+            trace_name = fig.data[trace_index].name or ""
+        except (IndexError, TypeError, AttributeError):
+            pass
+        trace_label = f"{trace_index}:{trace_name or trace_property}"
+        items.append((value_size_kb, trace_label, trace_property))
+
+    items.sort(reverse=True)
+    item_text = ", ".join(
+        f"{trace_label}.{trace_property}={value_size_kb:.1f} KB"
+        for value_size_kb, trace_label, trace_property in items[:max_items]
+    )
+    return (
+        f"operations={len(operations)}, "
+        f"operation_values={total_operation_size:.1f} KB, "
+        f"top=[{item_text}]"
+    )
+
+
+def build_direct_restyle_payload(update_patch, browser_profile_marker):
+    """Serialize resampler Patch operations for browser-side Plotly.restyle."""
+    if not hasattr(update_patch, "to_plotly_json"):
+        return update_patch
+
+    return {
+        "applyPath": "direct-restyle",
+        "profileMarker": browser_profile_marker,
+        "operations": update_patch.to_plotly_json().get("operations", []),
+    }
+
 
 # Note: np.nan is converted to None when reading from cache
 cache = Cache(
@@ -168,8 +337,85 @@ def save_file_dialog(file_type, filename):
 
 def create_fig(mat, filename, default_n_shown_samples=2048):
     fig = make_figure(mat, filename, default_n_shown_samples)
-    cache.set("fig_resampler", fig)
+    bounds = mat_x_bounds(mat)
+    if bounds is not None:
+        meta = fig.layout.meta if isinstance(fig.layout.meta, dict) else {}
+        fig.update_layout(meta={**meta, "sleepScoringXBounds": bounds})
+
+    store_fig_resampler(fig)
     return fig
+
+
+@app.server.get("/_sleep_scoring/resample")
+def resample_graph_data():
+    """Return a Plotly-resampler data patch for direct browser-side restyle."""
+    request_start_time = time.perf_counter()
+    try:
+        x0 = float(request.args["x0"])
+        x1 = float(request.args["x1"])
+    except (KeyError, TypeError, ValueError):
+        abort(400)
+
+    if not np.isfinite(x0) or not np.isfinite(x1) or x0 == x1:
+        abort(400)
+
+    fig = get_fig_resampler()
+    if fig is None:
+        abort(404)
+
+    x_range = clamp_x_range_to_bounds(x0, x1, fig_x_bounds(fig))
+    construct_start_time = time.perf_counter()
+    update_patch = fig.construct_update_data_patch(
+        {
+            "xaxis4.range[0]": x_range[0],
+            "xaxis4.range[1]": x_range[1],
+        }
+    )
+    construct_ms = (time.perf_counter() - construct_start_time) * 1000
+    update_patch = compact_resampler_patch(update_patch)
+    patch_json = (
+        update_patch.to_plotly_json() if hasattr(update_patch, "to_plotly_json") else update_patch
+    )
+    payload_start_time = time.perf_counter()
+    payload = json.dumps(patch_json, cls=PlotlyJSONEncoder, separators=(",", ":"))
+    payload_ms = (time.perf_counter() - payload_start_time) * 1000
+
+    if PROFILE_RESAMPLER_UPDATES:
+        payload_size_kb = len(payload.encode("utf-8")) / 1024
+        callback_total_ms = (time.perf_counter() - request_start_time) * 1000
+        patch_summary = summarize_resampler_patch(update_patch, fig)
+        print(
+            "[resampler-direct] "
+            f"construct={construct_ms:.1f} ms, "
+            f"payload_encode={payload_ms:.1f} ms, "
+            f"total={callback_total_ms:.1f} ms, "
+            f"payload={payload_size_kb:.1f} KB, "
+            f"x_width={x_range[1] - x_range[0]:.1f} s, "
+            f"xaxis4.range={x_range}, "
+            f"{patch_summary}",
+            flush=True,
+        )
+
+    return app.server.response_class(
+        payload,
+        mimetype="application/json",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.server.post("/_sleep_scoring/profile-log")
+def browser_profile_log():
+    """Mirror browser-side response-time logs into the app terminal."""
+    if not PROFILE_RESAMPLER_UPDATES:
+        return ("", 204)
+
+    payload = request.get_json(silent=True) or {}
+    event = payload.get("event", "browser")
+    details = [
+        f"{key}={value}" for key, value in payload.items() if key != "event" and value is not None
+    ]
+    print(f"[{event}] " + ", ".join(details), flush=True)
+    return ("", 204)
 
 
 def clear_temp_dir(filename):
@@ -224,7 +470,7 @@ def initialize_cache(cache, filepath):
         file_video_record = {}
     cache.set("recent_files_with_video", recent_files_with_video)
     cache.set("file_video_record", file_video_record)
-    cache.set("fig_resampler", None)
+    clear_fig_resamplers()
 
 
 # %% client side callbacks below
@@ -280,6 +526,16 @@ clientside_callback(
 
         var key = keyboard_event.key;
         var xaxisRange = figure.layout.xaxis4.range;
+        if (
+            relayoutdata &&
+            relayoutdata["xaxis4.range[0]"] !== undefined &&
+            relayoutdata["xaxis4.range[1]"] !== undefined
+        ) {
+            xaxisRange = [
+                relayoutdata["xaxis4.range[0]"],
+                relayoutdata["xaxis4.range[1]"]
+            ];
+        }
         var x0 = xaxisRange[0];
         var x1 = xaxisRange[1];
         var newRange;
@@ -297,10 +553,14 @@ clientside_callback(
 
             // Create NEW object instead of mutating
             var newRelayoutData = {
-                ...relayoutdata,  // Spread existing properties
+                ...(relayoutdata || {}),  // Spread existing properties
                 'xaxis4.range[0]': newRange[0],
                 'xaxis4.range[1]': newRange[1]
             };
+
+            if (window.sleepScoringGraphRelayout) {
+                window.sleepScoringGraphRelayout.request(newRelayoutData, "keyboard");
+            }
 
             return [patched_figure.build(), newRelayoutData];
         }
@@ -314,6 +574,44 @@ clientside_callback(
     State("keyboard", "event"),
     State("graph", "relayoutData"),
     State("graph", "figure"),
+    prevent_initial_call=True,
+)
+
+
+clientside_callback(
+    """
+    function(payload) {
+        if (!payload) {
+            return dash_clientside.no_update;
+        }
+
+        if (!window.sleepScoringDirectRestyle) {
+            return {
+                ok: false,
+                error: "sleepScoringDirectRestyle asset is not loaded",
+                profileId: payload.profileMarker && payload.profileMarker.profileId,
+                timeStamp: Date.now()
+            };
+        }
+
+        try {
+            const result = window.sleepScoringDirectRestyle.apply(payload);
+            return {
+                ...result,
+                timeStamp: Date.now()
+            };
+        } catch (error) {
+            return {
+                ok: false,
+                error: error && error.message ? error.message : String(error),
+                profileId: payload.profileMarker && payload.profileMarker.profileId,
+                timeStamp: Date.now()
+            };
+        }
+    }
+    """,
+    Output("graph-direct-restyle-status-store", "data"),
+    Input("graph-direct-restyle-payload-store", "data"),
     prevent_initial_call=True,
 )
 
@@ -409,10 +707,12 @@ app.clientside_callback(
             final_video_button_style = {"visibility": "visible"};
         }
 
+        const duration = final_end - final_start;
+
         return [
             [final_start, final_end],
             patched_figure.build(),
-            `You selected [${final_start}, ${final_end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
             final_video_button_style
         ];
     }
@@ -424,6 +724,135 @@ app.clientside_callback(
     Input("graph", "selectedData"),
     State("graph", "figure"),
     State("graph", "clickData"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+# read_annotation_auto_pan_select
+app.clientside_callback(
+    """
+    function(annotation_n_events, annotation_event, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!annotation_n_events || !annotation_event || !figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const raw_x0 = Number(annotation_event["detail.x0"]);
+        const raw_x1 = Number(annotation_event["detail.x1"]);
+        if (!Number.isFinite(raw_x0) || !Number.isFinite(raw_x1) || raw_x0 === raw_x1) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const eeg_start_time = Number(metadata.start_time);
+        const eeg_end_time = Number(metadata.end_time);
+        if (!Number.isFinite(eeg_start_time) || !Number.isFinite(eeg_end_time)) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const video_button_style = {"visibility": "hidden"};
+        const start = Math.min(raw_x0, raw_x1);
+        const end = Math.max(raw_x0, raw_x1);
+
+        var patched_figure = new dash_clientside.Patch;
+        patched_figure.assign(['layout', 'selections'], null);
+
+        if (end < eeg_start_time || start > eeg_end_time) {
+            patched_figure.assign(['layout', 'shapes'], null);
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+
+        let start_round = Math.round(start);
+        let end_round = Math.round(end);
+
+        if (start_round === end_round) {
+            if (start_round - start > end - end_round) {
+                end_round = Math.ceil(start);
+                start_round = Math.floor(start);
+            } else {
+                end_round = Math.ceil(end);
+                start_round = Math.floor(end);
+            }
+        }
+
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+
+        if (end_round <= start_round) {
+            if (start_round < eeg_end_time) {
+                end_round = start_round + 1;
+            } else if (end_round > eeg_start_time) {
+                start_round = end_round - 1;
+            }
+        }
+
+        start_round = Math.max(start_round, eeg_start_time);
+        end_round = Math.min(end_round, eeg_end_time);
+        if (end_round <= start_round) {
+            patched_figure.assign(['layout', 'shapes'], null);
+            return [
+                [],
+                patched_figure.build(),
+                `Out of range. Please select from ${eeg_start_time} to ${eeg_end_time}.`,
+                video_button_style
+            ];
+        }
+
+        const final_start = start_round - eeg_start_time;
+        const final_end = end_round - eeg_start_time;
+        const duration = final_end - final_start;
+
+        let y0 = Number(annotation_event["detail.y0"]);
+        let y1 = Number(annotation_event["detail.y1"]);
+        if (!Number.isFinite(y0) || !Number.isFinite(y1)) {
+            y0 = -30;
+            y1 = 30;
+        }
+
+        const select_box = {
+            "type": "rect",
+            "xref": annotation_event["detail.xref"] || "x4",
+            "yref": annotation_event["detail.yref"] || "y5",
+            "x0": start_round,
+            "x1": end_round,
+            "y0": y0,
+            "y1": y1,
+            "fillcolor": "rgba(99, 110, 250, 0.14)",
+            "line": {"color": "rgba(99, 110, 250, 0.95)", "width": 1, "dash": "dot"},
+            "layer": "above"
+        };
+
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        let final_video_button_style = {"visibility": "hidden"};
+        if (duration >= 1 && duration <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph-annotation-select", "n_events"),
+    State("graph-annotation-select", "event"),
+    State("graph", "figure"),
     State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )
@@ -508,10 +937,12 @@ app.clientside_callback(
             final_video_button_style = {"visibility": "visible"};
         }
 
+        const duration = end - start;
+
         return [
             [start, end],
             patched_figure.build(),
-            `You selected [${start}, ${end}]. Press 1 for Wake, 2 for NREM, or 3 for REM.`,
+            `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
             final_video_button_style
         ];
     }
@@ -521,6 +952,113 @@ app.clientside_callback(
     Output("annotation-message", "children", allow_duplicate=True),
     Output("video-button", "style", allow_duplicate=True),
     Input("graph", "clickData"),
+    State("graph", "figure"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+# read_bout_context_select
+app.clientside_callback(
+    """
+    function(context_n_events, context_event, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!context_event || !figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const x_click = context_event["detail.x"];
+        if (x_click === undefined || x_click === null || Number.isNaN(x_click)) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const last_trace = figure.data[figure.data.length - 1];
+        const current_sleep_scores = last_trace.z && last_trace.z[0];
+        if (!Array.isArray(current_sleep_scores) || current_sleep_scores.length === 0) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        const clicked_index = Math.max(
+            0,
+            Math.min(current_sleep_scores.length - 1, Math.floor(x_click - eeg_start_time))
+        );
+
+        function scoreKey(value) {
+            if (value === null || value === undefined || Number.isNaN(value)) {
+                return "unscored";
+            }
+            return String(value);
+        }
+
+        const clicked_key = scoreKey(current_sleep_scores[clicked_index]);
+        let start = clicked_index;
+        let end = clicked_index + 1;
+
+        while (start > 0 && scoreKey(current_sleep_scores[start - 1]) === clicked_key) {
+            start -= 1;
+        }
+        while (
+            end < current_sleep_scores.length &&
+            scoreKey(current_sleep_scores[end]) === clicked_key
+        ) {
+            end += 1;
+        }
+
+        const absolute_start = Math.max(start + eeg_start_time, eeg_start_time);
+        const absolute_end = Math.min(end + eeg_start_time, eeg_end_time);
+        const final_start = absolute_start - eeg_start_time;
+        const final_end = absolute_end - eeg_start_time;
+
+        const yref = context_event["detail.yref"] || "y5";
+        function yAxisLayoutKey(axisRef) {
+            return axisRef === "y" ? "yaxis" : "yaxis" + axisRef.slice(1);
+        }
+
+        const yaxis = figure.layout[yAxisLayoutKey(yref)] || {};
+        const y_range = Array.isArray(yaxis.range) ? yaxis.range : [-30, 30];
+
+        const select_box = {
+            "type": "rect",
+            "xref": context_event["detail.xref"] || "x4",
+            "yref": yref,
+            "x0": absolute_start,
+            "x1": absolute_end,
+            "y0": y_range[0],
+            "y1": y_range[1],
+            "line": {"width": 2, "dash": "solid"}
+        };
+
+        var patched_figure = new dash_clientside.Patch;
+        patched_figure.assign(['layout', 'selections'], null);
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        let final_video_button_style = {"visibility": "hidden"};
+        if (final_end - final_start >= 1 && final_end - final_start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        const duration = final_end - final_start;
+
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph-contextmenu", "n_events"),
+    State("graph-contextmenu", "event"),
     State("graph", "figure"),
     State("mat-metadata-store", "data"),
     prevent_initial_call=True,
@@ -583,7 +1121,7 @@ app.clientside_callback(
         }
 
         const label = keyboard_event.key;
-        if (!["1", "2", "3"].includes(label)) {
+        if (!["1", "2", "3", "4"].includes(label)) {
             return [no_update, no_update, no_update];
         }
 
@@ -762,25 +1300,290 @@ def create_visualization(ready):
     return components.visualization_div, metadata
 
 
+def relayout_event_to_data(relayout_event):
+    if not relayout_event:
+        return None
+
+    x0 = relayout_event.get("detail.x0")
+    x1 = relayout_event.get("detail.x1")
+    if x0 is None or x1 is None:
+        return None
+
+    try:
+        x0 = float(x0)
+        x1 = float(x1)
+    except (TypeError, ValueError):
+        return None
+
+    return {
+        "xaxis4.range[0]": min(x0, x1),
+        "xaxis4.range[1]": max(x0, x1),
+    }
+
+
+def relayout_event_to_mode(relayout_event):
+    if not relayout_event:
+        return "final"
+
+    mode = relayout_event.get("detail.mode")
+    if mode == "fast":
+        return "fast"
+
+    return "final"
+
+
+def relayout_event_to_profile_marker(relayout_event):
+    if not relayout_event:
+        return None
+
+    profile_id = relayout_event.get("detail.profileId")
+    if profile_id is None:
+        return None
+
+    try:
+        profile_id = int(profile_id)
+    except (TypeError, ValueError):
+        return None
+
+    return {
+        "profileId": profile_id,
+        "mode": relayout_event_to_mode(relayout_event),
+        "source": relayout_event.get("detail.source") or "",
+    }
+
+
+def format_profile_ms(value):
+    if value is None:
+        return "n/a"
+
+    try:
+        return f"{float(value):.1f} ms"
+    except (TypeError, ValueError):
+        return "n/a"
+
+
+def navigation_profile_id(profile_marker):
+    if not profile_marker:
+        return None
+    return profile_marker.get("profileId")
+
+
+def mark_navigation_profile_seen(profile_id):
+    global NAVIGATION_LATEST_PROFILE_ID
+
+    if profile_id is None:
+        return False
+
+    if profile_id < NAVIGATION_LATEST_PROFILE_ID:
+        return True
+
+    if profile_id > NAVIGATION_LATEST_PROFILE_ID:
+        NAVIGATION_LATEST_PROFILE_ID = profile_id
+
+    return False
+
+
+def is_stale_navigation_profile(profile_id):
+    return profile_id is not None and profile_id < NAVIGATION_LATEST_PROFILE_ID
+
+
+RESAMPLER_CALLBACK_OUTPUT = (
+    Output("graph-direct-restyle-payload-store", "data")
+    if ENABLE_DIRECT_PLOTLY_RESTYLE
+    else Output("graph", "figure", allow_duplicate=True)
+)
+
+
 @app.callback(
-    Output("graph", "figure", allow_duplicate=True),
+    RESAMPLER_CALLBACK_OUTPUT,
     # Output("debug-message", "children"),
-    Input("graph", "relayoutData"),
+    Input("graph-relayout-coalesced", "n_events"),
+    State("graph-relayout-coalesced", "event"),
     prevent_initial_call=True,
 )
-def update_fig_resampler(relayoutdata):
+def update_fig_resampler(_relayout_n_events, relayout_event):
+    global RESAMPLER_PROFILE_ACTIVE_COUNT
+    global RESAMPLER_PROFILE_LAST_FINISH
+    global RESAMPLER_PROFILE_LAST_START
+    global RESAMPLER_PROFILE_UPDATE_ID
+
+    relayoutdata = relayout_event_to_data(relayout_event)
     if relayoutdata is None:
         return dash.no_update
 
     if "xaxis4.range[0]" not in relayoutdata and "xaxis4.range" not in relayoutdata:
         return dash.no_update
 
-    fig = cache.get("fig_resampler")
+    update_mode = relayout_event_to_mode(relayout_event)
+    browser_profile_marker = relayout_event_to_profile_marker(relayout_event)
+    browser_profile_id = navigation_profile_id(browser_profile_marker)
+
+    if mark_navigation_profile_seen(browser_profile_id):
+        if RESAMPLER_PERF_LOG:
+            print(
+                "[resampler-stale] "
+                f"browser_profile_id={browser_profile_id}, "
+                f"latest_browser_profile_id={NAVIGATION_LATEST_PROFILE_ID}, "
+                f"mode={update_mode}, phase=start",
+                flush=True,
+            )
+        return dash.no_update
+
+    callback_start_time = time.perf_counter()
+    resampler_get_start_time = time.perf_counter()
+    fig = get_fig_resampler()
+    resampler_get_ms = (time.perf_counter() - resampler_get_start_time) * 1000
     if fig is None:
         return dash.no_update
 
     # debug_counter.increment()
-    return fig.construct_update_data_patch(relayoutdata)
+    profile_id = None
+    active_at_start = None
+    since_prev_start_ms = None
+    since_prev_finish_ms = None
+
+    if RESAMPLER_PERF_LOG:
+        RESAMPLER_PROFILE_UPDATE_ID += 1
+        profile_id = RESAMPLER_PROFILE_UPDATE_ID
+        active_at_start = RESAMPLER_PROFILE_ACTIVE_COUNT + 1
+        RESAMPLER_PROFILE_ACTIVE_COUNT = active_at_start
+
+        if RESAMPLER_PROFILE_LAST_START is not None:
+            since_prev_start_ms = (callback_start_time - RESAMPLER_PROFILE_LAST_START) * 1000
+        if RESAMPLER_PROFILE_LAST_FINISH is not None:
+            since_prev_finish_ms = (callback_start_time - RESAMPLER_PROFILE_LAST_FINISH) * 1000
+        RESAMPLER_PROFILE_LAST_START = callback_start_time
+
+    try:
+        construct_start_time = time.perf_counter()
+        update_patch = fig.construct_update_data_patch(relayoutdata)
+        construct_ms = (time.perf_counter() - construct_start_time) * 1000
+        if is_stale_navigation_profile(browser_profile_id):
+            if RESAMPLER_PERF_LOG:
+                print(
+                    "[resampler-stale] "
+                    f"browser_profile_id={browser_profile_id}, "
+                    f"latest_browser_profile_id={NAVIGATION_LATEST_PROFILE_ID}, "
+                    f"mode={update_mode}, phase=after_construct",
+                    flush=True,
+                )
+            return dash.no_update
+
+        update_patch = compact_resampler_patch(update_patch)
+
+        if BROWSER_NAVIGATION_PERF_LOG and browser_profile_marker is not None:
+            update_patch["layout"]["meta"]["sleepScoringNavigationProfile"] = browser_profile_marker
+
+        callback_payload = (
+            build_direct_restyle_payload(update_patch, browser_profile_marker)
+            if ENABLE_DIRECT_PLOTLY_RESTYLE
+            else update_patch
+        )
+        apply_path = "direct-restyle" if ENABLE_DIRECT_PLOTLY_RESTYLE else "dash-figure-patch"
+
+        if RESAMPLER_PERF_LOG:
+            payload_start_time = time.perf_counter()
+            try:
+                payload_json = json.dumps(
+                    callback_payload,
+                    cls=PlotlyJSONEncoder,
+                    separators=(",", ":"),
+                )
+                payload_size_kb = len(payload_json.encode("utf-8")) / 1024
+            except TypeError:
+                payload_json = json.dumps(callback_payload, default=str, separators=(",", ":"))
+                payload_size_kb = len(payload_json.encode("utf-8")) / 1024
+            payload_ms = (time.perf_counter() - payload_start_time) * 1000
+            patch_summary = summarize_resampler_patch(update_patch, fig)
+
+            x_range = relayoutdata.get("xaxis4.range")
+            if x_range is None:
+                x_range = [
+                    relayoutdata.get("xaxis4.range[0]"),
+                    relayoutdata.get("xaxis4.range[1]"),
+                ]
+
+            x_width = None
+            if (
+                isinstance(x_range, list)
+                and len(x_range) == 2
+                and x_range[0] is not None
+                and x_range[1] is not None
+            ):
+                x_width = x_range[1] - x_range[0]
+
+            callback_total_ms = (time.perf_counter() - callback_start_time) * 1000
+            since_prev_start_text = (
+                "n/a" if since_prev_start_ms is None else f"{since_prev_start_ms:.1f} ms"
+            )
+            since_prev_finish_text = (
+                "n/a" if since_prev_finish_ms is None else f"{since_prev_finish_ms:.1f} ms"
+            )
+            x_width_text = "n/a" if x_width is None else f"{x_width:.1f} s"
+            browser_profile_text = browser_profile_id if browser_profile_id is not None else "n/a"
+
+            print(
+                "[resampler] "
+                f"id={profile_id}, "
+                f"browser_profile_id={browser_profile_text}, "
+                f"active_at_start={active_at_start}, "
+                f"mode={update_mode}, "
+                "cache_key=fig_resampler, "
+                f"since_prev_start={since_prev_start_text}, "
+                f"since_prev_finish={since_prev_finish_text}, "
+                f"resampler_get={resampler_get_ms:.1f} ms, "
+                f"construct={construct_ms:.1f} ms, "
+                f"payload_encode={payload_ms:.1f} ms, "
+                f"total={callback_total_ms:.1f} ms, "
+                f"payload={payload_size_kb:.1f} KB, "
+                f"apply_path={apply_path}, "
+                f"x_width={x_width_text}, "
+                f"xaxis4.range={x_range}, "
+                f"{patch_summary}",
+                flush=True,
+            )
+
+        return callback_payload
+    finally:
+        if RESAMPLER_PERF_LOG:
+            RESAMPLER_PROFILE_LAST_FINISH = time.perf_counter()
+            RESAMPLER_PROFILE_ACTIVE_COUNT = max(0, RESAMPLER_PROFILE_ACTIVE_COUNT - 1)
+
+
+@app.callback(
+    Output("navigation-profile-store", "data"),
+    Input("graph-navigation-profile", "n_events"),
+    State("graph-navigation-profile", "event"),
+    prevent_initial_call=True,
+)
+def log_browser_navigation_profile(_n_events, profile_event):
+    if not BROWSER_NAVIGATION_PERF_LOG or not profile_event:
+        return dash.no_update
+
+    profile_id = profile_event.get("detail.profileId", "n/a")
+    mode = profile_event.get("detail.mode", "n/a")
+    source = profile_event.get("detail.source", "n/a")
+    x0 = profile_event.get("detail.x0")
+    x1 = profile_event.get("detail.x1")
+    x_width_text = "n/a"
+    try:
+        x_width_text = f"{float(x1) - float(x0):.1f} s"
+    except (TypeError, ValueError):
+        pass
+
+    print(
+        "[browser-nav] "
+        f"profile_id={profile_id}, "
+        f"mode={mode}, "
+        f"source={source}, "
+        f"coalesce={format_profile_ms(profile_event.get('detail.coalesceMs'))}, "
+        f"dash_apply={format_profile_ms(profile_event.get('detail.dashApplyMs'))}, "
+        f"browser_total={format_profile_ms(profile_event.get('detail.browserTotalMs'))}, "
+        f"frame_gap={format_profile_ms(profile_event.get('detail.frameGapMs'))}, "
+        f"x_width={x_width_text}",
+        flush=True,
+    )
+    return profile_event
 
 
 @app.callback(
@@ -791,7 +1594,7 @@ def update_fig_resampler(relayoutdata):
 def change_sampling_level(sampling_level):
     if sampling_level is None:
         return dash.no_update
-    sampling_level_map = {"x1": 2048, "x2": 4096, "x4": 8192}
+    sampling_level_map = {"x0.5": 1024, "x1": 2048, "x2": 4096, "x4": 8192}
     n_samples = sampling_level_map[sampling_level]
     mat_path = cache.get("filepath")
     filename = cache.get("filename")

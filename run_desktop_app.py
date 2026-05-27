@@ -29,6 +29,7 @@ def run_dash():
         port=PORT,
         debug=True,
         dev_tools_hot_reload=False,
+        use_reloader=False,
     )
 
 
@@ -41,6 +42,7 @@ if __name__ == "__main__":
     t = threading.Thread(target=run_dash, daemon=True)
     t.start()
     webview.settings["ALLOW_DOWNLOADS"] = True  # must have this for the download to work
+
     # This is the window `webview.windows[0]` will refer to
     webview.create_window(
         f"Sleep Scoring App {VERSION}",
