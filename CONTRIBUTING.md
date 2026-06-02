@@ -4,8 +4,7 @@ This project is increasingly worked on by a mix of human collaborators and agent
 
 ## Before You Start
 
-- Agents should start with `AGENTS.md`; it is the canonical project-specific instruction file.
-- Treat `app_src/app_dev.py`, `components_dev.py`, and `make_figure_dev.py` as the current active UI path unless the task says otherwise.
+- Agents should start with `AGENTS.md`; it is the canonical project-specific instruction file and points to everything else.
 
 ## Branches
 
@@ -46,22 +45,14 @@ $env:PRE_COMMIT_HOME = Join-Path (Get-Location).Path ".pre-commit-cache"
 
 ## Documentation
 
-- Keep `next_steps.md` forward-looking. Put completed experiments, measurements, and outcomes in `work_log.md`.
 - Use repo-relative paths in markdown whenever possible.
 - If an example command contains a local absolute path, add a note that collaborators should adapt it to their own clone location.
 - Update `project_overview.md` when the active runtime path or active-vs-legacy file map changes.
+- For doc-map, work-log rotation, and `next_steps.md` conventions, follow `AGENTS.md`.
 
 ## Commits
 
-- Use a short title line.
-- Add a short body with flat bullets when a commit contains multiple requested changes.
-- Commit message bullets should describe high-level added or changed behavior, not implementation details.
-- For feature commits, do not mention tests, docs, project memory updates, or behind-the-scenes implementation details unless that internal work is the main purpose of the commit.
-
-## Collaboration Notes
-
-- Prefer small, inspectable edits over broad rewrites.
-- When resuming work from another agent or collaborator, first read the current docs and inspect the worktree rather than assuming the previous mental model is still current.
+- Follow the Commit Message Guidelines in `AGENTS.md`.
 
 ## Research Practices
 
