@@ -20,6 +20,14 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-06-02
 
+### Treaty Badge Source Correction
+
+- Replaced the README's shields.io Agent Collab Treaty badge with the
+  centrally hosted tri-color SVG badge from
+  `https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg`
+  so the adoption signal visually matches the official treaty repo.
+- No runtime verification needed; README-only correction.
+
 ### Video Offset Guard, Repo Cleanup, And Treaty Badge
 
 - Updated the active Dash app path (`app_src/app_dev.py`) for revised
