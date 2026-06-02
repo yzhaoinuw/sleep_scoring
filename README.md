@@ -1,3 +1,5 @@
+[![Agent Collab Treaty](https://img.shields.io/badge/Agent_Collab_Treaty-adopted-6d81f1?style=flat-square)](https://github.com/yzhaoinuw/agent_collab_treaty)
+
 # Installation
 
 ## Windows Users
