@@ -16,6 +16,19 @@ scripts/
 # Local-only notes and one-off summaries
 user_interface_optimization.txt
 
+# Local generated artifacts and scratch worktrees
+.copier-answers.yml
+.merge_worktrees/
+app_pyinstaller_test.spec
+chatgpt_preview_outputs/
+demo_data/
+get_gold_standard.py
+gold_standard_demo.png
+model_infer_example.txt
+test-artifacts/
+.pytest_tmp/
+sleep_scoring_app_data/
+
 # Generated or demo video assets
 *.mp4
 app_src/assets/videos/
