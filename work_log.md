@@ -20,6 +20,20 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-06-02
 
+### v0.16.2 Release Bump
+
+- Bumped the app version from `v0.16.1` to `v0.16.2` in
+  `app_src/__init__.py`.
+- Aligned the legacy `setup.py` version with the release version.
+- Added a `v0.16.2` changelog entry for signed video-offset alignment,
+  unavailable-video-range messages, and desktop launcher debug mode being off.
+- Verification:
+  - First pytest run failed because the ignored `.pytest_tmp` parent directory
+    had been removed during cleanup; recreated `.pytest_tmp` and reran.
+  - `C:\Users\yzhao\miniconda3\condabin\conda.bat run -n sleep_scoring_dash3.0 pytest --basetemp .pytest_tmp\codex -p no:cacheprovider` -> `66 passed, 1 warning`.
+- Release flow: commit the bump, fast-forward `dev`, push branch updates, tag
+  `v0.16.2`, and push the tag.
+
 ### Treaty Badge Source Correction
 
 - Replaced the README's shields.io Agent Collab Treaty badge with the

@@ -1,3 +1,8 @@
+#### v0.16.2
+1. Improved video clip alignment for files with signed video offsets from preprocessing.
+2. Added clear messages when a selected EEG range maps outside the available video.
+3. Turned Dash debug mode off in the desktop launcher.
+
 #### v0.16.1
 1. Added right-click selection for contiguous scored or unscored segments in annotation mode.
 2. Improved navigation and annotation auto-pan responsiveness for large recordings.
