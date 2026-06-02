@@ -40,7 +40,7 @@ from app_src.config import (
     RESAMPLER_PERF_LOG,
 )
 from app_src.make_figure_dev import get_padded_sleep_scores, make_figure
-from app_src.make_mp4 import make_mp4_clip
+from app_src.make_mp4 import get_video_duration, make_mp4_clip, validate_clip_range
 from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
 
 try:
@@ -427,17 +427,27 @@ def clear_temp_dir(filename):
             temp_file.unlink()
 
 
+def coerce_video_start_time(value):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return 0
+
+    if not math.isfinite(value):
+        return 0
+
+    return value
+
+
 def write_metadata(mat):
     eeg = mat.get("eeg")
     start_time = mat.get("start_time", 0)
     eeg_freq = mat.get("eeg_frequency")
     duration = math.ceil((eeg.size - 1) / eeg_freq)  # need to round duration to an int for later
     end_time = duration + start_time
-    video_start_time = mat.get("video_start_time", 0)
+    video_start_time = coerce_video_start_time(mat.get("video_start_time", 0))
     video_path = mat.get("video_path", "")
 
-    if not isinstance(mat.get("video_start_time"), (int, float)):
-        video_start_time = 0
     if not isinstance(video_path, str):
         video_path = ""
 
@@ -1831,9 +1841,19 @@ def make_clip(video_path, box_select_range, metadata):
         return dash.no_update, ""
 
     start, end = box_select_range
-    video_start_time = metadata.get("video_start_time")
+    video_start_time = coerce_video_start_time((metadata or {}).get("video_start_time", 0))
     start = start + video_start_time
     end = end + video_start_time
+    try:
+        video_duration = get_video_duration(video_path)
+    except ValueError as error_message:
+        return None, str(error_message)
+
+    clip_range, message = validate_clip_range(start, end, video_duration)
+    if clip_range is None:
+        return None, message
+    start, end = clip_range
+
     video_name = Path(video_path).stem
     clip_name = video_name + f"_time_range_{start:.1f}-{end:.1f}" + ".mp4"
     save_path = VIDEO_DIR / clip_name
@@ -1865,8 +1885,11 @@ def make_clip(video_path, box_select_range, metadata):
     prevent_initial_call=True,
 )
 def show_clip(clip_name):
+    if not clip_name:
+        return "", "", dash.no_update
+
     if not (VIDEO_DIR / clip_name).is_file():
-        return "", "Video not ready yet. Please check again in a second."
+        return "", "", "Video not ready yet. Please check again in a second."
 
     clip_path = Path("/assets/videos") / clip_name
     player = dash_player.DashPlayer(

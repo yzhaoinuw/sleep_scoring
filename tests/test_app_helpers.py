@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import dash
+
 
 class TestWriteMetadata:
     """Tests for write_metadata function."""
@@ -52,6 +54,15 @@ class TestWriteMetadata:
         metadata = write_metadata(mock_mat_data)
 
         assert metadata["video_start_time"] == 0
+
+    def test_video_start_time_accepts_negative_float(self, mock_mat_data):
+        """Test that video_start_time preserves signed fractional offsets."""
+        from app_src.app_dev import write_metadata
+
+        mock_mat_data["video_start_time"] = -2.5
+        metadata = write_metadata(mock_mat_data)
+
+        assert metadata["video_start_time"] == -2.5
 
     def test_video_path_default(self, mock_mat_data):
         """Test that video_path defaults to empty string."""
@@ -154,6 +165,77 @@ class TestInitializeCache:
         history_calls = [c for c in set_calls if c[0][0] == "sleep_scores_history"]
         # When same file, history is NOT reset
         assert len(history_calls) == 0
+
+
+class TestMakeClip:
+    """Tests for video clip timing guards."""
+
+    def test_rejects_negative_adjusted_start(self, tmp_path):
+        from app_src.app_dev import make_clip
+
+        with (
+            patch("app_src.app_dev.VIDEO_DIR", tmp_path),
+            patch("app_src.app_dev.get_video_duration", return_value=100),
+            patch("app_src.app_dev.make_mp4_clip") as mock_make_mp4_clip,
+        ):
+            clip_name, message = make_clip(
+                "recording.avi",
+                [0, 10],
+                {"video_start_time": -5},
+            )
+
+        assert clip_name is None
+        assert message.startswith("Video clip unavailable:")
+        assert "before the video begins" in message
+        mock_make_mp4_clip.assert_not_called()
+
+    def test_rejects_adjusted_end_after_video_duration(self, tmp_path):
+        from app_src.app_dev import make_clip
+
+        with (
+            patch("app_src.app_dev.VIDEO_DIR", tmp_path),
+            patch("app_src.app_dev.get_video_duration", return_value=100),
+            patch("app_src.app_dev.make_mp4_clip") as mock_make_mp4_clip,
+        ):
+            clip_name, message = make_clip(
+                "recording.avi",
+                [95, 105],
+                {"video_start_time": 0},
+            )
+
+        assert clip_name is None
+        assert message.startswith("Video clip unavailable:")
+        assert "after the video ends" in message
+        mock_make_mp4_clip.assert_not_called()
+
+    def test_allows_valid_negative_float_offset(self, tmp_path):
+        from app_src.app_dev import make_clip
+
+        with (
+            patch("app_src.app_dev.VIDEO_DIR", tmp_path),
+            patch("app_src.app_dev.get_video_duration", return_value=100),
+            patch("app_src.app_dev.make_mp4_clip") as mock_make_mp4_clip,
+        ):
+            clip_name, message = make_clip(
+                "recording.avi",
+                [10, 20],
+                {"video_start_time": -5.5},
+            )
+
+        assert clip_name == "recording_time_range_4.5-14.5.mp4"
+        assert message == ""
+        mock_make_mp4_clip.assert_called_once()
+        assert mock_make_mp4_clip.call_args.kwargs["start_time"] == 4.5
+        assert mock_make_mp4_clip.call_args.kwargs["end_time"] == 14.5
+
+    def test_empty_clip_name_clears_video_without_overwriting_message(self):
+        from app_src.app_dev import show_clip
+
+        title, container, message = show_clip(None)
+
+        assert title == ""
+        assert container == ""
+        assert message is dash.no_update
 
 
 class TestDirectRestylePayload:

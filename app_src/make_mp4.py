@@ -5,10 +5,78 @@ Created on Fri Feb 14 00:11:39 2025
 @author: yzhao
 """
 
+import math
 import subprocess
 from pathlib import Path
 
-from imageio_ffmpeg import get_ffmpeg_exe
+from imageio_ffmpeg import get_ffmpeg_exe, read_frames
+
+
+CLIP_TIME_TOLERANCE_SECONDS = 0.05
+
+
+def get_video_duration(video_path):
+    try:
+        video_path = Path(video_path)
+    except TypeError as error:
+        raise ValueError(
+            "Could not determine video duration because no video is selected."
+        ) from error
+
+    reader = read_frames(str(video_path))
+    try:
+        try:
+            metadata = next(reader)
+        except (OSError, RuntimeError, StopIteration) as error:
+            raise ValueError(f"Could not determine video duration for {video_path}.") from error
+    finally:
+        reader.close()
+
+    try:
+        duration = float(metadata.get("duration"))
+    except (TypeError, ValueError):
+        raise ValueError(f"Could not determine video duration for {video_path}.")
+
+    if not math.isfinite(duration) or duration <= 0:
+        raise ValueError(f"Could not determine video duration for {video_path}.")
+
+    return duration
+
+
+def validate_clip_range(
+    start_time,
+    end_time,
+    video_duration,
+    tolerance=CLIP_TIME_TOLERANCE_SECONDS,
+):
+    try:
+        start_time = float(start_time)
+        end_time = float(end_time)
+        video_duration = float(video_duration)
+    except (TypeError, ValueError):
+        return None, "Selected video range has invalid timing metadata."
+
+    if not all(math.isfinite(value) for value in (start_time, end_time, video_duration)):
+        return None, "Selected video range has invalid timing metadata."
+
+    if end_time <= start_time:
+        return None, "Selected time range is empty. Please select a wider range."
+
+    if start_time < -tolerance:
+        return (
+            None,
+            f"Video clip unavailable: selection starts {abs(start_time):.1f} s "
+            "before the video begins. Select a later EEG range.",
+        )
+
+    if end_time > video_duration + tolerance:
+        return (
+            None,
+            f"Video clip unavailable: selection ends {end_time - video_duration:.1f} s "
+            "after the video ends. Select an earlier EEG range.",
+        )
+
+    return (max(0, start_time), min(video_duration, end_time)), ""
 
 
 def make_mp4_clip(
