@@ -18,6 +18,43 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-02
+
+### Video Offset Guard, Repo Cleanup, And Treaty Badge
+
+- Updated the active Dash app path (`app_src/app_dev.py`) for revised
+  preprocessing semantics where `video_start_time` can be signed and
+  fractional while retaining the existing clip offset calculation.
+- Added video-duration metadata checks before ffmpeg clipping so selected
+  EEG ranges that map before video start or after video end show a concise
+  unavailable-clip message instead of trying to render an impossible clip.
+  The user manually confirmed the beginning-of-video guard message appeared
+  correctly.
+- Left inactive `app_src/app.py` unchanged after an initial over-broad edit
+  was backed out; active app work stayed scoped to `app_src/app_dev.py`.
+- Included the user-authored `run_desktop_app.py` change that disables Dash
+  debug mode in the desktop launcher.
+- Cleaned local Git noise by tracking `work_log_archive/README.md`, adding
+  ignore rules for scratch worktrees, preview outputs, demo/test artifacts,
+  pytest temp output, and local one-off files, and removing removable stale
+  cache/worktree files. Two ACL-locked pytest cache directories under ignored
+  `.merge_worktrees/main/` could not be removed even after ownership/ACL
+  cleanup, but no longer appear in normal Git status.
+- Added the Agent Collab Treaty adopted badge to the top of `README.md` using
+  the treaty repo's recommended shields.io badge.
+- Verification:
+  - `C:\Users\yzhao\miniconda3\condabin\conda.bat run -n sleep_scoring_dash3.0 pytest --basetemp .pytest_tmp\codex -p no:cacheprovider` -> `66 passed, 1 warning`.
+  - `black` pre-commit hook passed on the video-guard commit after formatting
+    `app_src/make_mp4.py`.
+- Git state recorded during the session:
+  - `6e25fda Guard unavailable video clips` was committed on `dev`, pushed to
+    `origin/dev`, fast-forwarded into `main`, and pushed to `origin/main`.
+  - `947ed14 Clean local artifact noise` was committed locally and later
+    pushed to `origin/dev` as part of the dev fast-forward.
+  - `c0e7230 Add treaty adoption badge` was committed locally, fast-forwarded
+    onto `dev`, and pushed to `origin/dev`. At that point local `main` also
+    contained `c0e7230`, while `origin/main` still pointed at `6e25fda`.
+
 ## 2026-05-27
 
 ### Remove Local Experiment Scripts From Tracked App Source
