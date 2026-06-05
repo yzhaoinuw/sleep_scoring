@@ -18,6 +18,12 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-05
+
+### Shared-Drive And Session Guidance
+
+- Added brief README guidance to run the app from a local copy, avoid two simultaneous sessions on one computer, close unnecessary browser tabs/heavy apps if the graph feels slow, and parked low-priority multi-session support notes in `next_steps.md`.
+
 ## 2026-06-02
 
 ### v0.16.2 Release Bump

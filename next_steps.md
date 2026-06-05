@@ -118,3 +118,9 @@ Validation:
 Guardrails:
 
 - Do not destabilize current defaults while improving REM-in-Wake detection.
+
+## Further Down The Line / Just A Thought
+
+- Multi-session support on one computer is low priority. If ever needed, launch
+  each app instance on its own free port and isolate cache/temp/video outputs per
+  process/session; current user guidance is one app session per computer.
