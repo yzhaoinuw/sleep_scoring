@@ -24,15 +24,15 @@ The first line navigates to the unzipped app folder. Replace `PATH_TO_YOUR_APP_F
 
 The app has been tested on macOS Tahoe. To download, follow [Build From Source](#build-from-source-run-using-anaconda).
 
-# Usage
-
-To open the app, double click **_run_desktop_app.exe_** and it will open the app's home page. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
-
 ## Before Scoring
 
 - For best performance, copy the unzipped app folder to your own computer before running it. The app is small unless you add the optional sDREAMER/PyTorch model files.
 - Use only one Sleep Scoring App session per computer.
 - If the graph feels slow, close unnecessary browser tabs and other heavy apps before scoring.
+
+# Usage
+
+To open the app, double click **_run_desktop_app.exe_** and it will open the app's home page. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
 
 ## Navigation
 
