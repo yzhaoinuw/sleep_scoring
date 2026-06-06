@@ -246,12 +246,19 @@ sleep_scoring/
 |  |  |- checkpoints/
 |- user_test_files/                  # sample MAT inputs and example videos
 |- tests/                            # pytest suite for active modules
+|- packaging/
+|  |- windows/
+|  |  |- app.spec                    # active Windows PyInstaller spec
+|  |  |- make_full_app_zip.ps1       # full Windows app zip builder
+|  |  |- make_app_update_zip.ps1     # app_src-only update zip builder
+|  |  |- smoke_check_release.ps1     # release folder checks
+|  |  |- release_helpers/            # files copied into full app zips
 |- demo_data/                        # small demo example(s)
 |- archive/                          # older model/app code and checkpoints
 |- msda_version1.1/                  # older model lineage
-|- build/                            # PyInstaller build artifacts
-|- dist/                             # packaged app artifacts
-|- *.spec                            # PyInstaller specs
+|- build/                            # generated packaging/test staging output
+|- dist/                             # generated PyInstaller app folders
+|- release_artifacts/                # generated release zips and sidecars
 |- environment.yml / requirements.txt
 ```
 
@@ -271,6 +278,7 @@ sleep_scoring/
 - [`app_src/postprocessing.py`](app_src/postprocessing.py)
 - [`app_src/make_mp4.py`](app_src/make_mp4.py)
 - [`models/sdreamer`](models/sdreamer)
+- [`packaging/windows`](packaging/windows)
 - [`user_test_files`](user_test_files)
 - [`tests`](tests)
 
@@ -284,6 +292,7 @@ sleep_scoring/
 - [`msda_version1.1`](msda_version1.1)
 - [`build`](build)
 - [`dist`](dist)
+- [`release_artifacts`](release_artifacts)
 - scratch files like `sketch_*`, `refactor_*`, and other experimental helpers under `app_src`
 
 ## Practical Mental Model
@@ -307,5 +316,4 @@ These are not blockers, just places where your intent would be useful if we keep
 
 - Whether `app.py` should now be treated as fully deprecated
 - Which sample `.mat` files you consider the best canonical fixtures
-- Whether `build/` and `dist/` should stay in-repo or be ignored/cleaned up in the future
 - Whether `archive/` and `msda_version1.1/` should be documented as historical research lineage

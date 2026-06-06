@@ -28,4 +28,5 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Updated `next_steps.md` to mark the full app zip manual launch as validated and to use `app_src` update wording consistently.
 - Added `.pytest_tmp` parent-directory creation inside both packaging scripts so clean builds can run the repo-local pytest basetemp path on Windows.
 - Added `Start Sleep Scoring.cmd` and `unblock_and_start.ps1` to the full Windows app package so users can double-click a starter that unblocks packaged files and launches `run_desktop_app.exe`.
+- Removed obsolete root-level PyInstaller specs now that the active Windows spec lives under `packaging/windows/`, and updated `project_overview.md` to describe the new packaging layout.
 - Rotated the previous five live work-log dates into `work_log_archive/work_log_2026-05-25_to_2026-06-05.md` per the live-log size policy.
