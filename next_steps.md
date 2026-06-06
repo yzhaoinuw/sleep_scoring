@@ -3,6 +3,58 @@
 Use this as the forward-looking checklist. Completed experiments and measured
 outcomes live in `work_log.md`.
 
+## Installation Packaging
+
+Current status:
+
+- Windows users currently get the app as a PyInstaller-built zip containing
+  `_internal/`, `app_src/`, `models/`, and `run_desktop_app.exe`.
+- The current layout intentionally keeps `app_src/` beside the executable so
+  app-code-only updates can be shipped as a small replacement-folder zip.
+- Keep that lightweight `app_src/` update workflow. The packaging work should
+  make it safer and more repeatable, not force every update into a full rebuild.
+- First-pass packaging scripts now exist on `experiments/installation-packaging`;
+  both the full app zip path and the `app_src` update zip path have been
+  smoke-tested with tests skipped.
+- The full app zip now removes Torch from `_internal/` while keeping sDREAMER
+  code and checkpoint files in place. Users who need sDREAMER can add the
+  optional `torch` folder under `_internal/`.
+- The generated no-Torch full app zip was manually unzipped and launched
+  successfully on Windows.
+
+Immediate experiment:
+
+- Apply a generated `app_src` update to an existing app folder and verify the
+  patched app starts.
+- Decide whether to add a double-click patch helper after seeing whether manual
+  replacement remains confusing.
+- If users need sDREAMER, keep the README add-on path centered on adding the
+  optional `torch` folder under `_internal/`.
+
+Release types:
+
+- Use a full app package when `_internal/`, dependencies, Python, PyInstaller,
+  `run_desktop_app.py`, model files, or runtime layout changes.
+- Use an `app_src` update when changes are limited to tracked files under
+  `app_src/` and do not add third-party dependencies or model/runtime changes.
+
+Validation:
+
+- Run the normal test suite before full packaging unless explicitly skipped.
+- Verify release zips contain the expected top-level files and folders.
+- Run `run_desktop_app.exe --smoke` from the full app build before zipping.
+- Record the app version, git commit, branch, dependency snapshot, artifact
+  name, and SHA256 hash in generated release metadata.
+- Manually test the full package and at least one `app_src` update before relying
+  on the workflow for a shipped release.
+
+Possible later upgrades:
+
+- Add a double-click launcher helper that unblocks downloaded files and starts
+  the app.
+- Consider an installer and code signing only after the zip workflow is boring
+  and repeatable.
+
 ## Visualization Performance
 
 Current status:

@@ -11,8 +11,6 @@ from scipy.io import loadmat, savemat
 
 from app_src.config import SLEEP_SCORING_MODEL
 import app_src.run_inference_stats_model as run_inference_stats_model
-import app_src.run_inference_ne as run_inference_ne
-import app_src.run_inference_sdreamer as run_inference_sdreamer
 from app_src.postprocessing import postprocess_sleep_scores
 
 MODEL_PATH = Path(__file__).parents[1] / "models" / "sdreamer" / "checkpoints"
@@ -34,8 +32,12 @@ def run_inference(
     elif SLEEP_SCORING_MODEL == "sdreamer":
         ne = mat.get("ne")
         if ne is not None and len(ne) != 0:
+            import app_src.run_inference_ne as run_inference_ne
+
             predictions, confidence = run_inference_ne.infer(mat, model_path)
         else:
+            import app_src.run_inference_sdreamer as run_inference_sdreamer
+
             predictions, confidence = run_inference_sdreamer.infer(mat, model_path)
     else:
         raise ValueError(

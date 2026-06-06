@@ -10,7 +10,7 @@
    - **__internal/_**
    - **_app_src/_**
    - **_models/_**
-   - **_run_app.exe_**
+   - **_run_desktop_app.exe_**
 4. After you download and unzip, open PowerShell and run:
 
 ```powershell
@@ -26,7 +26,7 @@ The app has been tested on macOS Tahoe. To download, follow [Build From Source](
 
 ## Before Scoring
 
-- For best performance, copy the unzipped app folder to your own computer before running it. The app is small unless you add the optional sDREAMER/PyTorch model files.
+- For best performance, copy the unzipped app folder to your own computer before running it. The app includes the sDREAMER model files but does not include the optional _torch/_ folder needed for automatic sleep scoring.
 - Use only one Sleep Scoring App session per computer.
 - If the graph feels slow, close unnecessary browser tabs and other heavy apps before scoring.
 
@@ -85,7 +85,7 @@ While in annotation mode:
 
 ### Automatic Sleep Scoring
 
-Automatic scoring is no longer included by default. To enable it:
+Automatic scoring needs one extra download. The Windows app zip includes the sDREAMER model files, but not the _torch/_ folder. To enable automatic scoring:
 
 - Download *torch.zip* from the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
 - Unzip it, ensuring it does not remain nested inside another folder.

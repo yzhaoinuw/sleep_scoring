@@ -12,46 +12,60 @@ import threading
 
 import webview
 
-if getattr(sys, "frozen", False):
-    # Running as packaged .exe → base path is folder containing executable
-    base_path = os.path.dirname(sys.executable)
-else:
-    # Running as normal script → base path is folder containing this file
-    base_path = os.path.abspath(os.path.dirname(__file__))
 
-# Insert base_path FIRST so that fp_analysis_app/ next to .exe overrides bundled version
+def get_base_path():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.abspath(os.path.dirname(__file__))
+
+
+base_path = get_base_path()
+
+# Insert base_path first so app_src next to the executable stays patchable.
 sys.path.insert(0, base_path)
 
 
-def run_dash():
+def run_dash(app, port):
     app.run(
         host="127.0.0.1",
-        port=PORT,
+        port=port,
         debug=False,
         dev_tools_hot_reload=False,
         use_reloader=False,
     )
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+
     from app_src import VERSION
     from app_src.app_dev import app
     from app_src.config import PORT, WINDOW_CONFIG
 
+    if "--smoke" in argv:
+        print(f"Sleep Scoring App {VERSION} smoke check OK")
+        return 0
+
     multiprocessing.freeze_support()
-    t = threading.Thread(target=run_dash, daemon=True)
+    t = threading.Thread(target=run_dash, args=(app, PORT), daemon=True)
     t.start()
     webview.settings["ALLOW_DOWNLOADS"] = True  # must have this for the download to work
 
-    # This is the window `webview.windows[0]` will refer to
+    # This is the window `webview.windows[0]` will refer to.
     webview.create_window(
         f"Sleep Scoring App {VERSION}",
         f"http://127.0.0.1:{PORT}",
         **WINDOW_CONFIG,
     )
 
-    # Start pywebview (Windows → force edgechromium, others → auto)
+    # Start pywebview (Windows: force edgechromium; others: auto-select native renderer).
     if sys.platform == "win32":
         webview.start(gui="edgechromium")
     else:
-        webview.start()  # macOS/Linux auto-selects native renderer
+        webview.start()
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
