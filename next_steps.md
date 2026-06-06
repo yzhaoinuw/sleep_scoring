@@ -21,13 +21,17 @@ Current status:
   optional `torch` folder under `_internal/`.
 - The generated no-Torch full app zip was manually unzipped and launched
   successfully on Windows.
+- The full app zip includes `Start Sleep Scoring.cmd`, a double-click starter
+  that unblocks packaged app files and then launches `run_desktop_app.exe`.
 
 Immediate experiment:
 
 - Apply a generated `app_src` update to an existing app folder and verify the
   patched app starts.
-- Decide whether to add a double-click patch helper after seeing whether manual
-  replacement remains confusing.
+- Manually test `Start Sleep Scoring.cmd` from a fresh unzip of a generated
+  full app zip.
+- Decide whether to add a double-click `app_src` patch helper after seeing
+  whether manual replacement remains confusing.
 - If users need sDREAMER, keep the README add-on path centered on adding the
   optional `torch` folder under `_internal/`.
 
@@ -50,8 +54,6 @@ Validation:
 
 Possible later upgrades:
 
-- Add a double-click launcher helper that unblocks downloaded files and starts
-  the app.
 - Consider an installer and code signing only after the zip workflow is boring
   and repeatable.
 

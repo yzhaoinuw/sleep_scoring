@@ -39,6 +39,8 @@ function Assert-Any {
 if ($Kind -eq "Full") {
     Assert-Exists "_internal"
     Assert-Exists "run_desktop_app.exe"
+    Assert-Exists "Start Sleep Scoring.cmd"
+    Assert-Exists "unblock_and_start.ps1"
     Assert-Exists "models"
     Assert-Any "models\sdreamer\checkpoints" "*.pt"
 }

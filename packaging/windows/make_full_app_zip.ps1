@@ -125,6 +125,11 @@ if (Test-Path -LiteralPath $BundledTorchDir) {
 Copy-Item -LiteralPath (Join-Path $Repo "app_src") -Destination (Join-Path $DistPath "app_src") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Repo "models") -Destination (Join-Path $DistPath "models") -Recurse -Force
 
+$ReleaseHelperDir = Join-Path $ScriptDir "release_helpers"
+foreach ($HelperFile in @("Start Sleep Scoring.cmd", "unblock_and_start.ps1")) {
+    Copy-Item -LiteralPath (Join-Path $ReleaseHelperDir $HelperFile) -Destination $DistPath -Force
+}
+
 Get-ChildItem -LiteralPath $DistPath -Directory -Recurse -Filter "__pycache__" |
     Remove-Item -Recurse -Force
 
@@ -161,6 +166,7 @@ $Manifest = [ordered]@{
     python = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @("python", "--version")
     pyinstaller = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @("python", "-m", "PyInstaller", "--version")
     artifact = Split-Path $ZipPath -Leaf
+    launcher = "Start Sleep Scoring.cmd"
     build_env_requirements = Split-Path "$ZipPath.build_env_requirements.txt" -Leaf
     sha256 = $Hash.Hash
 }

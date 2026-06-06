@@ -17,6 +17,11 @@ This full zip is still the file to share with new Windows users. The generated
 `build_env_requirements` sidecar is for release/debugging records, not a user
 install step.
 
+The generated app folder includes `Start Sleep Scoring.cmd`, a double-click
+starter that unblocks the packaged app files and then launches
+`run_desktop_app.exe`. It is included only in the full app zip, not in the
+small `app_src` update zip.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_full_app_zip.ps1
 ```
@@ -34,8 +39,9 @@ sleep_scoring_app_vX.Y.Z-windows.zip.build_env_requirements.txt
 ```
 
 Before creating the zip, the script checks that the release folder contains the
-expected files and runs `run_desktop_app.exe --smoke` to verify the built
-launcher can import the side-by-side `app_src/` folder.
+expected files, including the double-click starter, and runs
+`run_desktop_app.exe --smoke` to verify the built launcher can import the
+side-by-side `app_src/` folder.
 
 ## app_src Update Zip
 

@@ -10,8 +10,11 @@
    - **__internal/_**
    - **_app_src/_**
    - **_models/_**
+   - **_Start Sleep Scoring.cmd_**
    - **_run_desktop_app.exe_**
-4. After you download and unzip, open PowerShell and run:
+4. Double click **_Start Sleep Scoring.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
+
+If the starter does not work, open PowerShell and run this from the unzipped app folder:
 
 ```powershell
 cd PATH_TO_YOUR_APP_FOLDER
@@ -32,7 +35,7 @@ The app has been tested on macOS Tahoe. To download, follow [Build From Source](
 
 # Usage
 
-To open the app, double click **_run_desktop_app.exe_** and it will open the app's home page. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
+To open the app, double click **_Start Sleep Scoring.cmd_** and it will open the app's home page. After the folder has been unblocked, double clicking **_run_desktop_app.exe_** directly also works. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
 
 ## Navigation
 
