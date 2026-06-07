@@ -18,6 +18,33 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-07
+
+### Next Steps Cleanup
+
+- Condensed the `next_steps.md` Installation Packaging section so it lists only remaining open items instead of repeating completed packaging status.
+- Left completed packaging/rebuild evidence in `work_log.md` and settled workflow detail in `packaging/windows/README.md`.
+
+### Release Artifact Rebuild
+
+- Rebuilt the full Windows app artifact and app-src update artifact in `release_artifacts/` after the launcher/module cleanup.
+- The first post-reboot full zip sidecar check found a corrupted SHA sidecar from the interrupted run, so the full Windows zip was rebuilt from scratch again.
+- Verification:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_app_update_zip.ps1 -AllowDirty` -> `66 passed, 1 warning`, AppUpdate smoke check passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_full_app_zip.ps1 -AllowDirty` -> `66 passed, 1 warning`, Full release smoke check passed, `run_desktop_app.exe --smoke` passed.
+  - Verified both generated SHA sidecars match their manifests and computed zip hashes.
+
+### Launcher And Active Script Cleanup
+
+- Renamed the full Windows package starter from `Start Sleep Scoring.cmd` to `unblock_app.cmd`.
+- Folded the previous `unblock_and_start.ps1` behavior into the single `.cmd` launcher so the full app package ships one double-click starter.
+- Updated `README.md` so Automatic Sleep Scoring explains the statistical model, `SLEEP_SCORING_MODEL` switching, and the stats-model tuning parameters in `app_src/config.py`.
+- Removed inactive/scratch `app_src` files (`app.py`, `components.py`, `make_figure.py`, `debug_tool.py`) after moving the active `*_dev` modules into the unsuffixed names.
+- Updated runtime imports, tests, packaging checks, `next_steps.md`, and `project_overview.md` to use the unsuffixed active module names.
+- Verification:
+  - `C:\Users\yzhao\miniconda3\condabin\conda.bat run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py app_src\app.py app_src\components.py app_src\make_figure.py app_src\run_inference_stats_model.py app_src\inference.py`
+  - `C:\Users\yzhao\miniconda3\condabin\conda.bat run -n sleep_scoring_dash3.0 pytest --basetemp .pytest_tmp\codex -p no:cacheprovider` -> `66 passed, 1 warning`
+
 ## 2026-06-06
 
 ### Installation Packaging Docs

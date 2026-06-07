@@ -39,7 +39,7 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
 
     from app_src import VERSION
-    from app_src.app_dev import app
+    from app_src.app import app
     from app_src.config import PORT, WINDOW_CONFIG
 
     if "--smoke" in argv:

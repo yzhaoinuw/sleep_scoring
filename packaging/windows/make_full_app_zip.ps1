@@ -126,7 +126,7 @@ Copy-Item -LiteralPath (Join-Path $Repo "app_src") -Destination (Join-Path $Dist
 Copy-Item -LiteralPath (Join-Path $Repo "models") -Destination (Join-Path $DistPath "models") -Recurse -Force
 
 $ReleaseHelperDir = Join-Path $ScriptDir "release_helpers"
-foreach ($HelperFile in @("Start Sleep Scoring.cmd", "unblock_and_start.ps1")) {
+foreach ($HelperFile in @("unblock_app.cmd")) {
     Copy-Item -LiteralPath (Join-Path $ReleaseHelperDir $HelperFile) -Destination $DistPath -Force
 }
 
@@ -166,7 +166,7 @@ $Manifest = [ordered]@{
     python = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @("python", "--version")
     pyinstaller = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @("python", "-m", "PyInstaller", "--version")
     artifact = Split-Path $ZipPath -Leaf
-    launcher = "Start Sleep Scoring.cmd"
+    launcher = "unblock_app.cmd"
     build_env_requirements = Split-Path "$ZipPath.build_env_requirements.txt" -Leaf
     sha256 = $Hash.Hash
 }

@@ -10,9 +10,9 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash_extensions import EventListener
 
-# %% home div
+# %% home div, aka inital layout
 
-upload_box_style = {
+upload_button_style = {
     "fontSize": "18px",
     "width": "15%",
     "height": "auto",
@@ -21,6 +21,8 @@ upload_box_style = {
     "borderWidth": "1px",
     "borderStyle": "none",
     "textAlign": "center",
+    "marginLeft": "15px",
+    "marginTop": "15px",
     # "margin": "5px",  # spacing between the upload box and the div it's in
     "borderRadius": "10px",  # rounded corner
     "backgroundColor": "lightgrey",
@@ -30,8 +32,112 @@ upload_box_style = {
 mat_upload_button = html.Button(
     "Click here to select a mat file",
     id="mat-upload-button",
-    style=upload_box_style,
+    style=upload_button_style,
 )
+
+backend_div = html.Div(
+    children=[
+        dcc.Store(id="mat-metadata-store"),
+        dcc.Store(id="prediction-ready-store"),
+        dcc.Store(id="visualization-ready-store"),
+        dcc.Store(id="box-select-store"),
+        dcc.Store(id="update-fft-store"),
+        dcc.Store(id="video-path-store"),
+        dcc.Store(id="clip-name-store"),
+        dcc.Store(id="clip-range-store"),
+        dcc.Store(id="updated-sleep-scores-store"),
+        dcc.Store(id="backup-sleep-scores-store"),
+        dcc.Store(id="navigation-profile-store"),
+        dcc.Store(id="graph-direct-restyle-payload-store"),
+        dcc.Store(id="graph-direct-restyle-status-store"),
+        EventListener(
+            id="graph-contextmenu",
+            events=[
+                {
+                    "event": "sleepboutcontextmenu",
+                    "props": ["detail.x", "detail.xref", "detail.yref", "detail.timeStamp"],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-annotation-select",
+            events=[
+                {
+                    "event": "sleepannotationselect",
+                    "props": [
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.xref",
+                        "detail.yref",
+                        "detail.y0",
+                        "detail.y1",
+                        "detail.kind",
+                        "detail.timeStamp",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-relayout-coalesced",
+            events=[
+                {
+                    "event": "sleepgraphrelayout",
+                    "props": [
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.source",
+                        "detail.mode",
+                        "detail.timeStamp",
+                        "detail.profileId",
+                        "detail.inputPerformanceTime",
+                        "detail.dispatchPerformanceTime",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
+            id="graph-navigation-profile",
+            events=[
+                {
+                    "event": "sleepgraphprofile",
+                    "props": [
+                        "detail.profileId",
+                        "detail.mode",
+                        "detail.source",
+                        "detail.x0",
+                        "detail.x1",
+                        "detail.coalesceMs",
+                        "detail.dashApplyMs",
+                        "detail.browserTotalMs",
+                        "detail.frameGapMs",
+                    ],
+                }
+            ],
+        ),
+        EventListener(
+            id="keyboard",
+            events=[{"event": "keydown", "props": ["key"]}],
+        ),
+        dcc.Interval(
+            id="interval-component",
+            interval=1 * 1000,  # in milliseconds
+            max_intervals=0,  # stop after the first interval
+        ),
+    ]
+)
+
+home_div = html.Div(
+    [
+        mat_upload_button,
+        html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
+        html.Div(id="debug-message", style={"marginLeft": "10px"}),
+        backend_div,
+    ]
+)
+
+# %% Dynamic components, ie., the components below appear as results of callbacks,
+# when used as Input for callbacks, need to guard against automatic firing,
+# prevent_inital_call won't work
 
 video_upload_box_style = {
     "fontSize": "18px",
@@ -50,7 +156,7 @@ video_upload_box_style = {
 video_upload_button = html.Button(
     "Click here to select a video file",
     id="video-upload-button",
-    style=upload_box_style,
+    style=video_upload_box_style,
 )
 
 
@@ -80,10 +186,8 @@ save_div = html.Div(
         html.Button(
             "Save Annotations",
             id="save-button",
-            style={"visibility": "hidden"},
+            # style={"visibility": "visible"},
         ),
-        dcc.Download(id="download-annotations"),
-        dcc.Download(id="download-spreadsheet"),
         html.Button(
             "Undo Annotation",
             id="undo-button",
@@ -91,32 +195,7 @@ save_div = html.Div(
         ),
     ],
 )
-home_div = html.Div(
-    [
-        html.Div(
-            id="upload-container",
-            style={"marginLeft": "15px", "marginTop": "15px"},
-            children=[mat_upload_button],
-        ),
-        html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
-        html.Div(
-            style={"display": "flex", "marginLeft": "15px"},
-            children=[
-                save_div,
-                html.Div(id="annotation-message"),
-                html.Div(id="debug-message"),
-            ],
-        ),
-        dcc.Store(id="mat-metadata-store"),
-        dcc.Store(id="prediction-ready-store"),
-        dcc.Store(id="visualization-ready-store"),
-        dcc.Store(id="net-annotation-count-store"),
-        dcc.Download(id="prediction-download-store"),
-        pred_modal_confirm,
-    ]
-)
 
-# %% visualization div
 
 graph = dcc.Graph(
     id="graph",
@@ -127,7 +206,7 @@ graph = dcc.Graph(
 
 video_modal = dbc.Modal(
     [
-        dbc.ModalHeader(dbc.ModalTitle("Video")),
+        dbc.ModalHeader(html.Div(id="video-title")),
         dbc.ModalBody(html.Div(id="video-container")),
         dbc.ModalFooter(html.Div(id="video-message")),
     ],
@@ -141,27 +220,8 @@ video_modal = dbc.Modal(
 
 reselect_video_button = html.Button("Select a different video", id="reselect-video-button")
 
-backend_div = html.Div(
-    children=[
-        dcc.Store(id="box-select-store"),
-        dcc.Store(id="annotation-store"),
-        dcc.Store(id="update-fft-store"),
-        dcc.Store(id="video-path-store"),
-        dcc.Store(id="clip-name-store"),
-        dcc.Store(id="clip-range-store"),
-        EventListener(
-            id="keyboard",
-            events=[{"event": "keydown", "props": ["key"]}],
-        ),
-        dcc.Interval(
-            id="interval-component",
-            interval=1 * 1000,  # in milliseconds
-            max_intervals=0,  # stop after the first interval
-        ),
-    ]
-)
 
-
+# %%
 def make_utility_div(pred_disabled=True):
     # enable or disable pred button depending on availability of pytorch
     pred_button = html.Button(
@@ -197,7 +257,7 @@ def make_utility_div(pred_disabled=True):
                 children=[
                     html.Div(["Sampling Level"]),
                     dcc.Dropdown(
-                        options=["x1", "x2", "x4"],
+                        options=["x0.5", "x1", "x2", "x4"],
                         value="x1",
                         id="n-sample-dropdown",
                         searchable=False,
@@ -229,11 +289,25 @@ def make_visualization_div(pred_disabled=True):
         children=[
             utility_div,
             video_modal,
+            pred_modal_confirm,
             html.Div(
                 children=[graph],
-                style={"marginTop": "1px", "marginLeft": "20px", "marginRight": "15px"},
+                style={
+                    "marginTop": "1px",
+                    "marginLeft": "20px",
+                    "marginRight": "15px",
+                    "minHeight": "800px",
+                },
             ),
-            backend_div,
+            # backend_div,
+            html.Div(
+                id="annotation-message",
+                style={
+                    "marginLeft": "10px",
+                    "minHeight": "18px",
+                },
+            ),
+            save_div,
         ],
     )
     return visualization_div

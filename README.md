@@ -10,9 +10,9 @@
    - **__internal/_**
    - **_app_src/_**
    - **_models/_**
-   - **_Start Sleep Scoring.cmd_**
+   - **_unblock_app.cmd_**
    - **_run_desktop_app.exe_**
-4. Double click **_Start Sleep Scoring.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
+4. Double click **_unblock_app.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
 
 If the starter does not work, open PowerShell and run this from the unzipped app folder:
 
@@ -35,7 +35,7 @@ The app has been tested on macOS Tahoe. To download, follow [Build From Source](
 
 # Usage
 
-To open the app, double click **_Start Sleep Scoring.cmd_** and it will open the app's home page. After the folder has been unblocked, double clicking **_run_desktop_app.exe_** directly also works. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
+To open the app, double click **_unblock_app.cmd_** and it will open the app's home page. After the folder has been unblocked, double clicking **_run_desktop_app.exe_** directly also works. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
 
 ## Navigation
 
@@ -88,7 +88,15 @@ While in annotation mode:
 
 ### Automatic Sleep Scoring
 
-Automatic scoring needs one extra download. The Windows app zip includes the sDREAMER model files, but not the _torch/_ folder. To enable automatic scoring:
+Automatic scoring can use either the statistical Wake/REM model or sDREAMER. To switch models, open _app_src/config.py_ and set `SLEEP_SCORING_MODEL` to either `"stats_model"` or `"sdreamer"`.
+
+The statistical model does not need the optional _torch/_ folder. Its user-facing settings are in _app_src/config.py_:
+
+- `STATS_MODEL_WAKE_THRESHOLD`
+- `STATS_MODEL_MIN_WAKE_DURATION`
+- `STATS_MODEL_MIN_REM_DURATION`
+
+For sDREAMER, the Windows app zip includes the model files, but not the _torch/_ folder. To enable sDREAMER:
 
 - Download *torch.zip* from the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
 - Unzip it, ensuring it does not remain nested inside another folder.

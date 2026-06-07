@@ -31,7 +31,7 @@ from app_src.config import (  # noqa: E402
     STATS_MODEL_WAKE_THRESHOLD,
 )
 from app_src.get_fft_plots import get_fft_plots  # noqa: E402
-from app_src.make_figure_dev import (  # noqa: E402
+from app_src.make_figure import (  # noqa: E402
     COLORSCALE,
     HEATMAP_WIDTH,
     RANGE_PADDING_PERCENT,
@@ -77,7 +77,7 @@ class StatsModelResult:
 
 
 def sleep_stage_values() -> tuple[int, int, int]:
-    """Return Wake, NREM, and REM stage values following make_figure_dev order."""
+    """Return Wake, NREM, and REM stage values following make_figure order."""
     return (
         STAGE_NAMES.index("Wake: 1"),
         STAGE_NAMES.index("NREM: 2"),

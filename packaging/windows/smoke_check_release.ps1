@@ -39,15 +39,14 @@ function Assert-Any {
 if ($Kind -eq "Full") {
     Assert-Exists "_internal"
     Assert-Exists "run_desktop_app.exe"
-    Assert-Exists "Start Sleep Scoring.cmd"
-    Assert-Exists "unblock_and_start.ps1"
+    Assert-Exists "unblock_app.cmd"
     Assert-Exists "models"
     Assert-Any "models\sdreamer\checkpoints" "*.pt"
 }
 
 Assert-Exists "app_src"
 Assert-Exists "app_src\__init__.py"
-Assert-Exists "app_src\app_dev.py"
+Assert-Exists "app_src\app.py"
 Assert-Any "app_src\assets" "*.js"
 
 Write-Host "Smoke check passed for $Kind release: $ReleasePath"

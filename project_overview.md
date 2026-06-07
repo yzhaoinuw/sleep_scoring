@@ -2,14 +2,14 @@
 
 ## What This Repo Is
 
-This repository contains a desktop sleep scoring application built around a Dash UI embedded inside a `pywebview` window. The current active user-facing path starts at [`run_desktop_app.py`](run_desktop_app.py), then flows into the newer `*_dev` modules under [`app_src`](app_src).
+This repository contains a desktop sleep scoring application built around a Dash UI embedded inside a `pywebview` window. The current active user-facing path starts at [`run_desktop_app.py`](run_desktop_app.py), then flows into the maintained modules under [`app_src`](app_src).
 
 The app is designed to:
 
 - Load EEG/EMG `.mat` files, with optional NE and video metadata
 - Visualize spectrogram of EEG, EEG, EMG, NE, and sleep scores together
 - Support manual annotation with keyboard shortcuts
-- Optionally run automatic scoring using the `sdreamer` model in [`models/sdreamer`](models/sdreamer)
+- Optionally run automatic scoring using the statistical model or the `sdreamer` model in [`models/sdreamer`](models/sdreamer)
 - Export edited annotations back to `.mat`
 - Export sleep bout and summary statistics to Excel when scoring is complete
 - Extract and play a matching video clip for a selected time region
@@ -23,7 +23,7 @@ The app is designed to:
 - Detects whether the app is running from source or as a packaged executable
 - Adds the repo/app base directory to `sys.path`
 - Imports:
-  - [`app_src/app_dev.py`](app_src/app_dev.py)
+  - [`app_src/app.py`](app_src/app.py)
   - [`app_src/config.py`](app_src/config.py)
   - [`app_src/__init__.py`](app_src/__init__.py)
 - Starts the Dash server in a background thread
@@ -31,7 +31,7 @@ The app is designed to:
 
 ### 2. Main app module
 
-[`app_src/app_dev.py`](app_src/app_dev.py) is the main active application.
+[`app_src/app.py`](app_src/app.py) is the main active application.
 
 Key responsibilities:
 
@@ -45,15 +45,15 @@ Key responsibilities:
 
 Important active imports:
 
-- [`app_src/components_dev.py`](app_src/components_dev.py)
-- [`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+- [`app_src/components.py`](app_src/components.py)
+- [`app_src/make_figure.py`](app_src/make_figure.py)
 - [`app_src/inference.py`](app_src/inference.py) if Torch is available
 - [`app_src/postprocessing.py`](app_src/postprocessing.py)
 - [`app_src/make_mp4.py`](app_src/make_mp4.py)
 
 ### 3. UI component layer
 
-[`app_src/components_dev.py`](app_src/components_dev.py)
+[`app_src/components.py`](app_src/components.py)
 
 - Defines the home screen button to choose a `.mat` file
 - Defines hidden stores used by callbacks
@@ -62,7 +62,7 @@ Important active imports:
 
 ### 4. Figure generation
 
-[`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+[`app_src/make_figure.py`](app_src/make_figure.py)
 
 - Pads or initializes `sleep_scores` to match recording duration
 - Builds a four-row Plotly layout:
@@ -85,14 +85,15 @@ Important active imports:
 
 [`app_src/inference.py`](app_src/inference.py)
 
-- Selects the inference backend based on whether NE exists in the `.mat`
+- Selects the inference backend from `SLEEP_SCORING_MODEL` in [`app_src/config.py`](app_src/config.py)
 - Writes `sleep_scores` and `confidence` back into the in-memory `mat`
 - Optionally postprocesses predictions
 
 Routing:
 
-- With NE present: [`app_src/run_inference_ne.py`](app_src/run_inference_ne.py)
-- Without NE: [`app_src/run_inference_sdreamer.py`](app_src/run_inference_sdreamer.py)
+- Statistical Wake/REM model: [`app_src/run_inference_stats_model.py`](app_src/run_inference_stats_model.py)
+- sDREAMER with NE present: [`app_src/run_inference_ne.py`](app_src/run_inference_ne.py)
+- sDREAMER without NE: [`app_src/run_inference_sdreamer.py`](app_src/run_inference_sdreamer.py)
 
 Shared preprocessing:
 
@@ -117,7 +118,7 @@ Relevant files:
 - [`models/sdreamer/checkpoints`](models/sdreamer/checkpoints): checkpoint files expected by the inference scripts
 - [`models/sdreamer/layers`](models/sdreamer/layers): transformer and patch-encoding submodules
 
-This model stack is active but optional. The app still runs without Torch; in that case the prediction button is disabled.
+This model stack is active but optional. The statistical model runs without Torch; sDREAMER requires the optional Torch runtime.
 
 ### 7. Postprocessing and export
 
@@ -145,7 +146,7 @@ Heuristics include:
 
 Within the app:
 
-- The selected time window comes from annotation selection in `app_dev.py`
+- The selected time window comes from annotation selection in `app.py`
 - The clip is shown in a Dash modal using `dash_player`
 
 ## User Data Expectations
@@ -204,9 +205,9 @@ Current tests focus on the active modules:
 - preprocessing behavior
 - postprocessing behavior
 - FFT helper behavior
-- a few helper functions in `app_dev.py`
+- a few helper functions in `app.py`
 
-These tests reinforce that `app_dev.py`, `components_dev.py`, `make_figure_dev.py`, `preprocessing.py`, and `postprocessing.py` are the main maintained path.
+These tests reinforce that `app.py`, `components.py`, `make_figure.py`, `preprocessing.py`, and `postprocessing.py` are the main maintained path.
 
 ## Repo Structure Map
 
@@ -220,11 +221,12 @@ sleep_scoring/
 |- app_src/
 |  |- __init__.py                    # version
 |  |- config.py                      # UI / FFT / inference config
-|  |- app_dev.py                     # active Dash app
-|  |- components_dev.py              # active UI components
-|  |- make_figure_dev.py             # active figure builder
+|  |- app.py                         # active Dash app
+|  |- components.py                  # active UI components
+|  |- make_figure.py                 # active figure builder
 |  |- get_fft_plots.py               # spectrogram + theta/delta helper
 |  |- inference.py                   # inference router
+|  |- run_inference_stats_model.py   # statistical Wake/REM model runner
 |  |- run_inference_sdreamer.py      # EEG/EMG model runner
 |  |- run_inference_ne.py            # EEG/EMG/NE model runner
 |  |- preprocessing.py               # model input preparation
@@ -233,11 +235,6 @@ sleep_scoring/
 |  |- assets/
 |  |  |- closeWindow.js
 |  |  |- videos/
-|  |- app.py                         # older app implementation
-|  |- components.py                  # older UI implementation
-|  |- make_figure.py                 # older figure implementation
-|  |- app_background_callback.py     # older/experimental callback path
-|  |- sketch_*.py / refactor_*.py    # experiments and scratch work
 |- models/
 |  |- sdreamer/
 |  |  |- n2nSeqNewMoE2.py
@@ -267,12 +264,13 @@ sleep_scoring/
 ### Active / relevant now
 
 - [`run_desktop_app.py`](run_desktop_app.py)
-- [`app_src/app_dev.py`](app_src/app_dev.py)
-- [`app_src/components_dev.py`](app_src/components_dev.py)
-- [`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+- [`app_src/app.py`](app_src/app.py)
+- [`app_src/components.py`](app_src/components.py)
+- [`app_src/make_figure.py`](app_src/make_figure.py)
 - [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
 - [`app_src/preprocessing.py`](app_src/preprocessing.py)
 - [`app_src/inference.py`](app_src/inference.py)
+- [`app_src/run_inference_stats_model.py`](app_src/run_inference_stats_model.py)
 - [`app_src/run_inference_sdreamer.py`](app_src/run_inference_sdreamer.py)
 - [`app_src/run_inference_ne.py`](app_src/run_inference_ne.py)
 - [`app_src/postprocessing.py`](app_src/postprocessing.py)
@@ -284,16 +282,11 @@ sleep_scoring/
 
 ### Likely older or secondary
 
-- [`app_src/app.py`](app_src/app.py)
-- [`app_src/components.py`](app_src/components.py)
-- [`app_src/make_figure.py`](app_src/make_figure.py)
-- [`app_src/app_background_callback.py`](app_src/app_background_callback.py)
 - [`archive`](archive)
 - [`msda_version1.1`](msda_version1.1)
 - [`build`](build)
 - [`dist`](dist)
 - [`release_artifacts`](release_artifacts)
-- scratch files like `sketch_*`, `refactor_*`, and other experimental helpers under `app_src`
 
 ## Practical Mental Model
 
@@ -301,9 +294,9 @@ If you only want to understand the current product, read files in this order:
 
 1. [`README.md`](README.md)
 2. [`run_desktop_app.py`](run_desktop_app.py)
-3. [`app_src/app_dev.py`](app_src/app_dev.py)
-4. [`app_src/components_dev.py`](app_src/components_dev.py)
-5. [`app_src/make_figure_dev.py`](app_src/make_figure_dev.py)
+3. [`app_src/app.py`](app_src/app.py)
+4. [`app_src/components.py`](app_src/components.py)
+5. [`app_src/make_figure.py`](app_src/make_figure.py)
 6. [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
 7. [`app_src/inference.py`](app_src/inference.py)
 8. [`app_src/preprocessing.py`](app_src/preprocessing.py)
@@ -314,6 +307,5 @@ If you only want to understand the current product, read files in this order:
 
 These are not blockers, just places where your intent would be useful if we keep documenting or refactoring:
 
-- Whether `app.py` should now be treated as fully deprecated
 - Which sample `.mat` files you consider the best canonical fixtures
 - Whether `archive/` and `msda_version1.1/` should be documented as historical research lineage
