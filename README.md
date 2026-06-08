@@ -14,20 +14,11 @@
    - **_run_desktop_app.exe_**
 4. Double click **_unblock_app.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
 
-If the starter does not work, open PowerShell and run this from the unzipped app folder:
-
-```powershell
-cd PATH_TO_YOUR_APP_FOLDER
-Get-ChildItem -Recurse | Unblock-File
-```
-
-The first line navigates to the unzipped app folder. Replace `PATH_TO_YOUR_APP_FOLDER` with the actual path to the app folder on your computer. The second line unblocks the webview dependencies that provide the app window. Windows may block those files when the zip is downloaded from OneDrive; without unblocking them, the app may not run.
-
 ## Mac Users
 
 The app has been tested on macOS Tahoe. To download, follow [Build From Source](#build-from-source-run-using-anaconda).
 
-## Before Scoring
+## Before Usage
 
 - For best performance, copy the unzipped app folder to your own computer before running it. The app includes the sDREAMER model files but does not include the optional _torch/_ folder needed for automatic sleep scoring.
 - Use only one Sleep Scoring App session per computer.

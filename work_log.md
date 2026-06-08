@@ -24,6 +24,8 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 - Condensed the `next_steps.md` Installation Packaging section so it lists only remaining open items instead of repeating completed packaging status.
 - Left completed packaging/rebuild evidence in `work_log.md` and settled workflow detail in `packaging/windows/README.md`.
+- Removed the README's manual PowerShell unblock fallback and renamed `Before Scoring` to `Before Usage` for a shorter installation front door.
+- Rebuilt the full Windows app artifact after the launcher-message change; SHA256 is `9B8FD23118E5F1BE23396E57B8604FEDEC14A905FADFD6A4236EA05655322CB9`.
 
 ### Release Artifact Rebuild
 
