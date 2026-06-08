@@ -1,4 +1,4 @@
-"""Tests for helper functions in app_src/app_dev.py"""
+"""Tests for helper functions in app_src/app.py"""
 
 from unittest.mock import MagicMock, patch
 
@@ -10,7 +10,7 @@ class TestWriteMetadata:
 
     def test_basic_metadata(self, mock_mat_data):
         """Test basic metadata extraction from mat data."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         metadata = write_metadata(mock_mat_data)
 
@@ -21,7 +21,7 @@ class TestWriteMetadata:
 
     def test_calculates_duration(self, mock_mat_data):
         """Test that end_time is calculated from EEG duration."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         metadata = write_metadata(mock_mat_data)
 
@@ -31,7 +31,7 @@ class TestWriteMetadata:
 
     def test_default_start_time(self, mock_mat_data):
         """Test that start_time defaults to 0."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         metadata = write_metadata(mock_mat_data)
 
@@ -39,7 +39,7 @@ class TestWriteMetadata:
 
     def test_custom_start_time(self, mock_mat_data):
         """Test with custom start_time in mat data."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         mock_mat_data["start_time"] = 3600  # 1 hour offset
         metadata = write_metadata(mock_mat_data)
@@ -49,7 +49,7 @@ class TestWriteMetadata:
 
     def test_video_start_time_default(self, mock_mat_data):
         """Test that video_start_time defaults to 0."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         metadata = write_metadata(mock_mat_data)
 
@@ -57,7 +57,7 @@ class TestWriteMetadata:
 
     def test_video_start_time_accepts_negative_float(self, mock_mat_data):
         """Test that video_start_time preserves signed fractional offsets."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         mock_mat_data["video_start_time"] = -2.5
         metadata = write_metadata(mock_mat_data)
@@ -66,7 +66,7 @@ class TestWriteMetadata:
 
     def test_video_path_default(self, mock_mat_data):
         """Test that video_path defaults to empty string."""
-        from app_src.app_dev import write_metadata
+        from app_src.app import write_metadata
 
         metadata = write_metadata(mock_mat_data)
 
@@ -78,7 +78,7 @@ class TestClearTempDir:
 
     def test_clears_mat_and_xlsx(self, tmp_path):
         """Test that .mat and .xlsx files are cleared except current file."""
-        from app_src.app_dev import clear_temp_dir
+        from app_src.app import clear_temp_dir
 
         # Create temp files
         (tmp_path / "old_file.mat").touch()
@@ -87,7 +87,7 @@ class TestClearTempDir:
         (tmp_path / "keep_this.txt").touch()
 
         # Patch TEMP_PATH
-        with patch("app_src.app_dev.TEMP_PATH", tmp_path):
+        with patch("app_src.app.TEMP_PATH", tmp_path):
             clear_temp_dir("current_file")
 
         # old files should be deleted, current and txt should remain
@@ -102,12 +102,12 @@ class TestInitializeCache:
 
     def test_sets_filepath(self):
         """Test that filepath is set in cache."""
-        from app_src.app_dev import initialize_cache
+        from app_src.app import initialize_cache
 
         mock_cache = MagicMock()
         mock_cache.get.return_value = None
 
-        with patch("app_src.app_dev.clear_temp_dir"):
+        with patch("app_src.app.clear_temp_dir"):
             initialize_cache(mock_cache, "/path/to/file.mat")
 
         # Check filepath was set
@@ -115,12 +115,12 @@ class TestInitializeCache:
 
     def test_sets_filename(self):
         """Test that filename (without extension) is set in cache."""
-        from app_src.app_dev import initialize_cache
+        from app_src.app import initialize_cache
 
         mock_cache = MagicMock()
         mock_cache.get.return_value = None
 
-        with patch("app_src.app_dev.clear_temp_dir"):
+        with patch("app_src.app.clear_temp_dir"):
             initialize_cache(mock_cache, "/path/to/my_recording.mat")
 
         # Check filename was set (stem only)
@@ -129,7 +129,7 @@ class TestInitializeCache:
     def test_initializes_history_for_new_file(self):
         """Test that sleep_scores_history is reset for new file."""
 
-        from app_src.app_dev import initialize_cache
+        from app_src.app import initialize_cache
 
         mock_cache = MagicMock()
         mock_cache.get.side_effect = lambda key: {
@@ -138,7 +138,7 @@ class TestInitializeCache:
             "file_video_record": None,
         }.get(key)
 
-        with patch("app_src.app_dev.clear_temp_dir"):
+        with patch("app_src.app.clear_temp_dir"):
             initialize_cache(mock_cache, "/path/to/new_file.mat")
 
         # Check history was reset
@@ -147,7 +147,7 @@ class TestInitializeCache:
 
     def test_preserves_history_for_same_file(self):
         """Test that history is preserved when reopening same file."""
-        from app_src.app_dev import initialize_cache
+        from app_src.app import initialize_cache
 
         mock_cache = MagicMock()
         # Same filename as the one being opened
@@ -157,7 +157,7 @@ class TestInitializeCache:
             "file_video_record": {},
         }.get(key)
 
-        with patch("app_src.app_dev.clear_temp_dir"):
+        with patch("app_src.app.clear_temp_dir"):
             initialize_cache(mock_cache, "/path/to/same_file.mat")
 
         # History should not be reset (check it wasn't called with deque)
@@ -171,12 +171,12 @@ class TestMakeClip:
     """Tests for video clip timing guards."""
 
     def test_rejects_negative_adjusted_start(self, tmp_path):
-        from app_src.app_dev import make_clip
+        from app_src.app import make_clip
 
         with (
-            patch("app_src.app_dev.VIDEO_DIR", tmp_path),
-            patch("app_src.app_dev.get_video_duration", return_value=100),
-            patch("app_src.app_dev.make_mp4_clip") as mock_make_mp4_clip,
+            patch("app_src.app.VIDEO_DIR", tmp_path),
+            patch("app_src.app.get_video_duration", return_value=100),
+            patch("app_src.app.make_mp4_clip") as mock_make_mp4_clip,
         ):
             clip_name, message = make_clip(
                 "recording.avi",
@@ -190,12 +190,12 @@ class TestMakeClip:
         mock_make_mp4_clip.assert_not_called()
 
     def test_rejects_adjusted_end_after_video_duration(self, tmp_path):
-        from app_src.app_dev import make_clip
+        from app_src.app import make_clip
 
         with (
-            patch("app_src.app_dev.VIDEO_DIR", tmp_path),
-            patch("app_src.app_dev.get_video_duration", return_value=100),
-            patch("app_src.app_dev.make_mp4_clip") as mock_make_mp4_clip,
+            patch("app_src.app.VIDEO_DIR", tmp_path),
+            patch("app_src.app.get_video_duration", return_value=100),
+            patch("app_src.app.make_mp4_clip") as mock_make_mp4_clip,
         ):
             clip_name, message = make_clip(
                 "recording.avi",
@@ -209,12 +209,12 @@ class TestMakeClip:
         mock_make_mp4_clip.assert_not_called()
 
     def test_allows_valid_negative_float_offset(self, tmp_path):
-        from app_src.app_dev import make_clip
+        from app_src.app import make_clip
 
         with (
-            patch("app_src.app_dev.VIDEO_DIR", tmp_path),
-            patch("app_src.app_dev.get_video_duration", return_value=100),
-            patch("app_src.app_dev.make_mp4_clip") as mock_make_mp4_clip,
+            patch("app_src.app.VIDEO_DIR", tmp_path),
+            patch("app_src.app.get_video_duration", return_value=100),
+            patch("app_src.app.make_mp4_clip") as mock_make_mp4_clip,
         ):
             clip_name, message = make_clip(
                 "recording.avi",
@@ -229,7 +229,7 @@ class TestMakeClip:
         assert mock_make_mp4_clip.call_args.kwargs["end_time"] == 14.5
 
     def test_empty_clip_name_clears_video_without_overwriting_message(self):
-        from app_src.app_dev import show_clip
+        from app_src.app import show_clip
 
         title, container, message = show_clip(None)
 
@@ -244,7 +244,7 @@ class TestDirectRestylePayload:
     def test_build_direct_restyle_payload_serializes_patch_operations(self):
         from dash import Patch
 
-        from app_src.app_dev import build_direct_restyle_payload
+        from app_src.app import build_direct_restyle_payload
 
         profile_marker = {"profileId": 12, "mode": "final", "source": "keyboard"}
         patch = Patch()

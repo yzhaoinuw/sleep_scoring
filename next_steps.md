@@ -3,6 +3,22 @@
 Use this as the forward-looking checklist. Completed experiments and measured
 outcomes live in `work_log.md`.
 
+## Installation Packaging
+
+Open items:
+
+- Apply a generated `app_src` update to an existing app folder and verify the
+  patched app starts.
+- Manually test `unblock_app.cmd` from a fresh unzip of a generated
+  full app zip.
+- Decide whether to add a double-click `app_src` patch helper after seeing
+  whether manual replacement remains confusing.
+
+Possible later upgrades:
+
+- Consider an installer and code signing only after the zip workflow is boring
+  and repeatable.
+
 ## Visualization Performance
 
 Current status:
@@ -118,3 +134,9 @@ Validation:
 Guardrails:
 
 - Do not destabilize current defaults while improving REM-in-Wake detection.
+
+## Further Down The Line / Just A Thought
+
+- Multi-session support on one computer is low priority. If ever needed, launch
+  each app instance on its own free port and isolate cache/temp/video outputs per
+  process/session; current user guidance is one app session per computer.

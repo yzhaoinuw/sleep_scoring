@@ -46,7 +46,7 @@ class TestAppImport:
 
     def test_import_components(self):
         """Test components module imports."""
-        from app_src.components_dev import Components
+        from app_src.components import Components
 
         # Should be able to instantiate without inference
         components = Components(pred_disabled=True)
@@ -54,7 +54,7 @@ class TestAppImport:
 
     def test_import_make_figure(self):
         """Test make_figure module imports."""
-        from app_src import make_figure_dev
+        from app_src import make_figure
 
-        assert hasattr(make_figure_dev, "make_figure")
-        assert hasattr(make_figure_dev, "get_padded_sleep_scores")
+        assert hasattr(make_figure, "make_figure")
+        assert hasattr(make_figure, "get_padded_sleep_scores")
