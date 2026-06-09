@@ -18,6 +18,16 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-09
+
+### Environment Recreation
+
+- Replaced the stale `sleep_scoring_dist`/Python 3.10 `environment.yml` with a portable `sleep_scoring_dash3.0` Python 3.11 environment.
+- Kept local IDE preferences such as Spyder out of `environment.yml`; the file now installs only Python, pip, and the repo in editable mode with dev/test extras.
+- Left PyTorch out of `environment.yml` because the right install depends on the target machine's CPU/CUDA setup. `README.md` now directs sDREAMER users to install the PyTorch build recommended for their machine, then install `timm` and `einops`.
+- Verification:
+  - `C:\Users\yzhao\miniconda3\condabin\conda.bat env create --dry-run -n sleep_scoring_dash3_recreate_check -f environment.yml` parsed and solved the conda portion successfully.
+
 ## 2026-06-07
 
 ### Next Steps Cleanup

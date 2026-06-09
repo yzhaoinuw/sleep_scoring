@@ -170,7 +170,22 @@ To use automatic sleep scoring, download the checkpoints of the trained model fr
 
 #### Set up the environment
 
-After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt and create an environment with Python 3.11. For consistency with the project agent notes, use the environment name `sleep_scoring_dash3.0`.
+After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt. To recreate the project environment, run this from the `sleep_scoring/` folder:
+
+```bash
+conda env create -f environment.yml
+conda activate sleep_scoring_dash3.0
+```
+
+This file installs the repo in editable mode and includes the normal development/test tools. It intentionally does **not** install PyTorch, because the right PyTorch build depends on whether the target computer uses CPU only or a specific CUDA version.
+
+The statistical sleep scoring model works without PyTorch. To use sDREAMER, install the PyTorch build recommended for the target computer from https://pytorch.org/get-started/locally/, then install the sDREAMER helper packages:
+
+```bash
+pip install timm==1.0.22 einops==0.8.1
+```
+
+For a smaller source environment, create an environment with Python 3.11. For consistency with the project agent notes, use the environment name `sleep_scoring_dash3.0`.
 
 ```bash
 conda create -n sleep_scoring_dash3.0 python=3.11
@@ -182,10 +197,10 @@ Then activate the environment:
 conda activate sleep_scoring_dash3.0
 ```
 
-In the future, every time before you run the app, make sure you activate this environment. Next, when you are in the *sleep_scoring/* folder, install the app with all dependencies including PyTorch for automatic sleep scoring. You only need to do this once.
+In the future, every time before you run the app, make sure you activate this environment. If you chose the smaller source environment, install the app. You only need to do this once.
 
 ```bash
-pip install -e ".[ml]"
+pip install -e .
 ```
 
 #### Running the app
@@ -209,5 +224,5 @@ git pull
 If dependencies have changed, reinstall:
 
 ```bash
-pip install -e ".[ml]"
+pip install -e .
 ```
