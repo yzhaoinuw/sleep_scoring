@@ -121,7 +121,7 @@ For collaboration workflow, branch habits, test expectations, and documentation 
 
 ## Input File
 
-The input files to the app must be .mat (matlab) files, and contain the following fields.
+The input files to the app must be `.mat` (MATLAB) files created from raw recording files with the [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data) MATLAB preprocessing workflow. The `.mat` files contain the following fields.
 
 #### Required fields
 
@@ -156,7 +156,7 @@ There are two preparation steps that you need to follow before using the app wit
 1. Install Miniconda, a minimal install of Anaconda. Follow the instructions here: https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html
 2. Get Git if you haven't. You need it to download the repo and to get updates. Follow the instructions here: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
 
-#### Download source code
+### Download source code
 
 ```bash
 git clone https://github.com/yzhaoinuw/sleep_scoring.git
@@ -164,11 +164,8 @@ git clone https://github.com/yzhaoinuw/sleep_scoring.git
 
 This command downloads the source code into the directory where it is run. You can move the source code folder anywhere you like afterwards. Then use `cd` in your command line to change to the folder where you placed the **_sleep_scoring/_** folder.
 
-#### Download model checkpoints
 
-To use automatic sleep scoring, download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place the checkpoints in **_models/sdreamer/_** in the app folder.
-
-#### Set up the environment
+### Set up the environment
 
 After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt. To recreate the project environment, run this from the `sleep_scoring/` folder:
 
@@ -177,33 +174,16 @@ conda env create -f environment.yml
 conda activate sleep_scoring_dash3.0
 ```
 
-This file installs the repo in editable mode and includes the normal development/test tools. It intentionally does **not** install PyTorch, because the right PyTorch build depends on whether the target computer uses CPU only or a specific CUDA version.
+In the future, every time before you run the app, make sure you activate this environment.
 
-The statistical sleep scoring model works without PyTorch. To use sDREAMER, install the PyTorch build recommended for the target computer from https://pytorch.org/get-started/locally/, then install the sDREAMER helper packages:
+
+If you want to use sDREAMER, install the PyTorch build recommended for the target computer from https://pytorch.org/get-started/locally/, then install the sDREAMER helper packages:
 
 ```bash
 pip install timm==1.0.22 einops==0.8.1
 ```
 
-For a smaller source environment, create an environment with Python 3.11. For consistency with the project agent notes, use the environment name `sleep_scoring_dash3.0`.
-
-```bash
-conda create -n sleep_scoring_dash3.0 python=3.11
-```
-
-Then activate the environment:
-
-```bash
-conda activate sleep_scoring_dash3.0
-```
-
-In the future, every time before you run the app, make sure you activate this environment. If you chose the smaller source environment, install the app. You only need to do this once.
-
-```bash
-pip install -e .
-```
-
-#### Running the app
+### Running the app
 
 Last step, type:
 
@@ -213,7 +193,7 @@ python run_desktop_app.py
 
 to run the app.
 
-#### Updating the app
+### Updating the app
 
 When there's an update announced, it's straightforward to get the update from source. Have the environment activated, cd to the source code folder, then type:
 
