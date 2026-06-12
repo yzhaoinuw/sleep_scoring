@@ -143,6 +143,8 @@ The input files to the app must be `.mat` (MATLAB) files created from raw record
 | *video_path* | char |
 | *video_start_time* | double |
 
+**Sampling-rate note:** Visualization supports variable EEG/EMG sampling rates through `eeg_frequency` and variable NE sampling rates through `ne_frequency`; EMG is assumed to share `eeg_frequency`. Automatic scoring with `stats_model` uses those frequencies directly. sDREAMER can also accommodate non-512 Hz EEG/EMG by resampling them to 512 Hz for prediction, but NE-aware sDREAMER expects NE at 10 Hz.
+
 **Explanations**
 
 1. *start_time* is not *0* if the .mat file came from a longer recording (>12 hours) that was segmented into 12-hour or shorter bins.

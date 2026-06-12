@@ -18,6 +18,19 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-12
+
+### Sampling-Rate Behavior Check
+
+- Checked whether the app requires fixed sampling rates for EEG, EMG, and NE.
+- Visualization builds EEG and EMG time axes from `eeg_frequency`, and builds the NE time axis from `ne_frequency` when NE exists.
+- Confirmed EMG has no separate frequency field in the input contract, so EMG is assumed to share `eeg_frequency`.
+- Confirmed the current default `stats_model` uses `eeg_frequency` for spectrogram features and `ne_frequency` for NE timing/smoothing.
+- Confirmed the sDREAMER path resamples EEG/EMG toward 512 Hz for non-512 inputs, while the NE-aware model path still builds fixed 10-sample NE windows and effectively expects 10 Hz NE input.
+- Added and refined a concise sampling-rate note to the README Input File section under Developer Notes.
+- Verification:
+  - `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_preprocessing.py -q` -> `24 passed`.
+
 ## 2026-06-09
 
 ### Environment Recreation
