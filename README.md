@@ -10,23 +10,23 @@
    - **__internal/_**
    - **_app_src/_**
    - **_models/_**
-   - **_run_app.exe_**
-4. After you download and unzip, open PowerShell and run:
-
-```powershell
-cd PATH_TO_YOUR_APP_FOLDER
-Get-ChildItem -Recurse | Unblock-File
-```
-
-The first line navigates to the unzipped app folder. Replace `PATH_TO_YOUR_APP_FOLDER` with the actual path to the app folder on your computer. The second line unblocks the webview dependencies that provide the app window. Windows may block those files when the zip is downloaded from OneDrive; without unblocking them, the app may not run.
+   - **_unblock_app.cmd_**
+   - **_run_desktop_app.exe_**
+4. Double click **_unblock_app.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
 
 ## Mac Users
 
 The app has been tested on macOS Tahoe. To download, follow [Build From Source](#build-from-source-run-using-anaconda).
 
+## Before Usage
+
+- For best performance, copy the unzipped app folder to your own computer before running it. The app includes the sDREAMER model files but does not include the optional _torch/_ folder needed for automatic sleep scoring.
+- Use only one Sleep Scoring App session per computer.
+- If the graph feels slow, close unnecessary browser tabs and other heavy apps before scoring.
+
 # Usage
 
-To open the app, double click **_run_desktop_app.exe_** and it will open the app's home page. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
+To open the app, double click **_unblock_app.cmd_** and it will open the app's home page. After the folder has been unblocked, double clicking **_run_desktop_app.exe_** directly also works. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
 
 ## Navigation
 
@@ -79,7 +79,15 @@ While in annotation mode:
 
 ### Automatic Sleep Scoring
 
-Automatic scoring is no longer included by default. To enable it:
+Automatic scoring can use either the statistical Wake/REM model or sDREAMER. To switch models, open _app_src/config.py_ and set `SLEEP_SCORING_MODEL` to either `"stats_model"` or `"sdreamer"`.
+
+The statistical model does not need the optional _torch/_ folder. Its user-facing settings are in _app_src/config.py_:
+
+- `STATS_MODEL_WAKE_THRESHOLD`
+- `STATS_MODEL_MIN_WAKE_DURATION`
+- `STATS_MODEL_MIN_REM_DURATION`
+
+For sDREAMER, the Windows app zip includes the model files, but not the _torch/_ folder. To enable sDREAMER:
 
 - Download *torch.zip* from the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
 - Unzip it, ensuring it does not remain nested inside another folder.
@@ -113,7 +121,7 @@ For collaboration workflow, branch habits, test expectations, and documentation 
 
 ## Input File
 
-The input files to the app must be .mat (matlab) files, and contain the following fields.
+The input files to the app must be `.mat` (MATLAB) files created from raw recording files with the [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data) MATLAB preprocessing workflow. The `.mat` files contain the following fields.
 
 #### Required fields
 
@@ -135,6 +143,8 @@ The input files to the app must be .mat (matlab) files, and contain the followin
 | *video_path* | char |
 | *video_start_time* | double |
 
+**Sampling-rate note:** Visualization supports variable EEG/EMG sampling rates through `eeg_frequency` and variable NE sampling rates through `ne_frequency`; EMG is assumed to share `eeg_frequency`. Automatic scoring with `stats_model` uses those frequencies directly. sDREAMER can also accommodate non-512 Hz EEG/EMG by resampling them to 512 Hz for prediction, but NE-aware sDREAMER expects NE at 10 Hz.
+
 **Explanations**
 
 1. *start_time* is not *0* if the .mat file came from a longer recording (>12 hours) that was segmented into 12-hour or shorter bins.
@@ -148,7 +158,7 @@ There are two preparation steps that you need to follow before using the app wit
 1. Install Miniconda, a minimal install of Anaconda. Follow the instructions here: https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html
 2. Get Git if you haven't. You need it to download the repo and to get updates. Follow the instructions here: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
 
-#### Download source code
+### Download source code
 
 ```bash
 git clone https://github.com/yzhaoinuw/sleep_scoring.git
@@ -156,31 +166,26 @@ git clone https://github.com/yzhaoinuw/sleep_scoring.git
 
 This command downloads the source code into the directory where it is run. You can move the source code folder anywhere you like afterwards. Then use `cd` in your command line to change to the folder where you placed the **_sleep_scoring/_** folder.
 
-#### Download model checkpoints
 
-To use automatic sleep scoring, download the checkpoints of the trained model from the [OneDrive folder](https://uofr-my.sharepoint.com/:f:/r/personal/yzhao38_ur_rochester_edu/Documents/sleep_scoring_project?csf=1&web=1&e=Kw7OEB). Then, unzip if needed, and place the checkpoints in **_models/sdreamer/_** in the app folder.
+### Set up the environment
 
-#### Set up the environment
-
-After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt and create an environment with Python 3.11. For consistency with the project agent notes, use the environment name `sleep_scoring_dash3.0`.
+After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt. To recreate the project environment, run this from the `sleep_scoring/` folder:
 
 ```bash
-conda create -n sleep_scoring_dash3.0 python=3.11
-```
-
-Then activate the environment:
-
-```bash
+conda env create -f environment.yml
 conda activate sleep_scoring_dash3.0
 ```
 
-In the future, every time before you run the app, make sure you activate this environment. Next, when you are in the *sleep_scoring/* folder, install the app with all dependencies including PyTorch for automatic sleep scoring. You only need to do this once.
+In the future, every time before you run the app, make sure you activate this environment.
+
+
+If you want to use sDREAMER, install the PyTorch build recommended for the target computer from https://pytorch.org/get-started/locally/, then install the sDREAMER helper packages:
 
 ```bash
-pip install -e ".[ml]"
+pip install timm==1.0.22 einops==0.8.1
 ```
 
-#### Running the app
+### Running the app
 
 Last step, type:
 
@@ -190,7 +195,7 @@ python run_desktop_app.py
 
 to run the app.
 
-#### Updating the app
+### Updating the app
 
 When there's an update announced, it's straightforward to get the update from source. Have the environment activated, cd to the source code folder, then type:
 
@@ -201,5 +206,5 @@ git pull
 If dependencies have changed, reinstall:
 
 ```bash
-pip install -e ".[ml]"
+pip install -e .
 ```

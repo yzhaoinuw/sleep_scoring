@@ -50,6 +50,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+release_artifacts/
 eggs/
 .eggs/
 lib/
