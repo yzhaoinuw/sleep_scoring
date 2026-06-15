@@ -135,6 +135,35 @@ Guardrails:
 
 - Do not destabilize current defaults while improving REM-in-Wake detection.
 
+## Publication / JOSS Paper
+
+The JOSS paper draft lives on the `publication` branch in `paper/paper.md`
+(summary, statement of need, key features, implementation) and
+`paper/paper.bib`. A `CITATION.cff` at the repo root makes the software citable
+now, via GitHub's "Cite this repository" button, before the paper is published.
+
+Done:
+
+- Draft `paper/paper.md` and `paper/paper.bib` written.
+- `CITATION.cff` added so users can cite the software immediately.
+- `README.md` has a `Citation` section pointing to the "Cite this repository"
+  button.
+- Lead author ORCID (`0000-0002-0819-5012`) filled in `paper/paper.md` and
+  `CITATION.cff`.
+
+Open items:
+
+- Fill the remaining `paper.md` TODOs: co-authors, affiliations (with their
+  ORCIDs), and the Acknowledgments (PI, data/model contributors, funding/grant
+  numbers).
+- Mirror any co-author details into `CITATION.cff`.
+- Verify every claim in the paper against the current shipped app and check that
+  each `paper.bib` reference resolves.
+- Set up the JOSS submission (fork of the `joss-reviews` process): confirm the
+  repo is public, has an OSI license (MIT, present), and a clear README/docs.
+- After acceptance, add a `preferred-citation:` block with the JOSS DOI to
+  `CITATION.cff`.
+
 ## Further Down The Line / Just A Thought
 
 - Multi-session support on one computer is low priority. If ever needed, launch

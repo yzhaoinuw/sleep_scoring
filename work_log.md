@@ -18,6 +18,32 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-15
+
+### Merge Main Into Publication
+
+- Fetched origin; `origin/main` and `origin/dev` had both advanced to the same
+  commit (`0c6a5ce`, 12 new commits: Windows packaging, README/install polish,
+  sampling-rate docs, removal of the old `*_dev.py` modules).
+- Merged `origin/main` into `publication` with the `ort` strategy, no conflicts.
+  The JOSS paper work (`3ac263f Add JOSS paper draft`) is preserved on top.
+
+### Publication Work Documentation
+
+- Found the publication work was undocumented outside `paper/` itself: no
+  mention in README, `work_log.md`, `next_steps.md`, or `project_overview.md`.
+- Added a `Publication / JOSS Paper` section to `next_steps.md` summarizing what
+  is done (`paper/paper.md`, `paper/paper.bib`, `CITATION.cff`) and the open
+  items (fill paper TODOs, mirror author details into the citation file, verify
+  claims/refs, JOSS submission, add the DOI after acceptance).
+- Added a root `CITATION.cff` (cff-version 1.2.0, version 0.16.2, MIT) so anyone
+  using the app can cite it now via GitHub's "Cite this repository" button,
+  ahead of the JOSS paper. Filled in the author ORCID
+  (`0000-0002-0819-5012`) in both `CITATION.cff` and `paper/paper.md`; co-author
+  fields still carry TODOs that track the paper's placeholders.
+- Added a `Citation` section to `README.md` pointing users to the "Cite this
+  repository" button and noting the JOSS paper is in preparation.
+
 ## 2026-06-12
 
 ### Sampling-Rate Behavior Check
