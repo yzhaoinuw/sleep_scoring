@@ -13,7 +13,7 @@ tags:
   - norepinephrine
 authors:
   - name: Yue Zhao
-    orcid: 0000-0000-0000-0000   # TODO: replace with your ORCID
+    orcid: 0000-0002-0819-5012
     corresponding: true
     affiliation: 1
   # TODO: add co-authors (lab members who contributed code, models, or data)

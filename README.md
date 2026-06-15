@@ -208,3 +208,14 @@ If dependencies have changed, reinstall:
 ```bash
 pip install -e .
 ```
+
+# Citation
+
+If you use this app in your research, please cite it. The repository includes a
+[`CITATION.cff`](CITATION.cff) file, so you can use GitHub's **"Cite this
+repository"** button (top right of the repo page) to get an APA or BibTeX
+entry.
+
+A JOSS paper describing the software is in preparation (see
+[`paper/paper.md`](paper/paper.md)); once it is published, please cite the paper
+instead.

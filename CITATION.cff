@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: "sleep_scoring: An interactive desktop application for rodent EEG/EMG sleep scoring with optional deep-learning-assisted prediction"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+authors:
+  - given-names: Yue
+    family-names: Zhao
+    affiliation: "University of Rochester, Rochester, NY, USA"
+    orcid: "https://orcid.org/0000-0002-0819-5012"
+  # TODO: add co-authors (lab members who contributed code, models, or data)
+repository-code: "https://github.com/yzhaoinuw/sleep_scoring"
+license: MIT
+version: 0.16.2
+date-released: "2026-06-15"
+keywords:
+  - sleep scoring
+  - electroencephalography
+  - EEG
+  - EMG
+  - rodent
+  - neuroscience
+  - deep learning
+  - annotation
+  - norepinephrine
+# A JOSS paper is in preparation (see paper/paper.md). Once published, add a
+# `preferred-citation:` block here pointing to the JOSS DOI so that GitHub's
+# "Cite this repository" button and downstream tools prefer the paper.
