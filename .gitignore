@@ -16,6 +16,9 @@ scripts/
 # Local-only notes and one-off summaries
 user_interface_optimization.txt
 
+# JOSS paper draft (work in progress, not ready to publish)
+paper/
+
 # Local generated artifacts and scratch worktrees
 .copier-answers.yml
 .merge_worktrees/
