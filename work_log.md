@@ -18,93 +18,81 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
-## 2026-06-15
+## 2026-06-20
 
-### Merge Main Into Publication
+### Live-Log Rotation
 
-- Fetched origin; `origin/main` and `origin/dev` had both advanced to the same
-  commit (`0c6a5ce`, 12 new commits: Windows packaging, README/install polish,
-  sampling-rate docs, removal of the old `*_dev.py` modules).
-- Merged `origin/main` into `publication` with the `ort` strategy, no conflicts.
-  The JOSS paper work (`3ac263f Add JOSS paper draft`) is preserved on top.
+- Rotated the previous five dates (2026-06-06 through 2026-06-15) into
+  `work_log_archive/work_log_2026-06-06_to_2026-06-15.md` per the live-log
+  size policy, so today's entry does not push the live log past five unique
+  dates.
 
-### Publication Work Documentation
+### JOSS Paper Draft (Fresh Pass On `publication`)
 
-- Found the publication work was undocumented outside `paper/` itself: no
-  mention in README, `work_log.md`, `next_steps.md`, or `project_overview.md`.
-- Added a `Publication / JOSS Paper` section to `next_steps.md` summarizing what
-  is done (`paper/paper.md`, `paper/paper.bib`, `CITATION.cff`) and the open
-  items (fill paper TODOs, mirror author details into the citation file, verify
-  claims/refs, JOSS submission, add the DOI after acceptance).
-- Added a root `CITATION.cff` (cff-version 1.2.0, version 0.16.2, MIT) so anyone
-  using the app can cite it now via GitHub's "Cite this repository" button,
-  ahead of the JOSS paper. Filled in the author ORCID
-  (`0000-0002-0819-5012`) in both `CITATION.cff` and `paper/paper.md`; co-author
-  fields still carry TODOs that track the paper's placeholders.
-- Added a `Citation` section to `README.md` pointing users to the "Cite this
-  repository" button and noting the JOSS paper is in preparation.
+- Drafted `paper/paper.md` (~860 words) and `paper/paper.bib` from scratch in
+  this session. Note for future agents: an earlier 2026-06-15 session already
+  produced `paper/paper.md`, `paper/paper.bib`, and `CITATION.cff` on the
+  `publication` branch (see the archived 2026-06-15 entry); the working tree
+  at the start of this session did not contain `paper/` (the user was on
+  `dev`, where `paper/` is gitignored), and `git checkout -b publication`
+  succeeded as if the branch did not exist locally. The local `publication`
+  branch built in this session therefore diverges from any prior
+  `origin/publication`; reconciling the two is up to the maintainer. If a
+  prior remote `publication` exists with the 2026-06-15 paper work, decide
+  whether to keep that version, merge, or force-push the new draft before
+  treating either as canonical.
+- Statement of need is now explicitly scoped to the U19 BrainFlowZZZ research
+  program: leads with Viewpoint (EEG/EMG) + TDT (NE photometry) hardware,
+  the companion preprocessing pipeline that produces the fixed `.mat` field
+  layout, and 1-second epoch scoring chosen to match NE photometry
+  resolution. Generality is bounded honestly — the input format and epoch
+  length are opinionated, and external adopters need recordings shaped to
+  match the BrainFlowZZZ pipeline (or a thin adapter producing the same
+  field layout).
+- The contributions the paper does claim are (i) the interactive Dash/Plotly
+  + `pywebview` annotation UI and (ii) the integrated behavior-video clip
+  extraction synchronized to annotation selection. The sDREAMER scorer is
+  framed throughout as an externally-developed upstream model integrated by
+  the app, not as a contribution of this paper. Summary, Statement of need,
+  and Implementation all carry this framing; a placeholder
+  `@TODO_sdreamer_citation` BibTeX key marks where the real sDREAMER
+  citation must be filled in before submission.
 
-## 2026-06-12
+### Repo Hygiene For Public-Facing Push (On `dev`)
 
-### Sampling-Rate Behavior Check
+- Added root `LICENSE` (MIT) on `dev` so the repo carries an OSI-approved
+  license alongside the upcoming JOSS submission. Easy to swap later to
+  Apache-2.0 (adds an explicit patent grant) or BSD-3-Clause by replacing
+  the body; `pyproject.toml` does not yet declare `license =` / `license-files
+  =`, worth adding so wheels carry the metadata.
+- Tightened `CONTRIBUTING.md` on `dev` (76 -> 60 lines) by removing content
+  duplicated with `AGENTS.md` and the Agent Collab Treaty: dropped the
+  "active path" pointer (already in `project_overview.md`), the
+  `next_steps.md` / `work_log.md` split bullet (covered by treaty rotation
+  policy + `AGENTS.md` doc map), the verbatim "Commits" body (already in
+  `AGENTS.md` Commit Message Guidelines — replaced with a one-line pointer),
+  and the generic "Collaboration Notes" section. Kept all Local
+  Troubleshooting, Tests And Verification, Research Practices, Branches, and
+  the project-specific Documentation bullets.
+- Added `paper/` to `.gitignore` on `dev` so the JOSS draft can live on disk
+  for editing across machines without leaking into `dev`-branch commits or
+  PR diffs. Remove the line on `publication` when the paper is ready to be
+  treated as canonical there.
 
-- Checked whether the app requires fixed sampling rates for EEG, EMG, and NE.
-- Visualization builds EEG and EMG time axes from `eeg_frequency`, and builds the NE time axis from `ne_frequency` when NE exists.
-- Confirmed EMG has no separate frequency field in the input contract, so EMG is assumed to share `eeg_frequency`.
-- Confirmed the current default `stats_model` uses `eeg_frequency` for spectrogram features and `ne_frequency` for NE timing/smoothing.
-- Confirmed the sDREAMER path resamples EEG/EMG toward 512 Hz for non-512 inputs, while the NE-aware model path still builds fixed 10-sample NE windows and effectively expects 10 Hz NE input.
-- Added and refined a concise sampling-rate note to the README Input File section under Developer Notes.
-- Verification:
-  - `C:\Users\yzhao\miniconda3\envs\sleep_scoring_dash3.0\python.exe -m pytest tests\test_fft.py tests\test_preprocessing.py -q` -> `24 passed`.
+### Sandbox Git Limitation Hit (Carryover)
 
-## 2026-06-09
+- `git commit` on the `publication` branch failed inside the sandbox with
+  `Operation not permitted` on `.git/index.lock` (same limitation already
+  recorded in agent memory under `reference_sandbox_git_unlink`). The
+  branch was created and `paper/paper.md` + `paper/paper.bib` were staged
+  successfully; the commit and `git push -u origin publication` were
+  handed off to the host. No verification of the push outcome was
+  performed from inside the sandbox.
 
-### Environment Recreation
+### Forward Pointers
 
-- Replaced the stale `sleep_scoring_dist`/Python 3.10 `environment.yml` with a portable `sleep_scoring_dash3.0` Python 3.11 environment.
-- Kept local IDE preferences such as Spyder out of `environment.yml`; the file now installs only Python, pip, and the repo in editable mode with dev/test extras.
-- Left PyTorch out of `environment.yml` because the right install depends on the target machine's CPU/CUDA setup. `README.md` now directs sDREAMER users to install the PyTorch build recommended for their machine, then install `timm` and `einops`.
-- Verification:
-  - `C:\Users\yzhao\miniconda3\condabin\conda.bat env create --dry-run -n sleep_scoring_dash3_recreate_check -f environment.yml` parsed and solved the conda portion successfully.
-
-## 2026-06-07
-
-### Next Steps Cleanup
-
-- Condensed the `next_steps.md` Installation Packaging section so it lists only remaining open items instead of repeating completed packaging status.
-- Left completed packaging/rebuild evidence in `work_log.md` and settled workflow detail in `packaging/windows/README.md`.
-- Removed the README's manual PowerShell unblock fallback and renamed `Before Scoring` to `Before Usage` for a shorter installation front door.
-- Rebuilt the full Windows app artifact after the launcher-message change; SHA256 is `9B8FD23118E5F1BE23396E57B8604FEDEC14A905FADFD6A4236EA05655322CB9`.
-
-### Release Artifact Rebuild
-
-- Rebuilt the full Windows app artifact and app-src update artifact in `release_artifacts/` after the launcher/module cleanup.
-- The first post-reboot full zip sidecar check found a corrupted SHA sidecar from the interrupted run, so the full Windows zip was rebuilt from scratch again.
-- Verification:
-  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_app_update_zip.ps1 -AllowDirty` -> `66 passed, 1 warning`, AppUpdate smoke check passed.
-  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_full_app_zip.ps1 -AllowDirty` -> `66 passed, 1 warning`, Full release smoke check passed, `run_desktop_app.exe --smoke` passed.
-  - Verified both generated SHA sidecars match their manifests and computed zip hashes.
-
-### Launcher And Active Script Cleanup
-
-- Renamed the full Windows package starter from `Start Sleep Scoring.cmd` to `unblock_app.cmd`.
-- Folded the previous `unblock_and_start.ps1` behavior into the single `.cmd` launcher so the full app package ships one double-click starter.
-- Updated `README.md` so Automatic Sleep Scoring explains the statistical model, `SLEEP_SCORING_MODEL` switching, and the stats-model tuning parameters in `app_src/config.py`.
-- Removed inactive/scratch `app_src` files (`app.py`, `components.py`, `make_figure.py`, `debug_tool.py`) after moving the active `*_dev` modules into the unsuffixed names.
-- Updated runtime imports, tests, packaging checks, `next_steps.md`, and `project_overview.md` to use the unsuffixed active module names.
-- Verification:
-  - `C:\Users\yzhao\miniconda3\condabin\conda.bat run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py app_src\app.py app_src\components.py app_src\make_figure.py app_src\run_inference_stats_model.py app_src\inference.py`
-  - `C:\Users\yzhao\miniconda3\condabin\conda.bat run -n sleep_scoring_dash3.0 pytest --basetemp .pytest_tmp\codex -p no:cacheprovider` -> `66 passed, 1 warning`
-
-## 2026-06-06
-
-### Installation Packaging Docs
-
-- User manually confirmed the generated no-Torch full app zip can be unzipped and launched on Windows.
-- Updated `README.md` so Windows installation and Automatic Sleep Scoring explain the current distribution model: the app zip includes sDREAMER code/checkpoints but not the optional Torch runtime, and users who need automatic scoring place the unzipped `torch` folder directly inside `_internal/`.
-- Updated `packaging/windows/README.md` to clarify that the full app zip is still the file shared with new Windows users, while generated build-env requirement snapshots are release/debugging records.
-- Updated `next_steps.md` to mark the full app zip manual launch as validated and to use `app_src` update wording consistently.
-- Added `.pytest_tmp` parent-directory creation inside both packaging scripts so clean builds can run the repo-local pytest basetemp path on Windows.
-- Added `Start Sleep Scoring.cmd` and `unblock_and_start.ps1` to the full Windows app package so users can double-click a starter that unblocks packaged files and launches `run_desktop_app.exe`.
-- Removed obsolete root-level PyInstaller specs now that the active Windows spec lives under `packaging/windows/`, and updated `project_overview.md` to describe the new packaging layout.
-- Rotated the previous five live work-log dates into `work_log_archive/work_log_2026-05-25_to_2026-06-05.md` per the live-log size policy.
+- New `next_steps.md` Publication open items added today: replace the
+  `@TODO_sdreamer_citation` placeholder; name external adopters for JOSS
+  reviewer credibility once any exist; add an "Adapting input data"
+  subsection to `README.md` documenting the `.mat` field contract for
+  outside labs writing a thin converter.

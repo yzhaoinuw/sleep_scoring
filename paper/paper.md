@@ -33,8 +33,9 @@ norepinephrine (NE) recordings. The software loads MATLAB `.mat` recordings,
 presents a synchronized, interactive view of the EEG spectrogram, raw
 EEG/EMG/NE traces, and any existing sleep scores, and lets a human scorer label
 segments as Wake, Slow-Wave Sleep (SWS), or REM using keyboard shortcuts. When
-the optional PyTorch dependency is installed, a built-in transformer model
-(sDREAMER) can score a recording automatically; the same UI is then used to
+the optional PyTorch dependency is installed, the app can hand a recording to
+the externally-developed sDREAMER transformer model
+[@TODO_sdreamer_citation] for automatic scoring; the same UI is then used to
 inspect and correct the predicted labels. Finished annotations are written back
 into the original `.mat` file, and per-bout and per-stage summary statistics are
 exported to Excel. The application is distributed as a single-folder
@@ -42,29 +43,45 @@ PyInstaller bundle for Windows and installs from source via `pip` on macOS.
 
 # Statement of need
 
-Manual sleep scoring of rodent polysomnography is a standard step in many
-systems-neuroscience experiments, but it is slow and tedious: a typical
-12-hour recording requires several hours of expert annotation in short (1–4 s)
-epochs. Existing tools fall into two broad camps. Commercial packages such as
-SleepSign and Neuroscore offer well-designed interactive interfaces but are
-closed-source, vendor-locked, and do not natively support newer fiber-photometry
-signals such as NE. Open-source alternatives—including AccuSleep
+`sleep_scoring` was developed for the U19 BrainFlowZZZ research program, which
+studies noradrenergic regulation of sleep using simultaneous EEG, EMG, and
+fiber-photometry recordings of cortical norepinephrine (NE) in mice.
+Recordings in this program are acquired with Viewpoint (EEG/EMG) and TDT
+(NE photometry) hardware, preprocessed by a companion pipeline into MATLAB
+`.mat` files with a fixed field layout, and scored at 1-second epochs to
+match the temporal resolution at which the program reasons about NE
+dynamics—a finer granularity than the 4- to 10-second epochs assumed by most
+existing rodent sleep scoring tools. Manual scoring at this resolution is
+correspondingly slow, and the existing software landscape did not fit the
+program's needs end-to-end.
+
+Commercial packages such as SleepSign and Neuroscore are closed-source,
+vendor-locked to specific acquisition hardware, and do not natively accept an
+NE channel. Open-source alternatives—including AccuSleep
 [@barger2019accusleep], SPINDLE [@miladinovic2019spindle], somnotate
 [@miladinovic2022somnotate], Visbrain Sleep [@combrisson2019visbrain], and
 SleepEEGpy—variously provide either an interactive viewer or an automated
-classifier, but rarely both in a single end-user workflow, and none of the
-widely-used ones accept an NE channel as input.
+classifier, but rarely both in one workflow, and none accept NE as an input
+feature.
 
-`sleep_scoring` was developed to close this gap for a single laboratory's
-day-to-day work and has since been adopted more broadly across a research
-program studying noradrenergic regulation of sleep. It combines (i) an
-interactive Dash/Plotly UI embedded in a `pywebview` desktop window, (ii) a
-transformer-based automatic scorer (sDREAMER) with two variants—EEG/EMG-only
-and EEG/EMG/NE—and (iii) on-demand playback of the behavior-video clip
-corresponding to any selected time window, all in a single double-clickable
-application that does not require its users to write code. The result is a
-tight predict → audit → correct → export loop that a non-programmer experimenter
-can complete on a recording in one sitting.
+`sleep_scoring` is therefore opinionated about its input format and epoch
+length, and external adopters will, at present, need recordings shaped to
+match the BrainFlowZZZ preprocessing pipeline (or a thin adapter that
+produces the same `.mat` field layout). Beyond that constraint, the
+contributions intended to be reusable outside the program are (i) the
+interactive Dash/Plotly + `pywebview` annotation UI, including its
+keyboard-driven epoch selection, contiguous-segment selection, and
+undo/crash-recovery behavior; and (ii) the integrated behavior-video clip
+extraction synchronized to the annotation selection. The sDREAMER scorer
+itself is developed and published separately within the same research
+program [@TODO_sdreamer_citation]; this app integrates both its EEG/EMG-only
+and NE-aware variants behind a one-button prediction flow, with a small set
+of rule-based post-processing heuristics layered on top, but does not claim
+the model as its own contribution. The result is a tight predict →
+audit → correct → export loop that a non-programmer experimenter in the
+program can complete on a recording in one sitting, and that we expect other
+rodent sleep groups running comparable polysomnography plus NE photometry
+experiments to find useful as a starting point.
 
 # Key features
 
@@ -84,11 +101,11 @@ click selects the entire contiguous segment under the cursor. Pressing `1`,
 and a filesystem-backed crash-recovery cache protect in-progress work.
 
 When PyTorch is available, a Generate Predictions button routes the recording
-to either the EEG/EMG-only model or the NE-aware model based on the contents
-of the file. Predictions are then post-processed by a small set of rule-based
-cleanup heuristics that remove physiologically implausible short bouts and
-validate REM transitions, optionally using the NE signal as additional
-evidence. On save, the resulting bout table and per-stage summary statistics
+to one of the two sDREAMER variants—EEG/EMG-only or NE-aware—based on the
+contents of the file. Predictions returned by the upstream model are then
+post-processed by a small set of rule-based cleanup heuristics that remove
+physiologically implausible short bouts and validate REM transitions,
+optionally using the NE signal as additional evidence. On save, the resulting bout table and per-stage summary statistics
 are written to an Excel workbook alongside the updated `.mat`.
 
 A short user-selected time window can be cut from the synchronized behavior
@@ -102,8 +119,11 @@ The application is implemented in Python 3.11. The UI is built on Dash 3 with
 hosted in a `pywebview` window so that end users see a normal desktop
 application rather than a browser tab. Signal processing relies on
 `scipy.signal.ShortTimeFFT`, NumPy [@harris2020numpy], and pandas
-[@mckinney2010pandas]. The deep-learning component is implemented in PyTorch
-[@paszke2019pytorch] using `timm` and `einops`. The repository ships with a
+[@mckinney2010pandas]. The upstream sDREAMER model
+[@TODO_sdreamer_citation] is vendored under `models/sdreamer/` and loaded via
+PyTorch [@paszke2019pytorch] using `timm` and `einops` when the optional `ml`
+dependencies are installed; the app itself adds only the prediction routing,
+post-processing heuristics, and integration with the annotation UI. The repository ships with a
 `pytest` suite covering preprocessing, postprocessing, FFT helpers, and
 app-level utilities, and a representative set of sample `.mat` files for
 manual testing.

@@ -156,9 +156,23 @@ Open items:
 - Fill the remaining `paper.md` TODOs: co-authors, affiliations (with their
   ORCIDs), and the Acknowledgments (PI, data/model contributors, funding/grant
   numbers).
+- Replace the `@TODO_sdreamer_citation` placeholder in `paper.md` and
+  `paper.bib` with the real sDREAMER citation (journal/preprint or Zenodo
+  DOI). sDREAMER is intentionally framed in the paper as an integrated
+  upstream model, not a contribution of this app.
 - Mirror any co-author details into `CITATION.cff`.
 - Verify every claim in the paper against the current shipped app and check that
   each `paper.bib` reference resolves.
+- Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
+  reviewers: name one or two external adopters (in Acknowledgments or a
+  short Statement-of-need sentence) once such use exists, even at sandbox
+  scale. JOSS reviewers commonly ask "who outside the author's group uses
+  this?" and a concrete answer is the easiest mitigation.
+- Add an "Adapting input data" subsection to `README.md` documenting the
+  `.mat` field contract precisely enough for a non-BrainFlowZZZ lab to write
+  a thin (~50-line) converter. This neutralizes the most likely
+  "internal infrastructure" objection without forcing the ingestion code
+  itself to be generalized.
 - Set up the JOSS submission (fork of the `joss-reviews` process): confirm the
   repo is public, has an OSI license (MIT, present), and a clear README/docs.
 - After acceptance, add a `preferred-citation:` block with the JOSS DOI to
