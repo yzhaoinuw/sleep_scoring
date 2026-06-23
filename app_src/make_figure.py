@@ -20,6 +20,7 @@ from plotly_resampler.aggregation import MinMaxLTTB
 
 from app_src.config import FIX_NE_Y_RANGE
 from app_src.get_fft_plots import get_fft_plots
+from app_src.mat_utils import get_ne_frequency
 
 # set up color config
 SLEEP_SCORE_OPACITY = 1
@@ -74,7 +75,7 @@ def make_figure(
 ):
     # Time span and frequencies
     eeg, emg, ne = mat.get("eeg"), mat.get("emg"), mat.get("ne")
-    eeg_freq, ne_freq = mat.get("eeg_frequency"), mat.get("ne_frequency")
+    eeg_freq, ne_freq = mat.get("eeg_frequency"), get_ne_frequency(mat)
     start_time = mat.get("start_time")
     if mat.get("num_class") is not None:
         num_class = int(np.asarray(mat["num_class"]).item())

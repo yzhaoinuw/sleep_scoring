@@ -12,6 +12,8 @@ import pandas as pd
 from scipy import stats
 from scipy.io import loadmat
 
+from app_src.mat_utils import get_ne_frequency
+
 
 def standardize(x):
     return stats.zscore(x)
@@ -252,7 +254,7 @@ def postprocess_sleep_scores(mat, return_table=False):
     ne_frequency = None
     if ne is not None:
         if len(ne) > 1:
-            ne_frequency = mat.get("ne_frequency")
+            ne_frequency = get_ne_frequency(mat)
 
     df = get_sleep_segments(sleep_scores)
     df = modify_Wake(df, emg, emg_frequency)

@@ -136,14 +136,14 @@ The input files to the app must be `.mat` (MATLAB) files created from raw record
 | Field Name | Data Type |
 | --- | --- |
 | *ne* | 1 x *M* single |
-| *ne_frequency* | double |
+| *ne_frequency* (alias: *fp_frequency*) | double |
 | *sleep_scores* | single |
 | *start_time* | double |
 | *video_name* | char |
 | *video_path* | char |
 | *video_start_time* | double |
 
-**Sampling-rate note:** Visualization supports variable EEG/EMG sampling rates through `eeg_frequency` and variable NE sampling rates through `ne_frequency`; EMG is assumed to share `eeg_frequency`. Automatic scoring with `stats_model` uses those frequencies directly. sDREAMER can also accommodate non-512 Hz EEG/EMG by resampling them to 512 Hz for prediction, but NE-aware sDREAMER expects NE at 10 Hz.
+**Sampling-rate note:** Visualization supports variable EEG/EMG sampling rates through `eeg_frequency` and variable NE sampling rates through `ne_frequency` (or its `fp_frequency` alias, for recordings whose upstream pipeline names the fiber-photometry sampling rate that way); EMG is assumed to share `eeg_frequency`. Automatic scoring with `stats_model` uses those frequencies directly. sDREAMER can also accommodate non-512 Hz EEG/EMG by resampling them to 512 Hz for prediction, but NE-aware sDREAMER expects NE at 10 Hz.
 
 **Explanations**
 

@@ -12,6 +12,8 @@ import numpy as np
 from scipy import signal, stats
 from scipy.io import loadmat
 
+from app_src.mat_utils import get_ne_frequency
+
 
 def trim_missing_labels(filt, trim="b"):
     first = 0
@@ -58,7 +60,7 @@ def reshape_sleep_data_ne(
         ne = ne.flatten()
         if standardize:
             ne = stats.zscore(ne)
-        ne_freq = mat["ne_frequency"]
+        ne_freq = get_ne_frequency(mat)
         resampled_end_time_ne = math.floor(len(ne) / ne_freq)
         end_time = min(resampled_end_time_eeg, resampled_end_time_ne)
     else:

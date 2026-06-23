@@ -82,6 +82,20 @@ def mock_mat_data_with_ne(mock_mat_data, mock_ne_signal):
 
 
 @pytest.fixture
+def mock_mat_data_with_fp_alias(mock_mat_data, mock_ne_signal):
+    """NE present, but the sampling rate uses the fp_frequency alias.
+
+    Mirrors recordings from upstream pipelines that name the
+    fiber-photometry sampling rate fp_frequency rather than ne_frequency.
+    """
+    return {
+        **mock_mat_data,
+        "ne": mock_ne_signal,
+        "fp_frequency": 10,
+    }
+
+
+@pytest.fixture
 def sample_sleep_segments_df():
     """Pre-computed sleep segments DataFrame for testing."""
     return pd.DataFrame(

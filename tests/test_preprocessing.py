@@ -110,6 +110,15 @@ class TestReshapeSleepDataNE:
         assert eeg.shape[0] == 100
         assert ne.shape[0] == 100
 
+    def test_reshape_with_fp_frequency_alias(self, mock_mat_data_with_fp_alias):
+        """NE keyed by fp_frequency (no ne_frequency) reshapes like ne_frequency."""
+        eeg, emg, ne, scores = reshape_sleep_data_ne(
+            mock_mat_data_with_fp_alias, segment_size=512, segment_size_ne=10
+        )
+
+        assert ne.shape[0] == 100
+        assert ne.shape[1] == 10  # NE at 10 Hz, resolved via the fp_frequency alias
+
     def test_reshape_without_ne_signal(self, mock_mat_data):
         """Test that missing NE signal creates zero array."""
         # mock_mat_data doesn't have NE

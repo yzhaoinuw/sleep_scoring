@@ -31,6 +31,7 @@ from app_src.config import (  # noqa: E402
     STATS_MODEL_WAKE_THRESHOLD,
 )
 from app_src.get_fft_plots import get_fft_plots  # noqa: E402
+from app_src.mat_utils import get_ne_frequency  # noqa: E402
 from app_src.make_figure import (  # noqa: E402
     COLORSCALE,
     HEATMAP_WIDTH,
@@ -473,7 +474,7 @@ def predict_stats_model(
     )
 
     ne = mat.get("ne")
-    ne_frequency = mat.get("ne_frequency")
+    ne_frequency = get_ne_frequency(mat)
     time_ne = None
     ne_for_rem = None
     if ne is not None and ne_frequency is not None and np.asarray(ne).size > 1:
@@ -567,7 +568,7 @@ def ne_for_plot(
 ) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     start_time, _end_time = eeg_time_range(mat)
     ne = mat.get("ne")
-    ne_frequency = mat.get("ne_frequency")
+    ne_frequency = get_ne_frequency(mat)
     if ne is None or ne_frequency is None or np.asarray(ne).size <= 1:
         return None, None, None
 
