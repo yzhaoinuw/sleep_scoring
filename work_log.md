@@ -18,6 +18,15 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-24
+
+### v0.16.3 Publish
+
+- Bumped the app/source-install version metadata to `v0.16.3` for the
+  `fp_frequency` alias compatibility release.
+- Planned publish path: push `dev`, fast-forward `main`, push `main`, then
+  create and push the `v0.16.3` tag.
+
 ## 2026-06-23
 
 ### NE Sampling-Rate Field Alias (`fp_frequency`)
