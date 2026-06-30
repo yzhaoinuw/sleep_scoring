@@ -1,92 +1,101 @@
 # Contributing
 
-This project is increasingly worked on by a mix of human collaborators and agent-assisted sessions. Keep changes easy to review, easy to reproduce, and easy for the next collaborator to continue.
+This project welcomes issue reports, workflow feedback, documentation fixes, and
+code changes from both human collaborators and agent-assisted sessions. Issues
+are the easiest starting point; pull requests are welcome when you already know
+what change you want to propose.
 
-## If You Are Not A Programmer
+Do not upload sensitive/raw lab data publicly. If a sample file is needed, the
+maintainer can help choose a safe way to share it.
 
-You can still make a useful contribution. Start by opening a GitHub issue and
-choose the form that best matches what you are doing: app bug, data file
-problem, feature request, or question.
+## Human Contributors
+
+### Report A Problem Or Idea
+
+Use GitHub's **New issue** button and choose the form that best matches what you
+are doing: app bug, data file problem, feature request, or question.
 
 - Describe what you were trying to do and what happened instead.
 - Include screenshots or copied error text when possible.
 - Mention your app version, zip name, branch, or operating system if you know it.
-- Do not upload sensitive/raw lab data publicly. If an example file is needed,
-  the maintainer can help choose a safe way to share it.
 - If you are not sure which form to use, choose the question form.
 
-If you want to help test a fix, improve wording, or review a workflow, say so
-in the issue. A maintainer can suggest the next step.
+### Make A Pull Request
 
-## Pull Requests
+Start with an issue unless a maintainer has already asked for a specific change.
+Pull requests should usually target `dev`, not `main`.
 
-Pull requests are welcome, but starting with an issue is usually the easiest
-path unless a maintainer has already asked for a specific change.
-
+- If you do not have write access, fork the repository and work from your fork.
+- On GitHub, click **Fork**, clone your fork, then create a focused branch from
+  `dev`.
+- Create a focused branch such as `fix/...`, `feature/...`, or `docs/...`.
 - Keep each pull request focused on one bug, workflow, or documentation topic.
 - Use the pull request template to summarize what changed and how you checked it.
 - Do not add private lab data, raw recordings, or machine-specific files.
-- If you cannot run checks locally, say what blocked you.
 
-## Before You Start
+### Set Up The Project
 
-- Agents should start with `AGENTS.md`; it is the canonical project-specific instruction file and points to everything else.
+For full source-install instructions, see the README. The short path is:
 
-## Branches
-
-- Start from the branch requested by the maintainer. If none is specified, use the current working branch and avoid retargeting history.
-- Use focused branch names such as `feature/...`, `fix/...`, `docs/...`, or `agent/...`.
-- Keep experimental branches small when possible. If an experiment grows, document what changed and what should be kept or discarded.
-
-## Tests And Verification
-
-- Activate the project conda environment first; see the Runtime Environment section of `AGENTS.md` for the exact command.
-- For Python edits, run targeted import or compile checks for the touched modules.
-- For UI/navigation JavaScript edits, run a JavaScript syntax check when Node is available.
-- For general smoke coverage, run:
-
-```
-python -m pytest tests/test_smoke.py -q
+```bash
+conda env create -f environment.yml
+conda activate sleep_scoring_dash3.0
 ```
 
-- Broaden tests when touching preprocessing, postprocessing, FFT, inference, or shared app behavior.
-- If a check cannot be run locally, record why in the final handoff or work log.
+If you already have the environment, update it from the repository root:
 
-## Local Troubleshooting
-
-- If Git reports a "detected dubious ownership" warning, mark the repository as safe:
-
-```
-git config --global --add safe.directory (Get-Location).Path
+```bash
+conda env update -f environment.yml
+conda activate sleep_scoring_dash3.0
 ```
 
-- If `pre-commit` cannot write to its default cache location, set a repo-local cache before running it:
+### Check Your Change
 
+For code changes, run the checks that match your edit. The GitHub CI currently
+runs formatting and non-ML tests:
+
+```bash
+python -m black --check --diff .
+python -m pytest -v -m "not ml" --tb=short
 ```
-$env:PRE_COMMIT_HOME = Join-Path (Get-Location).Path ".pre-commit-cache"
-& "$env:USERPROFILE\miniconda3\envs\sleep_scoring_dash3.0\python.exe" -m pre_commit run --all-files
-```
 
-- If Miniconda is installed somewhere else, adjust the Python executable path while keeping the environment name `sleep_scoring_dash3.0`.
+For documentation-only changes, checking the rendered Markdown is usually
+enough. If you cannot run a check locally, say what blocked you in the pull
+request.
 
-## Documentation
+### Working With An AI Agent
 
-- Use repo-relative paths in markdown whenever possible.
-- If an example command contains a local absolute path, add a note that collaborators should adapt it to their own clone location.
-- Update `project_overview.md` when the active runtime path or active-vs-legacy file map changes.
-- For doc-map, work-log rotation, and `next_steps.md` conventions, follow `AGENTS.md`.
+If you use an AI coding agent, ask it to read `AGENTS.md` and this file before
+editing. Before you open a pull request, ask the agent to show:
 
-## Commits
+- which files changed
+- what checks it ran
+- anything it could not verify
 
-- Follow the Commit Message Guidelines in `AGENTS.md`.
+Review the changes yourself, especially any files containing data paths, sample
+data, credentials, or machine-specific settings.
 
-## Research Practices
+## Agent Collaborators
 
-When iterating on experimental scoring pipelines, do not rush to remove useful traces such as:
+This repository follows the Agent Collab Treaty style: keep local truth visible,
+preserve user work, document handoffs, and make verification easy to repeat.
 
-- parameter-rich output filenames
-- debug visualizations
-- intermediate diagnostics
-- comparison-friendly breadcrumbs that make it easy to match one run against another
-
-These traces are often what makes it possible to explain behavior regressions later. Prefer keeping them until the behavior is stable and the comparison value is clearly gone, then clean them up deliberately.
+- Start every session with `AGENTS.md`; it is the canonical project instruction
+  file and points to the relevant documentation.
+- Follow the `AGENTS.md` documentation map instead of reading every Markdown
+  file by default.
+- Inspect `git status --short --branch` before editing, and preserve unrelated
+  local changes.
+- Respect branch handoff discipline. Do not switch away from branches with
+  unresolved local work, and generally aim PR/publish work through `dev` unless
+  the maintainer asks otherwise.
+- Update `work_log.md` for material implementation, verification, release, or
+  workflow changes; follow the rotation rules in `AGENTS.md`.
+- Use `project_overview.md` when the active runtime path or active-vs-legacy map
+  matters, and `next_steps.md` for concrete unfinished follow-ups.
+- Run focused checks for touched code paths and record any checks that could not
+  be run.
+- Follow the Windows Git friction guidance in `AGENTS.md` when credential-helper
+  or Git lock errors interrupt an otherwise-correct Git operation.
+- When iterating on experimental scoring pipelines, preserve useful diagnostics
+  until the behavior is stable and their comparison value is clearly gone.

@@ -18,6 +18,21 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-06-30
+
+### Contributor Workflow Docs
+
+- Added GitHub issue forms for app bugs, data file problems, feature requests,
+  and questions, plus a pull request template for future collaborator changes.
+- Published the templates through `dev` and fast-forwarded `main` so GitHub's
+  default-branch issue flow shows the new issue chooser.
+- Refactored `CONTRIBUTING.md` into a human-contributor section and an
+  agent-collaborator section, including PR targets, environment setup, test
+  expectations, and guidance for using AI agents.
+- Added `AGENTS.md` guidance for recurring Windows Git credential-helper and
+  lock-file friction, including the known-good PowerShell push shape and
+  post-operation ref verification.
+
 ## 2026-06-24
 
 ### v0.16.3 Publish
