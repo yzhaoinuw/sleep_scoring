@@ -1,0 +1,47 @@
+name: Question or unsure report
+description: Ask a question, or report something when you are not sure whether it is a bug.
+title: "[Question]: "
+labels: ["question", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        It is okay if you are not sure which category fits. A maintainer can relabel or split the issue later.
+  - type: textarea
+    id: question
+    attributes:
+      label: What is your question?
+      placeholder: I am trying to understand whether...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What are you trying to do?
+      placeholder: I am installing the app, loading a file, scoring a session, interpreting output, etc.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installation/update
+        - Loading/input files
+        - Visualization/navigation
+        - Annotation/scoring
+        - Automatic scoring
+        - Video
+        - Saving/exporting results
+        - Development/contributing
+        - Other/not sure
+  - type: textarea
+    id: details
+    attributes:
+      label: Helpful details
+      description: Include app version, operating system, screenshots, or error text if relevant.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data sharing
+      options:
+        - label: I have not uploaded sensitive/raw lab data publicly.
+          required: true

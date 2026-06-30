@@ -1,0 +1,59 @@
+name: Feature request or improvement
+description: Suggest a workflow, UI, scoring, packaging, or documentation improvement.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Plain-language workflow examples are often more useful than technical designs.
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What workflow would this improve?
+      placeholder: When I am scoring sleep, checking video, loading files, updating the app, exporting scores...
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is hard, slow, confusing, or missing right now?
+      placeholder: It is difficult to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen instead?
+      placeholder: I would like the app to...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Loading/input files
+        - Visualization/navigation
+        - Annotation/scoring
+        - Automatic scoring model
+        - Video
+        - Saving/exporting results
+        - Installation/update
+        - Documentation
+        - Other/not sure
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or screenshots
+      description: Add screenshots, sketches, similar tools, or before/after examples if useful.
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Would you like to help with this?
+      options:
+        - label: I can help test this change.
+        - label: I can help write or review documentation.
+        - label: I may be able to make a pull request with guidance.

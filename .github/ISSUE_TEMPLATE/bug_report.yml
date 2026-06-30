@@ -1,0 +1,85 @@
+name: App bug or crash
+description: Report something that broke, crashed, froze, or behaved unexpectedly.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. You do not need to know Git or programming to file a useful issue.
+
+        Please do not upload sensitive/raw lab data publicly. If a sample file is needed, the maintainer can help choose a safe way to share it.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+      description: Describe the task in everyday language.
+      placeholder: I loaded a sleep scoring file and tried to...
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: Include any error message, screenshot, or confusing behavior you saw.
+      placeholder: The app froze, showed an error, saved the wrong output, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you click, open, or change before the problem happened?
+      placeholder: |
+        1. Opened the app
+        2. Loaded ...
+        3. Clicked ...
+        4. Saw ...
+    validations:
+      required: true
+  - type: dropdown
+    id: app_source
+    attributes:
+      label: How are you running the app?
+      options:
+        - Windows packaged app
+        - Mac packaged app
+        - From source code
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version, zip name, branch, or commit
+      description: Use whatever version information you have. "Not sure" is okay.
+      placeholder: v0.16.3, sleep_scoring_windows_full.zip, dev branch, not sure
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: error_text
+    attributes:
+      label: Error message or screenshot
+      description: Paste the error text here, or drag a screenshot into the issue after it opens.
+      render: shell
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Add context that may help, including whether the issue happens every time or only for one recording.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data sharing
+      options:
+        - label: I have not uploaded sensitive/raw lab data publicly.
+          required: true

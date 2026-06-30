@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the setup and usage notes
+    url: https://github.com/yzhaoinuw/sleep_scoring#readme
+    about: Start here if you are installing, updating, or running the app for the first time.

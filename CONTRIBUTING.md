@@ -2,6 +2,32 @@
 
 This project is increasingly worked on by a mix of human collaborators and agent-assisted sessions. Keep changes easy to review, easy to reproduce, and easy for the next collaborator to continue.
 
+## If You Are Not A Programmer
+
+You can still make a useful contribution. Start by opening a GitHub issue and
+choose the form that best matches what you are doing: app bug, data file
+problem, feature request, or question.
+
+- Describe what you were trying to do and what happened instead.
+- Include screenshots or copied error text when possible.
+- Mention your app version, zip name, branch, or operating system if you know it.
+- Do not upload sensitive/raw lab data publicly. If an example file is needed,
+  the maintainer can help choose a safe way to share it.
+- If you are not sure which form to use, choose the question form.
+
+If you want to help test a fix, improve wording, or review a workflow, say so
+in the issue. A maintainer can suggest the next step.
+
+## Pull Requests
+
+Pull requests are welcome, but starting with an issue is usually the easiest
+path unless a maintainer has already asked for a specific change.
+
+- Keep each pull request focused on one bug, workflow, or documentation topic.
+- Use the pull request template to summarize what changed and how you checked it.
+- Do not add private lab data, raw recordings, or machine-specific files.
+- If you cannot run checks locally, say what blocked you.
+
 ## Before You Start
 
 - Agents should start with `AGENTS.md`; it is the canonical project-specific instruction file and points to everything else.

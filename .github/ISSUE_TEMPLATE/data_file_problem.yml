@@ -1,0 +1,82 @@
+name: Data file or loading problem
+description: Report a .mat file that will not load, displays incorrectly, or gives unexpected scoring/video behavior.
+title: "[Data]: "
+labels: ["data-format", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when a recording file, video file, sampling rate, signal, or saved score output does not look right.
+
+        Please do not upload sensitive/raw lab data publicly. If a sample file is needed, the maintainer can help choose a safe way to share it.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong with the file or output?
+      placeholder: The file does not load, NE is missing, video timing looks shifted, automatic scoring looks wrong, etc.
+    validations:
+      required: true
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Where did the input file come from?
+      options:
+        - preprocess_sleep_data MATLAB workflow
+        - Existing/manual .mat file
+        - Export from another tool
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: signals
+    attributes:
+      label: What signals or files are involved?
+      description: List what you know. It is okay if some items are unknown.
+      placeholder: EEG, EMG, NE/fiber photometry, video, scoring labels, other...
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to see?
+      placeholder: I expected the file to load, the video to align with behavior, NE to appear, scores to save, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What did you see instead?
+      placeholder: Include screenshots, error text, or a short description of the mismatch.
+    validations:
+      required: true
+  - type: input
+    id: app_version
+    attributes:
+      label: App version, zip name, branch, or commit
+      placeholder: v0.16.3, sleep_scoring_windows_full.zip, dev branch, not sure
+  - type: dropdown
+    id: model
+    attributes:
+      label: Were you using automatic scoring?
+      options:
+        - No
+        - Yes, stats_model
+        - Yes, sDREAMER
+        - Yes, but I am not sure which model
+  - type: textarea
+    id: frequency
+    attributes:
+      label: Sampling-rate details, if known
+      description: Include EEG/EMG/NE frequencies if you know them.
+      placeholder: EEG 512 Hz, NE 10 Hz, unknown, etc.
+  - type: textarea
+    id: shareable
+    attributes:
+      label: Can you share a small example file privately if needed?
+      description: Do not attach private data here. Just say whether a private example might be available.
+      placeholder: Yes, no, maybe after de-identifying, not sure.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data sharing
+      options:
+        - label: I have not uploaded sensitive/raw lab data publicly.
+          required: true
