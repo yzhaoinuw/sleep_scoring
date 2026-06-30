@@ -36,6 +36,9 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   approval/escalation up front for known-friction switch, merge, fetch, push, and
   tag/ref operations after checking state, instead of burning a failed first
   attempt.
+- Trimmed `CONTRIBUTING.md` pull-request guidance to link out to GitHub's
+  general contributor guide while keeping only project-specific expectations in
+  this repo, and linked issue reporters directly to the repository Issues page.
 
 ## 2026-06-24
 

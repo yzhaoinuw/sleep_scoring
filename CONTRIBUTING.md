@@ -12,8 +12,9 @@ maintainer can help choose a safe way to share it.
 
 ### Report A Problem Or Idea
 
-Use GitHub's **New issue** button and choose the form that best matches what you
-are doing: app bug, data file problem, feature request, or question.
+Use GitHub's [Issues page](https://github.com/yzhaoinuw/sleep_scoring/issues)
+and choose the form that best matches what you are doing: app bug, data file
+problem, feature request, or question.
 
 - Describe what you were trying to do and what happened instead.
 - Include screenshots or copied error text when possible.
@@ -23,12 +24,12 @@ are doing: app bug, data file problem, feature request, or question.
 ### Make A Pull Request
 
 Start with an issue unless a maintainer has already asked for a specific change.
-Pull requests should usually target `dev`, not `main`.
+For general GitHub steps such as forking, branching, and opening a pull request,
+see GitHub's [contributing to a project guide](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project).
 
-- If you do not have write access, fork the repository and work from your fork.
-- On GitHub, click **Fork**, clone your fork, then create a focused branch from
-  `dev`.
-- Create a focused branch such as `fix/...`, `feature/...`, or `docs/...`.
+Project-specific notes:
+
+- Pull requests should usually target `dev`, not `main`.
 - Keep each pull request focused on one bug, workflow, or documentation topic.
 - Use the pull request template to summarize what changed and how you checked it.
 - Do not add private lab data, raw recordings, or machine-specific files.
