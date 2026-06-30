@@ -43,8 +43,20 @@ already have user changes, work with those changes instead of reverting them.
 
 ## Windows Git Friction
 
-On this Windows workstation, some Git operations may fail even when the plan is
-correct. Common symptoms include:
+On this Windows workstation, some Git operations are known to fail in the
+default sandbox even when the plan is correct. The point of this note is to
+avoid wasting a failed first attempt. After checking the worktree/ref state, run
+known-friction Git operations with the required approval/escalation up front
+instead of trying the same command once without escalation.
+
+Known-friction operations include:
+
+- branch switches such as `git switch main` or `git switch dev`
+- fast-forward merges such as `git merge --ff-only dev`
+- remote operations such as `git fetch origin ...` or `git push origin <branch>`
+- tag/ref updates for releases
+
+Common symptoms when these are run through the wrong path include:
 
 - `cannot spawn sh: No such file or directory`
 - `could not read Username for 'https://github.com'`
@@ -52,10 +64,9 @@ correct. Common symptoms include:
 - `cannot lock ref 'ORIG_HEAD'`
 
 When this happens, do not change branches, reset history, remove lock files, or
-change the Git plan just to work around the error. If the worktree is clean or
-the intended staged set is already verified, rerun the same narrow Git operation
-with the required approval/escalation. For pushes, use the known-good PowerShell
-shape:
+change the Git plan just to work around the error. If a known-friction operation
+still hits one of these errors, rerun the same narrow Git operation with the
+required approval/escalation. For pushes, use the known-good PowerShell shape:
 
 ```
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "git push origin <branch>"

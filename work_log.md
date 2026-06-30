@@ -32,6 +32,10 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Added `AGENTS.md` guidance for recurring Windows Git credential-helper and
   lock-file friction, including the known-good PowerShell push shape and
   post-operation ref verification.
+- Corrected the Git-friction guidance to say agents should request
+  approval/escalation up front for known-friction switch, merge, fetch, push, and
+  tag/ref operations after checking state, instead of burning a failed first
+  attempt.
 
 ## 2026-06-24
 
