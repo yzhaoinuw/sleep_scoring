@@ -40,7 +40,12 @@ from app_src.config import (
 )
 from app_src.make_figure import get_padded_sleep_scores, make_figure
 from app_src.make_mp4 import get_video_duration, make_mp4_clip, validate_clip_range
-from app_src.postprocessing import get_pred_label_stats, get_sleep_segments, standardize
+from app_src.postprocessing import (
+    get_first_unscored_segment,
+    get_pred_label_stats,
+    get_sleep_segments,
+    standardize,
+)
 
 try:
     from app_src.inference import run_inference
@@ -1697,17 +1702,29 @@ def save_annotations(n_clicks):
 
     savemat(temp_mat_path, mat_filtered)
 
+    unscored_segment = get_first_unscored_segment(mat.get("sleep_scores"))
+    unscored_message = ""
+    if unscored_segment is not None:
+        unscored_message = (
+            "Unscored segment found: "
+            f"[{unscored_segment['start']}, {unscored_segment['end']}] "
+            f"({unscored_segment['duration']} s). "
+            "Complete scoring to export the sleep bout spreadsheet."
+        )
+
     # Save MAT file with native dialog
     mat_save_path = save_file_dialog("mat", f"{filename}.mat")
 
     if not mat_save_path:
-        return "", dash.no_update
+        return unscored_message, 5 if unscored_message else dash.no_update
 
     shutil.copy(temp_mat_path, mat_save_path)
     message = f"Saved annotations to {mat_save_path}."
+    if unscored_message:
+        message += f"\n{unscored_message}"
 
     # Export sleep bout spreadsheet only if the manual scoring is complete
-    if mat.get("sleep_scores") is not None and -1 not in mat["sleep_scores"]:
+    if mat.get("sleep_scores") is not None and unscored_segment is None:
         labels = mat["sleep_scores"]
 
     if labels is not None:

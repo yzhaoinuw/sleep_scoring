@@ -6,6 +6,7 @@ import pandas as pd
 from app_src.postprocessing import (
     check_REM_duration,
     edit_sleep_scores,
+    get_first_unscored_segment,
     get_pred_label_stats,
     get_sleep_segments,
     merge_consecutive_sleep_scores,
@@ -56,6 +57,36 @@ class TestGetSleepSegments:
         assert len(df) == 1
         assert df.iloc[0]["sleep_scores"] == 1
         assert df.iloc[0]["duration"] == 10
+
+
+class TestGetFirstUnscoredSegment:
+    """Tests for finding the first unscored sleep-score segment."""
+
+    def test_returns_first_contiguous_unscored_segment(self):
+        scores = np.array([0, -1, -1, 1, np.nan, np.nan, 2])
+
+        segment = get_first_unscored_segment(scores)
+
+        assert segment == {"start": 1, "end": 3, "duration": 2}
+
+    def test_treats_none_as_unscored(self):
+        scores = np.array([0, None, None, 1], dtype=object)
+
+        segment = get_first_unscored_segment(scores)
+
+        assert segment == {"start": 1, "end": 3, "duration": 2}
+
+    def test_returns_none_when_complete(self):
+        scores = np.array([0, 1, 2, 3])
+
+        segment = get_first_unscored_segment(scores)
+
+        assert segment is None
+
+    def test_returns_none_for_empty_scores(self):
+        segment = get_first_unscored_segment(np.array([]))
+
+        assert segment is None
 
 
 class TestMergeConsecutiveSleepScores:

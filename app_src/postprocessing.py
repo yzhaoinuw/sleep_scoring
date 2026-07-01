@@ -19,6 +19,30 @@ def standardize(x):
     return stats.zscore(x)
 
 
+def get_first_unscored_segment(sleep_scores):
+    """Return the first unscored [start, end) segment, or None when complete."""
+    if sleep_scores is None:
+        return None
+
+    labels = np.asarray(sleep_scores, dtype=float).ravel()
+    if labels.size == 0:
+        return None
+
+    unscored = np.isnan(labels) | (labels == -1)
+    unscored_indices = np.flatnonzero(unscored)
+    if unscored_indices.size == 0:
+        return None
+
+    start = int(unscored_indices[0])
+    next_scored_offsets = np.flatnonzero(~unscored[start:])
+    if next_scored_offsets.size == 0:
+        end = labels.size
+    else:
+        end = start + int(next_scored_offsets[0])
+
+    return {"start": start, "end": end, "duration": end - start}
+
+
 def get_sleep_segments(sleep_scores):
     transition_indices = np.flatnonzero(np.diff(sleep_scores))
     transition_indices = np.append(transition_indices, len(sleep_scores) - 1)

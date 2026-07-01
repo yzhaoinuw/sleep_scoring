@@ -103,7 +103,11 @@ After enabling:
 
 ## Save Sleep Scores
 
-Click the **Save Annotations** button in the bottom-left below the graph to save your sleep scores. They will be saved directly into the original .mat file. If the .mat file has been sleep scored completely, you will also be prompted to export sleep bouts and simple statistics to an Excel file.
+Click the **Save Annotations** button in the bottom-left below the graph to save your sleep scores. They will be saved directly into the original .mat file.
+
+If any part of the recording is still unscored, the app reports the first unscored range in the annotation message as `[start, end] (duration s)`, even if you cancel the .mat save dialog. Score that range and save again.
+
+If the .mat file has been sleep scored completely, you will also be prompted to export sleep bouts and simple statistics to an Excel file.
 
 > Note: When you use automatic sleep scoring, the last few seconds may be unscored because of the deep learning model's input sequence length. To get the sleep bout Excel file, manually score the last few seconds.
 

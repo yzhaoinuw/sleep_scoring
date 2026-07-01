@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import dash
+import numpy as np
 
 
 class TestWriteMetadata:
@@ -165,6 +166,35 @@ class TestInitializeCache:
         history_calls = [c for c in set_calls if c[0][0] == "sleep_scores_history"]
         # When same file, history is NOT reset
         assert len(history_calls) == 0
+
+
+class TestSaveAnnotations:
+    """Tests for save annotation behavior."""
+
+    def test_cancelled_mat_save_still_reports_unscored_segment(self, tmp_path):
+        from app_src.app import save_annotations
+
+        sleep_scores = np.array([0, 1, np.nan, np.nan, 2], dtype=float)
+        mat = {"sleep_scores": np.array([0, 1, 2]), "ne": np.array([])}
+        cache_values = {
+            "filepath": str(tmp_path / "recording.mat"),
+            "filename": "recording",
+            "sleep_scores_history": [sleep_scores],
+        }
+
+        with (
+            patch("app_src.app.TEMP_PATH", tmp_path),
+            patch("app_src.app.cache.get", side_effect=lambda key: cache_values.get(key)),
+            patch("app_src.app.loadmat", return_value=mat),
+            patch("app_src.app.save_file_dialog", return_value=None),
+        ):
+            message, max_intervals = save_annotations(1)
+
+        assert (
+            message == "Unscored segment found: [2, 4] (2 s). "
+            "Complete scoring to export the sleep bout spreadsheet."
+        )
+        assert max_intervals == 5
 
 
 class TestMakeClip:
