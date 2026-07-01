@@ -18,7 +18,7 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
-## 2026-07-01
+## 2026-06-30
 
 ### v0.16.4 Unscored Save Reminder
 
@@ -42,8 +42,6 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `v0.16.4`, and verified `dev`, `main`, `origin/dev`, `origin/main`, and
   `v0.16.4^{}` all resolved to
   `f900346bc9f3cc44737734c47365740c3aa8008a`.
-
-## 2026-06-30
 
 ### Contributor Workflow Docs
 
