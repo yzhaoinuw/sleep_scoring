@@ -18,6 +18,31 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-01
+
+### v0.16.4 Unscored Save Reminder
+
+- Added a Save Annotations completeness reminder that reports the first
+  unscored sleep-score range as `[start, end] (duration s)` when any part of
+  the recording is still unscored.
+- The reminder is computed before the native `.mat` save dialog returns, so it
+  still appears in the annotation message if the user cancels the `.mat` save.
+- Reused the same unscored check to gate sleep-bout spreadsheet export, keeping
+  the existing behavior that Excel export is offered only after complete
+  scoring.
+- Documented the Save Sleep Scores reminder in `README.md` and bumped the
+  app/source-install version metadata to `v0.16.4`.
+- Added focused tests for `-1`, `NaN`, and `None` unscored labels plus the
+  canceled-save reminder path.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
+    -> `78 passed, 1 warning` (pre-existing `flask_caching` deprecation
+    warning).
+- Published commit `f900346` to `dev` and `main`, pushed annotated tag
+  `v0.16.4`, and verified `dev`, `main`, `origin/dev`, `origin/main`, and
+  `v0.16.4^{}` all resolved to
+  `f900346bc9f3cc44737734c47365740c3aa8008a`.
+
 ## 2026-06-30
 
 ### Contributor Workflow Docs
