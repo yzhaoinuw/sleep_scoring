@@ -24,6 +24,7 @@ dependencies = [
     "pywebview==6.1",
     "imageio-ffmpeg==0.6.0",
     "tqdm==4.67.1",
+    "desktop-app-source-updater @ git+https://github.com/yzhaoinuw/desktop_app_source_updater.git@main",
 ]
 
 [project.optional-dependencies]

@@ -1,3 +1,6 @@
+#### v0.16.4.post1
+1. Added an experimental Windows auto-update baseline that checks GitHub Release source-update assets at startup before loading app_src.
+
 #### v0.16.4
 1. Save Annotations now reports the first unscored range with start, end, and duration when scoring is incomplete, including when the .mat save dialog is canceled.
 2. Documented the unscored-range reminder in the Save Sleep Scores README section.

@@ -18,6 +18,33 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-01
+
+### Experimental Auto-Update Baseline
+
+- Created the `auto-update` experiment branch from current `dev`.
+- Wired `run_desktop_app.py` to run `desktop_app_source_updater` before
+  importing `app_src` in packaged builds, with environment-variable overrides
+  for local source-update testing.
+- Added `desktop-app-source-updater` to dependency metadata and PyInstaller
+  hidden imports so the next full Windows package can bundle the updater.
+- Added `packaging/windows/make_source_update_asset.ps1` for future GitHub
+  Release source-update assets and documented the automatic update path in
+  `README.md`, `packaging/windows/README.md`, and `AGENTS.md`.
+- Bumped the experimental app/source-install version metadata to
+  `v0.16.4.post1`.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
+    -> `78 passed, 1 warning` (pre-existing `flask_caching` deprecation
+    warning).
+  - `conda run -n sleep_scoring_dash3.0 python run_desktop_app.py --smoke`
+    -> `Sleep Scoring App v0.16.4.post1 smoke check OK`.
+  - `conda run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py`
+    passed.
+  - PowerShell parser check for `packaging/windows/make_source_update_asset.ps1`
+    passed.
+  - `git diff --check` passed.
+
 ## 2026-06-30
 
 ### v0.16.4 Unscored Save Reminder

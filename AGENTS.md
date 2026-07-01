@@ -35,6 +35,29 @@ After activation, use that environment for commands such as:
 - package import checks
 - one-off scripts
 
+## Startup Auto-Update
+
+The Windows packaged launcher checks for code-only source updates before
+importing `app_src`. This belongs in `run_desktop_app.py`, not inside the Dash
+runtime. Source-development runs skip the check unless an update-test
+environment variable is set.
+
+App-specific updater config:
+
+- `app_name`: `sleep_scoring`
+- `installed_version_file`: `app_src/__init__.py`
+- `release_api_url`: `https://api.github.com/repos/yzhaoinuw/sleep_scoring/releases/latest`
+- `asset_prefix`: `sleep_scoring_app_update_`
+- `allowed_payload_paths`: `app_src/`
+- bypass/test env vars: `SLEEP_SCORING_SKIP_UPDATE`,
+  `SLEEP_SCORING_UPDATE_ZIP_URL`, `SLEEP_SCORING_UPDATE_RELEASE_API_URL`,
+  `SLEEP_SCORING_UPDATE_ASSET_PREFIX`, `SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS`
+
+Use a full app zip whenever dependencies, packaging, models, the launcher, or
+runtime layout changed. Use automatic source update assets only for compatible
+`app_src/` changes, built with `packaging/windows/make_source_update_asset.ps1`
+and attached to the matching GitHub Release.
+
 ## Worktree Hygiene
 
 Before editing, inspect the current worktree with `git status`. Preserve

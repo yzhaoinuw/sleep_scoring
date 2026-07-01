@@ -13,7 +13,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="sleep_scoring",
-    version="0.16.4",
+    version="0.16.4.post1",
     py_modules=["app", "inference", "make_figure", "model", "utils"],
     include_package_data=False,
     install_requires=requirements,

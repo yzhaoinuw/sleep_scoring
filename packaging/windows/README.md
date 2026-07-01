@@ -5,8 +5,8 @@ steps repeatable and easier to audit.
 
 ## Full App Zip
 
-Use this when dependencies, `_internal/`, `run_desktop_app.exe`, `models/`, or
-the PyInstaller runtime layout changed.
+Use this when dependencies, `_internal/`, `run_desktop_app.exe`, `models/`, the
+PyInstaller runtime layout, or the bundled auto-updater changed.
 
 The default full app zip intentionally removes Torch, which is the largest
 runtime dependency. It keeps the sDREAMER code and checkpoint files, so users
@@ -42,22 +42,31 @@ expected files, including the double-click starter, and runs
 `run_desktop_app.exe --smoke` to verify the built launcher can import the
 side-by-side `app_src/` folder.
 
-## app_src Update Zip
+## Automatic Source Update Asset
 
-Use this when changes are only in `app_src/`. Users unzip it and replace the
-old `app_src/` folder in their existing app folder.
+Use this for future code-only releases when changes are only in `app_src/` and
+the installed full app already includes the auto-updater. Attach the generated
+zip to the matching GitHub Release; users do not unzip it manually.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_app_update_zip.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_source_update_asset.ps1 -FromRef vX.Y.Z
 ```
 
 Output goes to `release_artifacts/`:
 
 ```text
-sleep_scoring_app_vX.Y.Z-app_src_update.zip
-sleep_scoring_app_vX.Y.Z-app_src_update.zip.manifest.json
-sleep_scoring_app_vX.Y.Z-app_src_update.zip.sha256.txt
+sleep_scoring_app_update_vX.Y.Z.zip
+sleep_scoring_app_update_vX.Y.Z.zip.sha256.txt
 ```
+
+Pass `-FromRef` more than once when one latest source update should support
+users jumping from multiple older compatible versions.
+
+## Manual app_src Update Zip
+
+`make_app_update_zip.ps1` remains a fallback for manually replacing `app_src/`
+when needed, but the automatic source update asset is the preferred code-only
+release path for auto-update-enabled builds.
 
 ## Local Test Builds
 

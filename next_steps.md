@@ -7,12 +7,13 @@ outcomes live in `work_log.md`.
 
 Open items:
 
-- Apply a generated `app_src` update to an existing app folder and verify the
-  patched app starts.
+- After the next app_src-only change, attach a generated automatic source
+  update asset to a GitHub Release and verify an installed `v0.16.4.post1`
+  app updates itself on startup.
 - Manually test `unblock_app.cmd` from a fresh unzip of a generated
   full app zip.
-- Decide whether to add a double-click `app_src` patch helper after seeing
-  whether manual replacement remains confusing.
+- Keep the manual `app_src` replacement zip only as a fallback if automatic
+  update testing exposes a compatibility issue.
 
 Possible later upgrades:
 

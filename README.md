@@ -14,6 +14,12 @@
    - **_run_desktop_app.exe_**
 4. Double click **_unblock_app.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
 
+### Updates
+
+Auto-update-enabled Windows builds check the latest GitHub Release when the app starts and may update **_app_src/_** before the window opens. If the update check fails, is offline, is incompatible, or detects local edits in files it needs to replace, the app opens normally and you can use a new full zip instead.
+
+Dependency, model, or packaged runtime changes still require downloading a new full app zip.
+
 ## Mac Users
 
 The app has been tested on macOS Tahoe. To download, follow [Build From Source](#build-from-source-run-using-anaconda).
