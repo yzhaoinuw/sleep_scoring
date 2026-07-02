@@ -20,6 +20,25 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-01
 
+### Source-Run Startup Update Message
+
+- Clarified source-checkout startup behavior by printing
+  `[startup-update] source run; automatic update check skipped` when
+  `python run_desktop_app.py` is used without update-test environment
+  overrides.
+- Kept packaged builds on the real check/result message path, and kept
+  `SLEEP_SCORING_SKIP_UPDATE=1` visible as `update check disabled`.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest tests\test_run_desktop_app.py -q`
+    -> `6 passed`.
+  - `conda run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py tests\test_run_desktop_app.py`
+    passed.
+  - `conda run -n sleep_scoring_dash3.0 python -c "import run_desktop_app; run_desktop_app.run_startup_update_if_enabled()"`
+    -> `[startup-update] source run; automatic update check skipped`.
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
+    -> `84 passed, 1 warning` (pre-existing `flask_caching` deprecation
+    warning).
+
 ### Startup Update Console Messages
 
 - Added brief console messages for packaged startup update checks:

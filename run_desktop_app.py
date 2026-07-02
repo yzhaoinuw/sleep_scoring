@@ -45,8 +45,19 @@ def should_run_startup_update():
     return getattr(sys, "frozen", False)
 
 
+def get_startup_update_skip_message():
+    if _env_flag_is_enabled(SKIP_UPDATE_ENV):
+        return "update check disabled"
+    if not getattr(sys, "frozen", False):
+        return "source run; automatic update check skipped"
+    return ""
+
+
 def run_startup_update_if_enabled():
     if not should_run_startup_update():
+        message = get_startup_update_skip_message()
+        if message:
+            print(f"[startup-update] {message}", flush=True)
         return
 
     print("[startup-update] checking for updates...", flush=True)

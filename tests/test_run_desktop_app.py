@@ -23,6 +23,27 @@ def test_startup_update_prints_checking_and_result(monkeypatch, capsys):
     ]
 
 
+def test_source_run_prints_skipped_message(monkeypatch, capsys):
+    monkeypatch.delenv(run_desktop_app.SKIP_UPDATE_ENV, raising=False)
+    monkeypatch.delenv(run_desktop_app.UPDATE_ZIP_URL_ENV, raising=False)
+    monkeypatch.delenv(run_desktop_app.UPDATE_RELEASE_API_ENV, raising=False)
+    monkeypatch.setattr(run_desktop_app.sys, "frozen", False, raising=False)
+
+    run_desktop_app.run_startup_update_if_enabled()
+
+    assert capsys.readouterr().out.strip() == (
+        "[startup-update] source run; automatic update check skipped"
+    )
+
+
+def test_skip_env_prints_disabled_message(monkeypatch, capsys):
+    monkeypatch.setenv(run_desktop_app.SKIP_UPDATE_ENV, "1")
+
+    run_desktop_app.run_startup_update_if_enabled()
+
+    assert capsys.readouterr().out.strip() == "[startup-update] update check disabled"
+
+
 def test_formats_successful_update_message():
     result = SimpleNamespace(status="updated", message="updated to v1.2.3")
 
