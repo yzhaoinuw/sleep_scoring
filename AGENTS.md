@@ -2,163 +2,118 @@
 
 ## Startup Rule
 
-At the beginning of a new chat or agent session for this project, read this
-file first and do not automatically read every markdown file in the repository.
-Use the documentation map below to decide which other files are relevant to the
-current task.
+At the start of a new session, read this file first. Do not read every Markdown
+file automatically; use the map below to choose only what is relevant.
 
-## Local Path Conventions
+## Runtime
 
-These notes assume collaborators keep the project folder named `sleep_scoring`
-and use the conda environment named `sleep_scoring_dash3.0`.
+- Project folder: `sleep_scoring`
+- Conda env: `sleep_scoring_dash3.0`
+- Conda envs live under `C:\Users\yzhao\miniconda3\envs\`.
+- If `conda` is not on PATH, use
+  `C:\Users\yzhao\miniconda3\condabin\conda.bat`.
 
-Any absolute path shown below is only an example from the original development
-machine. Agents and collaborators should adapt the user/home prefix and clone
-location to their local workstation.
+Common commands:
 
-## Runtime Environment
-
-When running code, tests, or the desktop app for this repository, use the conda environment:
-
-- `sleep_scoring_dash3.0`
-
-Typical startup (the same command works in PowerShell, bash, and zsh):
-
-```
+```powershell
 conda activate sleep_scoring_dash3.0
+python run_desktop_app.py
+python run_desktop_app.py --smoke
+python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q
 ```
 
-After activation, use that environment for commands such as:
+## Active App And Packaging
 
-- `pytest`
-- `python run_desktop_app.py`
-- package import checks
-- one-off scripts
+- Desktop entrypoint: `run_desktop_app.py`.
+- Active runtime package: `app_src/`.
+- Version source of truth: `app_src/__init__.py`; keep `setup.py` aligned.
+- Windows packaging docs/scripts: `packaging/windows/`.
+- Full Windows package: `packaging/windows/make_full_app_zip.ps1`.
+- Source-update asset: `packaging/windows/make_source_update_asset.ps1`.
 
-## Startup Auto-Update
+Startup auto-update lives in `run_desktop_app.py` before importing `app_src`.
+Packaged builds check GitHub Release source-update assets. Source runs skip the
+check unless update-test env vars are set. Use a full app zip when dependencies,
+models, packaging, launcher, or runtime layout changed; use source-update assets
+only for compatible `app_src/` changes.
 
-The Windows packaged launcher checks for code-only source updates before
-importing `app_src`. This belongs in `run_desktop_app.py`, not inside the Dash
-runtime. Source-development runs skip the check unless an update-test
-environment variable is set.
+Updater config:
 
-App-specific updater config:
+- app: `sleep_scoring`
+- version file: `app_src/__init__.py`
+- release API: `https://api.github.com/repos/yzhaoinuw/sleep_scoring/releases/latest`
+- asset prefix: `sleep_scoring_app_update_`
+- allowed payload path: `app_src/`
+- env vars: `SLEEP_SCORING_SKIP_UPDATE`, `SLEEP_SCORING_UPDATE_ZIP_URL`,
+  `SLEEP_SCORING_UPDATE_RELEASE_API_URL`,
+  `SLEEP_SCORING_UPDATE_ASSET_PREFIX`,
+  `SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS`
 
-- `app_name`: `sleep_scoring`
-- `installed_version_file`: `app_src/__init__.py`
-- `release_api_url`: `https://api.github.com/repos/yzhaoinuw/sleep_scoring/releases/latest`
-- `asset_prefix`: `sleep_scoring_app_update_`
-- `allowed_payload_paths`: `app_src/`
-- bypass/test env vars: `SLEEP_SCORING_SKIP_UPDATE`,
-  `SLEEP_SCORING_UPDATE_ZIP_URL`, `SLEEP_SCORING_UPDATE_RELEASE_API_URL`,
-  `SLEEP_SCORING_UPDATE_ASSET_PREFIX`, `SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS`
+## Worktree And Git
 
-Use a full app zip whenever dependencies, packaging, models, the launcher, or
-runtime layout changed. Use automatic source update assets only for compatible
-`app_src/` changes, built with `packaging/windows/make_source_update_asset.ps1`
-and attached to the matching GitHub Release.
+Before editing, run `git status --short --branch`. Preserve unrelated local
+changes and untracked files.
 
-## Worktree Hygiene
+This Windows checkout often needs approval/escalation for `git switch`,
+`git merge --ff-only`, `git fetch`, `git push`, and tag/ref updates. Known
+failure signs include `cannot spawn sh`, auth prompts, `.git/index.lock`,
+`FETCH_HEAD`, or `ORIG_HEAD` lock errors. Keep the Git plan narrow; do not
+reset, remove locks, or change branches to work around friction. For pushes,
+use:
 
-Before editing, inspect the current worktree with `git status`. Preserve
-unrelated local changes and untracked files. If a task touches files that
-already have user changes, work with those changes instead of reverting them.
-
-## Windows Git Friction
-
-On this Windows workstation, some Git operations are known to fail in the
-default sandbox even when the plan is correct. The point of this note is to
-avoid wasting a failed first attempt. After checking the worktree/ref state, run
-known-friction Git operations with the required approval/escalation up front
-instead of trying the same command once without escalation.
-
-Known-friction operations include:
-
-- branch switches such as `git switch main` or `git switch dev`
-- fast-forward merges such as `git merge --ff-only dev`
-- remote operations such as `git fetch origin ...` or `git push origin <branch>`
-- tag/ref updates for releases
-
-Common symptoms when these are run through the wrong path include:
-
-- `cannot spawn sh: No such file or directory`
-- `could not read Username for 'https://github.com'`
-- `Unable to create .../.git/index.lock: Permission denied`
-- `cannot lock ref 'ORIG_HEAD'`
-
-When this happens, do not change branches, reset history, remove lock files, or
-change the Git plan just to work around the error. If a known-friction operation
-still hits one of these errors, rerun the same narrow Git operation with the
-required approval/escalation. For pushes, use the known-good PowerShell shape:
-
-```
+```powershell
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "git push origin <branch>"
 ```
 
-After any escalated branch, merge, commit, tag, or push operation, verify the
-result with targeted commands such as:
+After branch, merge, commit, tag, or push work, verify with targeted refs:
 
-```
+```powershell
 git status --short --branch
 git rev-parse <local-ref> <remote-tracking-ref>
 git ls-remote --heads origin <branch>
+git ls-remote --tags origin <tag>
 ```
 
-## Branch Handoff Discipline
+Before leaving an experimental branch, make sure its work is committed, tested,
+and either merged/pushed or intentionally parked.
 
-Before switching away from an experimental or feature branch, fully resolve the
-work on that branch. Confirm whether the branch contains all intended changes,
-whether those changes are committed, and whether the user expects them merged,
-pushed, or intentionally left parked.
+## Release / Tag Gate
 
-Do not switch to `dev` or start new work on another branch while important
-experimental-branch changes are only local, unmerged, or unverified. If related
-work accidentally lands on `dev`, move that work back onto the experimental
-branch first and retest the combined behavior there before updating `dev`.
+Treat any request that combines commit, push, and tag, or asks to publish/cut a
+release, as release work. Before creating or pushing a tag:
 
-Useful checks before switching or merging (portable git commands; run in any shell):
+- verify the local date with `Get-Date -Format yyyy-MM-dd`;
+- update version metadata (`app_src/__init__.py`, `setup.py`);
+- update release notes/changelog and user-facing docs when behavior changed;
+- update `work_log.md` with verification and branch/tag state;
+- run the relevant tests/smoke/package checks;
+- only then tag, push, and verify pushed refs.
 
-```
-git status --short --branch
-git log --oneline --left-right --cherry-pick dev...HEAD
-git merge-base --is-ancestor dev HEAD
-```
+Never write future-dated work-log entries. The current treaty validator rejects
+work-log dates after the workstation date.
 
-## Documentation
-Read these documents only as needed:
+## Documentation Map
 
-- `work_log.md` and `work_log_archive/`
-  - Use when the task needs recent implementation history, experiment outcomes, or verification breadcrumbs.
-  - The live `work_log.md` holds at most the 5 most recent unique calendar dates. Default to reading only the two most recent dated entries.
-  - Find date anchors with ripgrep and read only the slice you need:
-    `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md`
-  - When older context is needed, open the matching file under `work_log_archive/` by its date-range filename, or grep across both at once:
-    `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md work_log_archive/`
-  - When prepending a dated entry, if today's calendar date already has a `## YYYY-MM-DD` header at the top, add a new `###` session subsection under it. Do not start a second `## YYYY-MM-DD` header for the same date.
-  - When prepending a new date would push the live log past 5 unique calendar dates, move the oldest 5 dates as a chunk into a new file at `work_log_archive/work_log_<earliest>_to_<latest>.md`. The live file always holds at most 5 unique dates; each archive file always holds exactly 5.
+- `work_log.md` / `work_log_archive/`: recent implementation history,
+  decisions, verification, and release state. Live log holds at most 5 unique
+  dates; archive the oldest 5-date chunk when needed. Read only the relevant
+  date slice; find headers with
+  `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md work_log_archive/`.
+- `next_steps.md`: concrete unfinished work. Remove completed items and add
+  real follow-ups only.
+- `project_overview.md`: codebase map for unfamiliar areas and active-vs-legacy
+  boundaries.
+- `README.md`: user-facing setup, packaging, usage, and input-file contracts.
+- `CONTRIBUTING.md`: collaboration workflow, branch/test expectations, and doc
+  conventions.
 
-- `next_steps.md`
-  - Use when planning or continuing unfinished work from previous sessions.
-  - Remove items after they are completed. Add new planned follow-ups when they become concrete.
+Update `work_log.md` after substantive sessions: file edits, meaningful
+debugging/validation, technical decisions, branch/release state changes, or
+follow-ups future agents need. Skip casual Q&A and trivial one-off commands.
 
-- `project_overview.md`
-  - Use when onboarding to the codebase structure or when a task touches an unfamiliar area.
+## Commit Messages
 
-- `README.md`
-  - Use when changing user-facing setup, packaging, usage, or input-file expectations.
-
-- `CONTRIBUTING.md`
-  - Use when changing collaboration workflow, branch/test expectations, or documentation conventions.
-
-## Commit Message Guidelines
-
-Commit messages should use:
-
-- a short title line
-- a short body with flat bullet points for additional requested changes when a commit contains multiple user-requested updates
-
-Commit message bullets should describe high-level added or changed behavior, not implementation details.
-
-For feature commits, mention only the user-facing behavior that was added or changed.
-
-Do not mention tests, docs, project memory updates, or behind-the-scenes implementation details in a feature commit message unless that internal work is itself the main purpose of the commit.
+Use a short title line. Add a short body with flat bullets only when a commit
+contains multiple requested changes. Describe high-level behavior, not internal
+implementation details. Do not mention tests/docs/project-memory work unless
+that is the main purpose of the commit.

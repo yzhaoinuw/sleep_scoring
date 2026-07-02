@@ -20,7 +20,27 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-01
 
-### Source-Run Startup Update Message
+### Treaty Docs Refresh (Codex GPT-5, default mode)
+
+- Fast-forwarded the local `agent_collab_treaty` checkout to the latest
+  `origin/dev` / `origin/main` updates, including tag `v0.3.3`.
+- Rewrote `AGENTS.md` into a tighter project-specific guide under 150 lines.
+- Folded in the newer treaty guidance for release/tag documentation gates,
+  verified local dates, and future-date validation.
+- Added `Currently Hot` to `next_steps.md` for compatibility with the updated
+  treaty validator.
+- Normalized live `work_log.md` session headings and added explicit
+  verification placeholders where older entries did not record them.
+- Verification:
+  - `Get-Date -Format yyyy-MM-dd` -> `2026-07-01`.
+  - `git fetch origin` and `git merge --ff-only origin/dev` in
+    `C:\Users\yzhao\python_projects\agent_collab_treaty` brought the local
+    treaty checkout to `4dfbd58`.
+  - `treaty validate .` from the updated local treaty checkout passed.
+  - `git diff --check` passed.
+  - `AGENTS.md` line count is 92.
+
+### Source-Run Startup Update Message (Codex GPT-5, default mode)
 
 - Clarified source-checkout startup behavior by printing
   `[startup-update] source run; automatic update check skipped` when
@@ -39,7 +59,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     -> `84 passed, 1 warning` (pre-existing `flask_caching` deprecation
     warning).
 
-### Startup Update Console Messages
+### Startup Update Console Messages (Codex GPT-5, default mode)
 
 - Added brief console messages for packaged startup update checks:
   checking, no update available, updated, not applied, or failed while
@@ -58,7 +78,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     failed before formatting with Black internal `AssertionError: LAZY` in this
     conda environment.
 
-### Experimental Auto-Update Baseline
+### Experimental Auto-Update Baseline (Codex GPT-5, default mode)
 
 - Created the `auto-update` experiment branch from current `dev`.
 - Wired `run_desktop_app.py` to run `desktop_app_source_updater` before
@@ -85,7 +105,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-06-30
 
-### v0.16.4 Unscored Save Reminder
+### v0.16.4 Unscored Save Reminder (Codex GPT-5, default mode)
 
 - Added a Save Annotations completeness reminder that reports the first
   unscored sleep-score range as `[start, end] (duration s)` when any part of
@@ -108,7 +128,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `v0.16.4^{}` all resolved to
   `f900346bc9f3cc44737734c47365740c3aa8008a`.
 
-### Contributor Workflow Docs
+### Contributor Workflow Docs (Codex GPT-5, default mode)
 
 - Added GitHub issue forms for app bugs, data file problems, feature requests,
   and questions, plus a pull request template for future collaborator changes.
@@ -127,19 +147,23 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Trimmed `CONTRIBUTING.md` pull-request guidance to link out to GitHub's
   general contributor guide while keeping only project-specific expectations in
   this repo, and linked issue reporters directly to the repository Issues page.
+- Verification:
+  - Not recorded in the original live-log entry.
 
 ## 2026-06-24
 
-### v0.16.3 Publish
+### v0.16.3 Publish (Codex GPT-5, default mode)
 
 - Bumped the app/source-install version metadata to `v0.16.3` for the
   `fp_frequency` alias compatibility release.
 - Planned publish path: push `dev`, fast-forward `main`, push `main`, then
   create and push the `v0.16.3` tag.
+- Verification:
+  - Not recorded in the original live-log entry.
 
 ## 2026-06-23
 
-### NE Sampling-Rate Field Alias (`fp_frequency`)
+### NE Sampling-Rate Field Alias (`fp_frequency`) (Codex GPT-5, default mode)
 
 - Added `fp_frequency` as an accepted alias for `ne_frequency`. Recordings
   that carry an `ne` signal but name the fiber-photometry sampling rate
@@ -172,9 +196,11 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     `reshape_sleep_data_ne` consumer test in `tests/test_preprocessing.py`
     exercising the alias end-to-end.
 
-### Live-Log Rotation
+### Live-Log Rotation (Codex GPT-5, default mode)
 
 - Adding today's date pushed the live log past five unique dates, so rotated
   2026-06-06 through 2026-06-15 as a chunk into
   `work_log_archive/work_log_2026-06-06_to_2026-06-15.md` (content identical to
   the same-named archive already present on the `publication` branch).
+- Verification:
+  - Not recorded in the original live-log entry.

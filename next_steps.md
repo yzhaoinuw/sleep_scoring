@@ -3,6 +3,13 @@
 Use this as the forward-looking checklist. Completed experiments and measured
 outcomes live in `work_log.md`.
 
+## Currently Hot
+
+- Auto-update packaging: after the next `app_src`-only change, publish a source
+  update asset and verify an installed `v0.16.4.post1` app updates itself.
+- No active visualization performance experiment is planned before the next
+  shipped build.
+
 ## Installation Packaging
 
 Open items:
