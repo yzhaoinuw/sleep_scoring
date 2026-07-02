@@ -49,6 +49,8 @@ def run_startup_update_if_enabled():
     if not should_run_startup_update():
         return
 
+    print("[startup-update] checking for updates...", flush=True)
+
     try:
         from desktop_app_source_updater import (
             UpdateConfig,
@@ -56,7 +58,7 @@ def run_startup_update_if_enabled():
             run_startup_update,
         )
     except ImportError as exc:
-        print(f"[startup-update] updater unavailable: {exc}", flush=True)
+        print(f"[startup-update] updater unavailable: {exc}; continuing startup", flush=True)
         return
 
     try:
@@ -76,12 +78,27 @@ def run_startup_update_if_enabled():
             )
         )
     except Exception as exc:  # Keep update failures from blocking normal app startup.
-        print(f"[startup-update] failed unexpectedly: {exc}", flush=True)
+        print(f"[startup-update] failed unexpectedly: {exc}; continuing startup", flush=True)
         return
 
-    message = format_update_message(result)
+    message = format_startup_update_console_message(result, format_update_message)
     if message:
         print(f"[startup-update] {message}", flush=True)
+
+
+def format_startup_update_console_message(result, format_update_message):
+    message = format_update_message(result)
+    if result.status == "up-to-date":
+        return "no update available"
+    if result.status == "updated":
+        return message or result.message
+    if result.status == "failed":
+        return f"update check failed: {result.message}; continuing startup"
+    if result.status in {"blocked", "skipped"}:
+        return f"update not applied: {message or result.message}; continuing startup"
+    if result.status == "disabled":
+        return "update check disabled"
+    return message or result.message
 
 
 def run_dash(app, port):

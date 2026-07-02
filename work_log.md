@@ -20,6 +20,25 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-01
 
+### Startup Update Console Messages
+
+- Added brief console messages for packaged startup update checks:
+  checking, no update available, updated, not applied, or failed while
+  continuing normal startup.
+- Added focused launcher tests for the new startup-update console output and
+  non-blocking failure/skip messages.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest tests\test_run_desktop_app.py -q`
+    -> `4 passed`.
+  - `conda run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py tests\test_run_desktop_app.py`
+    passed.
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
+    -> `82 passed, 1 warning` (pre-existing `flask_caching` deprecation
+    warning).
+  - `conda run -n sleep_scoring_dash3.0 python -m black run_desktop_app.py tests\test_run_desktop_app.py`
+    failed before formatting with Black internal `AssertionError: LAZY` in this
+    conda environment.
+
 ### Experimental Auto-Update Baseline
 
 - Created the `auto-update` experiment branch from current `dev`.
