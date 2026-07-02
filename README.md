@@ -129,6 +129,16 @@ https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
 
 For collaboration workflow, branch habits, test expectations, and documentation conventions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Windows Packaging
+
+Windows packages are built with the scripts in [`packaging/windows/`](packaging/windows/) instead of running PyInstaller by hand. For a full app zip, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_full_app_zip.ps1
+```
+
+The script runs tests, builds with PyInstaller, copies `app_src/`, `models/`, and the starter command into the release folder, smoke-checks the packaged app, and writes the zip plus manifest/hash files under `release_artifacts/`. For code-only releases after an auto-update-enabled full build, see [`packaging/windows/README.md`](packaging/windows/README.md).
+
 ## Input File
 
 The input files to the app must be `.mat` (MATLAB) files created from raw recording files with the [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data) MATLAB preprocessing workflow. The `.mat` files contain the following fields.
