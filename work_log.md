@@ -18,6 +18,31 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-05
+
+### Dash App Cookbook (Claude Fable 5, default mode)
+
+- Added `dash_app_cookbook.md` (repo root): a recipe-based guide for building
+  Dash + Plotly desktop apps with fast large-signal navigation and annotation,
+  using this app as the reference implementation.
+- 18 modular recipes (each with Goal / Depends on / Source / Mechanism / Why /
+  Adapt / Gotchas), grouped into Skeleton, EventListener bridge, Navigation,
+  Annotation, and Extras; plus cross-cutting patterns, an adaptation checklist,
+  a gotcha catalog, and a source-file map. Audience is agents and human app
+  designers.
+- Documentation only; no runtime/source changes. Added a brief pointer to the
+  cookbook from `project_overview.md`.
+- Committed the cookbook on a new `cookbook` branch and pushed to
+  `origin/cookbook` (untracked `CLAUDE.md` intentionally left uncommitted).
+- Verification:
+  - `date +%Y-%m-%d` -> `2026-07-05` (workstation is macOS/darwin this session).
+  - `git commit` -> `[cookbook fcc184b] Add Dash interactive-visualization app
+    cookbook`, `1 file changed, 1019 insertions(+)`.
+  - `git push -u origin cookbook` -> `* [new branch] cookbook -> cookbook`;
+    tracking set to `origin/cookbook`.
+  - `git status --short --branch` -> `## cookbook...origin/cookbook` with only
+    untracked `CLAUDE.md` remaining.
+
 ## 2026-07-01
 
 ### Treaty Docs Refresh (Codex GPT-5, default mode)

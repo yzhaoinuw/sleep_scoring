@@ -14,6 +14,15 @@ The app is designed to:
 - Export sleep bout and summary statistics to Excel when scoring is complete
 - Extract and play a matching video clip for a selected time region
 
+## Implementation Cookbook
+
+For a deeper, feature-by-feature account of *how* the interactive visualization is
+built — file loading, the resampler figure, caching, zoom/pan coalescing, custom
+pointer pan, drag-select with auto-pan, keypress annotation, undo, and the
+clientside/asset-JS interaction layer — see [`dash_app_cookbook.md`](dash_app_cookbook.md).
+It is organized as modular recipes, each pointing at the exact reference-app files,
+so it doubles as a map from a feature to its implementation.
+
 ## Active Runtime Path
 
 ### 1. Desktop entrypoint
