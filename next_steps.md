@@ -5,10 +5,10 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- `app.py` restructure on the `refactor` branch: rehome non-callback code,
-  then callbacks, into single-concern modules. See "app.py Restructure"
-  below; Phase 1 landed 2026-07-07, Phase 2 (server.py + callback modules)
-  is the next action.
+- `app.py` restructure on the `refactor` branch: Phases 1-2 landed
+  2026-07-07 (see "app.py Restructure" below). Next actions: manual
+  pre-merge validation on a real recording, then merge `refactor` into
+  `dev`. Phase 3 (JS to assets) stays optional.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -18,38 +18,34 @@ outcomes live in `work_log.md`.
 
 Goal: shrink `app_src/app.py` into single-concern modules so a session can
 read and diff only the part it touches. Pure rehoming, no behavior changes.
-Callback ordering/naming tidy-up landed on `dev` and Phase 1 (extraction of
-`dialogs.py` and `resampling.py`, 1953 -> 1634 lines) landed on `refactor`,
-both 2026-07-07.
+All landed 2026-07-07: callback ordering/naming tidy-up on `dev`; Phase 1
+(`dialogs.py`, `resampling.py`) and Phase 2 (layout below) on `refactor`.
 
-Constraints to preserve at every step:
+Layout after Phase 2:
 
-- `from app_src.app import app` must keep working (`run_desktop_app.py`
-  depends on it).
-- New modules stay inside `app_src/` so source-update assets still cover them.
-- `tests/test_app_helpers.py` patches names in the `app_src.app` namespace
-  (e.g. `app_src.app.loadmat`, `app_src.app.save_file_dialog`). Moving a
-  helper is test-transparent only while the callback using it stays in
-  `app.py` and imports the helper by name; when callbacks move, repoint the
-  patch targets in the same commit.
-- The fig-resampler store (`FIG_RESAMPLER`) and navigation-profile globals
-  are shared by the `/_sleep_scoring/resample` Flask route and
-  `update_fig_resampler`; they must end up in exactly one module.
+- `app_src/server.py`: Dash instance, cache, components, `TEMP_PATH` /
+  `VIDEO_DIR`, and the `run_inference` availability probe. Parameterize
+  here (cache dir, paths, port) for the multi-session idea under "Further
+  Down The Line".
+- `app_src/routes.py`: the two Flask endpoints.
+- `app_src/session.py`: per-recording setup helpers (cache init, temp-dir
+  housekeeping, metadata, figure creation).
+- `app_src/callbacks/`: one module per concern (`clientside`, `loading`,
+  `navigation`, `prediction`, `saving`, `video`), registered on import.
+- `app_src/app.py`: thin aggregator; `from app_src.app import app` still
+  works for `run_desktop_app.py`.
+- Tests patch the new namespaces (e.g. `app_src.callbacks.saving.loadmat`,
+  `app_src.session.TEMP_PATH`).
 
-Phase 2 (medium risk, full verification gate):
+Remaining:
 
-- Create `app_src/server.py` holding the `Dash` instance and `Cache` so
-  callback modules can import them without circular imports.
-- Move the two Flask routes (`/_sleep_scoring/resample`,
-  `/_sleep_scoring/profile-log`) out of `app.py` once `server.py` exists;
-  they decorate `app.server`, which is why they stayed put in Phase 1.
-- Move the 10 clientside callbacks to `app_src/callbacks_clientside.py`.
-- Move serverside callbacks out of `app.py`, either one `callbacks.py` or
-  per-section modules (loading/visualization, navigation, prediction,
-  history/saving, video); decide based on how Phase 1 leaves the file.
-- Keep `app.py` as a slim aggregator that creates nothing itself and imports
-  callback modules for their registration side effects.
-- Repoint `tests/test_app_helpers.py` patch targets to the new namespaces.
+- Manual pre-merge validation on a real recording: navigation, selection,
+  annotation, save, and video flows, plus one prediction run (the
+  `run_inference` probe moved to `server.py`).
+- Before the next release, confirm a source-update asset cleanly adds the
+  new `app_src` modules (`server.py`, `routes.py`, `session.py`,
+  `callbacks/`) on top of an installed build; ship a full app zip if it
+  does not.
 
 Phase 3 (optional, separate decision, not tidy-up):
 
@@ -57,7 +53,7 @@ Phase 3 (optional, separate decision, not tidy-up):
   wired via `ClientsideFunction`, for JS syntax highlighting and linting.
   Treat as its own verified change, not part of the rehoming.
 
-Verification gate for each phase:
+Verification gate (run for Phases 1-2; rerun for Phase 3 if picked up):
 
 - black `--check`, full pytest, and `run_desktop_app.py --smoke` pass.
 - Manual app launch touching navigation, selection, annotation, save, and
@@ -230,3 +226,8 @@ Open items:
 - Multi-session support on one computer is low priority. If ever needed, launch
   each app instance on its own free port and isolate cache/temp/video outputs per
   process/session; current user guidance is one app session per computer.
+  When picked up, implement the isolation in `app_src/server.py` (created in
+  app.py Restructure Phase 2): it owns the Dash instance, the `Cache` dir,
+  `TEMP_PATH`, and `VIDEO_DIR`, so per-instance dirs and port selection are
+  one-place changes. Module globals such as the fig-resampler store are
+  per-process and need no change in the one-process-per-window design.

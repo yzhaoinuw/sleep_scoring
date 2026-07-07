@@ -20,6 +20,42 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-07
 
+### app.py Restructure Phase 2 (Claude Fable 5, default mode)
+
+- Split the remaining `app_src/app.py` (1634 lines) into single-concern
+  modules on `refactor`: `server.py` (Dash instance, cache, components,
+  `TEMP_PATH`/`VIDEO_DIR`, `run_inference` probe), `routes.py` (the two
+  Flask endpoints), `session.py` (per-recording setup helpers), and a
+  `callbacks/` package with one module per concern (`clientside`,
+  `loading`, `navigation`, `prediction`, `saving`, `video`) registered on
+  import. `app.py` is now a thin aggregator (14 lines) so
+  `from app_src.app import app` keeps working for `run_desktop_app.py`.
+- All code blocks moved verbatim with full line accounting; each module
+  declares its own imports. The serverside `# ----` section headers became
+  the module boundaries; the clientside subsection headers and the
+  commented-out `debug_box_select` block moved into
+  `callbacks/clientside.py`.
+- One deliberate addition: `run_inference = None` in `server.py`'s
+  `except ImportError` branch so `callbacks/prediction.py` can import the
+  name when ML dependencies are missing (previously the name was unbound;
+  unreachable either way because the pred button is disabled then).
+- Repointed `tests/test_app_helpers.py` imports and patch targets to the
+  new namespaces (`app_src.session.*`, `app_src.callbacks.saving.*`,
+  `app_src.callbacks.video.*`, `app_src.resampling.*`).
+- Noted in `next_steps.md`: manual pre-merge validation still pending, and
+  the next release must confirm a source-update asset cleanly adds the new
+  `app_src` modules on an installed build (else ship a full app zip).
+- Verification:
+  - Sorted `app.callback_map` keys (26) plus the Flask `url_map` are
+    byte-identical before and after the split.
+  - black 25.12.0 `--check app_src/ tests/` -> clean; full pytest ->
+    `84 passed`; `python run_desktop_app.py --smoke` -> OK.
+  - Flask test client: `/_sleep_scoring/resample` with no figure -> 404;
+    `/_sleep_scoring/profile-log` -> 204.
+  - Both inference branches: normal import (`run_inference` available on
+    this Mac) and a blocked-import simulation (`run_inference is None`,
+    26 callbacks still registered).
+
 ### app.py Restructure Phase 1 (Claude Fable 5, default mode)
 
 - Created the `refactor` branch from `dev`, added the phased app.py
