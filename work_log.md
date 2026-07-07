@@ -18,214 +18,50 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
-## 2026-07-05
+## 2026-07-07
 
-### Dash App Cookbook (Claude Fable 5, default mode)
+### app.py Callback Reorganization (Claude Fable 5, default mode)
 
-- Added `dash_app_cookbook.md` (repo root): a recipe-based guide for building
-  Dash + Plotly desktop apps with fast large-signal navigation and annotation,
-  using this app as the reference implementation.
-- 18 modular recipes (each with Goal / Depends on / Source / Mechanism / Why /
-  Adapt / Gotchas), grouped into Skeleton, EventListener bridge, Navigation,
-  Annotation, and Extras; plus cross-cutting patterns, an adaptation checklist,
-  a gotcha catalog, and a source-file map. Audience is agents and human app
-  designers.
-- Documentation only; no runtime/source changes. Added a brief pointer to the
-  cookbook from `project_overview.md`.
-- Committed the cookbook on a new `cookbook` branch and pushed to
-  `origin/cookbook` (untracked `CLAUDE.md` intentionally left uncommitted).
+- Merged `cookbook` into `dev` (fast-forward `597cda6..3e9e61c`) and pushed;
+  local `dev`, `origin/dev`, and the remote head all verified at `3e9e61c`.
+- Reorganized the callback sections of `app_src/app.py` on `dev`. Pure block
+  moves plus new comment lines only: verified against HEAD that exactly 11
+  comment lines were added (10 subsection headers, 1 callback name) and no
+  code line was lost or altered.
+- Clientside section now ordered by user workflow under subsection headers:
+  mode switching and navigation (`switch_mode`, `pan_figure`,
+  `apply_direct_restyle`); selection (`read_box_select`, `read_click_select`,
+  `read_bout_context_select`, `read_annotation_auto_pan_select`); annotation
+  (`make_annotation`, `update_sleep_scores`); message cleanup
+  (`clear_display`).
+- Serverside section likewise: file loading and visualization (`choose_mat`,
+  `create_visualization`, `change_sampling_level`); graph navigation
+  (relayout/profile helper functions and `RESAMPLER_CALLBACK_OUTPUT` kept
+  directly above `update_fig_resampler`, then
+  `log_browser_navigation_profile`); prediction (`show_confirm_pred_modal`,
+  `read_mat_pred`, `generate_prediction`); annotation history and saving
+  (`update_sleep_scores_history`, `undo_annotation`, `save_annotations`);
+  video (`prepare_video`, `choose_video`, `reselect_video`, `make_clip`,
+  `show_clip`); debug (the commented-out `debug_box_select` block, moved to
+  the end of the file).
+- Named the one previously unnamed clientside callback `apply_direct_restyle`
+  (applies the serverside resampler patch payload via
+  `window.sleepScoringDirectRestyle` and reports status), using the existing
+  comment-line naming convention.
+- Unified the clientside callback invocation style: the three bare
+  `clientside_callback(` calls (`pan_figure`, `apply_direct_restyle`,
+  `clear_display`) now use `app.clientside_callback(` like the other seven;
+  removed the now-unused `clientside_callback` import from `dash`.
+- Rotated the work log: archived the 2026-06-23..2026-07-05 chunk (5 dates)
+  to `work_log_archive/work_log_2026-06-23_to_2026-07-05.md`.
+- Changes left uncommitted on `dev` for review.
 - Verification:
-  - `date +%Y-%m-%d` -> `2026-07-05` (workstation is macOS/darwin this session).
-  - `git commit` -> `[cookbook fcc184b] Add Dash interactive-visualization app
-    cookbook`, `1 file changed, 1019 insertions(+)`.
-  - `git push -u origin cookbook` -> `* [new branch] cookbook -> cookbook`;
-    tracking set to `origin/cookbook`.
-  - `git status --short --branch` -> `## cookbook...origin/cookbook` with only
-    untracked `CLAUDE.md` remaining.
-
-## 2026-07-01
-
-### Treaty Docs Refresh (Codex GPT-5, default mode)
-
-- Fast-forwarded the local `agent_collab_treaty` checkout to the latest
-  `origin/dev` / `origin/main` updates, including tag `v0.3.3`.
-- Rewrote `AGENTS.md` into a tighter project-specific guide under 150 lines.
-- Folded in the newer treaty guidance for release/tag documentation gates,
-  verified local dates, and future-date validation.
-- Added `Currently Hot` to `next_steps.md` for compatibility with the updated
-  treaty validator.
-- Normalized live `work_log.md` session headings and added explicit
-  verification placeholders where older entries did not record them.
-- Verification:
-  - `Get-Date -Format yyyy-MM-dd` -> `2026-07-01`.
-  - `git fetch origin` and `git merge --ff-only origin/dev` in
-    `C:\Users\yzhao\python_projects\agent_collab_treaty` brought the local
-    treaty checkout to `4dfbd58`.
-  - `treaty validate .` from the updated local treaty checkout passed.
-  - `git diff --check` passed.
-  - `AGENTS.md` line count is 92.
-
-### Source-Run Startup Update Message (Codex GPT-5, default mode)
-
-- Clarified source-checkout startup behavior by printing
-  `[startup-update] source run; automatic update check skipped` when
-  `python run_desktop_app.py` is used without update-test environment
-  overrides.
-- Kept packaged builds on the real check/result message path, and kept
-  `SLEEP_SCORING_SKIP_UPDATE=1` visible as `update check disabled`.
-- Verification:
-  - `conda run -n sleep_scoring_dash3.0 python -m pytest tests\test_run_desktop_app.py -q`
-    -> `6 passed`.
-  - `conda run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py tests\test_run_desktop_app.py`
-    passed.
-  - `conda run -n sleep_scoring_dash3.0 python -c "import run_desktop_app; run_desktop_app.run_startup_update_if_enabled()"`
-    -> `[startup-update] source run; automatic update check skipped`.
-  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
-    -> `84 passed, 1 warning` (pre-existing `flask_caching` deprecation
-    warning).
-
-### Startup Update Console Messages (Codex GPT-5, default mode)
-
-- Added brief console messages for packaged startup update checks:
-  checking, no update available, updated, not applied, or failed while
-  continuing normal startup.
-- Added focused launcher tests for the new startup-update console output and
-  non-blocking failure/skip messages.
-- Verification:
-  - `conda run -n sleep_scoring_dash3.0 python -m pytest tests\test_run_desktop_app.py -q`
-    -> `4 passed`.
-  - `conda run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py tests\test_run_desktop_app.py`
-    passed.
-  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
-    -> `82 passed, 1 warning` (pre-existing `flask_caching` deprecation
-    warning).
-  - `conda run -n sleep_scoring_dash3.0 python -m black run_desktop_app.py tests\test_run_desktop_app.py`
-    failed before formatting with Black internal `AssertionError: LAZY` in this
-    conda environment.
-
-### Experimental Auto-Update Baseline (Codex GPT-5, default mode)
-
-- Created the `auto-update` experiment branch from current `dev`.
-- Wired `run_desktop_app.py` to run `desktop_app_source_updater` before
-  importing `app_src` in packaged builds, with environment-variable overrides
-  for local source-update testing.
-- Added `desktop-app-source-updater` to dependency metadata and PyInstaller
-  hidden imports so the next full Windows package can bundle the updater.
-- Added `packaging/windows/make_source_update_asset.ps1` for future GitHub
-  Release source-update assets and documented the automatic update path in
-  `README.md`, `packaging/windows/README.md`, and `AGENTS.md`.
-- Bumped the experimental app/source-install version metadata to
-  `v0.16.4.post1`.
-- Verification:
-  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
-    -> `78 passed, 1 warning` (pre-existing `flask_caching` deprecation
-    warning).
-  - `conda run -n sleep_scoring_dash3.0 python run_desktop_app.py --smoke`
-    -> `Sleep Scoring App v0.16.4.post1 smoke check OK`.
-  - `conda run -n sleep_scoring_dash3.0 python -m py_compile run_desktop_app.py`
-    passed.
-  - PowerShell parser check for `packaging/windows/make_source_update_asset.ps1`
-    passed.
-  - `git diff --check` passed.
-
-## 2026-06-30
-
-### v0.16.4 Unscored Save Reminder (Codex GPT-5, default mode)
-
-- Added a Save Annotations completeness reminder that reports the first
-  unscored sleep-score range as `[start, end] (duration s)` when any part of
-  the recording is still unscored.
-- The reminder is computed before the native `.mat` save dialog returns, so it
-  still appears in the annotation message if the user cancels the `.mat` save.
-- Reused the same unscored check to gate sleep-bout spreadsheet export, keeping
-  the existing behavior that Excel export is offered only after complete
-  scoring.
-- Documented the Save Sleep Scores reminder in `README.md` and bumped the
-  app/source-install version metadata to `v0.16.4`.
-- Added focused tests for `-1`, `NaN`, and `None` unscored labels plus the
-  canceled-save reminder path.
-- Verification:
-  - `conda run -n sleep_scoring_dash3.0 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q`
-    -> `78 passed, 1 warning` (pre-existing `flask_caching` deprecation
-    warning).
-- Published commit `f900346` to `dev` and `main`, pushed annotated tag
-  `v0.16.4`, and verified `dev`, `main`, `origin/dev`, `origin/main`, and
-  `v0.16.4^{}` all resolved to
-  `f900346bc9f3cc44737734c47365740c3aa8008a`.
-
-### Contributor Workflow Docs (Codex GPT-5, default mode)
-
-- Added GitHub issue forms for app bugs, data file problems, feature requests,
-  and questions, plus a pull request template for future collaborator changes.
-- Published the templates through `dev` and fast-forwarded `main` so GitHub's
-  default-branch issue flow shows the new issue chooser.
-- Refactored `CONTRIBUTING.md` into a human-contributor section and an
-  agent-collaborator section, including PR targets, environment setup, test
-  expectations, and guidance for using AI agents.
-- Added `AGENTS.md` guidance for recurring Windows Git credential-helper and
-  lock-file friction, including the known-good PowerShell push shape and
-  post-operation ref verification.
-- Corrected the Git-friction guidance to say agents should request
-  approval/escalation up front for known-friction switch, merge, fetch, push, and
-  tag/ref operations after checking state, instead of burning a failed first
-  attempt.
-- Trimmed `CONTRIBUTING.md` pull-request guidance to link out to GitHub's
-  general contributor guide while keeping only project-specific expectations in
-  this repo, and linked issue reporters directly to the repository Issues page.
-- Verification:
-  - Not recorded in the original live-log entry.
-
-## 2026-06-24
-
-### v0.16.3 Publish (Codex GPT-5, default mode)
-
-- Bumped the app/source-install version metadata to `v0.16.3` for the
-  `fp_frequency` alias compatibility release.
-- Planned publish path: push `dev`, fast-forward `main`, push `main`, then
-  create and push the `v0.16.3` tag.
-- Verification:
-  - Not recorded in the original live-log entry.
-
-## 2026-06-23
-
-### NE Sampling-Rate Field Alias (`fp_frequency`) (Codex GPT-5, default mode)
-
-- Added `fp_frequency` as an accepted alias for `ne_frequency`. Recordings
-  that carry an `ne` signal but name the fiber-photometry sampling rate
-  `fp_frequency` (depending on the upstream preprocessing tool) are now
-  handled the same as those using `ne_frequency`, including in the
-  visualization.
-- Introduced `app_src/mat_utils.py` with a read-only `get_ne_frequency(mat)`
-  helper: prefers `ne_frequency`, falls back to `fp_frequency`, returns `None`
-  when neither is present. Read-only by design, so the alias is never written
-  back into the user's `.mat` on save (both save paths copy every non-`_`
-  key into the output).
-- Routed all five `ne_frequency` read sites through the helper: the
-  visualization (`make_figure.py`), NE reshaping in `reshape_sleep_data_ne`
-  (`preprocessing.py`, previously a hard-indexed `mat["ne_frequency"]`
-  `KeyError`), REM-transition validation (`postprocessing.py`), and the
-  stats_model NE feature/timing paths (`run_inference_stats_model.py`, two
-  sites).
-- Behavior change to note: files with `ne` + `fp_frequency` but no
-  `ne_frequency` previously crashed in the visualization and were scored
-  NE-blind on the stats_model/postprocessing paths (the frequency resolved to
-  `None` and NE handling was silently skipped); they are now scored NE-aware.
-- Documented the alias in `README.md` (input-field table and sampling-rate
-  note).
-- Verification:
-  - `python -m pytest -q` -> `73 passed, 1 warning` (pre-existing
-    flask_caching deprecation warning, unrelated).
-  - Added `tests/test_mat_utils.py` (precedence, fp fallback, present-but-`None`
-    fallback, neither-present -> `None`, no-mutation), a
-    `mock_mat_data_with_fp_alias` fixture in `tests/conftest.py`, and a
-    `reshape_sleep_data_ne` consumer test in `tests/test_preprocessing.py`
-    exercising the alias end-to-end.
-
-### Live-Log Rotation (Codex GPT-5, default mode)
-
-- Adding today's date pushed the live log past five unique dates, so rotated
-  2026-06-06 through 2026-06-15 as a chunk into
-  `work_log_archive/work_log_2026-06-06_to_2026-06-15.md` (content identical to
-  the same-named archive already present on the `publication` branch).
-- Verification:
-  - Not recorded in the original live-log entry.
+  - `date +%Y-%m-%d` -> `2026-07-07` (macOS/darwin session).
+  - black 25.12.0 `--check app_src/app.py` -> clean;
+    `python -m py_compile app_src/app.py` -> OK.
+  - In env `sleep_scoring_dash3.0`: `import app_src.app` -> OK;
+    `python -m pytest --basetemp .pytest_tmp/claude -p no:cacheprovider -q`
+    -> `84 passed`; `python run_desktop_app.py --smoke` ->
+    `Sleep Scoring App v0.16.4.post1 smoke check OK`.
+  - After the invocation unification, re-ran black `--check` (clean), the
+    pytest suite (`84 passed`), and the smoke check (OK).

@@ -20,7 +20,7 @@ import dash_player
 import numpy as np
 import pandas as pd
 import webview
-from dash import Dash, clientside_callback
+from dash import Dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from flask import abort, request
@@ -489,6 +489,9 @@ def initialize_cache(cache, filepath):
 
 # %% client side callbacks below
 
+
+# ---- mode switching and navigation ----
+
 # switch_mode by pressing "m"
 app.clientside_callback(
     """
@@ -530,8 +533,9 @@ app.clientside_callback(
     State("graph", "figure"),
 )
 
+
 # pan_figure
-clientside_callback(
+app.clientside_callback(
     """
     function(keyboard_nevents, keyboard_event, relayoutdata, figure) {
         if (!keyboard_event || !figure) {
@@ -592,7 +596,8 @@ clientside_callback(
 )
 
 
-clientside_callback(
+# apply_direct_restyle
+app.clientside_callback(
     """
     function(payload) {
         if (!payload) {
@@ -630,18 +635,7 @@ clientside_callback(
 )
 
 
-# clear_display
-clientside_callback(
-    """
-    function(n_intervals) {
-        return n_intervals === 5 ? "" : dash_clientside.no_update;
-    }
-    """,
-    Output("annotation-message", "children", allow_duplicate=True),
-    Input("interval-component", "n_intervals"),
-    prevent_initial_call=True,
-)
-
+# ---- selection ----
 
 # read_box_select
 app.clientside_callback(
@@ -741,6 +735,216 @@ app.clientside_callback(
     State("mat-metadata-store", "data"),
     prevent_initial_call=True,
 )
+
+
+# read_click_select
+app.clientside_callback(
+    """
+    function(clickData, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        // Clone figure to avoid mutating state
+        var patched_figure = new dash_clientside.Patch;
+
+        // Remove existing select box if any
+        patched_figure.assign(['layout', 'shapes'], null);
+
+        const video_button_style = {"visibility": "hidden"};
+        const dragmode = figure.layout.dragmode;
+
+        // If no click data or in pan mode, return defaults
+        if (!clickData || dragmode === "pan") {
+            return [[], patched_figure.build(), "", video_button_style];
+        }
+
+        // Remove the box selection if present
+        patched_figure.assign(['layout', 'selections'], null);
+
+        // Grab clicked x value
+        const x_click = clickData.points[0].x;
+
+        // Determine current x-axis visible range
+        const x_min = figure.layout.xaxis4.range[0];
+        const x_max = figure.layout.xaxis4.range[1];
+        const total_range = x_max - x_min;
+
+        // Decide neighborhood size: 0.5% of current view range
+        const fraction = 0.005;
+        const delta = total_range * fraction;
+
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+
+        const x0 = Math.floor(x_click - delta / 2);
+        const x1 = Math.ceil(x_click + delta / 2);
+
+        // Get curve information
+        const curve_index = clickData.points[0].curveNumber;
+        const trace = figure.data[curve_index];
+        const xref = trace.xaxis || "x4";  // x4 is the shared x-axis
+        let yref = trace.yaxis || "y5";    // spectrogram has dual y-axis
+
+        // Use the left y-axis to avoid interfering with theta/delta curve
+        if (yref === "y2") {
+            yref = "y1";
+        }
+
+        // Create select box
+        const select_box = {
+            "type": "rect",
+            "xref": xref,
+            "yref": yref,
+            "x0": x0,
+            "x1": x1,
+            "y0": -30,
+            "y1": 30,
+            "line": {"width": 1, "dash": "dot"}
+        };
+
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        // Convert absolute plot times to sleep-score indices relative to start_time
+        const start = Math.max(x0, eeg_start_time) - eeg_start_time;
+        const end = Math.min(x1, eeg_end_time) - eeg_start_time;
+
+        // Show video button if valid range
+        let final_video_button_style = {"visibility": "hidden"};
+        if (end - start >= 1 && end - start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        const duration = end - start;
+
+        return [
+            [start, end],
+            patched_figure.build(),
+            `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph", "clickData"),
+    State("graph", "figure"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
+
+# read_bout_context_select
+app.clientside_callback(
+    """
+    function(context_n_events, context_event, figure, metadata) {
+        const no_update = dash_clientside.no_update;
+
+        if (!context_event || !figure || !metadata) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        if (figure.layout.dragmode !== "select") {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const x_click = context_event["detail.x"];
+        if (x_click === undefined || x_click === null || Number.isNaN(x_click)) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const last_trace = figure.data[figure.data.length - 1];
+        const current_sleep_scores = last_trace.z && last_trace.z[0];
+        if (!Array.isArray(current_sleep_scores) || current_sleep_scores.length === 0) {
+            return [no_update, no_update, no_update, no_update];
+        }
+
+        const eeg_start_time = metadata.start_time;
+        const eeg_end_time = metadata.end_time;
+        const clicked_index = Math.max(
+            0,
+            Math.min(current_sleep_scores.length - 1, Math.floor(x_click - eeg_start_time))
+        );
+
+        function scoreKey(value) {
+            if (value === null || value === undefined || Number.isNaN(value)) {
+                return "unscored";
+            }
+            return String(value);
+        }
+
+        const clicked_key = scoreKey(current_sleep_scores[clicked_index]);
+        let start = clicked_index;
+        let end = clicked_index + 1;
+
+        while (start > 0 && scoreKey(current_sleep_scores[start - 1]) === clicked_key) {
+            start -= 1;
+        }
+        while (
+            end < current_sleep_scores.length &&
+            scoreKey(current_sleep_scores[end]) === clicked_key
+        ) {
+            end += 1;
+        }
+
+        const absolute_start = Math.max(start + eeg_start_time, eeg_start_time);
+        const absolute_end = Math.min(end + eeg_start_time, eeg_end_time);
+        const final_start = absolute_start - eeg_start_time;
+        const final_end = absolute_end - eeg_start_time;
+
+        const yref = context_event["detail.yref"] || "y5";
+        function yAxisLayoutKey(axisRef) {
+            return axisRef === "y" ? "yaxis" : "yaxis" + axisRef.slice(1);
+        }
+
+        const yaxis = figure.layout[yAxisLayoutKey(yref)] || {};
+        const y_range = Array.isArray(yaxis.range) ? yaxis.range : [-30, 30];
+
+        const select_box = {
+            "type": "rect",
+            "xref": context_event["detail.xref"] || "x4",
+            "yref": yref,
+            "x0": absolute_start,
+            "x1": absolute_end,
+            "y0": y_range[0],
+            "y1": y_range[1],
+            "line": {"width": 2, "dash": "solid"}
+        };
+
+        var patched_figure = new dash_clientside.Patch;
+        patched_figure.assign(['layout', 'selections'], null);
+        patched_figure.assign(['layout', 'shapes'], [select_box]);
+
+        let final_video_button_style = {"visibility": "hidden"};
+        if (final_end - final_start >= 1 && final_end - final_start <= 300) {
+            final_video_button_style = {"visibility": "visible"};
+        }
+
+        const duration = final_end - final_start;
+
+        return [
+            [final_start, final_end],
+            patched_figure.build(),
+            `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+            final_video_button_style
+        ];
+    }
+    """,
+    Output("box-select-store", "data", allow_duplicate=True),
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("video-button", "style", allow_duplicate=True),
+    Input("graph-contextmenu", "n_events"),
+    State("graph-contextmenu", "event"),
+    State("graph", "figure"),
+    State("mat-metadata-store", "data"),
+    prevent_initial_call=True,
+)
+
 
 # read_annotation_auto_pan_select
 app.clientside_callback(
@@ -871,252 +1075,8 @@ app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# read_click_select
-app.clientside_callback(
-    """
-    function(clickData, figure, metadata) {
-        const no_update = dash_clientside.no_update;
 
-        if (!figure || !metadata) {
-            return [no_update, no_update, no_update, no_update];
-        }
-
-        // Clone figure to avoid mutating state
-        var patched_figure = new dash_clientside.Patch;
-
-        // Remove existing select box if any
-        patched_figure.assign(['layout', 'shapes'], null);
-
-        const video_button_style = {"visibility": "hidden"};
-        const dragmode = figure.layout.dragmode;
-
-        // If no click data or in pan mode, return defaults
-        if (!clickData || dragmode === "pan") {
-            return [[], patched_figure.build(), "", video_button_style];
-        }
-
-        // Remove the box selection if present
-        patched_figure.assign(['layout', 'selections'], null);
-
-        // Grab clicked x value
-        const x_click = clickData.points[0].x;
-
-        // Determine current x-axis visible range
-        const x_min = figure.layout.xaxis4.range[0];
-        const x_max = figure.layout.xaxis4.range[1];
-        const total_range = x_max - x_min;
-
-        // Decide neighborhood size: 0.5% of current view range
-        const fraction = 0.005;
-        const delta = total_range * fraction;
-
-        const eeg_start_time = metadata.start_time;
-        const eeg_end_time = metadata.end_time;
-
-        const x0 = Math.floor(x_click - delta / 2);
-        const x1 = Math.ceil(x_click + delta / 2);
-
-        // Get curve information
-        const curve_index = clickData.points[0].curveNumber;
-        const trace = figure.data[curve_index];
-        const xref = trace.xaxis || "x4";  // x4 is the shared x-axis
-        let yref = trace.yaxis || "y5";    // spectrogram has dual y-axis
-
-        // Use the left y-axis to avoid interfering with theta/delta curve
-        if (yref === "y2") {
-            yref = "y1";
-        }
-
-        // Create select box
-        const select_box = {
-            "type": "rect",
-            "xref": xref,
-            "yref": yref,
-            "x0": x0,
-            "x1": x1,
-            "y0": -30,
-            "y1": 30,
-            "line": {"width": 1, "dash": "dot"}
-        };
-
-        patched_figure.assign(['layout', 'shapes'], [select_box]);
-
-        // Convert absolute plot times to sleep-score indices relative to start_time
-        const start = Math.max(x0, eeg_start_time) - eeg_start_time;
-        const end = Math.min(x1, eeg_end_time) - eeg_start_time;
-
-        // Show video button if valid range
-        let final_video_button_style = {"visibility": "hidden"};
-        if (end - start >= 1 && end - start <= 300) {
-            final_video_button_style = {"visibility": "visible"};
-        }
-
-        const duration = end - start;
-
-        return [
-            [start, end],
-            patched_figure.build(),
-            `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
-            final_video_button_style
-        ];
-    }
-    """,
-    Output("box-select-store", "data", allow_duplicate=True),
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Input("graph", "clickData"),
-    State("graph", "figure"),
-    State("mat-metadata-store", "data"),
-    prevent_initial_call=True,
-)
-
-# read_bout_context_select
-app.clientside_callback(
-    """
-    function(context_n_events, context_event, figure, metadata) {
-        const no_update = dash_clientside.no_update;
-
-        if (!context_event || !figure || !metadata) {
-            return [no_update, no_update, no_update, no_update];
-        }
-
-        if (figure.layout.dragmode !== "select") {
-            return [no_update, no_update, no_update, no_update];
-        }
-
-        const x_click = context_event["detail.x"];
-        if (x_click === undefined || x_click === null || Number.isNaN(x_click)) {
-            return [no_update, no_update, no_update, no_update];
-        }
-
-        const last_trace = figure.data[figure.data.length - 1];
-        const current_sleep_scores = last_trace.z && last_trace.z[0];
-        if (!Array.isArray(current_sleep_scores) || current_sleep_scores.length === 0) {
-            return [no_update, no_update, no_update, no_update];
-        }
-
-        const eeg_start_time = metadata.start_time;
-        const eeg_end_time = metadata.end_time;
-        const clicked_index = Math.max(
-            0,
-            Math.min(current_sleep_scores.length - 1, Math.floor(x_click - eeg_start_time))
-        );
-
-        function scoreKey(value) {
-            if (value === null || value === undefined || Number.isNaN(value)) {
-                return "unscored";
-            }
-            return String(value);
-        }
-
-        const clicked_key = scoreKey(current_sleep_scores[clicked_index]);
-        let start = clicked_index;
-        let end = clicked_index + 1;
-
-        while (start > 0 && scoreKey(current_sleep_scores[start - 1]) === clicked_key) {
-            start -= 1;
-        }
-        while (
-            end < current_sleep_scores.length &&
-            scoreKey(current_sleep_scores[end]) === clicked_key
-        ) {
-            end += 1;
-        }
-
-        const absolute_start = Math.max(start + eeg_start_time, eeg_start_time);
-        const absolute_end = Math.min(end + eeg_start_time, eeg_end_time);
-        const final_start = absolute_start - eeg_start_time;
-        const final_end = absolute_end - eeg_start_time;
-
-        const yref = context_event["detail.yref"] || "y5";
-        function yAxisLayoutKey(axisRef) {
-            return axisRef === "y" ? "yaxis" : "yaxis" + axisRef.slice(1);
-        }
-
-        const yaxis = figure.layout[yAxisLayoutKey(yref)] || {};
-        const y_range = Array.isArray(yaxis.range) ? yaxis.range : [-30, 30];
-
-        const select_box = {
-            "type": "rect",
-            "xref": context_event["detail.xref"] || "x4",
-            "yref": yref,
-            "x0": absolute_start,
-            "x1": absolute_end,
-            "y0": y_range[0],
-            "y1": y_range[1],
-            "line": {"width": 2, "dash": "solid"}
-        };
-
-        var patched_figure = new dash_clientside.Patch;
-        patched_figure.assign(['layout', 'selections'], null);
-        patched_figure.assign(['layout', 'shapes'], [select_box]);
-
-        let final_video_button_style = {"visibility": "hidden"};
-        if (final_end - final_start >= 1 && final_end - final_start <= 300) {
-            final_video_button_style = {"visibility": "visible"};
-        }
-
-        const duration = final_end - final_start;
-
-        return [
-            [final_start, final_end],
-            patched_figure.build(),
-            `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
-            final_video_button_style
-        ];
-    }
-    """,
-    Output("box-select-store", "data", allow_duplicate=True),
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("video-button", "style", allow_duplicate=True),
-    Input("graph-contextmenu", "n_events"),
-    State("graph-contextmenu", "event"),
-    State("graph", "figure"),
-    State("mat-metadata-store", "data"),
-    prevent_initial_call=True,
-)
-
-# update_sleep_scores
-app.clientside_callback(
-    """
-    function(sleep_scores, figure) {
-        const no_update = dash_clientside.no_update;
-
-        if (!sleep_scores || !Array.isArray(sleep_scores) || !figure) {
-            return [no_update, no_update];
-        }
-
-        // Use Patch for efficient update
-        var patched_figure = new dash_clientside.Patch;
-
-        // Wrap in array for heatmap z-data format
-        const sleep_scores_wrapped = [sleep_scores];
-
-        // Calculate actual indices (last 3 traces)
-        const num_traces = figure.data.length;
-        const indices = [num_traces - 3, num_traces - 2, num_traces - 1];
-
-        // Update all 3 heatmaps
-        for (const idx of indices) {
-            patched_figure.assign(['data', idx, 'z'], sleep_scores_wrapped);
-        }
-
-        // Clear selections
-        patched_figure.assign(['layout', 'selections'], null);
-        patched_figure.assign(['layout', 'shapes'], null);
-
-        return [patched_figure.build(), ""];
-    }
-    """,
-    Output("graph", "figure", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
-    Input("updated-sleep-scores-store", "data"),
-    State("graph", "figure"),
-    prevent_initial_call=True,
-)
-
+# ---- annotation ----
 
 # make_annotation
 app.clientside_callback(
@@ -1171,87 +1131,66 @@ app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# %% server side callbacks below
 
-"""
-@app.callback(
-    Output("debug-message", "children"),
-    Input("box-select-store", "data"),
+# update_sleep_scores
+app.clientside_callback(
+    """
+    function(sleep_scores, figure) {
+        const no_update = dash_clientside.no_update;
+
+        if (!sleep_scores || !Array.isArray(sleep_scores) || !figure) {
+            return [no_update, no_update];
+        }
+
+        // Use Patch for efficient update
+        var patched_figure = new dash_clientside.Patch;
+
+        // Wrap in array for heatmap z-data format
+        const sleep_scores_wrapped = [sleep_scores];
+
+        // Calculate actual indices (last 3 traces)
+        const num_traces = figure.data.length;
+        const indices = [num_traces - 3, num_traces - 2, num_traces - 1];
+
+        // Update all 3 heatmaps
+        for (const idx of indices) {
+            patched_figure.assign(['data', idx, 'z'], sleep_scores_wrapped);
+        }
+
+        // Clear selections
+        patched_figure.assign(['layout', 'selections'], null);
+        patched_figure.assign(['layout', 'shapes'], null);
+
+        return [patched_figure.build(), ""];
+    }
+    """,
+    Output("graph", "figure", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Input("updated-sleep-scores-store", "data"),
     State("graph", "figure"),
     prevent_initial_call=True,
 )
-def debug_box_select(box_select, figure):
-    #time_end = figure["data"][-1]["z"][0][-1]
-    return json.dumps(figure["data"][-1]["z"], indent=2)
-"""
 
 
-@app.callback(
-    Output("pred-modal-confirm", "is_open"),
-    Input("pred-button", "n_clicks"),
-    State("pred-modal-confirm", "is_open"),
-    prevent_initial_call=True,
-)
-def show_confirm_pred_modal(n_clicks, is_open):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise PreventUpdate
+# ---- message cleanup ----
 
-    return not is_open
-
-
-@app.callback(
-    Output("pred-modal-confirm", "is_open", allow_duplicate=True),
+# clear_display
+app.clientside_callback(
+    """
+    function(n_intervals) {
+        return n_intervals === 5 ? "" : dash_clientside.no_update;
+    }
+    """,
     Output("annotation-message", "children", allow_duplicate=True),
-    Output("prediction-ready-store", "data"),
-    Input("pred-confirm-button", "n_clicks"),
-    State("pred-modal-confirm", "is_open"),
+    Input("interval-component", "n_intervals"),
     prevent_initial_call=True,
 )
-def read_mat_pred(n_clicks, is_open):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise PreventUpdate
-
-    message = ""
-    mat_path = cache.get("filepath")
-    mat = loadmat(mat_path, squeeze_me=True)
-    eeg_freq = mat["eeg_frequency"]
-    if round(eeg_freq) != 512:
-        message += (
-            f"EEG/EMG data has a sampling frequency of {eeg_freq} Hz. Will resample to 512 Hz."
-        )
-
-    ne = mat.get("ne")
-    if ne is None:
-        message += " NE data not detected."
-
-    message += (
-        " Generating predictions... This may take up to 3 minutes. Check Terminal for the progress."
-    )
-    return (
-        (not is_open),
-        message,
-        True,
-    )
 
 
-@app.callback(
-    Output("annotation-message", "children", allow_duplicate=True),
-    Output("updated-sleep-scores-store", "data"),
-    Input("prediction-ready-store", "data"),
-    prevent_initial_call=True,
-)
-def generate_prediction(n_clicks):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise PreventUpdate
+# %% server side callbacks below
 
-    mat_path = cache.get("filepath")
-    mat = loadmat(mat_path, squeeze_me=True)
-    mat, output_path = run_inference(
-        mat,
-        postprocess=POSTPROCESS,
-    )
-    sleep_scores = get_padded_sleep_scores(mat)
-    return "The prediction will be displayed shortly.", sleep_scores.tolist()
+
+# ---- file loading and visualization ----
 
 
 @app.callback(
@@ -1312,6 +1251,33 @@ def create_visualization(ready):
     fig = create_fig(mat, filename)
     components.graph.figure = fig
     return components.visualization_div, metadata
+
+
+@app.callback(
+    Output("graph", "figure", allow_duplicate=True),
+    Input("n-sample-dropdown", "value"),
+    prevent_initial_call=True,
+)
+def change_sampling_level(sampling_level):
+    if sampling_level is None:
+        return dash.no_update
+    sampling_level_map = {"x0.5": 1024, "x1": 2048, "x2": 4096, "x4": 8192}
+    n_samples = sampling_level_map[sampling_level]
+    mat_path = cache.get("filepath")
+    filename = cache.get("filename")
+    mat = loadmat(mat_path, squeeze_me=True)
+
+    # copy modified (through annotation) sleep scores over
+    sleep_scores_history = cache.get("sleep_scores_history")
+    if sleep_scores_history:
+        mat["sleep_scores"] = sleep_scores_history[-1]
+
+    fig = create_fig(mat, filename, default_n_shown_samples=n_samples)
+    # cache.set("fig_resampler", fig)
+    return fig
+
+
+# ---- graph navigation (resampler) ----
 
 
 def relayout_event_to_data(relayout_event):
@@ -1600,45 +1566,78 @@ def log_browser_navigation_profile(_n_events, profile_event):
     return profile_event
 
 
-@app.callback(
-    Output("graph", "figure", allow_duplicate=True),
-    Input("n-sample-dropdown", "value"),
-    prevent_initial_call=True,
-)
-def change_sampling_level(sampling_level):
-    if sampling_level is None:
-        return dash.no_update
-    sampling_level_map = {"x0.5": 1024, "x1": 2048, "x2": 4096, "x4": 8192}
-    n_samples = sampling_level_map[sampling_level]
-    mat_path = cache.get("filepath")
-    filename = cache.get("filename")
-    mat = loadmat(mat_path, squeeze_me=True)
-
-    # copy modified (through annotation) sleep scores over
-    sleep_scores_history = cache.get("sleep_scores_history")
-    if sleep_scores_history:
-        mat["sleep_scores"] = sleep_scores_history[-1]
-
-    fig = create_fig(mat, filename, default_n_shown_samples=n_samples)
-    # cache.set("fig_resampler", fig)
-    return fig
+# ---- prediction ----
 
 
 @app.callback(
-    Output("updated-sleep-scores-store", "data", allow_duplicate=True),
-    Output("undo-button", "style"),
-    Input("undo-button", "n_clicks"),
+    Output("pred-modal-confirm", "is_open"),
+    Input("pred-button", "n_clicks"),
+    State("pred-modal-confirm", "is_open"),
     prevent_initial_call=True,
 )
-def undo_annotation(n_clicks):
+def show_confirm_pred_modal(n_clicks, is_open):
     if n_clicks is None or n_clicks == 0:  # i.e., None or 0
         raise PreventUpdate
 
-    sleep_scores_history = cache.get("sleep_scores_history")
-    sleep_scores = sleep_scores_history[0]
-    sleep_scores_history.pop()
-    cache.set("sleep_scores_history", sleep_scores_history)
-    return sleep_scores.tolist(), {"visibility": "hidden"}
+    return not is_open
+
+
+@app.callback(
+    Output("pred-modal-confirm", "is_open", allow_duplicate=True),
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("prediction-ready-store", "data"),
+    Input("pred-confirm-button", "n_clicks"),
+    State("pred-modal-confirm", "is_open"),
+    prevent_initial_call=True,
+)
+def read_mat_pred(n_clicks, is_open):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
+    message = ""
+    mat_path = cache.get("filepath")
+    mat = loadmat(mat_path, squeeze_me=True)
+    eeg_freq = mat["eeg_frequency"]
+    if round(eeg_freq) != 512:
+        message += (
+            f"EEG/EMG data has a sampling frequency of {eeg_freq} Hz. Will resample to 512 Hz."
+        )
+
+    ne = mat.get("ne")
+    if ne is None:
+        message += " NE data not detected."
+
+    message += (
+        " Generating predictions... This may take up to 3 minutes. Check Terminal for the progress."
+    )
+    return (
+        (not is_open),
+        message,
+        True,
+    )
+
+
+@app.callback(
+    Output("annotation-message", "children", allow_duplicate=True),
+    Output("updated-sleep-scores-store", "data"),
+    Input("prediction-ready-store", "data"),
+    prevent_initial_call=True,
+)
+def generate_prediction(n_clicks):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
+    mat_path = cache.get("filepath")
+    mat = loadmat(mat_path, squeeze_me=True)
+    mat, output_path = run_inference(
+        mat,
+        postprocess=POSTPROCESS,
+    )
+    sleep_scores = get_padded_sleep_scores(mat)
+    return "The prediction will be displayed shortly.", sleep_scores.tolist()
+
+
+# ---- annotation history and saving ----
 
 
 @app.callback(
@@ -1663,6 +1662,23 @@ def update_sleep_scores_history(updated_sleep_scores):
     sleep_scores_history.append(updated_sleep_scores)
     cache.set("sleep_scores_history", sleep_scores_history)
     return {"visibility": "visible"}
+
+
+@app.callback(
+    Output("updated-sleep-scores-store", "data", allow_duplicate=True),
+    Output("undo-button", "style"),
+    Input("undo-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def undo_annotation(n_clicks):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
+    sleep_scores_history = cache.get("sleep_scores_history")
+    sleep_scores = sleep_scores_history[0]
+    sleep_scores_history.pop()
+    cache.set("sleep_scores_history", sleep_scores_history)
+    return sleep_scores.tolist(), {"visibility": "hidden"}
 
 
 @app.callback(
@@ -1751,6 +1767,9 @@ def save_annotations(n_clicks):
     return message, 5
 
 
+# ---- video ----
+
+
 @app.callback(
     Output("video-modal", "is_open"),
     Output("video-path-store", "data", allow_duplicate=True),
@@ -1792,22 +1811,6 @@ def prepare_video(n_clicks, is_open, metadata):
 
 
 @app.callback(
-    Output("video-path-store", "data", allow_duplicate=True),
-    Output("video-title", "children"),
-    Output("video-container", "children", allow_duplicate=True),
-    Output("video-message", "children", allow_duplicate=True),
-    Input("reselect-video-button", "n_clicks"),
-    prevent_initial_call=True,
-)
-def reselect_video(n_clicks):
-    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
-        raise PreventUpdate
-
-    message = "Please select video above."
-    return dash.no_update, "", components.video_upload_button, message
-
-
-@app.callback(
     Output("video-path-store", "data"),
     Output("video-message", "children", allow_duplicate=True),
     Input("video-upload-button", "n_clicks"),
@@ -1842,6 +1845,22 @@ def choose_video(n_clicks):
     cache.set("file_video_record", file_video_record)
 
     return str(avi_path), "Preparing clip..."
+
+
+@app.callback(
+    Output("video-path-store", "data", allow_duplicate=True),
+    Output("video-title", "children"),
+    Output("video-container", "children", allow_duplicate=True),
+    Output("video-message", "children", allow_duplicate=True),
+    Input("reselect-video-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reselect_video(n_clicks):
+    if n_clicks is None or n_clicks == 0:  # i.e., None or 0
+        raise PreventUpdate
+
+    message = "Please select video above."
+    return dash.no_update, "", components.video_upload_button, message
 
 
 @app.callback(
@@ -1917,3 +1936,18 @@ def show_clip(clip_name):
     )
 
     return clip_name, player, components.reselect_video_button
+
+
+# ---- debug ----
+
+"""
+@app.callback(
+    Output("debug-message", "children"),
+    Input("box-select-store", "data"),
+    State("graph", "figure"),
+    prevent_initial_call=True,
+)
+def debug_box_select(box_select, figure):
+    #time_end = figure["data"][-1]["z"][0][-1]
+    return json.dumps(figure["data"][-1]["z"], indent=2)
+"""
