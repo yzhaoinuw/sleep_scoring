@@ -5,12 +5,12 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- `app.py` restructure on the `refactor` branch: Phases 1-3 landed
-  2026-07-07; Phases 1-2 were manually validated in a user-run app session
-  (see "app.py Restructure" below). Next actions: manually re-validate the
-  clientside interactions (Phase 3 rewired them: mode switch, arrow-key pan,
-  all selection types, keypress annotation, message clearing, direct-restyle
-  refresh), then merge `refactor` into `dev`.
+- `app.py` restructure: Phases 1-3 landed on `refactor` and were manually
+  validated in user-run app sessions (Phases 1-2, then Phase 3 clientside
+  interactions), all 2026-07-07. PR #7
+  (https://github.com/yzhaoinuw/sleep_scoring/pull/7) is open from
+  `refactor` to `dev` for agent review; merge after review. The `js-test`
+  CI job gets its first run on this PR.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -46,10 +46,9 @@ Layout after Phase 2:
 
 Remaining:
 
-- Manually re-validate the clientside interactions after Phase 3 (mode
-  switch, arrow-key pan, box/click/bout/auto-pan selection, keypress
-  annotation, message clearing, direct-restyle refresh), then merge
-  `refactor` into `dev`. Phases 1-2 were user-validated 2026-07-07.
+- Review and merge PR #7 (`refactor` -> `dev`). All three phases were
+  user-validated in real app sessions on 2026-07-07, including the Phase 3
+  clientside interactions.
 - Before the next release, confirm a source-update asset cleanly adds the
   new `app_src` files (`server.py`, `routes.py`, `session.py`,
   `callbacks/`, `assets/clientsideCallbacks.js`) on top of an installed

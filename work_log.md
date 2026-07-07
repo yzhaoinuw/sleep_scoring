@@ -20,6 +20,18 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-07
 
+### Restructure PR To dev (Claude Fable 5, default mode)
+
+- User manually validated the Phase 3 clientside interactions in a real app
+  session ("ran the app and everything seemed to work"), completing the
+  last pre-merge gate.
+- Opened PR #7 from `refactor` to `dev` for agent review:
+  https://github.com/yzhaoinuw/sleep_scoring/pull/7. It bundles restructure
+  Phases 1-3, the jest suite + `js-test` CI job (first CI run happens on
+  this PR), and the doc refreshes.
+- `next_steps.md` updated: remaining actions are PR review/merge and the
+  release-time source-update check.
+
 ### Clientside JS Test Harness (Claude Fable 5, default mode)
 
 - Added the first automated coverage for the clientside callback layer:
