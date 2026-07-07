@@ -54,15 +54,15 @@ The three layers, top to bottom:
 │  pywebview native window  (run_desktop_app.py)                    │  desktop shell
 │   └─ embeds a local URL, owns native OS file dialogs              │
 ├─────────────────────────────────────────────────────────────────┤
-│  Dash app + Flask server  (app_src/app.py)                        │  server
+│  Dash app + Flask server  (app_src/server.py)                     │  server
 │   ├─ layout & components   (components.py)                        │
 │   ├─ figure builder        (make_figure.py, get_fft_plots.py)     │
 │   ├─ server-side cache     (flask_caching filesystem)             │
-│   ├─ server callbacks      (load, predict, save, resample-patch)  │
-│   └─ raw Flask routes      (/resample, /profile-log)              │
+│   ├─ server callbacks      (callbacks/: load, predict, save, ...)  │
+│   └─ raw Flask routes      (routes.py: /resample, /profile-log)   │
 ├─────────────────────────────────────────────────────────────────┤
 │  Browser interaction layer                                        │  browser
-│   ├─ clientside callbacks  (inline JS in app.py)                  │
+│   ├─ clientside callbacks  (callbacks/clientside.py)              │
 │   ├─ asset scripts         (app_src/assets/*.js)                  │
 │   ├─ hidden dcc.Store state + EventListener bridges               │
 │   └─ Plotly figure (FigureResampler-backed)                      │
@@ -165,8 +165,9 @@ interaction needs.
 
 **Depends on.** None structurally; everything else plugs into it.
 
-**Source.** `app_src/components.py`, consumed in `app_src/app.py` (`app.layout =
-components.home_div`, and `create_visualization` swaps in `components.visualization_div`).
+**Source.** `app_src/components.py`, consumed in `app_src/server.py` (`app.layout =
+components.home_div`) and `app_src/callbacks/loading.py` (`create_visualization` swaps in
+`components.visualization_div`).
 
 **Mechanism.** `components.py` defines three things:
 
@@ -185,7 +186,8 @@ components.home_div`, and `create_visualization` swaps in `components.visualizat
    (sampling-level dropdown, video button, predict button), the `dcc.Graph`, the annotation
    message line, save/undo buttons, and the modals.
 
-The `Components` class just bundles these so `app.py` can reference `components.graph`,
+The `Components` class just bundles these so `server.py` and the callback modules can
+reference `components.graph`,
 `components.visualization_div`, etc. The graph itself is created once
 (`graph = dcc.Graph(id="graph", config={"scrollZoom": True})`) and its `.figure` is assigned
 later by the load callback.
@@ -206,7 +208,7 @@ exceptions=True` on the Dash app is required because callbacks reference compone
 - Dynamic components (those that appear as a *result* of a callback, like the video upload
   button) fire their callbacks on creation; `prevent_initial_call` does **not** protect them.
   Guard inside the callback with `if n_clicks is None or n_clicks == 0: raise PreventUpdate`.
-  This pattern is everywhere in `app.py` for a reason.
+  This pattern is everywhere in `app_src/callbacks/` for a reason.
 - Store ids are a global namespace shared by clientside JS and Python — keep them stable.
 
 ---
@@ -218,8 +220,9 @@ history, the resampler figure) that survives across callbacks and even across an
 
 **Depends on.** None.
 
-**Source.** `app_src/app.py` — the `Cache(...)` setup, `initialize_cache`, and the module
-globals `FIG_RESAMPLER` + `store_fig_resampler` / `get_fig_resampler` / `clear_fig_resamplers`.
+**Source.** `app_src/server.py` (the `Cache(...)` setup), `app_src/session.py`
+(`initialize_cache`), and `app_src/resampling.py` (the module global `FIG_RESAMPLER` +
+`store_fig_resampler` / `get_fig_resampler` / `clear_fig_resamplers`).
 
 **Mechanism.** Two distinct stores, chosen by whether the value is serializable:
 
@@ -271,8 +274,9 @@ initialize state, and render the visualization. Same idea for Save.
 **Depends on.** Recipe 1 (needs `webview.windows[0]`), Recipe 2 (buttons/stores), Recipe 3
 (cache).
 
-**Source.** `app_src/app.py`: `open_file_dialog`, `save_file_dialog`, `choose_mat`,
-`create_visualization`, `write_metadata`, `initialize_cache`.
+**Source.** `app_src/dialogs.py`: `open_file_dialog`, `save_file_dialog`;
+`app_src/callbacks/loading.py`: `choose_mat`, `create_visualization`; `app_src/session.py`:
+`write_metadata`, `initialize_cache`.
 
 **Mechanism.** The load is a **two-callback handoff** through a store:
 
@@ -384,7 +388,8 @@ interaction layer to the Dash callback graph.
 **Depends on.** Recipe 2 (the listeners live in `backend_div`).
 
 **Source.** `app_src/components.py` (the `EventListener(...)` components) + the asset scripts
-that `document.dispatchEvent(new CustomEvent(...))`, consumed by callbacks in `app.py`.
+that `document.dispatchEvent(new CustomEvent(...))`, consumed by callbacks in
+`app_src/callbacks/`.
 
 **Mechanism.** `dash_extensions.EventListener` attaches a DOM event listener and exposes it to
 Dash as a component with two relevant props:
@@ -448,7 +453,7 @@ dragging/zooming) into **one clean, debounced signal** that distinguishes "still
 **Depends on.** Recipe 5 (the figure), Recipe 6 (dispatches `sleepgraphrelayout`).
 
 **Source.** `app_src/assets/graphRelayoutCoalescer.js`; consumed by `update_fig_resampler` in
-`app.py` via the `graph-relayout-coalesced` EventListener.
+`app_src/callbacks/navigation.py` via the `graph-relayout-coalesced` EventListener.
 
 **Mechanism.** The script attaches to the Plotly div and listens to both `plotly_relayouting`
 (fires continuously during a gesture) and `plotly_relayout` (fires once at the end). It:
@@ -495,10 +500,10 @@ that zoom — **fast**, moving as few bytes as possible.
 
 **Depends on.** Recipe 5 (resampler figure), Recipe 7 (coalesced signal).
 
-**Source.** `app_src/app.py`: `update_fig_resampler`, `compact_resampler_patch`,
-`build_direct_restyle_payload`, the `/_sleep_scoring/resample` Flask route,
-`RESAMPLER_CALLBACK_OUTPUT`; `app_src/assets/graphDirectRestyle.js`; config flag
-`ENABLE_DIRECT_PLOTLY_RESTYLE`.
+**Source.** `app_src/callbacks/navigation.py`: `update_fig_resampler`,
+`RESAMPLER_CALLBACK_OUTPUT`; `app_src/resampling.py`: `compact_resampler_patch`,
+`build_direct_restyle_payload`; `app_src/routes.py`: the `/_sleep_scoring/resample` Flask
+route; `app_src/assets/graphDirectRestyle.js`; config flag `ENABLE_DIRECT_PLOTLY_RESTYLE`.
 
 **Mechanism.** There are **two delivery paths** for the same computation
 (`fig.construct_update_data_patch({...x range...})`, the resampler's method that returns the
@@ -555,7 +560,8 @@ the difference between "smooth" and "unusable."
 **Depends on.** Recipe 5, Recipe 7 (feeds ranges into the coalescer), the `keyboard`
 EventListener.
 
-**Source.** `app_src/app.py` — the `pan_figure` clientside callback (inline JS).
+**Source.** `app_src/callbacks/clientside.py` — the `pan_figure` clientside callback
+(inline JS).
 
 **Mechanism.** A clientside callback on `keyboard.n_events` reads the current `xaxis4.range`,
 computes a new range shifted by ±30% on ArrowRight/ArrowLeft, and:
@@ -630,7 +636,7 @@ settled path only.
 
 **Depends on.** Recipe 5 (the figure holds `dragmode`), the `keyboard` EventListener.
 
-**Source.** `app_src/app.py` — the first `app.clientside_callback` (`switch_mode`).
+**Source.** `app_src/callbacks/clientside.py` — the `switch_mode` clientside callback.
 
 **Mechanism.** A clientside callback on the `m` key patches `figure.layout.dragmode` between
 `"pan"` and `"select"`, clears any leftover selections/shapes when leaving select mode, and
@@ -659,7 +665,7 @@ same-label run under the cursor).
 **Depends on.** Recipe 5, Recipe 11 (only active in select mode), Recipe 6 (the context-menu
 event), `mat-metadata-store`.
 
-**Source.** `app_src/app.py` clientside callbacks: `read_box_select` (Plotly `selectedData`),
+**Source.** `app_src/callbacks/clientside.py`: `read_box_select` (Plotly `selectedData`),
 `read_click_select` (Plotly `clickData`), `read_bout_context_select`
 (`graph-contextmenu` event); `app_src/assets/graphContextMenu.js`.
 
@@ -705,7 +711,7 @@ newly revealed signal is **fetched and drawn live** during the pan.
 `/_sleep_scoring/resample` Flask route), Recipe 11 (select mode).
 
 **Source.** `app_src/assets/annotationAutoPan.js` (the biggest asset, ~800 lines); consumed by
-`read_annotation_auto_pan_select` in `app.py`.
+`read_annotation_auto_pan_select` in `app_src/callbacks/clientside.py`.
 
 **Mechanism.** This is the most elaborate interaction; it owns the whole pointer gesture in
 select mode:
@@ -760,8 +766,8 @@ and the change is pushed to undo history.
 **Depends on.** Recipe 5 (heatmap overlay), Recipe 12/13 (`box-select-store`), the `keyboard`
 EventListener, Recipe 15 (history).
 
-**Source.** `app_src/app.py` clientside callbacks `make_annotation` and `update_sleep_scores`;
-serverside `update_sleep_scores_history`.
+**Source.** `app_src/callbacks/clientside.py`: `make_annotation` and `update_sleep_scores`;
+serverside `update_sleep_scores_history` in `app_src/callbacks/saving.py`.
 
 **Mechanism.** Two-step, all clientside for the visual part:
 1. `make_annotation` fires on a `1–4` keypress (only in select mode, only with a selection):
@@ -801,9 +807,9 @@ restarts on the same file.
 
 **Depends on.** Recipe 3 (cache), Recipe 14 (writes history).
 
-**Source.** `app_src/app.py`: `initialize_cache` (creates `deque(maxlen=2)`),
-`update_sleep_scores_history`, `undo_annotation`, and the salvage branch in
-`create_visualization`.
+**Source.** `app_src/session.py`: `initialize_cache` (creates `deque(maxlen=2)`);
+`app_src/callbacks/saving.py`: `update_sleep_scores_history`, `undo_annotation`; the salvage
+branch in `create_visualization` (`app_src/callbacks/loading.py`).
 
 **Mechanism.** `sleep_scores_history` is a `collections.deque(maxlen=2)` in the filesystem
 cache — it holds at most the previous and current label arrays. Every real change appends
@@ -838,7 +844,7 @@ derived summary (here: a sleep-bout spreadsheet) when the data is complete.
 
 **Depends on.** Recipe 1 (native dialog), Recipe 3 (state), Recipe 15 (final labels).
 
-**Source.** `app_src/app.py::save_annotations`; `app_src/postprocessing.py`
+**Source.** `app_src/callbacks/saving.py::save_annotations`; `app_src/postprocessing.py`
 (`get_sleep_segments`, `get_pred_label_stats`, `get_first_unscored_segment`, `standardize`).
 
 **Mechanism.** On Save: reload the source, replace its label field with the latest history
@@ -863,7 +869,8 @@ saving. Guard the button's initial fire.
 **Depends on.** Recipe 12/13 (`box-select-store`), Recipe 4 (native dialog to locate media),
 Recipe 3 (remember media per file).
 
-**Source.** `app_src/app.py`: `prepare_video`, `choose_video`, `make_clip`, `show_clip`;
+**Source.** `app_src/callbacks/video.py`: `prepare_video`, `choose_video`, `make_clip`,
+`show_clip`;
 `app_src/make_mp4.py`; a `dbc.Modal` with `dash_player`.
 
 **Mechanism.** The selection range + a `video_start_time` offset define a clip; `make_mp4.py`
@@ -888,7 +895,8 @@ apply time, frame gaps) without shipping the noise to end users.
 **Depends on.** Recipes 7, 8 (the things being measured).
 
 **Source.** `app_src/config.py` (the `*_PERF_LOG` flags + `SLEEP_SCORING_*` env vars),
-`app_src/app.py` (`summarize_resampler_patch`, the `[resampler]`/`[browser-nav]` prints, the
+`app_src/resampling.py` (`summarize_resampler_patch`), `app_src/callbacks/navigation.py`
+(the `[resampler]`/`[browser-nav]` prints), `app_src/routes.py` (the
 `/_sleep_scoring/profile-log` route), `app_src/assets/graphNavigationProfiler.js`.
 
 **Mechanism.** Each navigation carries a `profileId` end to end. The browser profiler
@@ -1000,7 +1008,13 @@ A quick-reference of the traps, collected:
 | --- | --- |
 | Desktop shell / entrypoint | `run_desktop_app.py` |
 | Config (window, port, flags, colors) | `app_src/config.py` |
-| Dash app, callbacks, Flask routes, cache | `app_src/app.py` |
+| App aggregator (importing it registers everything) | `app_src/app.py` |
+| Dash instance, cache, components, runtime paths | `app_src/server.py` |
+| Raw Flask routes (`/resample`, `/profile-log`) | `app_src/routes.py` |
+| Native OS file dialogs | `app_src/dialogs.py` |
+| Resampler figure store & patch helpers | `app_src/resampling.py` |
+| Per-recording setup (cache init, metadata) | `app_src/session.py` |
+| Dash callbacks, one module per concern | `app_src/callbacks/` |
 | Layout, stores, EventListeners, modals | `app_src/components.py` |
 | Figure builder (resampler, overlays) | `app_src/make_figure.py` |
 | Spectrogram / derived panel | `app_src/get_fft_plots.py` |

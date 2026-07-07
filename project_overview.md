@@ -38,19 +38,18 @@ so it doubles as a map from a feature to its implementation.
 - Starts the Dash server in a background thread
 - Opens the UI in a native `pywebview` window
 
-### 2. Main app module
+### 2. Main app package
 
-[`app_src/app.py`](app_src/app.py) is the main active application.
+[`app_src/app.py`](app_src/app.py) is a thin aggregator: importing it builds the app by pulling in the modules below (their imports register the Flask routes and Dash callbacks), and it re-exports `app` for `run_desktop_app.py`.
 
-Key responsibilities:
+- [`app_src/server.py`](app_src/server.py): the Dash app and top-level layout, the filesystem cache in the system temp directory, `TEMP_PATH`/`VIDEO_DIR`, and the `run_inference` availability probe
+- [`app_src/routes.py`](app_src/routes.py): raw Flask endpoints for direct browser-side resampling (`/_sleep_scoring/resample`) and mirrored profiling logs (`/_sleep_scoring/profile-log`)
+- [`app_src/dialogs.py`](app_src/dialogs.py): native pywebview file dialogs for `.mat`, video, and save destinations
+- [`app_src/session.py`](app_src/session.py): per-recording setup — cache initialization, temp-dir housekeeping, `.mat` metadata extraction, figure creation
+- [`app_src/resampling.py`](app_src/resampling.py): the live resampler-figure store plus patch/profiling helpers shared by the resample route and the navigation callbacks
+- [`app_src/callbacks/`](app_src/callbacks): Dash callbacks, one module per concern — `clientside` (all in-browser JS callbacks), `loading`, `navigation`, `prediction`, `saving`, `video`
 
-- Creates the Dash app and top-level layout
-- Manages a filesystem cache in the system temp directory
-- Opens native file dialogs for `.mat`, `.avi`, `.mp4`, and save destinations
-- Validates selected `.mat` contents
-- Builds the interactive Plotly figure
-- Tracks annotation history for undo and crash recovery
-- Handles prediction requests, saving, and video clip preparation
+Together these cover: validating selected `.mat` contents, building the interactive Plotly figure, tracking annotation history for undo and crash recovery, and handling prediction requests, saving, and video clip preparation.
 
 Important active imports:
 
@@ -155,7 +154,7 @@ Heuristics include:
 
 Within the app:
 
-- The selected time window comes from annotation selection in `app.py`
+- The selected time window comes from the selection callbacks in [`app_src/callbacks/clientside.py`](app_src/callbacks/clientside.py); the clip callbacks live in [`app_src/callbacks/video.py`](app_src/callbacks/video.py)
 - The clip is shown in a Dash modal using `dash_player`
 
 ## User Data Expectations
@@ -214,9 +213,9 @@ Current tests focus on the active modules:
 - preprocessing behavior
 - postprocessing behavior
 - FFT helper behavior
-- a few helper functions in `app.py`
+- app helper functions (`session.py`, `resampling.py`, and callbacks in `callbacks/saving.py` / `callbacks/video.py`)
 
-These tests reinforce that `app.py`, `components.py`, `make_figure.py`, `preprocessing.py`, and `postprocessing.py` are the main maintained path.
+These tests reinforce that the `app_src` app package, `components.py`, `make_figure.py`, `preprocessing.py`, and `postprocessing.py` are the main maintained path.
 
 ## Repo Structure Map
 
@@ -230,7 +229,15 @@ sleep_scoring/
 |- app_src/
 |  |- __init__.py                    # version
 |  |- config.py                      # UI / FFT / inference config
-|  |- app.py                         # active Dash app
+|  |- app.py                         # thin aggregator (importing it registers everything)
+|  |- server.py                      # Dash instance, cache, components, runtime paths
+|  |- routes.py                      # raw Flask endpoints (resample, profile-log)
+|  |- dialogs.py                     # native pywebview file dialogs
+|  |- session.py                     # per-recording setup helpers
+|  |- resampling.py                  # resampler figure store + patch helpers
+|  |- callbacks/                     # Dash callbacks, one module per concern
+|  |  |- clientside.py               # all in-browser JS callbacks
+|  |  |- loading.py / navigation.py / prediction.py / saving.py / video.py
 |  |- components.py                  # active UI components
 |  |- make_figure.py                 # active figure builder
 |  |- get_fft_plots.py               # spectrogram + theta/delta helper
@@ -273,7 +280,9 @@ sleep_scoring/
 ### Active / relevant now
 
 - [`run_desktop_app.py`](run_desktop_app.py)
-- [`app_src/app.py`](app_src/app.py)
+- [`app_src/app.py`](app_src/app.py), [`app_src/server.py`](app_src/server.py), [`app_src/routes.py`](app_src/routes.py)
+- [`app_src/dialogs.py`](app_src/dialogs.py), [`app_src/session.py`](app_src/session.py), [`app_src/resampling.py`](app_src/resampling.py)
+- [`app_src/callbacks/`](app_src/callbacks)
 - [`app_src/components.py`](app_src/components.py)
 - [`app_src/make_figure.py`](app_src/make_figure.py)
 - [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
@@ -303,14 +312,14 @@ If you only want to understand the current product, read files in this order:
 
 1. [`README.md`](README.md)
 2. [`run_desktop_app.py`](run_desktop_app.py)
-3. [`app_src/app.py`](app_src/app.py)
+3. [`app_src/server.py`](app_src/server.py) (then [`app_src/app.py`](app_src/app.py) to see how the pieces assemble)
 4. [`app_src/components.py`](app_src/components.py)
-5. [`app_src/make_figure.py`](app_src/make_figure.py)
-6. [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
-7. [`app_src/inference.py`](app_src/inference.py)
-8. [`app_src/preprocessing.py`](app_src/preprocessing.py)
-9. [`app_src/postprocessing.py`](app_src/postprocessing.py)
-10. [`app_src/make_mp4.py`](app_src/make_mp4.py)
+5. [`app_src/callbacks/`](app_src/callbacks) — pick the module for the concern you care about
+6. [`app_src/make_figure.py`](app_src/make_figure.py)
+7. [`app_src/get_fft_plots.py`](app_src/get_fft_plots.py)
+8. [`app_src/inference.py`](app_src/inference.py)
+9. [`app_src/preprocessing.py`](app_src/preprocessing.py)
+10. [`app_src/postprocessing.py`](app_src/postprocessing.py) and [`app_src/make_mp4.py`](app_src/make_mp4.py)
 
 ## Questions Worth Clarifying Later
 

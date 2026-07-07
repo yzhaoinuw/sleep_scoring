@@ -20,6 +20,22 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-07
 
+### Restructure Docs Refresh (Claude Fable 5, default mode)
+
+- User manually validated the restructured app in a real session ("ran the
+  app, everything seemed to work fine"); recorded in `next_steps.md`, where
+  the remaining pre-merge action is now just merging `refactor` into `dev`.
+- Updated `project_overview.md` for the new `app_src` layout: section 2 now
+  describes the app package (`app.py` aggregator, `server.py`, `routes.py`,
+  `dialogs.py`, `session.py`, `resampling.py`, `callbacks/`), and the repo
+  structure map, tests blurb, video section, active-files list, and reading
+  order were repointed accordingly.
+- Updated all 17 stale `app.py` source pointers in `dash_app_cookbook.md`
+  (architecture diagram, recipe Source lines, and the source-file map table,
+  which now lists the six new modules/package individually).
+- Checked the other docs: `README.md`, `AGENTS.md`, and `CONTRIBUTING.md`
+  only reference `app_src/` generally or `config.py`, so no changes needed.
+
 ### app.py Restructure Phase 2 (Claude Fable 5, default mode)
 
 - Split the remaining `app_src/app.py` (1634 lines) into single-concern

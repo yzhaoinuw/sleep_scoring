@@ -5,10 +5,10 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- `app.py` restructure on the `refactor` branch: Phases 1-2 landed
-  2026-07-07 (see "app.py Restructure" below). Next actions: manual
-  pre-merge validation on a real recording, then merge `refactor` into
-  `dev`. Phase 3 (JS to assets) stays optional.
+- `app.py` restructure on the `refactor` branch: Phases 1-2 landed and were
+  manually validated in a user-run app session, all 2026-07-07 (see "app.py
+  Restructure" below). Next action: merge `refactor` into `dev`. Phase 3
+  (JS to assets) stays optional.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -39,9 +39,8 @@ Layout after Phase 2:
 
 Remaining:
 
-- Manual pre-merge validation on a real recording: navigation, selection,
-  annotation, save, and video flows, plus one prediction run (the
-  `run_inference` probe moved to `server.py`).
+- Merge `refactor` into `dev` (manual validation done in a user-run app
+  session on 2026-07-07).
 - Before the next release, confirm a source-update asset cleanly adds the
   new `app_src` modules (`server.py`, `routes.py`, `session.py`,
   `callbacks/`) on top of an installed build; ship a full app zip if it
