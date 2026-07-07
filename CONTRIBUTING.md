@@ -68,6 +68,9 @@ Node.js):
 cd tests/js && npm ci && npm test
 ```
 
+If jest and Node are new to you, [`tests/js/README.md`](tests/js/README.md)
+explains how the suite tests browser behavior without opening the app.
+
 For documentation-only changes, checking the rendered Markdown is usually
 enough. If you cannot run a check locally, say what blocked you in the pull
 request.

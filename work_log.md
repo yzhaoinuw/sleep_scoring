@@ -40,6 +40,11 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `package-lock.json` is committed for reproducible CI.
 - Note: pytest ignores `tests/js/` automatically (`node_modules` is in
   pytest's default norecursedirs and the dir has no Python test files).
+- Added `tests/js/README.md` for collaborators new to jest/Node: what jest
+  is, why the decision-layer tests need no browser, the `PatchStub` trick,
+  the covered/not-covered boundary, and how to run and extend the suite.
+  Linked from `CONTRIBUTING.md`; deliberately kept out of the agent-facing
+  docs.
 - Verification:
   - `npm test` in `tests/js` (Node v26.4.0, jest 30) -> `38 passed`.
   - Full pytest -> `84 passed` (unchanged, 0.7 s).
