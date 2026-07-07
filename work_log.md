@@ -20,6 +20,37 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-07
 
+### app.py Restructure Phase 1 (Claude Fable 5, default mode)
+
+- Created the `refactor` branch from `dev`, added the phased app.py
+  restructure plan to `next_steps.md` (committed as `d5c20bf`), and pushed
+  the branch to `origin/refactor`.
+- Phase 1 extraction: moved the pywebview file dialogs
+  (`open_file_dialog`, `save_file_dialog`) to `app_src/dialogs.py`, and the
+  resampler machinery (fig-resampler store, x-bounds/clamp helpers, patch
+  compaction/summary, direct-restyle payload builder, relayout-event
+  parsing, navigation-profile tracking) to `app_src/resampling.py`.
+  `app.py` went from 1953 to 1634 lines.
+- All moves are verbatim; the only new code is a
+  `latest_navigation_profile_id()` accessor in `resampling.py`, called by
+  the two perf-log lines in `update_fig_resampler` that previously read the
+  now-moved `NAVIGATION_LATEST_PROFILE_ID` global directly. Verified via
+  line accounting that nothing else was added, lost, or altered.
+- The two Flask routes stayed in `app.py` because they decorate
+  `app.server`; moving them waits for `server.py` in Phase 2 (decision
+  recorded in `next_steps.md`).
+- `app.py` imports the moved names, so `run_desktop_app.py`
+  (`from app_src.app import app`) and the `app_src.app.*` patch targets in
+  `tests/test_app_helpers.py` work unchanged.
+- Verification:
+  - black 25.12.0 `--check app_src/` -> clean (all 16 files).
+  - In env `sleep_scoring_dash3.0`: `import app_src.dialogs`,
+    `import app_src.resampling`, and
+    `from app_src.app import app, build_direct_restyle_payload,
+    save_file_dialog, open_file_dialog` -> OK; full pytest -> `84 passed`;
+    `python run_desktop_app.py --smoke` ->
+    `Sleep Scoring App v0.16.4.post1 smoke check OK`.
+
 ### app.py Callback Reorganization (Claude Fable 5, default mode)
 
 - Merged `cookbook` into `dev` (fast-forward `597cda6..3e9e61c`) and pushed;

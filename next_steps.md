@@ -7,7 +7,8 @@ outcomes live in `work_log.md`.
 
 - `app.py` restructure on the `refactor` branch: rehome non-callback code,
   then callbacks, into single-concern modules. See "app.py Restructure"
-  below; Phase 1 (dialogs + resampling extraction) is the next action.
+  below; Phase 1 landed 2026-07-07, Phase 2 (server.py + callback modules)
+  is the next action.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -15,10 +16,11 @@ outcomes live in `work_log.md`.
 
 ## app.py Restructure
 
-Goal: shrink `app_src/app.py` (~1950 lines) into single-concern modules so a
-session can read and diff only the part it touches. Pure rehoming, no behavior
-changes. Callback ordering/naming tidy-up already landed on `dev` (2026-07-07);
-this work happens on the `refactor` branch.
+Goal: shrink `app_src/app.py` into single-concern modules so a session can
+read and diff only the part it touches. Pure rehoming, no behavior changes.
+Callback ordering/naming tidy-up landed on `dev` and Phase 1 (extraction of
+`dialogs.py` and `resampling.py`, 1953 -> 1634 lines) landed on `refactor`,
+both 2026-07-07.
 
 Constraints to preserve at every step:
 
@@ -34,21 +36,13 @@ Constraints to preserve at every step:
   are shared by the `/_sleep_scoring/resample` Flask route and
   `update_fig_resampler`; they must end up in exactly one module.
 
-Phase 1 (low risk, do first):
-
-- Extract `app_src/dialogs.py`: `open_file_dialog`, `save_file_dialog`
-  (pywebview-only, no app dependencies).
-- Extract `app_src/resampling.py`: the fig-resampler store, x-bounds/clamp
-  helpers, patch compaction/summary, direct-restyle payload builder,
-  relayout-event parsing, and navigation-profile tracking. Decide during
-  extraction whether the two Flask routes move with it or stay in `app.py`.
-- `app.py` imports the moved names so existing test patch targets keep
-  working unchanged.
-
 Phase 2 (medium risk, full verification gate):
 
 - Create `app_src/server.py` holding the `Dash` instance and `Cache` so
   callback modules can import them without circular imports.
+- Move the two Flask routes (`/_sleep_scoring/resample`,
+  `/_sleep_scoring/profile-log`) out of `app.py` once `server.py` exists;
+  they decorate `app.server`, which is why they stayed put in Phase 1.
 - Move the 10 clientside callbacks to `app_src/callbacks_clientside.py`.
 - Move serverside callbacks out of `app.py`, either one `callbacks.py` or
   per-section modules (loading/visualization, navigation, prediction,
