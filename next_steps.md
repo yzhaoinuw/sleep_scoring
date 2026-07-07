@@ -5,10 +5,69 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
+- `app.py` restructure on the `refactor` branch: rehome non-callback code,
+  then callbacks, into single-concern modules. See "app.py Restructure"
+  below; Phase 1 (dialogs + resampling extraction) is the next action.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
   shipped build.
+
+## app.py Restructure
+
+Goal: shrink `app_src/app.py` (~1950 lines) into single-concern modules so a
+session can read and diff only the part it touches. Pure rehoming, no behavior
+changes. Callback ordering/naming tidy-up already landed on `dev` (2026-07-07);
+this work happens on the `refactor` branch.
+
+Constraints to preserve at every step:
+
+- `from app_src.app import app` must keep working (`run_desktop_app.py`
+  depends on it).
+- New modules stay inside `app_src/` so source-update assets still cover them.
+- `tests/test_app_helpers.py` patches names in the `app_src.app` namespace
+  (e.g. `app_src.app.loadmat`, `app_src.app.save_file_dialog`). Moving a
+  helper is test-transparent only while the callback using it stays in
+  `app.py` and imports the helper by name; when callbacks move, repoint the
+  patch targets in the same commit.
+- The fig-resampler store (`FIG_RESAMPLER`) and navigation-profile globals
+  are shared by the `/_sleep_scoring/resample` Flask route and
+  `update_fig_resampler`; they must end up in exactly one module.
+
+Phase 1 (low risk, do first):
+
+- Extract `app_src/dialogs.py`: `open_file_dialog`, `save_file_dialog`
+  (pywebview-only, no app dependencies).
+- Extract `app_src/resampling.py`: the fig-resampler store, x-bounds/clamp
+  helpers, patch compaction/summary, direct-restyle payload builder,
+  relayout-event parsing, and navigation-profile tracking. Decide during
+  extraction whether the two Flask routes move with it or stay in `app.py`.
+- `app.py` imports the moved names so existing test patch targets keep
+  working unchanged.
+
+Phase 2 (medium risk, full verification gate):
+
+- Create `app_src/server.py` holding the `Dash` instance and `Cache` so
+  callback modules can import them without circular imports.
+- Move the 10 clientside callbacks to `app_src/callbacks_clientside.py`.
+- Move serverside callbacks out of `app.py`, either one `callbacks.py` or
+  per-section modules (loading/visualization, navigation, prediction,
+  history/saving, video); decide based on how Phase 1 leaves the file.
+- Keep `app.py` as a slim aggregator that creates nothing itself and imports
+  callback modules for their registration side effects.
+- Repoint `tests/test_app_helpers.py` patch targets to the new namespaces.
+
+Phase 3 (optional, separate decision, not tidy-up):
+
+- Move the clientside JS strings into real files under `app_src/assets/`
+  wired via `ClientsideFunction`, for JS syntax highlighting and linting.
+  Treat as its own verified change, not part of the rehoming.
+
+Verification gate for each phase:
+
+- black `--check`, full pytest, and `run_desktop_app.py --smoke` pass.
+- Manual app launch touching navigation, selection, annotation, save, and
+  video flows before merging back to `dev`.
 
 ## Installation Packaging
 
