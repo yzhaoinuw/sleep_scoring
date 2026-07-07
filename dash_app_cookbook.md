@@ -38,8 +38,9 @@ Every recipe follows the same shape:
 > **Browser-authoritative interaction, server-authoritative data.**
 
 Everything that must feel *instant* (mode switch, selection box, keypress label, panning the
-view) happens **in the browser** — either as a Dash *clientside callback* (JavaScript you
-write inline in Python) or as a standalone *asset script* under `app_src/assets/`. The Python
+view) happens **in the browser** — either as a Dash *clientside callback* (JavaScript in
+`app_src/assets/clientsideCallbacks.js`, registered from Python via `ClientsideFunction`) or
+as a standalone *asset script* under `app_src/assets/`. The Python
 server is only invoked when real data work is unavoidable: loading a file, running a model,
 resampling a hi-res signal to the pixels currently on screen, saving.
 
@@ -62,7 +63,7 @@ The three layers, top to bottom:
 │   └─ raw Flask routes      (routes.py: /resample, /profile-log)   │
 ├─────────────────────────────────────────────────────────────────┤
 │  Browser interaction layer                                        │  browser
-│   ├─ clientside callbacks  (callbacks/clientside.py)              │
+│   ├─ clientside callbacks  (assets/clientsideCallbacks.js)        │
 │   ├─ asset scripts         (app_src/assets/*.js)                  │
 │   ├─ hidden dcc.Store state + EventListener bridges               │
 │   └─ Plotly figure (FigureResampler-backed)                      │
@@ -560,8 +561,8 @@ the difference between "smooth" and "unusable."
 **Depends on.** Recipe 5, Recipe 7 (feeds ranges into the coalescer), the `keyboard`
 EventListener.
 
-**Source.** `app_src/callbacks/clientside.py` — the `pan_figure` clientside callback
-(inline JS).
+**Source.** the `pan_figure` clientside callback (JS in
+`app_src/assets/clientsideCallbacks.js`, registered in `app_src/callbacks/clientside.py`).
 
 **Mechanism.** A clientside callback on `keyboard.n_events` reads the current `xaxis4.range`,
 computes a new range shifted by ±30% on ArrowRight/ArrowLeft, and:
@@ -636,7 +637,8 @@ settled path only.
 
 **Depends on.** Recipe 5 (the figure holds `dragmode`), the `keyboard` EventListener.
 
-**Source.** `app_src/callbacks/clientside.py` — the `switch_mode` clientside callback.
+**Source.** the `switch_mode` clientside callback (JS in
+`app_src/assets/clientsideCallbacks.js`, registered in `app_src/callbacks/clientside.py`).
 
 **Mechanism.** A clientside callback on the `m` key patches `figure.layout.dragmode` between
 `"pan"` and `"select"`, clears any leftover selections/shapes when leaving select mode, and
@@ -665,7 +667,8 @@ same-label run under the cursor).
 **Depends on.** Recipe 5, Recipe 11 (only active in select mode), Recipe 6 (the context-menu
 event), `mat-metadata-store`.
 
-**Source.** `app_src/callbacks/clientside.py`: `read_box_select` (Plotly `selectedData`),
+**Source.** clientside callbacks in `app_src/assets/clientsideCallbacks.js` (registered in
+`app_src/callbacks/clientside.py`): `read_box_select` (Plotly `selectedData`),
 `read_click_select` (Plotly `clickData`), `read_bout_context_select`
 (`graph-contextmenu` event); `app_src/assets/graphContextMenu.js`.
 
@@ -766,7 +769,8 @@ and the change is pushed to undo history.
 **Depends on.** Recipe 5 (heatmap overlay), Recipe 12/13 (`box-select-store`), the `keyboard`
 EventListener, Recipe 15 (history).
 
-**Source.** `app_src/callbacks/clientside.py`: `make_annotation` and `update_sleep_scores`;
+**Source.** clientside `make_annotation` and `update_sleep_scores` (JS in
+`app_src/assets/clientsideCallbacks.js`, registered in `app_src/callbacks/clientside.py`);
 serverside `update_sleep_scores_history` in `app_src/callbacks/saving.py`.
 
 **Mechanism.** Two-step, all clientside for the visual part:
@@ -1015,6 +1019,7 @@ A quick-reference of the traps, collected:
 | Resampler figure store & patch helpers | `app_src/resampling.py` |
 | Per-recording setup (cache init, metadata) | `app_src/session.py` |
 | Dash callbacks, one module per concern | `app_src/callbacks/` |
+| Clientside callback JS implementations | `app_src/assets/clientsideCallbacks.js` |
 | Layout, stores, EventListeners, modals | `app_src/components.py` |
 | Figure builder (resampler, overlays) | `app_src/make_figure.py` |
 | Spectrogram / derived panel | `app_src/get_fft_plots.py` |

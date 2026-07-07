@@ -47,7 +47,7 @@ so it doubles as a map from a feature to its implementation.
 - [`app_src/dialogs.py`](app_src/dialogs.py): native pywebview file dialogs for `.mat`, video, and save destinations
 - [`app_src/session.py`](app_src/session.py): per-recording setup — cache initialization, temp-dir housekeeping, `.mat` metadata extraction, figure creation
 - [`app_src/resampling.py`](app_src/resampling.py): the live resampler-figure store plus patch/profiling helpers shared by the resample route and the navigation callbacks
-- [`app_src/callbacks/`](app_src/callbacks): Dash callbacks, one module per concern — `clientside` (all in-browser JS callbacks), `loading`, `navigation`, `prediction`, `saving`, `video`
+- [`app_src/callbacks/`](app_src/callbacks): Dash callbacks, one module per concern — `clientside` (registrations for the in-browser callbacks; their JavaScript lives in [`app_src/assets/clientsideCallbacks.js`](app_src/assets/clientsideCallbacks.js)), `loading`, `navigation`, `prediction`, `saving`, `video`
 
 Together these cover: validating selected `.mat` contents, building the interactive Plotly figure, tracking annotation history for undo and crash recovery, and handling prediction requests, saving, and video clip preparation.
 
@@ -236,7 +236,7 @@ sleep_scoring/
 |  |- session.py                     # per-recording setup helpers
 |  |- resampling.py                  # resampler figure store + patch helpers
 |  |- callbacks/                     # Dash callbacks, one module per concern
-|  |  |- clientside.py               # all in-browser JS callbacks
+|  |  |- clientside.py               # clientside registrations (JS in assets/)
 |  |  |- loading.py / navigation.py / prediction.py / saving.py / video.py
 |  |- components.py                  # active UI components
 |  |- make_figure.py                 # active figure builder
@@ -249,7 +249,8 @@ sleep_scoring/
 |  |- postprocessing.py              # heuristic cleanup + stats
 |  |- make_mp4.py                    # video clip extraction
 |  |- assets/
-|  |  |- closeWindow.js
+|  |  |- clientsideCallbacks.js      # clientside callback implementations
+|  |  |- graph*.js / annotationAutoPan.js / closeWindow.js  # interaction scripts
 |  |  |- videos/
 |- models/
 |  |- sdreamer/

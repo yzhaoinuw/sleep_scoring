@@ -20,6 +20,38 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-07
 
+### app.py Restructure Phase 3 (Claude Fable 5, default mode)
+
+- Moved the 10 inline clientside JS strings out of
+  `app_src/callbacks/clientside.py` (720 -> 164 lines) into a new asset,
+  `app_src/assets/clientsideCallbacks.js` (588 lines), under the
+  `dash_clientside.sleep_scoring` namespace. The Python module now registers
+  each callback via `ClientsideFunction(namespace="sleep_scoring",
+  function_name=...)` with the Output/Input/State signatures unchanged;
+  section headers and callback names mirror each other in both files.
+- JS bodies moved verbatim (uniform re-indent only); the extraction script
+  round-tripped every transformed block back to the original string to prove
+  equality, and checked brace/paren/bracket balance outside strings and
+  comments.
+- Rationale: real-file JS gets editor syntax highlighting and diffs, and
+  stops shipping ~700 lines of JavaScript inside Python strings.
+- Docs updated in the same pass: cookbook (browser-layer note, architecture
+  diagram, the clientside recipe Source lines, source-file map row),
+  `project_overview.md` (callbacks bullet, structure map, assets listing),
+  and `next_steps.md` (Phase 3 recorded as landed; remaining actions are
+  clientside re-validation, then merge).
+- Verification:
+  - `app._callback_list` identical to the pre-change baseline in every field
+    except the clientside function pointers (now
+    `sleep_scoring.<name>` instead of Dash-generated inline namespaces);
+    `app._inline_scripts` dropped from 10 to 0.
+  - Flask test client: `/assets/clientsideCallbacks.js` -> 200 and the
+    served JS defines all 10 registered function names.
+  - black `--check app_src/ tests/` -> clean; full pytest -> `84 passed`;
+    `python run_desktop_app.py --smoke` -> OK.
+  - Not yet browser-validated: the clientside interactions need a manual
+    app session (recorded in `next_steps.md`) before merging to `dev`.
+
 ### Restructure Docs Refresh (Claude Fable 5, default mode)
 
 - User manually validated the restructured app in a real session ("ran the

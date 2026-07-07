@@ -5,10 +5,12 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- `app.py` restructure on the `refactor` branch: Phases 1-2 landed and were
-  manually validated in a user-run app session, all 2026-07-07 (see "app.py
-  Restructure" below). Next action: merge `refactor` into `dev`. Phase 3
-  (JS to assets) stays optional.
+- `app.py` restructure on the `refactor` branch: Phases 1-3 landed
+  2026-07-07; Phases 1-2 were manually validated in a user-run app session
+  (see "app.py Restructure" below). Next actions: manually re-validate the
+  clientside interactions (Phase 3 rewired them: mode switch, arrow-key pan,
+  all selection types, keypress annotation, message clearing, direct-restyle
+  refresh), then merge `refactor` into `dev`.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -19,7 +21,9 @@ outcomes live in `work_log.md`.
 Goal: shrink `app_src/app.py` into single-concern modules so a session can
 read and diff only the part it touches. Pure rehoming, no behavior changes.
 All landed 2026-07-07: callback ordering/naming tidy-up on `dev`; Phase 1
-(`dialogs.py`, `resampling.py`) and Phase 2 (layout below) on `refactor`.
+(`dialogs.py`, `resampling.py`), Phase 2 (layout below), and Phase 3 (the
+clientside JS strings moved to `app_src/assets/clientsideCallbacks.js`,
+registered via `ClientsideFunction`) on `refactor`.
 
 Layout after Phase 2:
 
@@ -32,6 +36,9 @@ Layout after Phase 2:
   housekeeping, metadata, figure creation).
 - `app_src/callbacks/`: one module per concern (`clientside`, `loading`,
   `navigation`, `prediction`, `saving`, `video`), registered on import.
+- `app_src/assets/clientsideCallbacks.js`: the clientside callback JS, in
+  the `dash_clientside.sleep_scoring` namespace; names and sections mirror
+  `callbacks/clientside.py`.
 - `app_src/app.py`: thin aggregator; `from app_src.app import app` still
   works for `run_desktop_app.py`.
 - Tests patch the new namespaces (e.g. `app_src.callbacks.saving.loadmat`,
@@ -39,24 +46,14 @@ Layout after Phase 2:
 
 Remaining:
 
-- Merge `refactor` into `dev` (manual validation done in a user-run app
-  session on 2026-07-07).
+- Manually re-validate the clientside interactions after Phase 3 (mode
+  switch, arrow-key pan, box/click/bout/auto-pan selection, keypress
+  annotation, message clearing, direct-restyle refresh), then merge
+  `refactor` into `dev`. Phases 1-2 were user-validated 2026-07-07.
 - Before the next release, confirm a source-update asset cleanly adds the
-  new `app_src` modules (`server.py`, `routes.py`, `session.py`,
-  `callbacks/`) on top of an installed build; ship a full app zip if it
-  does not.
-
-Phase 3 (optional, separate decision, not tidy-up):
-
-- Move the clientside JS strings into real files under `app_src/assets/`
-  wired via `ClientsideFunction`, for JS syntax highlighting and linting.
-  Treat as its own verified change, not part of the rehoming.
-
-Verification gate (run for Phases 1-2; rerun for Phase 3 if picked up):
-
-- black `--check`, full pytest, and `run_desktop_app.py --smoke` pass.
-- Manual app launch touching navigation, selection, annotation, save, and
-  video flows before merging back to `dev`.
+  new `app_src` files (`server.py`, `routes.py`, `session.py`,
+  `callbacks/`, `assets/clientsideCallbacks.js`) on top of an installed
+  build; ship a full app zip if it does not.
 
 ## Installation Packaging
 
