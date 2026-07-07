@@ -214,6 +214,7 @@ Current tests focus on the active modules:
 - postprocessing behavior
 - FFT helper behavior
 - app helper functions (`session.py`, `resampling.py`, and callbacks in `callbacks/saving.py` / `callbacks/video.py`)
+- clientside callback behavior (`tests/js/`, a jest suite for `app_src/assets/clientsideCallbacks.js`; requires Node.js, run with `cd tests/js && npm ci && npm test`)
 
 These tests reinforce that the `app_src` app package, `components.py`, `make_figure.py`, `preprocessing.py`, and `postprocessing.py` are the main maintained path.
 

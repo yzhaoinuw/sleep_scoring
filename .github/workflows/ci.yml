@@ -41,3 +41,23 @@ jobs:
 
       - name: Run tests
         run: pytest -v -m "not ml" --tb=short
+
+  js-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/js/package-lock.json
+
+      - name: Install JS test dependencies
+        run: npm ci
+        working-directory: tests/js
+
+      - name: Run clientside callback tests
+        run: npm test
+        working-directory: tests/js

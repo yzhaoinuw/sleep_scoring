@@ -36,6 +36,9 @@ sleep_scoring_app_data/
 *.mp4
 app_src/assets/videos/
 
+# Node (JS test harness in tests/js/)
+node_modules/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -53,11 +53,19 @@ conda activate sleep_scoring_dash3.0
 ### Check Your Change
 
 For code changes, run the checks that match your edit. The GitHub CI currently
-runs formatting and non-ML tests:
+runs formatting, non-ML tests, and the clientside JS tests:
 
 ```bash
 python -m black --check --diff .
 python -m pytest -v -m "not ml" --tb=short
+```
+
+If you changed `app_src/assets/clientsideCallbacks.js` (or its registrations
+in `app_src/callbacks/clientside.py`), also run the jest suite (requires
+Node.js):
+
+```bash
+cd tests/js && npm ci && npm test
 ```
 
 For documentation-only changes, checking the rendered Markdown is usually

@@ -20,6 +20,30 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-07
 
+### Clientside JS Test Harness (Claude Fable 5, default mode)
+
+- Added the first automated coverage for the clientside callback layer:
+  `tests/js/` holds a jest suite (`clientsideCallbacks.test.js`, 38 tests)
+  that loads `app_src/assets/clientsideCallbacks.js` in Node with stubbed
+  `window` / `dash_clientside` globals (`setup.js` provides a `PatchStub`
+  that records figure mutations for assertions).
+- Coverage highlights: box/click/bout/auto-pan selection rounding, clamping,
+  and tie-breaks (including nonzero `start_time` and the null-vs-NaN
+  "unscored" bout equivalence from the cache round-trip), `make_annotation`
+  half-open range semantics and non-mutation of the figure array,
+  `update_sleep_scores` last-three-trace repaint, pan/mode/restyle/message
+  callbacks, and the video-button 1-300 s visibility rule.
+- Wired a `js-test` job into `.github/workflows/ci.yml` (setup-node 22, npm
+  cache keyed on `tests/js/package-lock.json`, `npm ci && npm test`);
+  documented the check in `CONTRIBUTING.md` and the suite in
+  `project_overview.md`. Added `node_modules/` to `.gitignore`;
+  `package-lock.json` is committed for reproducible CI.
+- Note: pytest ignores `tests/js/` automatically (`node_modules` is in
+  pytest's default norecursedirs and the dir has no Python test files).
+- Verification:
+  - `npm test` in `tests/js` (Node v26.4.0, jest 30) -> `38 passed`.
+  - Full pytest -> `84 passed` (unchanged, 0.7 s).
+
 ### app.py Restructure Phase 3 (Claude Fable 5, default mode)
 
 - Moved the 10 inline clientside JS strings out of
