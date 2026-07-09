@@ -151,9 +151,16 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   was `width: 15%` of the window, so resizes rewrapped its label and
   changed its shape. Now `width: fit-content` + `whiteSpace: nowrap` with
   `padding: 6px 16px`, sizing the button to its label at every window
-  size.
+  size. User confirmed the fix in a real app session.
 - Verification: full pytest -> `104 passed` (the refusal test now pins the
   filename in the message).
+- Session wrap: doc sweep for the feature (`dash_app_cookbook.md` Recipe 1
+  slot claim + source map, `project_overview.md` clip paths + test list,
+  `AGENTS.md` slot-0 update-check note). Branch state:
+  `feature/multi-session` pushed with the plan, implementation, and both
+  follow-up commits; PR to `dev` deferred to next session pending the two
+  remaining manual checks (fourth-launch notice, video clips in both
+  windows).
 
 ### Multi-Session Support Implemented (Claude Fable 5, default mode)
 

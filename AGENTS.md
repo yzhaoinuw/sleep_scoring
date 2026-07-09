@@ -33,7 +33,9 @@ python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q
 
 Startup auto-update lives in `run_desktop_app.py` before importing `app_src`.
 Packaged builds check GitHub Release source-update assets. Source runs skip the
-check unless update-test env vars are set. Use a full app zip when dependencies,
+check unless update-test env vars are set. Only the first app window (port
+slot 0) runs the check; later windows skip it so `app_src/` is never patched
+under a running window. Use a full app zip when dependencies,
 models, packaging, launcher, or runtime layout changed; use source-update assets
 only for compatible `app_src/` changes.
 

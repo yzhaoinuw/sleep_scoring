@@ -7,9 +7,11 @@ outcomes live in `work_log.md`.
 
 - Multi-session support on one computer: implemented 2026-07-09 on
   `feature/multi-session` (branched from `dev` after PR #7 merged), with
-  tests and doc updates. See "Multi-Session Support" below for design and
-  the remaining manual validation before merge. The next release after this
-  merges needs a full app zip (the launcher changed).
+  tests and doc updates; most flows user-validated the same day. See
+  "Multi-Session Support" below. Next session: user runs the two remaining
+  manual checks (fourth-launch notice, video clips in both windows), then
+  open the PR from `feature/multi-session` to `dev`. The next release after
+  this merges needs a full app zip (the launcher changed).
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next

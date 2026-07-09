@@ -124,12 +124,18 @@ Open/Save dialogs.
 
 **Depends on.** Nothing (this is the outermost layer). Optional — you can run browser-only.
 
-**Source.** `run_desktop_app.py`, `app_src/config.py` (`WINDOW_CONFIG`, `PORT`),
-`app_src/assets/closeWindow.js`.
+**Source.** `run_desktop_app.py` (`BASE_PORT`, `MAX_SESSIONS`), `app_src/config.py`
+(`WINDOW_CONFIG`), `app_src/assets/closeWindow.js`.
 
 **Mechanism.**
-- The Dash/Flask server runs on `127.0.0.1:PORT` in a **daemon thread**
+- The Dash/Flask server runs on `127.0.0.1:<port>` in a **daemon thread**
   (`run_desktop_app.py::run_dash`), so it dies with the process.
+- The port comes from a **window-slot claim**: the launcher binds the first free port in
+  `BASE_PORT`..`BASE_PORT + MAX_SESSIONS - 1` (8050-8052) and holds the socket until the
+  server takes the port over. The OS port table doubles as the "how many windows are open"
+  counter — no lock files, and a crashed window frees its slot automatically. Each window is
+  a fully separate process; the slot number namespaces its temp/cache/video dirs, and only
+  slot 0 runs the startup update check and perf logging.
 - `webview.create_window(...)` opens a native window pointed at that local URL. `WINDOW_CONFIG`
   sets size/min-size/resizable.
 - On Windows the app forces the EdgeChromium renderer (`webview.start(gui="edgechromium")`);
@@ -878,8 +884,8 @@ Recipe 3 (remember media per file).
 `app_src/make_mp4.py`; a `dbc.Modal` with `dash_player`.
 
 **Mechanism.** The selection range + a `video_start_time` offset define a clip; `make_mp4.py`
-cuts it with the bundled ffmpeg into `assets/videos/`, and `dash_player.DashPlayer` plays it in
-a modal. The app remembers recently used video paths per file in the cache
+cuts it with the bundled ffmpeg into a per-window slot subfolder of `assets/videos/`, and
+`dash_player.DashPlayer` plays it in a modal. The app remembers recently used video paths per file in the cache
 (`recent_files_with_video`, `file_video_record`) so it doesn't re-ask.
 
 **Adapt.** Any "selected region → derived artifact in a side panel" (a zoom-in figure, an audio
@@ -1010,11 +1016,11 @@ A quick-reference of the traps, collected:
 
 | Concern | File |
 | --- | --- |
-| Desktop shell / entrypoint | `run_desktop_app.py` |
-| Config (window, port, flags, colors) | `app_src/config.py` |
+| Desktop shell / entrypoint, window-slot claim | `run_desktop_app.py` |
+| Config (window, flags, colors, session slot env) | `app_src/config.py` |
 | App aggregator (importing it registers everything) | `app_src/app.py` |
-| Dash instance, cache, components, runtime paths | `app_src/server.py` |
-| Raw Flask routes (`/resample`, `/profile-log`) | `app_src/routes.py` |
+| Dash instance, cache, components, per-slot runtime paths | `app_src/server.py` |
+| Raw Flask routes (`/resample`, `/profile-log`, `/current-file`) | `app_src/routes.py` |
 | Native OS file dialogs | `app_src/dialogs.py` |
 | Resampler figure store & patch helpers | `app_src/resampling.py` |
 | Per-recording setup (cache init, metadata) | `app_src/session.py` |

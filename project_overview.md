@@ -157,7 +157,9 @@ Heuristics include:
 
 - Uses the `imageio-ffmpeg` bundled executable
 - Cuts a selected `[start, end]` time range into an `.mp4`
-- Stores clips under [`app_src/assets/videos`](app_src/assets/videos)
+- Stores clips under the window's slot subfolder of
+  [`app_src/assets/videos`](app_src/assets/videos) (e.g. `slot_0/`), so
+  side-by-side windows never delete each other's clips
 
 Within the app:
 
@@ -221,6 +223,7 @@ Current tests focus on the active modules:
 - postprocessing behavior
 - FFT helper behavior
 - app helper functions (`session.py`, `resampling.py`, and callbacks in `callbacks/saving.py` / `callbacks/video.py`)
+- multi-session behavior (`tests/test_multi_session.py`: the slot env contract, legacy temp adoption, the `current-file` peer endpoint, the same-file load refusal, per-slot clip URLs) plus window-slot claiming in `tests/test_run_desktop_app.py`
 - clientside callback behavior (`tests/js/`, a jest suite for `app_src/assets/clientsideCallbacks.js`; requires Node.js, run with `cd tests/js && npm ci && npm test`)
 
 These tests reinforce that the `app_src` app package, `components.py`, `make_figure.py`, `preprocessing.py`, and `postprocessing.py` are the main maintained path.
