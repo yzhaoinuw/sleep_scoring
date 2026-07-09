@@ -5,12 +5,10 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- `app.py` restructure: Phases 1-3 landed on `refactor` and were manually
-  validated in user-run app sessions (Phases 1-2, then Phase 3 clientside
-  interactions), all 2026-07-07. PR #7
-  (https://github.com/yzhaoinuw/sleep_scoring/pull/7) is open from
-  `refactor` to `dev` for agent review; merge after review. The `js-test`
-  CI job gets its first run on this PR.
+- Multi-session support on one computer: planned 2026-07-09 on
+  `feature/multi-session` (branched from `dev` after PR #7 merged). See
+  "Multi-Session Support" below for the full design; implementation has not
+  started.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -46,13 +44,89 @@ Layout after Phase 2:
 
 Remaining:
 
-- Review and merge PR #7 (`refactor` -> `dev`). All three phases were
-  user-validated in real app sessions on 2026-07-07, including the Phase 3
-  clientside interactions.
 - Before the next release, confirm a source-update asset cleanly adds the
   new `app_src` files (`server.py`, `routes.py`, `session.py`,
   `callbacks/`, `assets/clientsideCallbacks.js`) on top of an installed
   build; ship a full app zip if it does not.
+
+PR #7 (`refactor` -> `dev`) merged 2026-07-09 after agent review.
+
+## Multi-Session Support (One Computer)
+
+Goal: let a user open up to three app windows side by side to compare
+visualizations of different mat files. Requested by users; planned
+2026-07-09; work lives on `feature/multi-session`.
+
+Design: one process per window. Each launch of `run_desktop_app.py` is a
+fully independent instance with its own Dash server, port, and pywebview
+window. No shared server, no session-aware callbacks: module globals (the
+fig-resampler store, `cache`, `components`) stay per-process, so callback
+code does not change. Cross-window coordination uses the OS, not shared
+Python state.
+
+Key mechanism, the port slot:
+
+- Fixed port range: base `PORT` (8050) through 8052, i.e. at most three
+  instances. At startup, scan 8050 -> 8052 and take the first free port; if
+  all three are bound, show a message and exit. The kernel's port table is
+  the instance counter and cannot go stale (a dead process releases its
+  port).
+- Slot number = port - base. One integer provides instance identity,
+  directory namespace, updater guard, perf-log guard, and peer address.
+
+Planned changes:
+
+- `run_desktop_app.py`: scan/claim the slot in `main()` before anything
+  else; hold the probe socket during startup and release it just before
+  `app.run` to shrink the claim/bind race. Slot > 0 skips the startup
+  auto-update check (prevents patching `app_src/` under a running
+  instance and concurrent update applies). Export the slot (env var) before
+  importing `app_src` so import-time paths below can use it; pass the
+  chosen port to `run_dash` and the webview URL.
+- `app_src/server.py`: per-slot dirs. `TEMP_PATH` becomes
+  `.../sleep_scoring_app_data/slot_<n>`, `VIDEO_DIR` becomes
+  `assets/videos/slot_<n>`; the flask-caching `CACHE_DIR` follows
+  `TEMP_PATH`. `clear_temp_dir` and the mp4 purge then self-heal since they
+  only iterate their own dir. Slot dirs are reused across runs, so there is
+  no orphan-dir accumulation to clean up.
+- `app_src/callbacks/video.py`: clip URL becomes
+  `/assets/videos/slot_<n>/<clip>` (still served by Dash's assets route).
+- `app_src/routes.py`: add `GET /_sleep_scoring/current-file` returning
+  `cache.get("filepath")`.
+- `app_src/callbacks/loading.py`: before `initialize_cache`, query the
+  other slots' `current-file` endpoints (short timeout, at most two peers).
+  If a live peer has the same mat file open, refuse the load and show a
+  message telling the user that file is already open in another window and
+  to pick a different one. No lock files: a crashed window stops answering
+  its port, so its claim evaporates.
+- Perf logging: slots > 0 force the perf flags off (env override read by
+  `app_src/config.py`, matching the existing `SLEEP_SCORING_*` pattern).
+  This silences both server-side prints and browser log mirroring, since
+  `routes.py` already returns 204 when profiling is off.
+- Tests: keep `TEMP_PATH` a module global (existing tests patch
+  `app_src.session.TEMP_PATH`). Add tests for slot scanning/exhaustion,
+  same-file refusal (mocked peer responses), and perf-off on slot > 0.
+
+Docs to update when the feature lands (user-noticeable changes):
+
+- `README.md` crash-recovery note (Additional Notes): unsaved-annotation
+  salvage becomes per window slot. Reopening windows in the same order
+  restores each window's unsaved work; opening them in a different order
+  may not offer the salvage (the app already discards salvage when the
+  filename does not match, so a wrong order degrades to no recovery, not
+  wrong recovery).
+- `README.md`: new short "Multiple windows" note: up to three windows; the
+  same mat file cannot be opened in two windows at once (the second window
+  refuses with a message); recent video associations are per-window.
+- Replace any remaining "one app session per computer" guidance.
+
+Accepted compromises (documented, not engineered against):
+
+- Memory/CPU scale per window, bounded at 3x by the slot cap.
+- Salvage semantics depend on window launch order (see README note above).
+- Recent-files/video records are per-window, not shared.
+- Two windows loading the same file in the same instant can slip past the
+  peer check; not worth engineering against for a human-paced desktop app.
 
 ## Installation Packaging
 
@@ -220,11 +294,5 @@ Open items:
 
 ## Further Down The Line / Just A Thought
 
-- Multi-session support on one computer is low priority. If ever needed, launch
-  each app instance on its own free port and isolate cache/temp/video outputs per
-  process/session; current user guidance is one app session per computer.
-  When picked up, implement the isolation in `app_src/server.py` (created in
-  app.py Restructure Phase 2): it owns the Dash instance, the `Cache` dir,
-  `TEMP_PATH`, and `VIDEO_DIR`, so per-instance dirs and port selection are
-  one-place changes. Module globals such as the fig-resampler store are
-  per-process and need no change in the one-process-per-window design.
+- (Multi-session support on one computer was promoted to an active section
+  above on 2026-07-09 after user requests for side-by-side comparison.)

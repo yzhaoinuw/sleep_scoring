@@ -129,6 +129,28 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   install, then smoke-test `import torch` and sDREAMER inference inside a
   fresh app unzip.
 
+### Multi-Session Support Planned (Claude Fable 5, default mode)
+
+- PR #7 (`refactor` -> `dev`) merged; user pulled `dev`. Created
+  `feature/multi-session` off `dev` for the multi-session work.
+- Promoted multi-session support on one computer from "Further Down The
+  Line" to an active `next_steps.md` section with the full design, after
+  users asked to compare mat files in side-by-side windows. Documentation
+  only this session; no implementation yet.
+- Design decisions (discussed with user, all agreed):
+  - One process per window; no shared server or session-aware callbacks.
+  - Port slot (scan base 8050 -> 8052) as the single coordination
+    primitive: caps instances at three, provides instance identity,
+    per-slot dir namespace (`TEMP_PATH`, `VIDEO_DIR`, cache), auto-update
+    guard (slot > 0 skips), and perf-log guard (slot > 0 forces off).
+  - Same-file protection via a new `GET /_sleep_scoring/current-file`
+    peer endpoint: a second window refuses to load a mat file already
+    open in a live peer and shows a message instead. No lock files.
+- README updates (salvage-per-slot note, "Multiple windows" note) are
+  listed in the plan and deferred until the feature lands, so shipped-app
+  docs keep describing shipped behavior.
+- Also cleared the completed PR #7 items from `next_steps.md`.
+
 ## 2026-07-07
 
 ### Restructure PR To dev (Claude Fable 5, default mode)
