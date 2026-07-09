@@ -130,16 +130,19 @@ wrong order degrades to no recovery, not wrong recovery);
 
 User-validated 2026-07-09: two windows side by side (different files), the
 same-file refusal message, crash-recovery salvage in a two-window scenario,
-and a plain single-window session. Follow-ups from that session landed the
-same day: the refusal message now names the file, and the window `min_size`
-dropped to (800, 500) so two windows can tile side by side or top-bottom on
-a 1080p screen (safe: the figure is fixed at 800 px height and only
-width-responsive, so small windows scroll rather than distort).
+save/export under multi-session, and a plain single-window session.
+Follow-ups from that session landed the same day: the refusal message now
+names the file, the window `min_size` dropped to (800, 500) so two windows
+can tile side by side or top-bottom on a 1080p screen (safe: the figure is
+fixed at 800 px height and only width-responsive, so small windows scroll
+rather than distort), and the mat upload button sizes to its label
+(`fit-content` + `nowrap`) instead of 15% of the window so its shape
+survives resizes.
 
 Remaining before merge/release:
 
-- Manual validation still open: a fourth-launch "too many windows" notice,
-  video clips in both windows, and save/export from both windows.
+- Manual validation still open: a fourth-launch "too many windows" notice
+  and video clips in both windows.
 - The next release must ship as a full app zip: `run_desktop_app.py`
   changed, and source-update assets only deliver `app_src/`. An
   `app_src`-only asset on top of an old launcher stays safe (defaults to

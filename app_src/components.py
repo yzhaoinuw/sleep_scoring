@@ -14,7 +14,10 @@ from dash_extensions import EventListener
 
 upload_button_style = {
     "fontSize": "18px",
-    "width": "15%",
+    # Size the button to its label, not the window, so its shape survives
+    # window resizes (including small tiled multi-session windows).
+    "width": "fit-content",
+    "whiteSpace": "nowrap",
     "height": "auto",
     "minHeight": "auto",
     "lineHeight": "auto",
@@ -26,7 +29,7 @@ upload_button_style = {
     # "margin": "5px",  # spacing between the upload box and the div it's in
     "borderRadius": "10px",  # rounded corner
     "backgroundColor": "lightgrey",
-    "padding": "0px",
+    "padding": "6px 16px",
 }
 
 mat_upload_button = html.Button(

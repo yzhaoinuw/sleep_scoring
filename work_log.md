@@ -133,9 +133,9 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 - User validated in real app sessions: two windows side by side (different
   files), the same-file refusal message, crash-recovery salvage in a
-  two-window scenario, and a plain single-window session. Still open:
-  fourth-launch notice, video clips in both windows, save/export from both
-  windows (tracked in `next_steps.md`).
+  two-window scenario, save/export under multi-session, and a plain
+  single-window session. Still open: fourth-launch notice and video clips
+  in both windows (tracked in `next_steps.md`).
 - Two user-requested tweaks:
   - The refusal message now names the file, e.g. `"a.mat" is already open
     in another Sleep Scoring App window.` (`callbacks/loading.py`).
@@ -147,6 +147,11 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     vertically and squeezes only the x-axis; nothing distorts. A
     height-responsive figure is noted in `next_steps.md` as a possible
     later idea.
+- Third tweak from user testing: the mat upload button (`components.py`)
+  was `width: 15%` of the window, so resizes rewrapped its label and
+  changed its shape. Now `width: fit-content` + `whiteSpace: nowrap` with
+  `padding: 6px 16px`, sizing the button to its label at every window
+  size.
 - Verification: full pytest -> `104 passed` (the refusal test now pins the
   filename in the message).
 
