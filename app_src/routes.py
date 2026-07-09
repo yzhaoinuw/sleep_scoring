@@ -16,7 +16,13 @@ from app_src.resampling import (
     get_fig_resampler,
     summarize_resampler_patch,
 )
-from app_src.server import app
+from app_src.server import app, cache
+
+
+@app.server.get("/_sleep_scoring/current-file")
+def current_file():
+    """Report which mat file this window has open, for peer same-file checks."""
+    return {"app": "sleep_scoring", "filepath": cache.get("filepath") or ""}
 
 
 @app.server.get("/_sleep_scoring/resample")

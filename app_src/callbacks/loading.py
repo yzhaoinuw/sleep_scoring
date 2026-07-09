@@ -10,7 +10,12 @@ from scipy.io import loadmat
 from app_src.dialogs import open_file_dialog
 from app_src.make_figure import get_padded_sleep_scores
 from app_src.server import app, cache, components
-from app_src.session import create_fig, initialize_cache, write_metadata
+from app_src.session import (
+    create_fig,
+    find_peer_session_with_file,
+    initialize_cache,
+    write_metadata,
+)
 
 
 @app.callback(
@@ -26,6 +31,13 @@ def choose_mat(n_clicks):
     selected_file_path = open_file_dialog(file_type="mat")
     if selected_file_path is None:
         raise PreventUpdate  # user canceled dialog
+
+    if find_peer_session_with_file(selected_file_path) is not None:
+        message = (
+            "This file is already open in another Sleep Scoring App window. "
+            "Please select a different file, or close it in the other window first."
+        )
+        return message, dash.no_update
 
     initialize_cache(cache, selected_file_path)
     message = "Creating visualizations... This may take up to 30 seconds."

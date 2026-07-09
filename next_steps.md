@@ -5,10 +5,11 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- Multi-session support on one computer: planned 2026-07-09 on
-  `feature/multi-session` (branched from `dev` after PR #7 merged). See
-  "Multi-Session Support" below for the full design; implementation has not
-  started.
+- Multi-session support on one computer: implemented 2026-07-09 on
+  `feature/multi-session` (branched from `dev` after PR #7 merged), with
+  tests and doc updates. See "Multi-Session Support" below for design and
+  the remaining manual validation before merge. The next release after this
+  merges needs a full app zip (the launcher changed).
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -54,8 +55,8 @@ PR #7 (`refactor` -> `dev`) merged 2026-07-09 after agent review.
 ## Multi-Session Support (One Computer)
 
 Goal: let a user open up to three app windows side by side to compare
-visualizations of different mat files. Requested by users; planned
-2026-07-09; work lives on `feature/multi-session`.
+visualizations of different mat files. Requested by users; planned and
+implemented 2026-07-09 on `feature/multi-session`.
 
 Design: one process per window. Each launch of `run_desktop_app.py` is a
 fully independent instance with its own Dash server, port, and pywebview
@@ -66,29 +67,42 @@ Python state.
 
 Key mechanism, the port slot:
 
-- Fixed port range: base `PORT` (8050) through 8052, i.e. at most three
+- Fixed port range: `BASE_PORT` (8050) through 8052, i.e. at most three
   instances. At startup, scan 8050 -> 8052 and take the first free port; if
   all three are bound, show a message and exit. The kernel's port table is
   the instance counter and cannot go stale (a dead process releases its
   port).
 - Slot number = port - base. One integer provides instance identity,
   directory namespace, updater guard, perf-log guard, and peer address.
+- `BASE_PORT` / `MAX_SESSIONS` live in `run_desktop_app.py`, not
+  `config.py` (the old `config.PORT` is gone): the slot claim must happen
+  before the update check, which must happen before any `app_src` import.
+  The launcher passes the slot and peer ports to the app via
+  `SLEEP_SCORING_INSTANCE_SLOT` / `SLEEP_SCORING_PEER_PORTS`; absent env
+  vars (tests, scripts, `--smoke`, or an old launcher running updated
+  `app_src`) default to slot 0 with no peers, i.e. today's single-window
+  behavior. So `app_src`-only source-update assets stay compatible with
+  installed builds; multi-window activates once the new launcher ships in
+  a full app zip.
 
-Planned changes:
+Implemented 2026-07-09 (all landed with tests on `feature/multi-session`):
 
-- `run_desktop_app.py`: scan/claim the slot in `main()` before anything
-  else; hold the probe socket during startup and release it just before
-  `app.run` to shrink the claim/bind race. Slot > 0 skips the startup
-  auto-update check (prevents patching `app_src/` under a running
-  instance and concurrent update applies). Export the slot (env var) before
-  importing `app_src` so import-time paths below can use it; pass the
-  chosen port to `run_dash` and the webview URL.
+- `run_desktop_app.py`: `claim_session_slot()` scans/claims the slot in
+  `main()` before anything else, holds the probe socket during startup and
+  releases it just before `app.run` to shrink the claim/bind race. Slot > 0
+  skips the startup auto-update check (prevents patching `app_src/` under a
+  running instance and concurrent update applies). A fourth launch shows a
+  "too many windows" webview notice and exits. Windows on slot > 0 get a
+  numbered title, e.g. "(2)".
 - `app_src/server.py`: per-slot dirs. `TEMP_PATH` becomes
   `.../sleep_scoring_app_data/slot_<n>`, `VIDEO_DIR` becomes
   `assets/videos/slot_<n>`; the flask-caching `CACHE_DIR` follows
   `TEMP_PATH`. `clear_temp_dir` and the mp4 purge then self-heal since they
   only iterate their own dir. Slot dirs are reused across runs, so there is
-  no orphan-dir accumulation to clean up.
+  no orphan-dir accumulation to clean up. On the first slot-0 launch after
+  the upgrade, loose files in the old flat temp dir move into `slot_0`
+  (`adopt_legacy_temp_files`) so pre-upgrade unsaved-annotation salvage
+  survives, and stale pre-upgrade mp4s in the videos root are removed.
 - `app_src/callbacks/video.py`: clip URL becomes
   `/assets/videos/slot_<n>/<clip>` (still served by Dash's assets route).
 - `app_src/routes.py`: add `GET /_sleep_scoring/current-file` returning
@@ -103,22 +117,28 @@ Planned changes:
   `app_src/config.py`, matching the existing `SLEEP_SCORING_*` pattern).
   This silences both server-side prints and browser log mirroring, since
   `routes.py` already returns 204 when profiling is off.
-- Tests: keep `TEMP_PATH` a module global (existing tests patch
-  `app_src.session.TEMP_PATH`). Add tests for slot scanning/exhaustion,
-  same-file refusal (mocked peer responses), and perf-off on slot > 0.
+- Tests: `TEMP_PATH` stayed a module global (existing tests patch
+  `app_src.session.TEMP_PATH`). `tests/test_multi_session.py` covers the
+  config env contract, legacy temp adoption, the current-file endpoint,
+  the peer same-file check, the load refusal, and the slot clip URL;
+  slot scanning/exhaustion tests live in `tests/test_run_desktop_app.py`.
 
-Docs to update when the feature lands (user-noticeable changes):
+Docs updated 2026-07-09: `README.md` gained a "Multiple Windows" section
+and a per-window crash-recovery note (salvage follows window order; a
+wrong order degrades to no recovery, not wrong recovery);
+`project_overview.md` reflects the slot claim and per-slot dirs.
 
-- `README.md` crash-recovery note (Additional Notes): unsaved-annotation
-  salvage becomes per window slot. Reopening windows in the same order
-  restores each window's unsaved work; opening them in a different order
-  may not offer the salvage (the app already discards salvage when the
-  filename does not match, so a wrong order degrades to no recovery, not
-  wrong recovery).
-- `README.md`: new short "Multiple windows" note: up to three windows; the
-  same mat file cannot be opened in two windows at once (the second window
-  refuses with a message); recent video associations are per-window.
-- Replace any remaining "one app session per computer" guidance.
+Remaining before merge/release:
+
+- Manual validation in real app sessions: two windows side by side
+  (different files), same-file refusal message, a fourth-launch "too many
+  windows" notice, video clips in both windows, save/export from both
+  windows, crash-recovery salvage in a two-window scenario, and a
+  single-window session behaving exactly as before.
+- The next release must ship as a full app zip: `run_desktop_app.py`
+  changed, and source-update assets only deliver `app_src/`. An
+  `app_src`-only asset on top of an old launcher stays safe (defaults to
+  single-window behavior) but does not enable multi-window.
 
 Accepted compromises (documented, not engineered against):
 

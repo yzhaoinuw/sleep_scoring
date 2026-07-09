@@ -31,7 +31,8 @@ class TestImports:
         """Test config module imports."""
         from app_src import config
 
-        assert hasattr(config, "PORT")
+        assert hasattr(config, "INSTANCE_SLOT")
+        assert hasattr(config, "PEER_PORTS")
 
     def test_import_version(self):
         """Test version is accessible."""

@@ -3,13 +3,47 @@
 metadata extraction, and figure creation.
 """
 
+import json
 import math
+import os
 from collections import deque
 from pathlib import Path
+from urllib.request import urlopen
 
+from app_src.config import PEER_PORTS
 from app_src.make_figure import make_figure
 from app_src.resampling import clear_fig_resamplers, mat_x_bounds, store_fig_resampler
 from app_src.server import TEMP_PATH
+
+
+PEER_QUERY_TIMEOUT_SECONDS = 0.5
+
+
+def _normalize_mat_path(filepath):
+    return os.path.normcase(os.path.normpath(os.path.abspath(filepath)))
+
+
+def find_peer_session_with_file(filepath):
+    """Return the port of a live app window that already has filepath open.
+
+    Dead windows stop answering their port, so a crashed window's claim on a
+    file evaporates with it; no lock files are involved. Anything else bound
+    to a peer port is ignored unless it identifies as this app.
+    """
+    target = _normalize_mat_path(filepath)
+    for port in PEER_PORTS:
+        url = f"http://127.0.0.1:{port}/_sleep_scoring/current-file"
+        try:
+            with urlopen(url, timeout=PEER_QUERY_TIMEOUT_SECONDS) as response:
+                payload = json.load(response)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(payload, dict) or payload.get("app") != "sleep_scoring":
+            continue
+        peer_file = payload.get("filepath")
+        if peer_file and _normalize_mat_path(peer_file) == target:
+            return port
+    return None
 
 
 def create_fig(mat, filename, default_n_shown_samples=2048):

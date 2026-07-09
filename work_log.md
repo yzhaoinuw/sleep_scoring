@@ -129,6 +129,47 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   install, then smoke-test `import torch` and sDREAMER inference inside a
   fresh app unzip.
 
+### Multi-Session Support Implemented (Claude Fable 5, default mode)
+
+- Implemented the full multi-session design on `feature/multi-session`,
+  same session as the planning entry below.
+- `run_desktop_app.py`: `claim_session_slot()` binds the first free port in
+  `BASE_PORT` 8050 - 8052 (`MAX_SESSIONS` 3) and holds the probe socket
+  until `run_dash` releases it just before `app.run`; a fourth launch gets
+  a webview "too many windows" notice and exit code 1. Slot > 0 skips the
+  startup update check and gets a numbered window title, e.g. "(2)".
+- Deviation from the planning notes: the base port lives in the launcher
+  (`config.PORT` removed), because the slot claim must precede the update
+  check, which must precede any `app_src` import. The launcher exports
+  `SLEEP_SCORING_INSTANCE_SLOT` / `SLEEP_SCORING_PEER_PORTS`; without them
+  `app_src` defaults to slot 0 / no peers, so tests, `--smoke`, and
+  old-launcher installs keep single-window behavior and `app_src`-only
+  source-update assets stay compatible.
+- `app_src` changes: per-slot `TEMP_PATH` / `CACHE_DIR` / `VIDEO_DIR`
+  (`slot_<n>`) in `server.py` plus one-time adoption of legacy flat temp
+  files into `slot_0` (preserves pre-upgrade salvage) and legacy loose mp4
+  cleanup; `GET /_sleep_scoring/current-file` in `routes.py`;
+  `find_peer_session_with_file` in `session.py` (0.5 s timeout, ignores
+  non-app listeners); `choose_mat` in `callbacks/loading.py` refuses a mat
+  file already open in a live peer window; clip URLs in
+  `callbacks/video.py` include the slot subdir. Perf logging force-off for
+  slot > 0 in `config.py`.
+- Docs: README "Multiple Windows" section + per-window crash-recovery
+  note; `project_overview.md` entrypoint/module descriptions;
+  `next_steps.md` section updated to implemented-state with the remaining
+  manual validation checklist.
+- Verification:
+  - Full pytest -> `104 passed` (84 before; new `tests/test_multi_session.py`
+    plus slot-claim tests in `tests/test_run_desktop_app.py`).
+  - `python run_desktop_app.py --smoke` -> OK.
+  - Headless two-process drive (scratch script): instance 1 claimed slot 0
+    / port 8050, instance 2 claimed slot 1 / 8051 with per-slot temp and
+    video dirs; `current-file` reported the loaded file on 8050 and empty
+    on 8051; a slot-1 process's peer check returned 8050 for the same file
+    and None for a different file.
+- Not yet done: manual validation in real windows (list in
+  `next_steps.md`); next release needs a full app zip (launcher changed).
+
 ### Multi-Session Support Planned (Claude Fable 5, default mode)
 
 - PR #7 (`refactor` -> `dev`) merged; user pulled `dev`. Created

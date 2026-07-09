@@ -170,7 +170,7 @@ def show_clip(clip_name):
     if not (VIDEO_DIR / clip_name).is_file():
         return "", "", "Video not ready yet. Please check again in a second."
 
-    clip_path = Path("/assets/videos") / clip_name
+    clip_path = Path("/assets/videos") / VIDEO_DIR.name / clip_name
     player = dash_player.DashPlayer(
         id="player",
         url=str(clip_path),

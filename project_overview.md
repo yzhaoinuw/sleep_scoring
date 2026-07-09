@@ -31,6 +31,13 @@ so it doubles as a map from a feature to its implementation.
 
 - Detects whether the app is running from source or as a packaged executable
 - Adds the repo/app base directory to `sys.path`
+- Claims a window slot: binds the first free port in `BASE_PORT` (8050)
+  through `BASE_PORT + MAX_SESSIONS - 1`, so up to three windows can run side
+  by side; a fourth launch shows a "too many windows" notice and exits. The
+  slot and peer ports are exported via `SLEEP_SCORING_INSTANCE_SLOT` /
+  `SLEEP_SCORING_PEER_PORTS` before `app_src` is imported. Only slot 0 runs
+  the startup update check, so `app_src/` is never patched under a running
+  window
 - Imports:
   - [`app_src/app.py`](app_src/app.py)
   - [`app_src/config.py`](app_src/config.py)
@@ -42,10 +49,10 @@ so it doubles as a map from a feature to its implementation.
 
 [`app_src/app.py`](app_src/app.py) is a thin aggregator: importing it builds the app by pulling in the modules below (their imports register the Flask routes and Dash callbacks), and it re-exports `app` for `run_desktop_app.py`.
 
-- [`app_src/server.py`](app_src/server.py): the Dash app and top-level layout, the filesystem cache in the system temp directory, `TEMP_PATH`/`VIDEO_DIR`, and the `run_inference` availability probe
-- [`app_src/routes.py`](app_src/routes.py): raw Flask endpoints for direct browser-side resampling (`/_sleep_scoring/resample`) and mirrored profiling logs (`/_sleep_scoring/profile-log`)
+- [`app_src/server.py`](app_src/server.py): the Dash app and top-level layout, the filesystem cache, `TEMP_PATH`/`VIDEO_DIR` (both nested per window slot, e.g. `slot_0`, so side-by-side windows never touch each other's files), and the `run_inference` availability probe
+- [`app_src/routes.py`](app_src/routes.py): raw Flask endpoints for direct browser-side resampling (`/_sleep_scoring/resample`), mirrored profiling logs (`/_sleep_scoring/profile-log`), and the peer window query (`/_sleep_scoring/current-file`)
 - [`app_src/dialogs.py`](app_src/dialogs.py): native pywebview file dialogs for `.mat`, video, and save destinations
-- [`app_src/session.py`](app_src/session.py): per-recording setup — cache initialization, temp-dir housekeeping, `.mat` metadata extraction, figure creation
+- [`app_src/session.py`](app_src/session.py): per-recording setup — cache initialization, temp-dir housekeeping, `.mat` metadata extraction, figure creation — plus the peer-window same-file check used when loading
 - [`app_src/resampling.py`](app_src/resampling.py): the live resampler-figure store plus patch/profiling helpers shared by the resample route and the navigation callbacks
 - [`app_src/callbacks/`](app_src/callbacks): Dash callbacks, one module per concern — `clientside` (registrations for the in-browser callbacks; their JavaScript lives in [`app_src/assets/clientsideCallbacks.js`](app_src/assets/clientsideCallbacks.js)), `loading`, `navigation`, `prediction`, `saving`, `video`
 

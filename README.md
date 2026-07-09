@@ -119,9 +119,18 @@ If the .mat file has been sleep scored completely, you will also be prompted to 
 
 https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
 
+## Multiple Windows
+
+You can open up to three app windows at the same time, for example to compare two recordings side by side. Just launch the app again while it is already running; each window is fully independent. The second and third windows show a number in their title bar, e.g. `(2)`.
+
+- The same .mat file cannot be open in two windows at once. If you select a file that another window already has open, the app shows a reminder instead of loading it — pick a different file, or close it in the other window first.
+- Video clips and each recording's video association are tracked per window.
+- When more than one window is open, only the first window checks for app updates at startup.
+
 ## Additional Notes
 
 - If the app crashes before you get to save your sleep scores, don't panic. Reopen the app and open the **SAME** mat file that you were just working on to recover your work. Note that you **MUST** open the **SAME** file that you were working on when the app crashed. If you open any other file, you will lose your unsaved work for good.
+- If you were using multiple windows, recovery is tracked per window in the order the windows were opened: reopen the windows and open each mat file in the same window position as before (first window's file in the first window, and so on). Opening a different file in a window discards that window's unsaved work.
 
 ---
 

@@ -1,3 +1,4 @@
+import socket
 import sys
 from types import SimpleNamespace
 
@@ -77,3 +78,50 @@ def test_formats_skipped_update_message_as_non_blocking():
         message
         == "update not applied: local runtime files differ: app_src/app.py; continuing startup"
     )
+
+
+def _bind_ephemeral_socket():
+    holder = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    holder.bind(("127.0.0.1", 0))
+    return holder, holder.getsockname()[1]
+
+
+def test_claims_slot_zero_when_base_port_is_free():
+    holder, port = _bind_ephemeral_socket()
+    holder.close()  # freed port becomes the base of an all-free slot range
+
+    slot, claimed_port, probe_socket = run_desktop_app.claim_session_slot(
+        base_port=port, max_sessions=3
+    )
+
+    try:
+        assert (slot, claimed_port) == (0, port)
+        assert probe_socket.getsockname() == ("127.0.0.1", port)
+    finally:
+        probe_socket.close()
+
+
+def test_skips_occupied_slot_and_claims_next():
+    holder, base_port = _bind_ephemeral_socket()
+
+    try:
+        slot, claimed_port, probe_socket = run_desktop_app.claim_session_slot(
+            base_port=base_port, max_sessions=3
+        )
+        try:
+            assert (slot, claimed_port) == (1, base_port + 1)
+        finally:
+            probe_socket.close()
+    finally:
+        holder.close()
+
+
+def test_returns_none_when_all_slots_are_taken():
+    holder, base_port = _bind_ephemeral_socket()
+
+    try:
+        result = run_desktop_app.claim_session_slot(base_port=base_port, max_sessions=1)
+    finally:
+        holder.close()
+
+    assert result == (None, None, None)

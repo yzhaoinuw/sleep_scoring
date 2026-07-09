@@ -7,11 +7,17 @@ Created on Tue Dec  2 17:54:32 2025
 
 import multiprocessing
 import os
+import socket
 import sys
 import threading
 
 import webview
 
+
+BASE_PORT = 8050
+MAX_SESSIONS = 3
+INSTANCE_SLOT_ENV = "SLEEP_SCORING_INSTANCE_SLOT"
+PEER_PORTS_ENV = "SLEEP_SCORING_PEER_PORTS"
 
 UPDATE_ASSET_PREFIX = "sleep_scoring_app_update_"
 SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
@@ -112,7 +118,53 @@ def format_startup_update_console_message(result, format_update_message):
     return message or result.message
 
 
-def run_dash(app, port):
+def claim_session_slot(base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
+    """Bind the first free port in the slot range and return (slot, port, socket).
+
+    The returned socket holds the claim until the Dash server takes the port
+    over; keeping it bound closes the gap in which a concurrently launching
+    window could scan its way onto the same slot. Returns (None, None, None)
+    when every slot is taken.
+    """
+    for slot in range(max_sessions):
+        port = base_port + slot
+        probe_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            probe_socket.bind(("127.0.0.1", port))
+        except OSError:
+            probe_socket.close()
+            continue
+        return slot, port, probe_socket
+    return None, None, None
+
+
+def start_webview():
+    # Windows: force edgechromium; others: auto-select native renderer.
+    if sys.platform == "win32":
+        webview.start(gui="edgechromium")
+    else:
+        webview.start()
+
+
+def show_session_limit_message(max_sessions=MAX_SESSIONS):
+    message = (
+        f"{max_sessions} Sleep Scoring App windows are already open. "
+        "Close one of them, then launch the app again."
+    )
+    print(f"[startup] {message}", flush=True)
+    webview.create_window(
+        "Sleep Scoring App",
+        html=f"<p style='font-family: sans-serif; margin: 2em;'>{message}</p>",
+        width=480,
+        height=200,
+        resizable=False,
+    )
+    start_webview()
+
+
+def run_dash(app, port, probe_socket=None):
+    if probe_socket is not None:
+        probe_socket.close()  # release the claimed port just before Dash binds it
     app.run(
         host="127.0.0.1",
         port=port,
@@ -125,34 +177,56 @@ def run_dash(app, port):
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
 
-    if "--smoke" not in argv:
-        run_startup_update_if_enabled()
-
-    from app_src import VERSION
-    from app_src.app import app
-    from app_src.config import PORT, WINDOW_CONFIG
-
     if "--smoke" in argv:
+        from app_src import VERSION
+        from app_src.app import app  # noqa: F401 -- importing the app is the check
+
         print(f"Sleep Scoring App {VERSION} smoke check OK")
         return 0
 
+    slot, port, probe_socket = claim_session_slot()
+    if slot is None:
+        show_session_limit_message()
+        return 1
+
+    # Export the slot before importing app_src: server.py derives the
+    # per-window temp/cache/video dirs from it at import time, and
+    # loading.py uses the peer ports for the same-file check.
+    os.environ[INSTANCE_SLOT_ENV] = str(slot)
+    os.environ[PEER_PORTS_ENV] = ",".join(
+        str(BASE_PORT + other) for other in range(MAX_SESSIONS) if other != slot
+    )
+
+    if slot == 0:
+        run_startup_update_if_enabled()
+    else:
+        # Never patch app_src while the first window is running from it.
+        print(
+            "[startup-update] another app window is running; update check skipped",
+            flush=True,
+        )
+
+    from app_src import VERSION
+    from app_src.app import app
+    from app_src.config import WINDOW_CONFIG
+
     multiprocessing.freeze_support()
-    t = threading.Thread(target=run_dash, args=(app, PORT), daemon=True)
+    t = threading.Thread(target=run_dash, args=(app, port, probe_socket), daemon=True)
     t.start()
     webview.settings["ALLOW_DOWNLOADS"] = True  # must have this for the download to work
 
+    window_title = f"Sleep Scoring App {VERSION}"
+    if slot > 0:
+        window_title += f" ({slot + 1})"
+
     # This is the window `webview.windows[0]` will refer to.
     webview.create_window(
-        f"Sleep Scoring App {VERSION}",
-        f"http://127.0.0.1:{PORT}",
+        window_title,
+        f"http://127.0.0.1:{port}",
         **WINDOW_CONFIG,
     )
 
-    # Start pywebview (Windows: force edgechromium; others: auto-select native renderer).
-    if sys.platform == "win32":
-        webview.start(gui="edgechromium")
-    else:
-        webview.start()
+    start_webview()
 
     return 0
 

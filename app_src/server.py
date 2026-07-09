@@ -14,6 +14,7 @@ from flask_caching import Cache
 
 from app_src import VERSION
 from app_src.components import Components
+from app_src.config import INSTANCE_SLOT
 
 
 try:
@@ -34,11 +35,36 @@ app = Dash(
 app.layout = components.home_div
 
 
-# debug_counter = Debug_Counter()
-TEMP_PATH = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
+def adopt_legacy_temp_files(root, slot_dir):
+    """Move loose files from the pre-multi-session flat temp dir into slot 0
+    so unsaved-annotation salvage survives the upgrade. Runs only on the
+    first launch after the upgrade, while slot 0's dir does not exist yet.
+    """
+    if slot_dir.exists() or not root.is_dir():
+        return
+    slot_dir.mkdir(parents=True, exist_ok=True)
+    for item in root.iterdir():
+        if item.is_file():
+            item.rename(slot_dir / item.name)
+
+
+# Each app window is its own process on its own slot; per-slot dirs keep the
+# windows' caches, temp exports, and video clips from clobbering each other.
+_TEMP_ROOT = Path(tempfile.gettempdir()) / "sleep_scoring_app_data"
+TEMP_PATH = _TEMP_ROOT / f"slot_{INSTANCE_SLOT}"
+if INSTANCE_SLOT == 0:
+    adopt_legacy_temp_files(_TEMP_ROOT, TEMP_PATH)
 TEMP_PATH.mkdir(parents=True, exist_ok=True)
-VIDEO_DIR = Path(__file__).parent / "assets" / "videos"
+
+_VIDEO_ROOT = Path(__file__).parent / "assets" / "videos"
+VIDEO_DIR = _VIDEO_ROOT / f"slot_{INSTANCE_SLOT}"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+if INSTANCE_SLOT == 0:
+    for stale_clip in _VIDEO_ROOT.glob("*.mp4"):  # clips from pre-multi-session builds
+        try:
+            stale_clip.unlink()
+        except OSError:
+            pass
 
 
 # Note: np.nan is converted to None when reading from cache

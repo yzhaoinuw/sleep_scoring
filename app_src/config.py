@@ -38,8 +38,31 @@ STATS_MODEL_WAKE_THRESHOLD = (
 STATS_MODEL_MIN_WAKE_DURATION = 5.0  # minimum Wake duration in seconds
 STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 
-# %% Others
-PORT = 8050
+# %% Multi-session
+# run_desktop_app.py claims a window slot (one port per app window) and
+# exports these env vars before app_src is imported. Direct imports (tests,
+# scripts, --smoke) see no env vars and default to slot 0 with no peers,
+# which is exactly the single-window behavior.
+
+
+def _read_instance_slot():
+    try:
+        return max(0, int(os.environ.get("SLEEP_SCORING_INSTANCE_SLOT", "0")))
+    except ValueError:
+        return 0
+
+
+def _read_peer_ports():
+    ports = []
+    for token in os.environ.get("SLEEP_SCORING_PEER_PORTS", "").split(","):
+        token = token.strip()
+        if token.isdigit():
+            ports.append(int(token))
+    return ports
+
+
+INSTANCE_SLOT = _read_instance_slot()
+PEER_PORTS = _read_peer_ports()
 
 # %% Profiling
 # Off by default for shipped users. Override per-run with one of the
@@ -61,3 +84,10 @@ BROWSER_NAVIGATION_PERF_LOG = os.environ.get("SLEEP_SCORING_BROWSER_NAV_PERF_LOG
     or RESAMPLER_PERF_LOG
 )
 PROFILE_RESAMPLER_UPDATES = RESAMPLER_PERF_LOG
+
+if INSTANCE_SLOT > 0:
+    # Perf logging stays on the first window only; later windows would
+    # interleave their output with the first window's stream.
+    RESAMPLER_PERF_LOG = False
+    BROWSER_NAVIGATION_PERF_LOG = False
+    PROFILE_RESAMPLER_UPDATES = False
