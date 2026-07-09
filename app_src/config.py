@@ -11,7 +11,10 @@ import os
 WINDOW_CONFIG = {
     "width": 1600,
     "height": 1000,
-    "min_size": (1200, 800),
+    # Small enough to tile two windows side by side or top-bottom on a
+    # 1920x1080 screen. The figure keeps its fixed height and the window
+    # scrolls vertically when shorter than the content.
+    "min_size": (800, 500),
     "resizable": True,
 }
 

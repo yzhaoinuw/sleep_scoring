@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Serverside callbacks for loading a recording and building the figure."""
 
+from pathlib import Path
+
 import dash
 import numpy as np
 from dash.dependencies import Input, Output
@@ -34,8 +36,9 @@ def choose_mat(n_clicks):
 
     if find_peer_session_with_file(selected_file_path) is not None:
         message = (
-            "This file is already open in another Sleep Scoring App window. "
-            "Please select a different file, or close it in the other window first."
+            f'"{Path(selected_file_path).name}" is already open in another '
+            "Sleep Scoring App window. Please select a different file, "
+            "or close it in the other window first."
         )
         return message, dash.no_update
 

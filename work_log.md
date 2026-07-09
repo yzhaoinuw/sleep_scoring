@@ -129,6 +129,27 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   install, then smoke-test `import torch` and sDREAMER inference inside a
   fresh app unzip.
 
+### Multi-Session Follow-Ups After User Testing (Claude Fable 5, default mode)
+
+- User validated in real app sessions: two windows side by side (different
+  files), the same-file refusal message, crash-recovery salvage in a
+  two-window scenario, and a plain single-window session. Still open:
+  fourth-launch notice, video clips in both windows, save/export from both
+  windows (tracked in `next_steps.md`).
+- Two user-requested tweaks:
+  - The refusal message now names the file, e.g. `"a.mat" is already open
+    in another Sleep Scoring App window.` (`callbacks/loading.py`).
+  - Window `min_size` lowered from (1200, 800) to (800, 500) in
+    `config.py` so two windows can tile side by side or top-bottom on a
+    1080p screen. Verified safe for the visualization: `make_figure.py`
+    pins the figure at `height=800` with a `minHeight: 800px` container
+    and only width is responsive (`autosize`), so a small window scrolls
+    vertically and squeezes only the x-axis; nothing distorts. A
+    height-responsive figure is noted in `next_steps.md` as a possible
+    later idea.
+- Verification: full pytest -> `104 passed` (the refusal test now pins the
+  filename in the message).
+
 ### Multi-Session Support Implemented (Claude Fable 5, default mode)
 
 - Implemented the full multi-session design on `feature/multi-session`,

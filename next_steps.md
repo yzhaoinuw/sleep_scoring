@@ -128,17 +128,30 @@ and a per-window crash-recovery note (salvage follows window order; a
 wrong order degrades to no recovery, not wrong recovery);
 `project_overview.md` reflects the slot claim and per-slot dirs.
 
+User-validated 2026-07-09: two windows side by side (different files), the
+same-file refusal message, crash-recovery salvage in a two-window scenario,
+and a plain single-window session. Follow-ups from that session landed the
+same day: the refusal message now names the file, and the window `min_size`
+dropped to (800, 500) so two windows can tile side by side or top-bottom on
+a 1080p screen (safe: the figure is fixed at 800 px height and only
+width-responsive, so small windows scroll rather than distort).
+
 Remaining before merge/release:
 
-- Manual validation in real app sessions: two windows side by side
-  (different files), same-file refusal message, a fourth-launch "too many
-  windows" notice, video clips in both windows, save/export from both
-  windows, crash-recovery salvage in a two-window scenario, and a
-  single-window session behaving exactly as before.
+- Manual validation still open: a fourth-launch "too many windows" notice,
+  video clips in both windows, and save/export from both windows.
 - The next release must ship as a full app zip: `run_desktop_app.py`
   changed, and source-update assets only deliver `app_src/`. An
   `app_src`-only asset on top of an old launcher stays safe (defaults to
   single-window behavior) but does not enable multi-window.
+
+Possible later idea:
+
+- Make the figure height adapt to the window height so a top-bottom tiled
+  window shows the whole figure without vertical scrolling. Today
+  `make_figure.py` pins `height=800` and the graph container sets
+  `minHeight: 800px`; only width is responsive. Risk: four stacked
+  subplots get cramped in a ~500 px window.
 
 Accepted compromises (documented, not engineered against):
 

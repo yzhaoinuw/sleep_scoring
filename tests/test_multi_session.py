@@ -222,7 +222,7 @@ class TestChooseMatPeerRefusal:
 
         message, ready = loading.choose_mat(1)
 
-        assert "already open in another" in message
+        assert '"recording.mat" is already open in another' in message
         assert ready is dash.no_update
         initialize_cache.assert_not_called()
 
