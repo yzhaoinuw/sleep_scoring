@@ -8,10 +8,12 @@ outcomes live in `work_log.md`.
 - Multi-session support on one computer: implemented 2026-07-09 on
   `feature/multi-session` (branched from `dev` after PR #7 merged), with
   tests and doc updates; most flows user-validated the same day. See
-  "Multi-Session Support" below. Next session: user runs the two remaining
-  manual checks (fourth-launch notice, video clips in both windows), then
-  open the PR from `feature/multi-session` to `dev`. The next release after
-  this merges needs a full app zip (the launcher changed).
+  "Multi-Session Support" below. PR #8 (`feature/multi-session` -> `dev`)
+  opened 2026-07-10 after rebasing onto `dev`:
+  https://github.com/yzhaoinuw/sleep_scoring/pull/8. Remaining: the two
+  manual checks (fourth-launch notice, video clips in both windows) and PR
+  review/merge. The next release after this merges needs a full app zip
+  (the launcher changed).
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next

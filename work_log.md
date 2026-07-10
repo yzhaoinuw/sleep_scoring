@@ -20,6 +20,20 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-10
 
+### Multi-Session PR Opened After Rebase Onto dev (Claude Fable 5, default mode)
+
+- Rebased `feature/multi-session` (5 commits) onto `dev` at `aec3f0f` before
+  opening the PR, so the reviewer sees a conflict-free diff. The only
+  conflicts were in `work_log.md` (both branches added 2026-07-09/10
+  entries); resolved by merging the sessions under shared date headers,
+  newest first. `README.md` and `next_steps.md` auto-merged; no code overlap.
+- Verification: full pytest on the rebased branch -> `104 passed`; local and
+  remote refs confirmed equal after the `--force-with-lease` push.
+- Opened PR #8 (`feature/multi-session` -> `dev`):
+  https://github.com/yzhaoinuw/sleep_scoring/pull/8.
+- Still open before merge: the two remaining manual checks (fourth-launch
+  notice, video clips in both windows), tracked in `next_steps.md`.
+
 ### Full App Build With Companion Torch Runtime (GPT-5, default mode)
 
 - Ran the revised full Windows packaging flow with `-AllowDirty` because the
