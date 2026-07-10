@@ -18,6 +18,21 @@ from app_src.server import TEMP_PATH
 
 PEER_QUERY_TIMEOUT_SECONDS = 0.5
 
+# The file open in this window, reported by the peer current-file endpoint.
+# Process state, not the filesystem cache: cache entries persist across
+# restarts of a slot, and a stale filepath would make peers refuse a file
+# that is no longer open anywhere.
+_current_filepath = None
+
+
+def set_current_filepath(filepath):
+    global _current_filepath
+    _current_filepath = filepath
+
+
+def get_current_filepath():
+    return _current_filepath
+
 
 def _normalize_mat_path(filepath):
     return os.path.normcase(os.path.normpath(os.path.abspath(filepath)))
@@ -102,6 +117,7 @@ def write_metadata(mat):
 
 
 def initialize_cache(cache, filepath):
+    set_current_filepath(filepath)
     cache.set("filepath", filepath)
     prev_filename = cache.get("filename")
     filename = Path(filepath).stem

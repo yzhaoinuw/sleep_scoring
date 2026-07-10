@@ -125,3 +125,34 @@ def test_returns_none_when_all_slots_are_taken():
         holder.close()
 
     assert result == (None, None, None)
+
+
+def test_peer_slot_occupied_when_a_peer_port_is_listening():
+    # A live slot-1 window while this process holds slot 0: the launcher
+    # must see the peer so it never patches app_src underneath it.
+    listener, peer_port = _bind_ephemeral_socket()
+    listener.listen(1)
+    base_port = peer_port - 1
+
+    try:
+        assert run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=3)
+    finally:
+        listener.close()
+
+
+def test_no_peer_slots_occupied_when_peer_ports_are_free():
+    holder, port = _bind_ephemeral_socket()
+    holder.close()  # freed port becomes the base of an all-free slot range
+
+    assert not run_desktop_app.any_peer_slot_occupied(0, base_port=port, max_sessions=3)
+
+
+def test_own_slot_listener_does_not_count_as_peer():
+    # Only *other* slots matter; the claimed slot's own port is this process.
+    listener, base_port = _bind_ephemeral_socket()
+    listener.listen(1)
+
+    try:
+        assert not run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=1)
+    finally:
+        listener.close()

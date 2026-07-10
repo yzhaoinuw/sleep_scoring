@@ -16,13 +16,18 @@ from app_src.resampling import (
     get_fig_resampler,
     summarize_resampler_patch,
 )
-from app_src.server import app, cache
+from app_src.server import app
+from app_src.session import get_current_filepath
 
 
 @app.server.get("/_sleep_scoring/current-file")
 def current_file():
-    """Report which mat file this window has open, for peer same-file checks."""
-    return {"app": "sleep_scoring", "filepath": cache.get("filepath") or ""}
+    """Report which mat file this window has open, for peer same-file checks.
+
+    Reads process state rather than the filesystem cache so a freshly
+    restarted window never reports the previous run's file.
+    """
+    return {"app": "sleep_scoring", "filepath": get_current_filepath() or ""}
 
 
 @app.server.get("/_sleep_scoring/resample")

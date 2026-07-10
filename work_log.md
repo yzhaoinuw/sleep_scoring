@@ -20,6 +20,29 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-10
 
+### PR #8 Review Findings Addressed (Claude Fable 5, default mode)
+
+- Addressed both findings from the agent review on PR #8 (GPT-5/Codex).
+  `dev` gained no new commits since the rebase, so no second rebase was
+  needed despite expectations.
+- P1 (updater under live peers): the startup update now requires slot 0
+  AND no peer slot port accepting a TCP connection
+  (`any_peer_slot_occupied` in `run_desktop_app.py`, 0.5 s probe). A
+  relaunch that reclaims slot 0 while slots 1-2 are live skips the update
+  instead of patching `app_src` beneath them. Non-app listeners on peer
+  ports also suppress the update (conservative direction).
+- P2 (stale same-file refusals): the `current-file` endpoint now reads a
+  process-local `_current_filepath` in `session.py` (set by
+  `initialize_cache`) instead of the filesystem cache, so a restarted
+  window reports no file until one is opened. The cached
+  `filepath`/`filename`/`sleep_scores_history` keys are untouched, so
+  crash-recovery salvage behavior is unchanged.
+- Verification: full pytest -> `109 passed` (5 new tests: peer-port
+  probe cases; endpoint ignores a persisted cache filepath;
+  `initialize_cache` sets process state). Two-process reproduction of the
+  P2 scenario on slot 2 confirmed the cache value persists but the
+  endpoint reports empty. `run_desktop_app.py --smoke` OK.
+
 ### Multi-Session PR Opened After Rebase Onto dev (Claude Fable 5, default mode)
 
 - Rebased `feature/multi-session` (5 commits) onto `dev` at `aec3f0f` before

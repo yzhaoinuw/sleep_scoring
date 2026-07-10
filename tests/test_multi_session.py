@@ -105,12 +105,11 @@ class TestAdoptLegacyTempFiles:
 
 class TestCurrentFileEndpoint:
     def _client(self, monkeypatch, filepath):
-        from app_src import routes
+        from app_src import routes  # noqa: F401 -- importing registers the endpoint
+        from app_src import session
         from app_src.server import app
 
-        fake_cache = MagicMock()
-        fake_cache.get.return_value = filepath
-        monkeypatch.setattr(routes, "cache", fake_cache)
+        monkeypatch.setattr(session, "_current_filepath", filepath)
         return app.server.test_client()
 
     def test_reports_open_file(self, monkeypatch):
@@ -129,6 +128,31 @@ class TestCurrentFileEndpoint:
         response = client.get("/_sleep_scoring/current-file")
 
         assert response.get_json() == {"app": "sleep_scoring", "filepath": ""}
+
+    def test_fresh_process_ignores_stale_cached_filepath(self, monkeypatch):
+        """A restarted slot reuses its cache dir, where filepath persists for
+        days; the endpoint must not report it before a file is opened here."""
+        from app_src import server
+
+        fake_cache = MagicMock()
+        fake_cache.get.return_value = "/data/stale.mat"
+        monkeypatch.setattr(server, "cache", fake_cache)
+        client = self._client(monkeypatch, None)
+
+        response = client.get("/_sleep_scoring/current-file")
+
+        assert response.get_json() == {"app": "sleep_scoring", "filepath": ""}
+
+    def test_initialize_cache_updates_process_state(self, monkeypatch):
+        from app_src import session
+
+        monkeypatch.setattr(session, "_current_filepath", None)
+        monkeypatch.setattr(session, "clear_temp_dir", lambda filename: None)
+        monkeypatch.setattr(session, "clear_fig_resamplers", lambda: None)
+
+        session.initialize_cache(MagicMock(), "/data/recording.mat")
+
+        assert session.get_current_filepath() == "/data/recording.mat"
 
 
 class _FakeResponse:

@@ -138,6 +138,32 @@ def claim_session_slot(base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
     return None, None, None
 
 
+PEER_PROBE_TIMEOUT_SECONDS = 0.5
+
+
+def any_peer_slot_occupied(slot, base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
+    """Return True when any other slot's port accepts a TCP connection.
+
+    Claiming slot 0 does not prove this is the only window: if the original
+    slot-0 window closed while slots 1-2 stayed open, a relaunch reclaims
+    slot 0 with live peers still running from app_src. Any listener on a
+    peer port counts as occupied; a non-app listener already blocks that
+    slot for new windows, and skipping the update is the safe direction.
+    """
+    for other in range(max_sessions):
+        if other == slot:
+            continue
+        try:
+            probe = socket.create_connection(
+                ("127.0.0.1", base_port + other), timeout=PEER_PROBE_TIMEOUT_SECONDS
+            )
+        except OSError:
+            continue
+        probe.close()
+        return True
+    return False
+
+
 def start_webview():
     # Windows: force edgechromium; others: auto-select native renderer.
     if sys.platform == "win32":
@@ -197,10 +223,10 @@ def main(argv=None):
         str(BASE_PORT + other) for other in range(MAX_SESSIONS) if other != slot
     )
 
-    if slot == 0:
+    if slot == 0 and not any_peer_slot_occupied(slot):
         run_startup_update_if_enabled()
     else:
-        # Never patch app_src while the first window is running from it.
+        # Never patch app_src while another window may be running from it.
         print(
             "[startup-update] another app window is running; update check skipped",
             flush=True,
