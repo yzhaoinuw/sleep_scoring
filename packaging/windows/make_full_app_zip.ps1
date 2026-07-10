@@ -84,6 +84,15 @@ $Version = $Version.Trim()
 $DistName = "sleep_scoring_app_$Version"
 $DistPath = Join-Path $Repo "dist\$DistName"
 $ZipPath = Join-Path $ArtifactDir "$DistName-windows.zip"
+$TorchVersion = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
+    "python",
+    "-c",
+    "import torch; print(torch.__version__.replace('+', '-'))"
+)
+$TorchVersion = $TorchVersion.Trim()
+$TorchRuntimeName = "torch"
+$TorchRuntimeStage = Join-Path $Repo "build\$TorchRuntimeName"
+$TorchRuntimeZipPath = Join-Path $ArtifactDir "$TorchRuntimeName.zip"
 
 New-Item -ItemType Directory -Force -Path $ArtifactDir | Out-Null
 
@@ -119,7 +128,44 @@ Invoke-Conda -EnvName $BuildEnv -CommandArgs @(
 
 $BundledTorchDir = Join-Path $DistPath "_internal\torch"
 if (Test-Path -LiteralPath $BundledTorchDir) {
+    if (Test-Path -LiteralPath $TorchRuntimeStage) {
+        Remove-Item -LiteralPath $TorchRuntimeStage -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path $TorchRuntimeStage | Out-Null
+    Copy-Item -LiteralPath $BundledTorchDir -Destination (Join-Path $TorchRuntimeStage "torch") -Recurse -Force
+
+    Get-ChildItem -LiteralPath $TorchRuntimeStage -Directory -Recurse -Filter "__pycache__" |
+        Remove-Item -Recurse -Force
+
+    if (Test-Path -LiteralPath $TorchRuntimeZipPath) {
+        Remove-Item -LiteralPath $TorchRuntimeZipPath -Force
+    }
+
+    Compress-Archive -Path (Join-Path $TorchRuntimeStage "*") -DestinationPath $TorchRuntimeZipPath -Force
+
+    $TorchRuntimeHash = Get-FileHash -LiteralPath $TorchRuntimeZipPath -Algorithm SHA256
+    "$($TorchRuntimeHash.Hash)  $(Split-Path $TorchRuntimeZipPath -Leaf)" |
+        Set-Content -LiteralPath "$TorchRuntimeZipPath.sha256.txt" -Encoding UTF8
+
+    $TorchRuntimeManifest = [ordered]@{
+        kind = "sdreamer-torch-runtime-windows"
+        artifact = Split-Path $TorchRuntimeZipPath -Leaf
+        source_full_app = $DistName
+        torch_version = $TorchVersion
+        generated_at_utc = (Get-Date).ToUniversalTime().ToString("o")
+        install_target = "Copy all zip contents directly into the app _internal folder."
+        contains_internal_folder = $false
+        required_paths = @("torch/")
+        sha256 = $TorchRuntimeHash.Hash
+    }
+
+    $TorchRuntimeManifest | ConvertTo-Json -Depth 4 |
+        Set-Content -LiteralPath "$TorchRuntimeZipPath.manifest.json" -Encoding UTF8
+
     Remove-Item -LiteralPath $BundledTorchDir -Recurse -Force
+    Remove-Item -LiteralPath $TorchRuntimeStage -Recurse -Force
+} else {
+    Write-Warning "PyInstaller did not produce _internal\torch; no optional Torch runtime zip was created."
 }
 
 Copy-Item -LiteralPath (Join-Path $Repo "app_src") -Destination (Join-Path $DistPath "app_src") -Recurse -Force
@@ -168,6 +214,7 @@ $Manifest = [ordered]@{
     artifact = Split-Path $ZipPath -Leaf
     launcher = "unblock_app.cmd"
     build_env_requirements = Split-Path "$ZipPath.build_env_requirements.txt" -Leaf
+    optional_torch_runtime = if (Test-Path -LiteralPath $TorchRuntimeZipPath) { Split-Path $TorchRuntimeZipPath -Leaf } else { $null }
     sha256 = $Hash.Hash
 }
 
@@ -176,3 +223,7 @@ $Manifest | ConvertTo-Json -Depth 4 |
 
 Write-Host "Built full app zip: $ZipPath"
 Write-Host "SHA256: $($Hash.Hash)"
+if (Test-Path -LiteralPath $TorchRuntimeZipPath) {
+    Write-Host "Built optional Torch runtime zip: $TorchRuntimeZipPath"
+    Write-Host "Torch runtime SHA256: $($TorchRuntimeHash.Hash)"
+}

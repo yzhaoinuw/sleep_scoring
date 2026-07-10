@@ -18,6 +18,117 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-10
+
+### Full App Build With Companion Torch Runtime (GPT-5, default mode)
+
+- Ran the revised full Windows packaging flow with `-AllowDirty` because the
+  worktree contains the packaging/doc edits made during this packaging fix.
+- Suppressed the harmless CPU-only PyTorch warning from sDREAMER inference by
+  setting DataLoader `pin_memory` only when the selected device is CUDA in both
+  sDREAMER inference paths.
+- Renamed the companion runtime artifact to the plain user-facing `torch.zip`
+  and restored the default packaged model setting to `stats_model` without
+  rerunning PyInstaller: updated source and generated `dist/` config, then
+  repacked the existing app folder after removing `_internal\torch`.
+- Build output:
+  - `release_artifacts/sleep_scoring_app_v0.16.4.post1-windows.zip`
+    (202,081,644 bytes), SHA256
+    `ECA0B7F20C0EF2339DF560F7671801461E35FD279F4F039AD9E305143FDD2E09`.
+  - `release_artifacts/torch.zip`
+    (92,097,938 bytes), SHA256
+    `07A65EB415C9225C20BE3EDE7196D27A8151779C478B0992B627590A29F0104D`.
+  - Full app manifest records
+    `optional_torch_runtime = "torch.zip"`.
+- Verification:
+  - Initial `make_full_app_zip.ps1 -AllowDirty` ran `pip check`, full pytest
+    (`84 passed, 1 warning`), release structure smoke, and
+    `run_desktop_app.exe --smoke`.
+  - After the `pin_memory` warning fix, a rebuild with tests hit a Windows
+    permission error while pytest tried to remove the stale
+    `.pytest_tmp\build` basetemp; this was a temp-directory cleanup issue, not
+    a test assertion failure. Reran full pytest with
+    `--basetemp .pytest_tmp\pin_memory`, which passed (`84 passed, 1 warning`).
+  - Final artifact rebuild used `make_full_app_zip.ps1 -AllowDirty -SkipTests`
+    after the separate clean-basetemp pytest pass; it ran `pip check`, release
+    structure smoke, and `run_desktop_app.exe --smoke`.
+  - Direct post-build repack verified the final app zip has
+    `SLEEP_SCORING_MODEL = "stats_model"` and does not contain
+    `_internal\torch`; final `torch.zip` contains root-level `torch/`.
+  - Expanded the companion Torch runtime into
+    `dist/sleep_scoring_app_v0.16.4.post1/_internal`; confirmed
+    `_internal\torch`, `_internal\torch\__init__.py`, and
+    `_internal\torch\lib\torch_cpu.dll` exist.
+  - Temporary generated-app import probe under the frozen exe imported
+    `cProfile`, `torch`, `timm.layers`, `torchvision`, and
+    `torch._dynamo.convert_frame` successfully.
+  - Temporary generated-app inference probe loaded a 300-second NE slice from
+    `user_test_files/408_yfp.mat` and ran packaged NE sDREAMER inference via
+    `app_src.inference.run_inference`, producing `299 predictions`; after the
+    `pin_memory` fix, the PyTorch CPU/no-accelerator warning no longer
+    appeared.
+  - Removed temporary probe code from the generated `dist/` app copy and reran
+    plain `run_desktop_app.exe --smoke` successfully.
+- Remaining follow-up: upload/share both artifacts together. Do not upload the
+  earlier manually pip-built runtime zip from 2026-07-09; it is superseded.
+
+## 2026-07-09
+
+### Optional sDREAMER Torch Runtime Builder (GPT-5, default mode)
+
+- Reworked the packaging plan after the generated runtime got past `torchgen`
+  but the old app failed later on `ModuleNotFoundError: No module named
+  'cProfile'`. That error is baked into the old executable because it was built
+  with `torch` excluded from PyInstaller analysis.
+- Changed `packaging/windows/app.spec` so Torch is no longer excluded during
+  PyInstaller analysis. `packaging/windows/make_full_app_zip.ps1` now creates
+  the optional Torch runtime zip from the built `_internal\torch` folder, then
+  removes that folder before creating the main app zip.
+- Updated `README.md` and `packaging/windows/README.md` to describe the
+  runtime as an optional sDREAMER Torch runtime rather than a single `torch/`
+  folder. User-facing install check: after copying, `_internal\torch` should
+  exist.
+- Previously generated
+  `release_artifacts/torch_runtime_torch-2.9.1-cpu.zip`
+  (120,427,844 bytes) plus `.sha256.txt` and `.manifest.json` sidecars.
+  SHA256:
+  `294FF4F9340C36BE1C296C9C6C536565A90BDC3FD49782A51EC94F8F1B55E664`.
+  Treat this as superseded until a new full app package is built by the revised
+  full-package script.
+- Verification:
+  - Builder installed `torch==2.9.1+cpu` into a clean staging directory.
+  - Builder verified `import torch` and `import torchgen` with `python -S`;
+    imported paths came from the staging directory.
+  - Zip inspection confirmed root-level `torch/` and `torchgen/` are present
+    and `_internal/` is not present in the archive.
+- Note: a raw normal-Python `sys.path` probe against the existing Desktop
+  app's `_internal/` is not a valid frozen-app substitute, because PyInstaller
+  stores some NumPy pieces as side data there while the real app also uses its
+  PYZ importer.
+- Remaining follow-up: build a new full app package with the revised packaging
+  flow, copy its companion Torch runtime zip into that new app's `_internal/`,
+  and run a real sDREAMER prediction before uploading/sharing artifacts.
+
+### sDREAMER Optional Torch Runtime Import Failure (GPT-5, default mode)
+
+- Investigated a user-reported packaged-app failure after enabling
+  `SLEEP_SCORING_MODEL = "sdreamer"` and placing the documented optional
+  `torch` folder inside `_internal/`.
+- Reproduced evidence from the local test distribution:
+  `_internal\torch` exists and is PyTorch `2.9.1+cpu`, but
+  `_internal\torchgen` is absent. The callback traceback fails during
+  `import torch` at `torch\utils\_python_dispatch.py`, where PyTorch imports
+  the top-level `torchgen` package.
+- Direct repo testing passes because the conda env has a complete PyTorch
+  install on `sys.path` (`torch`, `torchgen`, `functorch`, and required pure
+  dependencies), so it is not representative of the slim packaged runtime.
+- Current packaging/docs still describe the optional payload as only the
+  `torch` folder. The safer fix is to rebuild the optional payload as a
+  PyTorch runtime bundle extracted into `_internal/`, at minimum including
+  `torch/` and the matching top-level `torchgen/` from the same PyTorch
+  install, then smoke-test `import torch` and sDREAMER inference inside a
+  fresh app unzip.
+
 ## 2026-07-07
 
 ### Restructure PR To dev (Claude Fable 5, default mode)

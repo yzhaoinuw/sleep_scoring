@@ -10,8 +10,8 @@ PyInstaller runtime layout, or the bundled auto-updater changed.
 
 The default full app zip intentionally removes Torch, which is the largest
 runtime dependency. It keeps the sDREAMER code and checkpoint files, so users
-who need sDREAMER can enable it by placing the optional `torch` folder inside
-`_internal/`.
+who need sDREAMER can enable it by copying the optional sDREAMER Torch runtime
+contents directly into `_internal/`.
 
 This full zip is still the file to share with new Windows users. The generated
 `build_env_requirements` sidecar is for release/debugging records, not a user
@@ -35,12 +35,27 @@ sleep_scoring_app_vX.Y.Z-windows.zip
 sleep_scoring_app_vX.Y.Z-windows.zip.manifest.json
 sleep_scoring_app_vX.Y.Z-windows.zip.sha256.txt
 sleep_scoring_app_vX.Y.Z-windows.zip.build_env_requirements.txt
+torch.zip
+torch.zip.manifest.json
+torch.zip.sha256.txt
 ```
 
 Before creating the zip, the script checks that the release folder contains the
 expected files, including the double-click starter, and runs
 `run_desktop_app.exe --smoke` to verify the built launcher can import the
 side-by-side `app_src/` folder.
+
+## Optional sDREAMER Torch Runtime Zip
+
+`make_full_app_zip.ps1` builds the app with Torch available so PyInstaller can
+discover Torch, TorchVision, and related hidden imports. The script then creates
+the optional runtime zip from the built `_internal\torch` folder and removes
+that folder before zipping the main app. This keeps the full app zip smaller
+without losing imports such as `cProfile` that Torch loads later.
+
+The generated runtime zip does not contain an `_internal/` folder itself. Users
+copy its contents directly into the app's existing `_internal/` folder. After
+copying, `_internal\torch` should exist.
 
 ## Automatic Source Update Asset
 

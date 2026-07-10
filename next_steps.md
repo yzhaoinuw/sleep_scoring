@@ -61,6 +61,8 @@ Open items:
 - After the next app_src-only change, attach a generated automatic source
   update asset to a GitHub Release and verify an installed `v0.16.4.post1`
   app updates itself on startup.
+- Upload/share the rebuilt `v0.16.4.post1` full app zip together with its
+  companion `torch.zip`.
 - Manually test `unblock_app.cmd` from a fresh unzip of a generated
   full app zip.
 - Keep the manual `app_src` replacement zip only as a fallback if automatic

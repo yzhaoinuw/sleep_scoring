@@ -156,7 +156,7 @@ def infer(data, model_path, batch_size=32):
         shuffle=False,
         num_workers=0,
         drop_last=False,
-        pin_memory=True,
+        pin_memory=device == "cuda",
     )
 
     model.eval()

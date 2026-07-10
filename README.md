@@ -26,7 +26,7 @@ The app has been tested on macOS Tahoe. To download, follow [Build From Source](
 
 ## Before Usage
 
-- For best performance, copy the unzipped app folder to your own computer before running it. The app includes the sDREAMER model files but does not include the optional _torch/_ folder needed for automatic sleep scoring.
+- For best performance, copy the unzipped app folder to your own computer before running it. The app includes the sDREAMER model files but does not include the optional sDREAMER Torch runtime needed for deep-learning automatic scoring.
 - Use only one Sleep Scoring App session per computer.
 - If the graph feels slow, close unnecessary browser tabs and other heavy apps before scoring.
 
@@ -87,17 +87,17 @@ While in annotation mode:
 
 Automatic scoring can use either the statistical Wake/REM model or sDREAMER. To switch models, open _app_src/config.py_ and set `SLEEP_SCORING_MODEL` to either `"stats_model"` or `"sdreamer"`.
 
-The statistical model does not need the optional _torch/_ folder. Its user-facing settings are in _app_src/config.py_:
+The statistical model does not need the optional sDREAMER Torch runtime. Its user-facing settings are in _app_src/config.py_:
 
 - `STATS_MODEL_WAKE_THRESHOLD`
 - `STATS_MODEL_MIN_WAKE_DURATION`
 - `STATS_MODEL_MIN_REM_DURATION`
 
-For sDREAMER, the Windows app zip includes the model files, but not the _torch/_ folder. To enable sDREAMER:
+For sDREAMER, the Windows app zip includes the model files, but not the optional Torch runtime. To enable sDREAMER:
 
 - Download *torch.zip* from the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
 - Unzip it, ensuring it does not remain nested inside another folder.
-- Place it directly inside _internal/ and **NOT** inside any subfolder. Review the [Installation](#installation) section if needed.
+- Copy all folders and files from the unzipped runtime directly into the app's _internal/_ folder. After copying, _internal/_ should contain _torch/_.
 - Reopen the app and it should be enabled automatically.
 
 After enabling:

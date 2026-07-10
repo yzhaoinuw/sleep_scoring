@@ -37,7 +37,10 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["torch"],
+    # Let PyInstaller analyze Torch and its import graph. The full-zip build
+    # script removes the large _internal/torch folder after analysis so users
+    # can install it separately without losing hidden stdlib/runtime imports.
+    excludes=[],
     noarchive=False,
 )
 
