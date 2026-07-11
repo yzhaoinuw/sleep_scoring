@@ -127,6 +127,26 @@ def test_returns_none_when_all_slots_are_taken():
     assert result == (None, None, None)
 
 
+def _reserve_contiguous_port_range(count, attempts=20):
+    """Bind `count` consecutive ports from an ephemeral base, so a test can
+    reason about a slot range verified to be entirely free. Returns the base
+    port and the bound holder sockets."""
+    for _ in range(attempts):
+        holder, base_port = _bind_ephemeral_socket()
+        holders = [holder]
+        try:
+            for offset in range(1, count):
+                extra = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                holders.append(extra)
+                extra.bind(("127.0.0.1", base_port + offset))
+        except OSError:
+            for held in holders:
+                held.close()
+            continue
+        return base_port, holders
+    raise RuntimeError("could not reserve a contiguous free port range")
+
+
 def test_peer_slot_occupied_when_a_peer_port_is_listening():
     # A live slot-1 window while this process holds slot 0: the launcher
     # must see the peer so it never patches app_src underneath it.
@@ -140,11 +160,28 @@ def test_peer_slot_occupied_when_a_peer_port_is_listening():
         listener.close()
 
 
-def test_no_peer_slots_occupied_when_peer_ports_are_free():
-    holder, port = _bind_ephemeral_socket()
-    holder.close()  # freed port becomes the base of an all-free slot range
+def test_peer_slot_occupied_when_peer_port_bound_but_not_listening():
+    # A peer that is still starting up holds its claimed port bound but not
+    # yet listening until Dash takes over; a connect probe would miss it.
+    holder, peer_port = _bind_ephemeral_socket()
+    base_port = peer_port - 1
 
-    assert not run_desktop_app.any_peer_slot_occupied(0, base_port=port, max_sessions=3)
+    try:
+        assert run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=3)
+    finally:
+        holder.close()
+
+
+def test_no_peer_slots_occupied_when_peer_ports_are_free():
+    base_port, holders = _reserve_contiguous_port_range(3)
+    own_claim, peer_holders = holders[0], holders[1:]
+    for held in peer_holders:
+        held.close()  # peers freed; own slot stays bound like a real claim
+
+    try:
+        assert not run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=3)
+    finally:
+        own_claim.close()
 
 
 def test_own_slot_listener_does_not_count_as_peer():

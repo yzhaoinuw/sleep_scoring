@@ -20,6 +20,25 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-10
 
+### PR #8 Follow-Up Review Round 2 (Claude Fable 5, default mode)
+
+- Reviewer confirmed P2 resolved; P1 was improved but incomplete: the
+  connect probe in `any_peer_slot_occupied` misses a peer that is still
+  starting up, because `claim_session_slot` holds the claimed port with a
+  bound socket that is not listening yet and refuses connections.
+- Changed the probe from `socket.create_connection` to a bind attempt,
+  which fails against any bound port whether or not it listens; dropped
+  the now-unused probe timeout constant. Added the bound-but-not-listening
+  regression test the reviewer asked for.
+- Fixed the flaky `test_no_peer_slots_occupied_when_peer_ports_are_free`
+  (it assumed base+1/base+2 were free without checking; failed twice in
+  the reviewer's local runs): a helper now reserves and verifies the full
+  contiguous 3-port range, then frees only the peer ports while the own
+  slot stays bound like a real claim.
+- Verification: full pytest x3 -> `110 passed` each run. Direct
+  reproduction of the reviewer's scenario now yields peer_port_bound=True,
+  accepting_connections=False, detected_occupied=True (was False).
+
 ### PR #8 Review Findings Addressed (Claude Fable 5, default mode)
 
 - Addressed both findings from the agent review on PR #8 (GPT-5/Codex).

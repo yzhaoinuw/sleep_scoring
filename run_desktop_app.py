@@ -138,29 +138,28 @@ def claim_session_slot(base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
     return None, None, None
 
 
-PEER_PROBE_TIMEOUT_SECONDS = 0.5
-
-
 def any_peer_slot_occupied(slot, base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
-    """Return True when any other slot's port accepts a TCP connection.
+    """Return True when any other slot's port is already bound.
 
     Claiming slot 0 does not prove this is the only window: if the original
     slot-0 window closed while slots 1-2 stayed open, a relaunch reclaims
-    slot 0 with live peers still running from app_src. Any listener on a
-    peer port counts as occupied; a non-app listener already blocks that
-    slot for new windows, and skipping the update is the safe direction.
+    slot 0 with live peers still running from app_src. The probe is a bind
+    attempt rather than a connect, because a peer that is still starting up
+    holds its claimed port with a bound socket that is not listening yet
+    and would refuse a connection. Anything holding a peer port counts as
+    occupied; a non-app holder already blocks that slot for new windows,
+    and skipping the update is the safe direction.
     """
     for other in range(max_sessions):
         if other == slot:
             continue
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            probe = socket.create_connection(
-                ("127.0.0.1", base_port + other), timeout=PEER_PROBE_TIMEOUT_SECONDS
-            )
+            probe.bind(("127.0.0.1", base_port + other))
         except OSError:
-            continue
-        probe.close()
-        return True
+            return True
+        finally:
+            probe.close()
     return False
 
 
