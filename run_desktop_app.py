@@ -138,29 +138,37 @@ def claim_session_slot(base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
     return None, None, None
 
 
-def any_peer_slot_occupied(slot, base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
-    """Return True when any other slot's port is already bound.
+def claim_peer_slots(slot, base_port=BASE_PORT, max_sessions=MAX_SESSIONS):
+    """Bind and hold every other slot's port; None when any is already taken.
 
     Claiming slot 0 does not prove this is the only window: if the original
     slot-0 window closed while slots 1-2 stayed open, a relaunch reclaims
-    slot 0 with live peers still running from app_src. The probe is a bind
-    attempt rather than a connect, because a peer that is still starting up
+    slot 0 with live peers still running from app_src. The claim is a bind
+    rather than a connect probe, because a peer that is still starting up
     holds its claimed port with a bound socket that is not listening yet
     and would refuse a connection. Anything holding a peer port counts as
     occupied; a non-app holder already blocks that slot for new windows,
     and skipping the update is the safe direction.
+
+    The caller keeps the returned sockets bound for the whole update and
+    closes them afterward: releasing them any earlier would let a launcher
+    that starts mid-update claim a slot and import app_src while it is
+    being patched. Until then, such a launcher sees every slot taken.
     """
+    guards = []
     for other in range(max_sessions):
         if other == slot:
             continue
-        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        guard = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            probe.bind(("127.0.0.1", base_port + other))
+            guard.bind(("127.0.0.1", base_port + other))
         except OSError:
-            return True
-        finally:
-            probe.close()
-    return False
+            guard.close()
+            for held in guards:
+                held.close()
+            return None
+        guards.append(guard)
+    return guards
 
 
 def start_webview():
@@ -222,14 +230,19 @@ def main(argv=None):
         str(BASE_PORT + other) for other in range(MAX_SESSIONS) if other != slot
     )
 
-    if slot == 0 and not any_peer_slot_occupied(slot):
-        run_startup_update_if_enabled()
-    else:
+    peer_guards = claim_peer_slots(slot) if slot == 0 else None
+    if peer_guards is None:
         # Never patch app_src while another window may be running from it.
         print(
             "[startup-update] another app window is running; update check skipped",
             flush=True,
         )
+    else:
+        try:
+            run_startup_update_if_enabled()
+        finally:
+            for guard in peer_guards:
+                guard.close()
 
     from app_src import VERSION
     from app_src.app import app

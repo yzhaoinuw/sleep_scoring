@@ -147,7 +147,7 @@ def _reserve_contiguous_port_range(count, attempts=20):
     raise RuntimeError("could not reserve a contiguous free port range")
 
 
-def test_peer_slot_occupied_when_a_peer_port_is_listening():
+def test_no_peer_claim_when_a_peer_port_is_listening():
     # A live slot-1 window while this process holds slot 0: the launcher
     # must see the peer so it never patches app_src underneath it.
     listener, peer_port = _bind_ephemeral_socket()
@@ -155,32 +155,62 @@ def test_peer_slot_occupied_when_a_peer_port_is_listening():
     base_port = peer_port - 1
 
     try:
-        assert run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=3)
+        assert run_desktop_app.claim_peer_slots(0, base_port=base_port, max_sessions=3) is None
     finally:
         listener.close()
 
 
-def test_peer_slot_occupied_when_peer_port_bound_but_not_listening():
+def test_no_peer_claim_when_peer_port_bound_but_not_listening():
     # A peer that is still starting up holds its claimed port bound but not
     # yet listening until Dash takes over; a connect probe would miss it.
     holder, peer_port = _bind_ephemeral_socket()
     base_port = peer_port - 1
 
     try:
-        assert run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=3)
+        assert run_desktop_app.claim_peer_slots(0, base_port=base_port, max_sessions=3) is None
     finally:
         holder.close()
 
 
-def test_no_peer_slots_occupied_when_peer_ports_are_free():
+def test_claims_and_holds_peer_ports_when_free():
     base_port, holders = _reserve_contiguous_port_range(3)
     own_claim, peer_holders = holders[0], holders[1:]
     for held in peer_holders:
         held.close()  # peers freed; own slot stays bound like a real claim
 
+    guards = run_desktop_app.claim_peer_slots(0, base_port=base_port, max_sessions=3)
+
     try:
-        assert not run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=3)
+        assert [guard.getsockname()[1] for guard in guards] == [base_port + 1, base_port + 2]
     finally:
+        for guard in guards:
+            guard.close()
+        own_claim.close()
+
+
+def test_late_launcher_cannot_claim_peer_slot_until_guards_release():
+    # A launcher starting while slot 0 still holds the update guards must
+    # find every slot taken; releasing the guards reopens the slots.
+    base_port, holders = _reserve_contiguous_port_range(3)
+    own_claim, peer_holders = holders[0], holders[1:]
+    for held in peer_holders:
+        held.close()
+
+    guards = run_desktop_app.claim_peer_slots(0, base_port=base_port, max_sessions=3)
+    try:
+        late = run_desktop_app.claim_session_slot(base_port=base_port, max_sessions=3)
+        assert late == (None, None, None)
+    finally:
+        for guard in guards:
+            guard.close()
+
+    slot, claimed_port, probe_socket = run_desktop_app.claim_session_slot(
+        base_port=base_port, max_sessions=3
+    )
+    try:
+        assert (slot, claimed_port) == (1, base_port + 1)
+    finally:
+        probe_socket.close()
         own_claim.close()
 
 
@@ -190,6 +220,6 @@ def test_own_slot_listener_does_not_count_as_peer():
     listener.listen(1)
 
     try:
-        assert not run_desktop_app.any_peer_slot_occupied(0, base_port=base_port, max_sessions=1)
+        assert run_desktop_app.claim_peer_slots(0, base_port=base_port, max_sessions=1) == []
     finally:
         listener.close()

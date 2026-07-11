@@ -18,6 +18,26 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-11
+
+### PR #8 Review Round 3: Update Guard Holds Peer Ports (Claude Fable 5, default mode)
+
+- Reviewer confirmed the round-2 fixes but flagged a remaining P1
+  time-of-check/time-of-use race: the bind probe released each peer port
+  before the updater ran, so a launcher starting mid-update could claim
+  slot 1 and import `app_src` while slot 0 was patching it.
+- Replaced `any_peer_slot_occupied` with `claim_peer_slots`, which binds
+  and holds every peer port; `main` keeps the guard sockets bound for the
+  whole `run_startup_update_if_enabled()` call and closes them in a
+  `finally`. A launcher starting during the update sees every slot taken
+  and shows the session-limit notice; relaunching after the brief update
+  window works. Added the requested regression test: with guards held,
+  `claim_session_slot` returns no slot; after release it claims slot 1.
+- Verification: full pytest x3 -> `111 passed` each run; smoke OK. Direct
+  reproduction: gate_passed_before_peer=True, late_peer_slot=None,
+  late_launcher_blocked=True (reviewer had late_peer_slot=1), and
+  after_release_slot=1.
+
 ## 2026-07-10
 
 ### PR #8 Follow-Up Review Round 2 (Claude Fable 5, default mode)
