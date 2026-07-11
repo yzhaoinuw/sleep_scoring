@@ -18,7 +18,26 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
-## 2026-07-11
+## 2026-07-10
+
+### PR #8 Reviewed And Merged To dev (GPT-5, default mode)
+
+- Completed a multi-round diff-based review of PR #8
+  (`feature/multi-session` -> `dev`). The review found and verified fixes for
+  the updater-under-live-peer race, stale cached `current-file` reports,
+  bound-but-not-listening peer detection, port-test isolation, and the final
+  updater time-of-check/time-of-use gap.
+- Fast-forwarded local `dev` from `aec3f0f` to reviewed PR head `05b66b7`,
+  preserved the existing local `AGENTS.md`/`work_log.md` edits, reconciled
+  `next_steps.md`, and included the documentation reconciliation in the same
+  publish workflow.
+- Verification on the exact PR head: GitHub CI green; full pytest ->
+  `111 passed`; `run_desktop_app.py --smoke` and `compileall` passed. Direct
+  guard reproduction: two peer ports held, a late launcher received no slot,
+  and slot 1 became available immediately after guard release.
+- Corrected the final author work-log subsection from `2026-07-11` to the
+  workstation date `2026-07-10`; remote `dev` and PR closure were verified
+  after the push.
 
 ### PR #8 Review Round 3: Update Guard Holds Peer Ports (Claude Fable 5, default mode)
 
@@ -38,7 +57,16 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   late_launcher_blocked=True (reviewer had late_peer_slot=1), and
   after_release_slot=1.
 
-## 2026-07-10
+### GitHub CLI Sandbox Authentication Rule (GPT-5, default mode)
+
+- Confirmed that a sandboxed `gh` command may report invalid authentication
+  even when the host keyring login is valid. Consolidated `AGENTS.md` guidance:
+  retry an authorized, narrowly scoped Git or GitHub CLI command with
+  `sandbox_permissions: "require_escalated"` before changing plans or asking
+  the user to reauthenticate; normal approval requirements still apply.
+- Used that path to post the PR #8 review findings after the GitHub connector
+  rejected review creation with `403 Resource not accessible by integration`;
+  the comment identifies the reviewer as GPT-5 (Codex), high reasoning effort.
 
 ### PR #8 Follow-Up Review Round 2 (Claude Fable 5, default mode)
 

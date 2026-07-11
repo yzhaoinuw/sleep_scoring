@@ -5,15 +5,12 @@ outcomes live in `work_log.md`.
 
 ## Currently Hot
 
-- Multi-session support on one computer: implemented 2026-07-09 on
-  `feature/multi-session` (branched from `dev` after PR #7 merged), with
-  tests and doc updates; most flows user-validated the same day. See
-  "Multi-Session Support" below. PR #8 (`feature/multi-session` -> `dev`)
-  opened 2026-07-10 after rebasing onto `dev`:
-  https://github.com/yzhaoinuw/sleep_scoring/pull/8. Remaining: the two
-  manual checks (fourth-launch notice, video clips in both windows) and PR
-  review/merge. The next release after this merges needs a full app zip
-  (the launcher changed).
+- Multi-session support on one computer: implemented on
+  `feature/multi-session`, user-validated in most flows, and merged into `dev`
+  through PR #8 on 2026-07-10 after multi-round agent review. See
+  "Multi-Session Support" below. Remaining before release: the two manual
+  checks (fourth-launch notice and video clips in both windows). The next
+  release needs a full app zip because the launcher changed.
 - Auto-update packaging: after the next `app_src`-only change, publish a source
   update asset and verify an installed `v0.16.4.post1` app updates itself.
 - No active visualization performance experiment is planned before the next
@@ -30,13 +27,12 @@ registered via `ClientsideFunction`) on `refactor`.
 
 Layout after Phase 2:
 
-- `app_src/server.py`: Dash instance, cache, components, `TEMP_PATH` /
-  `VIDEO_DIR`, and the `run_inference` availability probe. Parameterize
-  here (cache dir, paths, port) for the multi-session idea under "Further
-  Down The Line".
-- `app_src/routes.py`: the two Flask endpoints.
+- `app_src/server.py`: Dash instance, cache, components, per-slot `TEMP_PATH` /
+  `VIDEO_DIR`, and the `run_inference` availability probe.
+- `app_src/routes.py`: Flask endpoints, including the peer `current-file`
+  query.
 - `app_src/session.py`: per-recording setup helpers (cache init, temp-dir
-  housekeeping, metadata, figure creation).
+  housekeeping, metadata, figure creation, and peer same-file checks).
 - `app_src/callbacks/`: one module per concern (`clientside`, `loading`,
   `navigation`, `prediction`, `saving`, `video`), registered on import.
 - `app_src/assets/clientsideCallbacks.js`: the clientside callback JS, in
@@ -93,11 +89,11 @@ Implemented 2026-07-09 (all landed with tests on `feature/multi-session`):
 
 - `run_desktop_app.py`: `claim_session_slot()` scans/claims the slot in
   `main()` before anything else, holds the probe socket during startup and
-  releases it just before `app.run` to shrink the claim/bind race. Slot > 0
-  skips the startup auto-update check (prevents patching `app_src/` under a
-  running instance and concurrent update applies). A fourth launch shows a
-  "too many windows" webview notice and exits. Windows on slot > 0 get a
-  numbered title, e.g. "(2)".
+  releases it just before `app.run` to shrink the claim/bind race. Slot 0
+  claims every peer port for the full startup-update call, so no later window
+  can import `app_src/` while it is being patched; later slots skip the update.
+  A fourth launch shows a "too many windows" webview notice and exits. Windows
+  on slot > 0 get a numbered title, e.g. "(2)".
 - `app_src/server.py`: per-slot dirs. `TEMP_PATH` becomes
   `.../sleep_scoring_app_data/slot_<n>`, `VIDEO_DIR` becomes
   `assets/videos/slot_<n>`; the flask-caching `CACHE_DIR` follows
@@ -109,8 +105,8 @@ Implemented 2026-07-09 (all landed with tests on `feature/multi-session`):
   survives, and stale pre-upgrade mp4s in the videos root are removed.
 - `app_src/callbacks/video.py`: clip URL becomes
   `/assets/videos/slot_<n>/<clip>` (still served by Dash's assets route).
-- `app_src/routes.py`: add `GET /_sleep_scoring/current-file` returning
-  `cache.get("filepath")`.
+- `app_src/routes.py`: add `GET /_sleep_scoring/current-file`, reporting the
+  process-local file open in this window rather than the persistent cache.
 - `app_src/callbacks/loading.py`: before `initialize_cache`, query the
   other slots' `current-file` endpoints (short timeout, at most two peers).
   If a live peer has the same mat file open, refuse the load and show a
@@ -143,7 +139,7 @@ rather than distort), and the mat upload button sizes to its label
 (`fit-content` + `nowrap`) instead of 15% of the window so its shape
 survives resizes.
 
-Remaining before merge/release:
+Remaining before release:
 
 - Manual validation still open: a fourth-launch "too many windows" notice
   and video clips in both windows.

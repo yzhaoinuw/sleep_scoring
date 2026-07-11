@@ -56,12 +56,13 @@ Updater config:
 Before editing, run `git status --short --branch`. Preserve unrelated local
 changes and untracked files.
 
-This Windows checkout often needs approval/escalation for `git switch`,
-`git merge --ff-only`, `git fetch`, `git push`, and tag/ref updates. Known
-failure signs include `cannot spawn sh`, auth prompts, `.git/index.lock`,
-`FETCH_HEAD`, or `ORIG_HEAD` lock errors. Keep the Git plan narrow; do not
-reset, remove locks, or change branches to work around friction. For pushes,
-use:
+This Windows checkout may need approval/escalation for Git and GitHub CLI
+operations. If an authorized `git` or `gh` command fails because the sandbox
+cannot write Git metadata or access host credentials, retry the same narrow
+command with `sandbox_permissions: "require_escalated"` before changing the
+plan or asking the user to reauthenticate. Required approvals still apply; do
+not remove locks, reset state, or broaden command scope to work around the
+failure. For pushes, use:
 
 ```powershell
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "git push origin <branch>"
