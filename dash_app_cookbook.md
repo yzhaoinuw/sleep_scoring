@@ -107,6 +107,10 @@ The three layers, top to bottom:
 17. [Side-panel media (video clips)](#recipe-17--side-panel-media)
 18. [Performance instrumentation](#recipe-18--performance-instrumentation)
 
+**Multi-session — multiple independent desktop windows:**
+
+19. [Multi-session desktop instances](#recipe-19--multi-session-desktop-instances)
+
 **Reference:**
 
 - [Cross-cutting patterns & conventions](#cross-cutting-patterns)
@@ -133,9 +137,9 @@ Open/Save dialogs.
 - The port comes from a **window-slot claim**: the launcher binds the first free port in
   `BASE_PORT`..`BASE_PORT + MAX_SESSIONS - 1` (8050-8052) and holds the socket until the
   server takes the port over. The OS port table doubles as the "how many windows are open"
-  counter — no lock files, and a crashed window frees its slot automatically. Each window is
-  a fully separate process; the slot number namespaces its temp/cache/video dirs, and only
-  slot 0 runs the startup update check and perf logging.
+  counter — no lock files, and a crashed window frees its slot automatically. Recipe 19 covers
+  the complete multi-window contract: startup ordering, updater exclusion, per-slot paths,
+  and peer coordination.
 - `webview.create_window(...)` opens a native window pointed at that local URL. `WINDOW_CONFIG`
   sets size/min-size/resizable.
 - On Windows the app forces the EdgeChromium renderer (`webview.start(gui="edgechromium")`);
@@ -147,9 +151,9 @@ Open/Save dialogs.
   "Do you want to leave?" — cheap protection for unsaved annotations.
 
 **Why it's built this way.** A desktop shell buys you native file dialogs (users pick files
-by real OS paths, not browser uploads) and a single-window feel, while still letting you build
-the entire UI with web tech. The server-in-a-thread pattern keeps startup to one process and
-one entrypoint.
+by real OS paths, not browser uploads) and a native-window feel, while still letting you build
+the entire UI with web tech. The server-in-a-thread pattern keeps each window to one process
+and one entrypoint.
 
 **Adapt.**
 - Browser-only variant: drop pywebview, run `app.run(...)` directly, and replace native
@@ -160,7 +164,8 @@ one entrypoint.
 - The daemon thread means you must not rely on the server for clean shutdown work; do
   persistence eagerly (the cache + temp files already do).
 - Startup auto-update logic lives *before* `app_src` is imported (`run_startup_update_if_enabled`);
-  keep any pre-import bootstrapping there, not inside the Dash app.
+  keep any pre-import bootstrapping there, not inside the Dash app. Recipe 19 explains why the
+  updater must also reserve peer slots until patching is complete.
 
 ---
 
@@ -222,7 +227,7 @@ exceptions=True` on the Dash app is required because callbacks reference compone
 
 ## Recipe 3 — Server-side cache as the state store
 
-**Goal.** A place to hold per-session, per-file server state (the loaded file path, annotation
+**Goal.** A place to hold per-window, per-file server state (the loaded file path, annotation
 history, the resampler figure) that survives across callbacks and even across an app restart.
 
 **Depends on.** None.
@@ -237,14 +242,16 @@ history, the resampler figure) that survives across callbacks and even across an
    ```python
    cache = Cache(app.server, config={
        "CACHE_TYPE": "filesystem",
-       "CACHE_DIR": TEMP_PATH,                 # a temp dir under the OS temp root
+       "CACHE_DIR": TEMP_PATH,                 # this window slot's OS temp subdirectory
        "CACHE_THRESHOLD": 30,
        "CACHE_DEFAULT_TIMEOUT": 20*24*3600,    # ~20 days, so state persists between runs
    })
    ```
    Keys used: `filepath`, `filename`, `sleep_scores_history` (a `deque(maxlen=2)`; Recipe 15),
    `recent_files_with_video`, `file_video_record`. `initialize_cache` resets these when a new
-   file is opened and clears stale temp `.mat`/`.xlsx` files.
+   file is opened and clears stale temp `.mat`/`.xlsx` files. The file *currently open in this
+   process* is tracked separately in `_current_filepath`; a persistent cache value is recovery
+   state, not proof that a restarted window has reopened that file (Recipe 19).
 
 2. **A module-global `FIG_RESAMPLER`** for the one thing that *can't* go through the cache: the
    live `FigureResampler` object. It holds the full-resolution signal in memory and is
@@ -256,20 +263,23 @@ history, the resampler figure) that survives across callbacks and even across an
 annotation, reopening the same file **salvages** the last annotation state from
 `sleep_scores_history` (Recipe 15). The filesystem backend (not in-memory) is what makes that
 survive a restart. The resampler is global precisely because it's big, hot, and singular —
-this app shows one file at a time.
+each app process shows one file at a time.
 
 **Adapt.**
 - Keep the two-tier split: serializable session state → `flask_caching`; big hot in-memory
   objects → module global (or a small registry keyed by session if you go multi-file).
-- If you want multi-file / multi-tab, replace the single global with a dict keyed by a session
-  id and add eviction. The current app intentionally shows one recording at a time.
+- If you want multiple files inside one process or browser tab, replace the single global with
+  a dict keyed by session id and add eviction. Recipe 19 takes the simpler desktop approach:
+  one file and one set of globals per process.
 
 **Gotchas.**
 - **`np.nan` becomes `None` when read back from the filesystem cache.** The code accounts for
   this repeatedly (`np.place(..., sleep_scores == None, ...)`, `equal_nan=True` comparisons).
   Any NaN-bearing array you round-trip through the cache needs the same care.
-- The global resampler means concurrency is single-user by design. Don't add parallel figure
-  interactions without rethinking this.
+- Do not report a persistent cache key as live process state. A restarted slot reuses its cache
+  but starts with no active file (Recipe 19).
+- The global resampler means concurrency is single-user *within one process*. Recipe 19 scales
+  to multiple windows by isolating those globals in separate processes.
 
 ---
 
@@ -283,13 +293,14 @@ initialize state, and render the visualization. Same idea for Save.
 
 **Source.** `app_src/dialogs.py`: `open_file_dialog`, `save_file_dialog`;
 `app_src/callbacks/loading.py`: `choose_mat`, `create_visualization`; `app_src/session.py`:
-`write_metadata`, `initialize_cache`.
+`find_peer_session_with_file`, `write_metadata`, `initialize_cache`.
 
 **Mechanism.** The load is a **two-callback handoff** through a store:
 
-1. `choose_mat` (fires on the upload button) opens the native dialog, calls
+1. `choose_mat` (fires on the upload button) opens the native dialog, asks the other window
+   slots whether the same path is already active, and refuses a duplicate. Otherwise it calls
    `initialize_cache`, writes a "Creating visualizations..." message, and sets
-   `visualization-ready-store = "vis"`.
+   `visualization-ready-store = "vis"` (Recipe 19).
 2. `create_visualization` (fires on that store) loads the `.mat`, **validates required
    fields**, builds metadata, salvages/initializes annotation history, builds the figure
    (`create_fig`), assigns it to `components.graph.figure`, and returns `visualization_div` to
@@ -310,7 +321,8 @@ clientside selection math doesn't need the whole file.
 
 **Adapt.**
 - Swap `.mat`/`loadmat` for your format (Parquet, EDF, WAV, CSV...). Keep the shape: dialog →
-  `initialize_cache` → ack message → second callback validates + builds figure.
+  optional peer check → `initialize_cache` → ack message → second callback validates + builds
+  the figure.
 - Change the **validation block** in `create_visualization` to your required fields; return a
   helpful message and bail if missing.
 - `mat-metadata-store` should carry the minimal numbers your clientside code needs for
@@ -885,8 +897,9 @@ Recipe 3 (remember media per file).
 
 **Mechanism.** The selection range + a `video_start_time` offset define a clip; `make_mp4.py`
 cuts it with the bundled ffmpeg into a per-window slot subfolder of `assets/videos/`, and
-`dash_player.DashPlayer` plays it in a modal. The app remembers recently used video paths per file in the cache
-(`recent_files_with_video`, `file_video_record`) so it doesn't re-ask.
+`dash_player.DashPlayer` plays it in a modal. The app remembers recently used video paths per
+file in the cache (`recent_files_with_video`, `file_video_record`) so it doesn't re-ask.
+Recipe 19 explains why both the cache and clip directory are namespaced by window slot.
 
 **Adapt.** Any "selected region → derived artifact in a side panel" (a zoom-in figure, an audio
 snippet, a detail table) follows this shape: read `box-select-store`, produce the artifact into
@@ -921,6 +934,89 @@ triggered.
 
 **Gotchas.** Keep it off by default (it's chatty). Use `navigator.sendBeacon` for the log post
 so it doesn't block the interaction.
+
+---
+
+# Multi-session
+
+## Recipe 19 — Multi-session desktop instances
+
+**Goal.** Let a user run up to three independent desktop windows on one computer without
+sharing callback globals, overwriting temp/video files, opening the same recording twice, or
+patching `app_src/` underneath a window that is starting or already running.
+
+**Depends on.** Recipe 1 (desktop launcher), Recipe 3 (cache and process globals), Recipe 4
+(file loading), and Recipe 17 (generated media).
+
+**Source.** `run_desktop_app.py`: `claim_session_slot`, `claim_peer_slots`, `main`;
+`app_src/config.py`: `INSTANCE_SLOT`, `PEER_PORTS`; `app_src/server.py`: `TEMP_PATH`,
+`VIDEO_DIR`, cache setup, `adopt_legacy_temp_files`; `app_src/session.py`:
+`find_peer_session_with_file`, `set_current_filepath`, `get_current_filepath`;
+`app_src/routes.py`: `current_file`; `app_src/callbacks/loading.py`: `choose_mat`;
+`app_src/callbacks/video.py`: `show_clip`. Regression coverage lives in
+`tests/test_run_desktop_app.py` and `tests/test_multi_session.py`.
+
+**Mechanism.** Coordination happens before and outside Dash wherever possible:
+
+1. **Claim a slot before importing `app_src`.** `claim_session_slot()` binds the first free
+   port in 8050-8052 and returns the slot number, port, and bound socket. Holding that socket
+   prevents concurrent launchers from choosing the same slot. If all ports are bound, a small
+   pywebview notice explains that the three-window limit has been reached.
+2. **Export the process identity.** Before any `app_src` import, the launcher writes
+   `SLEEP_SCORING_INSTANCE_SLOT` and `SLEEP_SCORING_PEER_PORTS`. `app_src/config.py` reads them
+   once at import time. Missing variables mean slot 0 with no peers, preserving single-window
+   behavior for tests, scripts, `--smoke`, and old launchers.
+3. **Make the startup update atomic against new windows.** Slot 0 calls `claim_peer_slots()`,
+   which binds *every* peer port and returns the held guard sockets only if all are free. The
+   guards stay bound for the entire updater call and close in `finally`. An existing peer makes
+   slot 0 skip the update; a launcher arriving mid-update finds every slot occupied and cannot
+   import `app_src` while it is being patched. Later slots always skip the update.
+4. **Namespace disk and memory state by process.** `server.py` derives
+   `TEMP_PATH`, the filesystem cache directory, and `VIDEO_DIR` from the slot (`slot_0`,
+   `slot_1`, `slot_2`). Normal module globals such as the Dash app, components, and live
+   resampler are isolated automatically because each window is a separate process.
+5. **Separate recovery state from live state.** Filesystem-cache entries intentionally survive
+   restarts for annotation recovery. The `current-file` peer endpoint therefore reports the
+   process-local `_current_filepath`, initially `None`, rather than cached `filepath`; otherwise
+   a restarted blank window would falsely claim its previous recording.
+6. **Refuse a file already active in a peer.** Before `initialize_cache`, `choose_mat` queries
+   each configured peer's `/_sleep_scoring/current-file` endpoint with a short timeout. Only a
+   response identifying itself as this app counts. Paths are normalized before comparison, and
+   a match returns a user-facing refusal instead of loading the file twice.
+7. **Preserve upgrade and crash recovery.** On the first slot-0 launch after upgrading, loose
+   files from the legacy flat temp directory move into `slot_0`. Thereafter, each slot reuses
+   its own cache; recovery therefore follows window launch order, as documented in the README.
+
+**Why it's built this way.** A session-aware Dash server would require every cache key,
+component singleton, resampler object, callback, and generated artifact to carry a session id.
+One process per window lets the operating system isolate Python globals while a tiny port-slot
+protocol handles only the cross-process concerns: identity, capacity, update exclusion, and
+same-file detection.
+
+**Adapt.**
+- Change `BASE_PORT` and `MAX_SESSIONS` together, and keep the environment contract, directory
+  naming, window titles, and tests derived from the same slot range.
+- If startup updates are removed, the peer guard can disappear, but the initial slot claim must
+  still remain bound until the real server takes over.
+- For a browser-hosted multi-user deployment, do not copy this port-per-window design. Use
+  authenticated session ids, session-keyed server state, and explicit resource locking.
+- Apply the same per-slot namespacing to any new generated artifact directory or persistent
+  cache added later.
+
+**Gotchas.**
+- **Port occupancy is a bind question, not a connection question.** A starting peer owns a
+  bound socket before it listens; `socket.create_connection()` would miss it.
+- **Hold all update guards until the updater returns.** Probe-and-release creates a
+  time-of-check/time-of-use race in which a late launcher can import files mid-patch.
+- **Persistent is not active.** Recovery cache keys may be days old; peer coordination must use
+  process-local state.
+- Any unrelated process holding a slot port reduces capacity and suppresses updating. This is
+  intentionally conservative.
+- During the brief frozen-build update check, a second launch can see the session-limit notice
+  even though the guards, not three visible windows, occupy the ports. Retrying after startup
+  succeeds.
+- The same-file check is advisory rather than an atomic file lock. Two human-paced selections
+  made at the same instant can both pass; this accepted race avoids stale lock files.
 
 ---
 
@@ -976,6 +1072,9 @@ Building a new app from this template? Work down this list.
    selection store and one label array.
 8. **Save/export** (16) and **side panels** (17) as needed.
 9. **Instrument** (18) while tuning; ship it off.
+10. **Multi-session desktop instances** (19), if needed: choose the slot range, namespace every
+    persistent/generated path, distinguish recovery state from live state, and keep startup
+    update exclusion atomic.
 
 **Minimum viable interactive viewer** (no annotation): Recipes 1–8. That already gives you a
 fast, zoomable, pannable multi-channel viewer on huge signals.
@@ -1009,6 +1108,10 @@ A quick-reference of the traps, collected:
   boxes linger (Recipes 11, 14).
 - **Sentinel round-trip**: unscored is `-1` on disk, `NaN` in display. Convert both ways
   (Recipes 5, 16).
+- **A bound port may not be listening yet.** Detect peer slots with bind attempts, and retain
+  every guard socket throughout startup patching (Recipe 19).
+- **Persistent cache state is not live process state.** Do not use a recovered filepath as a
+  peer's current-file claim after restart (Recipe 19).
 
 ---
 
@@ -1023,7 +1126,8 @@ A quick-reference of the traps, collected:
 | Raw Flask routes (`/resample`, `/profile-log`, `/current-file`) | `app_src/routes.py` |
 | Native OS file dialogs | `app_src/dialogs.py` |
 | Resampler figure store & patch helpers | `app_src/resampling.py` |
-| Per-recording setup (cache init, metadata) | `app_src/session.py` |
+| Per-recording setup (cache init, metadata, peer-file state) | `app_src/session.py` |
+| Multi-session coordination | `run_desktop_app.py`, `app_src/config.py`, `app_src/server.py`, `app_src/session.py`, `app_src/routes.py` |
 | Dash callbacks, one module per concern | `app_src/callbacks/` |
 | Clientside callback JS implementations | `app_src/assets/clientsideCallbacks.js` |
 | Layout, stores, EventListeners, modals | `app_src/components.py` |

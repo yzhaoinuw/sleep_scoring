@@ -20,6 +20,19 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-10
 
+### Cookbook Multi-Session Recipe (GPT-5, default mode)
+
+- Added `dash_app_cookbook.md` Recipe 19 as the authoritative explanation of
+  the one-process-per-window design: slot claiming, the pre-import environment
+  contract, atomic startup-update guards, per-slot cache/temp/video paths,
+  process-local current-file state, peer duplicate-file refusal, legacy-cache
+  adoption, recovery semantics, and the accepted concurrency trade-offs.
+- Tightened Recipes 1, 3, 4, and 17 into cross-references and refreshed the
+  recipe index, adaptation checklist, gotcha catalog, and source-file map so
+  the multi-session contract is documented once without losing local context.
+- Verification: checked recipe headings/anchors and stale multi-session wording;
+  `git diff --check` passed.
+
 ### PR #8 Reviewed And Merged To dev (GPT-5, default mode)
 
 - Completed a multi-round diff-based review of PR #8
