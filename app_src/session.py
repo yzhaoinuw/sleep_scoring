@@ -118,11 +118,19 @@ def write_metadata(mat):
 
 def initialize_cache(cache, filepath):
     set_current_filepath(filepath)
+    previous_filepath = cache.get("filepath")
     cache.set("filepath", filepath)
-    prev_filename = cache.get("filename")
     filename = Path(filepath).stem
-    # attempt for salvaging unsaved annotations
-    if prev_filename is None or prev_filename != filename:
+    # Salvage unsaved annotations only when the previous process had the same
+    # recording open. Older caches may not have a filepath; resetting their
+    # history is safer than matching an unrelated file by basename.
+    try:
+        is_same_file = previous_filepath is not None and _normalize_mat_path(
+            previous_filepath
+        ) == _normalize_mat_path(filepath)
+    except (TypeError, ValueError, OSError):
+        is_same_file = False
+    if not is_same_file:
         cache.set("sleep_scores_history", deque(maxlen=2))
 
     clear_temp_dir(filename)

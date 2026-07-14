@@ -134,7 +134,7 @@ class TestInitializeCache:
 
         mock_cache = MagicMock()
         mock_cache.get.side_effect = lambda key: {
-            "filename": "old_file",  # Different from new file
+            "filepath": "/path/to/old_file.mat",
             "recent_files_with_video": None,
             "file_video_record": None,
         }.get(key)
@@ -151,9 +151,8 @@ class TestInitializeCache:
         from app_src.session import initialize_cache
 
         mock_cache = MagicMock()
-        # Same filename as the one being opened
         mock_cache.get.side_effect = lambda key: {
-            "filename": "same_file",
+            "filepath": "/path/to/./same_file.mat",
             "recent_files_with_video": [],
             "file_video_record": {},
         }.get(key)
@@ -166,6 +165,44 @@ class TestInitializeCache:
         history_calls = [c for c in set_calls if c[0][0] == "sleep_scores_history"]
         # When same file, history is NOT reset
         assert len(history_calls) == 0
+
+    def test_resets_history_for_same_basename_in_different_folder(self):
+        """Files with the same basename must not share recovery history."""
+        from app_src.session import initialize_cache
+
+        mock_cache = MagicMock()
+        mock_cache.get.side_effect = lambda key: {
+            "filepath": "/first/session/recording.mat",
+            "recent_files_with_video": [],
+            "file_video_record": {},
+        }.get(key)
+
+        with patch("app_src.session.clear_temp_dir"):
+            initialize_cache(mock_cache, "/second/session/recording.mat")
+
+        history_calls = [
+            call for call in mock_cache.set.call_args_list if call.args[0] == "sleep_scores_history"
+        ]
+        assert len(history_calls) == 1
+
+    def test_older_cache_without_filepath_resets_history(self):
+        """A filename-only cache cannot safely identify the recording."""
+        from app_src.session import initialize_cache
+
+        mock_cache = MagicMock()
+        mock_cache.get.side_effect = lambda key: {
+            "filename": "recording",
+            "recent_files_with_video": [],
+            "file_video_record": {},
+        }.get(key)
+
+        with patch("app_src.session.clear_temp_dir"):
+            initialize_cache(mock_cache, "/path/to/recording.mat")
+
+        history_calls = [
+            call for call in mock_cache.set.call_args_list if call.args[0] == "sleep_scores_history"
+        ]
+        assert len(history_calls) == 1
 
 
 class TestSaveAnnotations:
