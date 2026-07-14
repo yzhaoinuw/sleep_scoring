@@ -6,17 +6,8 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Pair the next compatible `app_src` update with normalized full-path crash
-  recovery and an end-user test of the automatic update flow from `v0.16.5`.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
-
-## Next Compatible App Update
-
-- Publish the normalized full-path crash-recovery fix as a source-update asset
-  based on `v0.16.5`, then verify from
-  an installed user's app that startup discovers, applies, and launches the new
-  version while preserving the full-zip fallback.
 
 ## Statistical Model
 

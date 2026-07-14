@@ -51,6 +51,28 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     `117 passed, 1 warning`.
   - Repository-pinned Black hook, `git diff --check`, and
     `python run_desktop_app.py --smoke`: passed.
+- Final release verification and delivery:
+  - The clean full-package gate passed `118 tests, 1 warning`, packaged
+    structure smoke, frozen v0.16.6 import smoke, and the real GitHub metadata
+    check.
+  - Confirmed the official v0.16.5 ZIP baseline, v0.16.6 source-update
+    manifest, v0.16.6 full ZIP, and tagged Git blobs matched byte for byte for
+    both changed runtime files.
+  - Main ZIP SHA-256:
+    `2FAC8ED644DF03005ABFD0B3877885A72C5844D159C72C71E57F62CAC7456695`;
+    optional Torch ZIP:
+    `92683867E32D10E3B330013AF74852EDC4EABB9FC5A2A22C4758ECE02749B487`;
+    source-update ZIP:
+    `1D163E9C79007C28073B44F054110A927DB55AFDD31EFBF3C44308A5F12761F8`.
+  - Published nine assets only after every remote GitHub digest and size
+    matched its local file. Release:
+    `https://github.com/yzhaoinuw/sleep_scoring/releases/tag/v0.16.6`.
+  - From a new corrected-v0.16.5 extraction with no URL override, the frozen
+    updater queried the public latest release, printed
+    `updated to v0.16.6 (2 changed files)`, and passed frozen v0.16.6 smoke.
+  - Tag `v0.16.6`, `dev`, and `main` all reached release commit `2f1e249` before
+    publication. This documentation-only follow-up leaves the tag fixed on the
+    exact commit recorded by the full-package manifest.
 
 ### v0.16.5 Startup Updater Reissue (GPT-5, default mode)
 
