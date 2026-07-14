@@ -16,8 +16,9 @@ def test_startup_update_prints_checking_and_result(monkeypatch, capsys):
     monkeypatch.setattr(run_desktop_app, "should_run_startup_update", lambda: True)
     monkeypatch.setitem(sys.modules, "desktop_app_source_updater", fake_updater)
 
-    run_desktop_app.run_startup_update_if_enabled()
+    succeeded = run_desktop_app.run_startup_update_if_enabled()
 
+    assert succeeded is True
     assert capsys.readouterr().out.strip().splitlines() == [
         "[startup-update] checking for updates...",
         "[startup-update] no update available",
@@ -30,8 +31,9 @@ def test_source_run_prints_skipped_message(monkeypatch, capsys):
     monkeypatch.delenv(run_desktop_app.UPDATE_RELEASE_API_ENV, raising=False)
     monkeypatch.setattr(run_desktop_app.sys, "frozen", False, raising=False)
 
-    run_desktop_app.run_startup_update_if_enabled()
+    succeeded = run_desktop_app.run_startup_update_if_enabled()
 
+    assert succeeded is True
     assert capsys.readouterr().out.strip() == (
         "[startup-update] source run; automatic update check skipped"
     )
@@ -40,9 +42,22 @@ def test_source_run_prints_skipped_message(monkeypatch, capsys):
 def test_skip_env_prints_disabled_message(monkeypatch, capsys):
     monkeypatch.setenv(run_desktop_app.SKIP_UPDATE_ENV, "1")
 
-    run_desktop_app.run_startup_update_if_enabled()
+    succeeded = run_desktop_app.run_startup_update_if_enabled()
 
+    assert succeeded is True
     assert capsys.readouterr().out.strip() == "[startup-update] update check disabled"
+
+
+def test_update_check_mode_uses_failure_exit_code(monkeypatch):
+    monkeypatch.setattr(run_desktop_app, "run_startup_update_if_enabled", lambda: False)
+
+    assert run_desktop_app.main(["--check-update"]) == 1
+
+
+def test_update_check_mode_uses_success_exit_code(monkeypatch):
+    monkeypatch.setattr(run_desktop_app, "run_startup_update_if_enabled", lambda: True)
+
+    assert run_desktop_app.main(["--check-update"]) == 0
 
 
 def test_formats_successful_update_message():

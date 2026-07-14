@@ -64,7 +64,7 @@ def run_startup_update_if_enabled():
         message = get_startup_update_skip_message()
         if message:
             print(f"[startup-update] {message}", flush=True)
-        return
+        return True
 
     print("[startup-update] checking for updates...", flush=True)
 
@@ -76,7 +76,7 @@ def run_startup_update_if_enabled():
         )
     except ImportError as exc:
         print(f"[startup-update] updater unavailable: {exc}; continuing startup", flush=True)
-        return
+        return False
 
     try:
         result = run_startup_update(
@@ -96,11 +96,12 @@ def run_startup_update_if_enabled():
         )
     except Exception as exc:  # Keep update failures from blocking normal app startup.
         print(f"[startup-update] failed unexpectedly: {exc}; continuing startup", flush=True)
-        return
+        return False
 
     message = format_startup_update_console_message(result, format_update_message)
     if message:
         print(f"[startup-update] {message}", flush=True)
+    return result.status != "failed"
 
 
 def format_startup_update_console_message(result, format_update_message):
@@ -209,6 +210,9 @@ def run_dash(app, port, probe_socket=None):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+
+    if "--check-update" in argv:
+        return 0 if run_startup_update_if_enabled() else 1
 
     if "--smoke" in argv:
         from app_src import VERSION

@@ -4,6 +4,7 @@
 3. Improved side-by-side use with numbered window titles, smaller tiling-friendly windows, and a file-selection button that stays readable when resized.
 4. Added automatic startup checks for compatible Windows app updates. If an update is unavailable or cannot be applied safely, the app still opens normally.
 5. Made sDREAMER available through an optional torch.zip companion while keeping the main Windows app download smaller and ready to use with the statistical model.
+6. Fixed the automatic startup update check so it can read GitHub release metadata correctly.
 
 #### v0.16.4.post1
 1. Added an experimental Windows auto-update baseline that checks GitHub Release source-update assets at startup before loading app_src.

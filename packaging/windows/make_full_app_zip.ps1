@@ -187,6 +187,7 @@ New-Item -ItemType Directory -Force -Path $VideoDir | Out-Null
 
 & (Join-Path $ScriptDir "smoke_check_release.ps1") -Path $DistPath -Kind Full
 Invoke-Native -FilePath (Join-Path $DistPath "run_desktop_app.exe") -CommandArgs @("--smoke")
+Invoke-Native -FilePath (Join-Path $DistPath "run_desktop_app.exe") -CommandArgs @("--check-update")
 
 if (Test-Path -LiteralPath $ZipPath) {
     Remove-Item -LiteralPath $ZipPath -Force

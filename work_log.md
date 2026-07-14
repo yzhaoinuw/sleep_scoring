@@ -20,6 +20,29 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-14
 
+### v0.16.5 Startup Updater Reissue (GPT-5, default mode)
+
+- Revoked the initially published v0.16.5 GitHub Release after a freshly
+  extracted package reported HTTP 415 during its startup update check. All
+  release assets still showed zero GitHub downloads; the tag was retained
+  while the replacement package was prepared.
+- Traced the failure to the shared updater sending the binary asset media type
+  to GitHub's JSON release-metadata endpoint. Fixed and regression-tested the
+  shared package, then pushed `desktop_app_source_updater` commit `f2f79a8` to
+  its `main` branch.
+- Pinned `sleep_scoring` to the fixed updater commit and added
+  `run_desktop_app.exe --check-update` as a full-package release gate. The
+  command exits nonzero when metadata retrieval or updater execution fails, so
+  the Windows build cannot silently ship the same failure again.
+- Trial replacement-package verification:
+  - Full pytest: `113 passed, 1 warning` (the existing Flask-Caching
+    deprecation warning).
+  - Packaged structure smoke and `run_desktop_app.exe --smoke`: passed.
+  - Frozen executable online check contacted the real GitHub Release endpoint
+    and printed `[startup-update] no update available`.
+  - The replacement release remained unpublished pending a final clean build,
+    corrected tag/ref delivery, and remote asset verification.
+
 ### v0.16.5 Release Preparation (GPT-5, default mode)
 
 - Set the next official version to `v0.16.5` in the runtime and package

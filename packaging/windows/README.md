@@ -41,9 +41,11 @@ torch.zip.sha256.txt
 ```
 
 Before creating the zip, the script checks that the release folder contains the
-expected files, including the double-click starter, and runs
-`run_desktop_app.exe --smoke` to verify the built launcher can import the
-side-by-side `app_src/` folder.
+expected files, including the double-click starter. It runs
+`run_desktop_app.exe --smoke` to verify that the built launcher can import the
+side-by-side `app_src/` folder, then runs `run_desktop_app.exe --check-update`
+against the configured GitHub Release endpoint. A metadata or updater failure
+stops the package build instead of shipping a broken automatic update check.
 
 ## Optional sDREAMER Torch Runtime Zip
 
