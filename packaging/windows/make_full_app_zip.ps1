@@ -172,20 +172,18 @@ $RuntimePath = Join-Path $DistPath "app_src"
 if (Test-Path -LiteralPath $RuntimePath) {
     Remove-Item -LiteralPath $RuntimePath -Recurse -Force
 }
-$RuntimeArchive = Join-Path $Repo "build\app_src_git_archive.zip"
-if (Test-Path -LiteralPath $RuntimeArchive) {
-    Remove-Item -LiteralPath $RuntimeArchive -Force
-}
-Invoke-Native -FilePath "git" -CommandArgs @(
-    "archive",
-    "--format=zip",
-    "--output",
-    $RuntimeArchive,
+Invoke-Conda -EnvName $BuildEnv -CommandArgs @(
+    "python",
+    "packaging\windows\export_runtime_from_git.py",
+    "--repo",
+    $Repo,
+    "--ref",
     "HEAD",
-    "app_src"
+    "--runtime-path",
+    "app_src",
+    "--destination",
+    $DistPath
 )
-Expand-Archive -LiteralPath $RuntimeArchive -DestinationPath $DistPath -Force
-Remove-Item -LiteralPath $RuntimeArchive -Force
 Copy-Item -LiteralPath (Join-Path $Repo "models") -Destination (Join-Path $DistPath "models") -Recurse -Force
 
 $ReleaseHelperDir = Join-Path $ScriptDir "release_helpers"

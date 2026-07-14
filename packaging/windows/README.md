@@ -46,8 +46,9 @@ expected files, including the double-click starter. It runs
 side-by-side `app_src/` folder, then runs `run_desktop_app.exe --check-update`
 against the configured GitHub Release endpoint. A metadata or updater failure
 stops the package build instead of shipping a broken automatic update check.
-The packaged `app_src/` files come from the release commit's Git blobs so their
-bytes match the automatic-update manifests on Windows as well as source runs.
+The packaged `app_src/` files are written directly from the release commit's
+Git blobs, without checkout or archive transformations, so their bytes match
+the automatic-update manifests on Windows as well as source runs.
 
 ## Optional sDREAMER Torch Runtime Zip
 

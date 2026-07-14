@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import subprocess
 import zipfile
 from pathlib import Path
 
@@ -13,6 +14,13 @@ SCRIPT_PATH = (
 SPEC = importlib.util.spec_from_file_location("align_update_asset_with_package", SCRIPT_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+EXPORT_SCRIPT_PATH = (
+    Path(__file__).parents[1] / "packaging" / "windows" / "export_runtime_from_git.py"
+)
+EXPORT_SPEC = importlib.util.spec_from_file_location("export_runtime_from_git", EXPORT_SCRIPT_PATH)
+EXPORT_MODULE = importlib.util.module_from_spec(EXPORT_SPEC)
+EXPORT_SPEC.loader.exec_module(EXPORT_MODULE)
 
 
 def _write_update_zip(path):
@@ -57,3 +65,13 @@ def test_align_update_asset_rejects_missing_packaged_runtime_file(tmp_path):
 
     with pytest.raises(ValueError, match="expected exactly one"):
         MODULE.align_update_asset(update_zip, [("v0.16.5", package_zip)])
+
+
+def test_export_runtime_writes_exact_git_blob_bytes(tmp_path):
+    repo = Path(__file__).parents[1]
+
+    exported = EXPORT_MODULE.export_runtime(repo, "HEAD", "app_src", tmp_path)
+
+    assert "app_src/__init__.py" in exported
+    expected = subprocess.check_output(["git", "-C", str(repo), "show", "HEAD:app_src/__init__.py"])
+    assert (tmp_path / "app_src" / "__init__.py").read_bytes() == expected
