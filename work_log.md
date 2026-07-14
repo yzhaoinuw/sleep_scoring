@@ -42,6 +42,20 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     and printed `[startup-update] no update available`.
   - The replacement release remained unpublished pending a final clean build,
     corrected tag/ref delivery, and remote asset verification.
+- Final clean reissue verification and delivery:
+  - Rebuilt from clean commit `9e8903c`; the package manifest records that
+    commit and pins updater commit `f2f79a8`.
+  - Full pytest again passed `113 passed, 1 warning`; packaged structure smoke,
+    packaged import smoke, and the frozen online update check all passed.
+  - Extracted the final ZIP into a new directory and reran both executable
+    checks. After publication, the extracted executable queried the new public
+    v0.16.5 release and printed `[startup-update] no update available`.
+  - Published seven assets only after every GitHub SHA-256 digest matched its
+    local file. Main ZIP SHA-256:
+    `730BF52A547C19B4FB69CCD361A1A76630913D7C4002A38E62C457DA0F25FAF8`.
+  - Corrected tag `v0.16.5` points to `9e8903c`; `dev` and `main` received that
+    release commit before publication. This log-only follow-up records the
+    final remote state without moving the release tag.
 
 ### v0.16.5 Release Preparation (GPT-5, default mode)
 
