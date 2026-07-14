@@ -133,8 +133,8 @@ You can open up to three app windows at the same time, for example to compare tw
   in their original order and open the same .mat file in the matching position
   before opening any other file: the first window has no number, the second
   shows `(2)`, and the third shows `(3)`. Opening a different file clears that
-  window's unsaved recovery. Until full-path matching is added, do not rely on
-  recovery for different folders containing .mat files with the same name.
+  window's unsaved recovery, including a file with the same name in a different
+  folder.
 
 ---
 

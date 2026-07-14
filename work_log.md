@@ -20,6 +20,26 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-14
 
+### v0.16.6 Crash Recovery Release Preparation (GPT-5, default mode)
+
+- Changed crash recovery to preserve unsaved annotations only when the cached
+  and newly selected recordings normalize to the same absolute path. A missing
+  legacy path, malformed cached path, or same-named file in another folder now
+  resets recovery safely.
+- Added regression coverage for normalized same-path preservation, same-basename
+  different-folder reset, and older filename-only caches.
+- Set runtime and package metadata to `v0.16.6` and updated the user-facing
+  crash-recovery note.
+- Built the automatic source-update asset from compatible baseline `v0.16.5`.
+  Its payload contains only `app_src/__init__.py` and `app_src/session.py`;
+  SHA-256:
+  `162B4844E950D9BCD06DBCA25AB5CC4F3ADDA1772D277FC42EAECC8291AFD983`.
+- Pre-release verification:
+  - Focused recovery and multi-session tests: `39 passed, 1 warning`.
+  - Full pytest and the source-update build gate: `115 passed, 1 warning`.
+  - Repository-pinned Black hook, `git diff --check`, and
+    `python run_desktop_app.py --smoke`: passed.
+
 ### v0.16.5 Startup Updater Reissue (GPT-5, default mode)
 
 - Revoked the initially published v0.16.5 GitHub Release after a freshly

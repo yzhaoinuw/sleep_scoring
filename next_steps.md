@@ -13,13 +13,8 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Next Compatible App Update
 
-- Harden crash-recovery identity in `initialize_cache()`. It currently preserves
-  `sleep_scores_history` when `Path(filepath).stem` matches, so different folders
-  containing the same filename can recover annotations from the wrong recording.
-  Compare normalized absolute paths instead, handle an older cache safely, and
-  add regression tests proving that the same path preserves history while the
-  same basename in a different folder resets it.
-- Publish that fix as a source-update asset based on `v0.16.5`, then verify from
+- Publish the normalized full-path crash-recovery fix as a source-update asset
+  based on `v0.16.5`, then verify from
   an installed user's app that startup discovers, applies, and launches the new
   version while preserving the full-zip fallback.
 
