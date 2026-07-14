@@ -31,12 +31,23 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Set runtime and package metadata to `v0.16.6` and updated the user-facing
   crash-recovery note.
 - Built the automatic source-update asset from compatible baseline `v0.16.5`.
-  Its payload contains only `app_src/__init__.py` and `app_src/session.py`;
-  SHA-256:
-  `162B4844E950D9BCD06DBCA25AB5CC4F3ADDA1772D277FC42EAECC8291AFD983`.
+  Its payload contains only `app_src/__init__.py` and `app_src/session.py`.
+- A pre-publication test from a fresh corrected-v0.16.5 extraction caught that
+  Git-blob hashes used LF bytes while the released Windows ZIP contained CRLF
+  copies. The updater correctly refused that first asset as a possible local
+  edit instead of overwriting the files.
+- Added a release helper that replaces previous-version hashes with the exact
+  bytes from the released full ZIP. Full packages now export `app_src/` from
+  the release commit's Git archive, keeping new installs and future update
+  manifests byte-aligned across platforms.
+- Rebuilt the local update asset against the official v0.16.5 ZIP. The same
+  fresh extraction then printed `updated to v0.16.6 (2 changed files)`, and its
+  frozen executable passed the v0.16.6 smoke check.
 - Pre-release verification:
   - Focused recovery and multi-session tests: `39 passed, 1 warning`.
-  - Full pytest and the source-update build gate: `115 passed, 1 warning`.
+  - Full pytest and the initial source-update build gate: `115 passed, 1
+    warning`; after adding packaging-contract regression tests, full pytest:
+    `117 passed, 1 warning`.
   - Repository-pinned Black hook, `git diff --check`, and
     `python run_desktop_app.py --smoke`: passed.
 

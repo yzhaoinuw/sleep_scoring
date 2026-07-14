@@ -46,6 +46,8 @@ expected files, including the double-click starter. It runs
 side-by-side `app_src/` folder, then runs `run_desktop_app.exe --check-update`
 against the configured GitHub Release endpoint. A metadata or updater failure
 stops the package build instead of shipping a broken automatic update check.
+The packaged `app_src/` files come from the release commit's Git blobs so their
+bytes match the automatic-update manifests on Windows as well as source runs.
 
 ## Optional sDREAMER Torch Runtime Zip
 
@@ -67,6 +69,15 @@ zip to the matching GitHub Release; users do not unzip it manually.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_source_update_asset.ps1 -FromRef vX.Y.Z
+```
+
+When an older Windows ZIP contains different line endings from its Git tag,
+pass the released package as an exact baseline, for example:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_source_update_asset.ps1 `
+  -FromRef v0.16.5 `
+  -FromPackageZip "v0.16.5=release_artifacts\sleep_scoring_app_v0.16.5-windows.zip"
 ```
 
 Output goes to `release_artifacts/`:

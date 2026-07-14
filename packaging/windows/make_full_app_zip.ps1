@@ -168,7 +168,24 @@ if (Test-Path -LiteralPath $BundledTorchDir) {
     Write-Warning "PyInstaller did not produce _internal\torch; no optional Torch runtime zip was created."
 }
 
-Copy-Item -LiteralPath (Join-Path $Repo "app_src") -Destination (Join-Path $DistPath "app_src") -Recurse -Force
+$RuntimePath = Join-Path $DistPath "app_src"
+if (Test-Path -LiteralPath $RuntimePath) {
+    Remove-Item -LiteralPath $RuntimePath -Recurse -Force
+}
+$RuntimeArchive = Join-Path $Repo "build\app_src_git_archive.zip"
+if (Test-Path -LiteralPath $RuntimeArchive) {
+    Remove-Item -LiteralPath $RuntimeArchive -Force
+}
+Invoke-Native -FilePath "git" -CommandArgs @(
+    "archive",
+    "--format=zip",
+    "--output",
+    $RuntimeArchive,
+    "HEAD",
+    "app_src"
+)
+Expand-Archive -LiteralPath $RuntimeArchive -DestinationPath $DistPath -Force
+Remove-Item -LiteralPath $RuntimeArchive -Force
 Copy-Item -LiteralPath (Join-Path $Repo "models") -Destination (Join-Path $DistPath "models") -Recurse -Force
 
 $ReleaseHelperDir = Join-Path $ScriptDir "release_helpers"
