@@ -129,8 +129,12 @@ You can open up to three app windows at the same time, for example to compare tw
 
 ## Additional Notes
 
-- If the app crashes before you get to save your sleep scores, don't panic. Reopen the app and open the **SAME** mat file that you were just working on to recover your work. Note that you **MUST** open the **SAME** file that you were working on when the app crashed. If you open any other file, you will lose your unsaved work for good.
-- If you were using multiple windows, recovery is tracked per window in the order the windows were opened: reopen the windows and open each mat file in the same window position as before (first window's file in the first window, and so on). Opening a different file in a window discards that window's unsaved work.
+- Crash recovery is stored separately for each window position. Relaunch windows
+  in their original order and open the same .mat file in the matching position
+  before opening any other file: the first window has no number, the second
+  shows `(2)`, and the third shows `(3)`. Opening a different file clears that
+  window's unsaved recovery. Until full-path matching is added, do not rely on
+  recovery for different folders containing .mat files with the same name.
 
 ---
 

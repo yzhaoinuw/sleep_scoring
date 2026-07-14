@@ -1,3 +1,10 @@
+#### v0.16.5
+1. Added support for opening up to three independent app windows so you can compare and annotate different recordings side by side.
+2. Kept unsaved annotation recovery and video selections separate for each window, and added a reminder when the same .mat file is already open in another window.
+3. Improved side-by-side use with numbered window titles, smaller tiling-friendly windows, and a file-selection button that stays readable when resized.
+4. Added automatic startup checks for compatible Windows app updates. If an update is unavailable or cannot be applied safely, the app still opens normally.
+5. Made sDREAMER available through an optional torch.zip companion while keeping the main Windows app download smaller and ready to use with the statistical model.
+
 #### v0.16.4.post1
 1. Added an experimental Windows auto-update baseline that checks GitHub Release source-update assets at startup before loading app_src.
 

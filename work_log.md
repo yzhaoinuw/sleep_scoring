@@ -18,6 +18,53 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-14
+
+### v0.16.5 Release Preparation (GPT-5, default mode)
+
+- Set the next official version to `v0.16.5` in the runtime and package
+  metadata.
+- Kept the changelog focused on changes users will notice: multiple windows,
+  per-window recovery/video behavior, tiled-window usability, automatic startup
+  updates, and the optional sDREAMER Torch runtime.
+- User-validated video creation, playback, and association in two simultaneous
+  windows. The fourth-window refusal check was already validated.
+- Deferred normalized full-path crash recovery to the next compatible
+  `app_src` update, where it will also exercise the installed-user automatic
+  update flow from `v0.16.5`.
+- Verification:
+  - Full pytest: `111 passed, 1 warning` (the existing Flask-Caching
+    deprecation warning).
+  - Repository-pinned Black hook: passed across all tracked Python files.
+  - `python run_desktop_app.py --smoke`: `Sleep Scoring App v0.16.5 smoke
+    check OK`.
+  - `python -m compileall -q app_src run_desktop_app.py` and
+    `git diff --check`: passed.
+  - Manual multi-session checks: two-window video behavior and the fourth-window
+    refusal notice passed.
+
+## 2026-07-13
+
+### Multi-Session Recovery Docs And Roadmap Cleanup (GPT-5, default mode)
+
+- User-validated that a fourth launch is refused with the expected
+  close-one-window notice.
+- Updated the README crash-recovery note with the multi-window launch-order,
+  title-number, and wrong-file reset behavior, including the current same-name
+  caveat.
+- Rewrote `next_steps.md` as a focused forward-looking checklist. Removed
+  completed implementation history and performance postmortems, consolidated
+  the remaining release work, and retained the active statistical-model,
+  publication, and later-idea threads.
+
+- Verification:
+  - `git diff --check` passed; `next_steps.md` was reduced from 342 lines to
+    73.
+  - The repo-local `treaty.exe validate .` accepted this session's structure;
+    it still reports older live work-log entries that predate the current
+    verification-subsection contract.
+  - No code tests were run for this documentation-only update.
+
 ## 2026-07-10
 
 ### Cookbook Multi-Session Recipe (GPT-5, default mode)
