@@ -20,6 +20,20 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-14
 
+### Lightweight Source Release Roadmap (GPT-5, default mode)
+
+- Agreed to keep explicit tagged GitHub Releases while making v0.16.6 the full
+  Windows base and publishing compatible `app_src` patches as small update-only
+  releases without rebuilding PyInstaller or Torch.
+- Recorded the required release gate, full-package fallback triggers, three
+  supported installation baselines, jump-ahead verification, and the
+  full-path video-association/clip-cache fix as the first lightweight trial.
+- Confirmed the frozen shared updater already supports multiple previous hashes
+  for a payload file, so no immediate `desktop_app_source_updater` runtime
+  change is required. Its maintainer-side builder should later gain native
+  installed-baseline-manifest and multiple-lineage support, kept separate from
+  the frozen runtime dependency where possible.
+
 ### v0.16.6 Crash Recovery Release Preparation (GPT-5, default mode)
 
 - Changed crash recovery to preserve unsaved annotations only when the cached
