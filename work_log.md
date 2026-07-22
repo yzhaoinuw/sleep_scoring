@@ -41,8 +41,18 @@ by its date range. See `AGENTS.md` for the full rotation policy.
     `git diff --check`: passed.
   - Downloaded v0.16.5 and v0.16.6 release baselines matched their published
     SHA-256 digests exactly.
-- Final asset construction, installed-app fixture checks, tag, push, and GitHub
-  publication are pending.
+- Built the v0.16.7 source-update asset from the committed runtime bytes. Its
+  manifest accepts v0.16.5 and v0.16.6 and contains only
+  `app_src/__init__.py`, `app_src/make_figure.py`, and `app_src/session.py`;
+  `app_src/config.py` is absent. Candidate SHA-256:
+  `A874CBB6900762A5C06ECB13C29E1586D51535CA2141A3843031D516DC2DE40F`.
+- Applied that asset to three extracted released-app fixtures: fresh v0.16.5,
+  fresh full v0.16.6, and v0.16.5 previously patched to v0.16.6. All reported
+  an update to v0.16.7 and passed the frozen smoke check. The exact config hash
+  remained unchanged in every fixture; an old config used the fallback palette
+  while preserving an edited `SLEEP_SCORING_MODEL`, and a config with manually
+  added colors exposed those exact colors through `make_figure`.
+- Tag, push, and GitHub publication are pending.
 
 ## 2026-07-21
 
