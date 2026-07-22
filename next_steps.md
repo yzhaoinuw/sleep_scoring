@@ -40,33 +40,6 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 - Cut a new full base only when the frozen/package boundary changes or when a
   deliberate periodic roll-up is useful.
 
-### Shared Updater And Config Migration
-
-- Add a Python-config merge strategy to `desktop_app_source_updater`. The new
-  config file is the authoritative schema: preserve installed user values for
-  settings present in both files, use new defaults for added settings, and
-  discard settings removed from the new schema. Recursively apply the same rule
-  to mapping values such as `WINDOW_CONFIG`; treat scalar and list values as
-  atomic.
-- Explicitly identify user-editable assignments rather than preserving every
-  uppercase assignment in `config.py`. Parse without importing either file,
-  validate the merged result, stage it with a backup, and retain the updater's
-  all-file rollback behavior if merging or installation fails. Include explicit
-  rename and force-reset hooks for settings whose name, type, or meaning changes.
-- Implement and test the shared-updater change independently when convenient,
-  then pin it in the next full Windows redistribution. Existing frozen apps
-  cannot gain the new updater runtime from an `app_src`-only asset, so verify the
-  next full base and later lightweight updates with unedited, edited, older, and
-  malformed config fixtures.
-- Improve the shared maintainer-side asset builder so it can accept compact
-  installed-baseline manifests and multiple valid byte lineages for the same
-  installed version directly, instead of leaving that work to an app-specific
-  postprocessor. Add coverage for full-package versus source-patched installs
-  that report the same version but have different untouched-file line endings.
-- Keep any builder-only improvement separable from the frozen runtime pin so an
-  application does not need a full-package rebuild merely to adopt safer
-  release tooling.
-
 ## Statistical Model
 
 - Improve REM detection when a long Wake bout contains a smaller likely REM

@@ -20,6 +20,19 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-22
 
+### Post-release documentation placement (GPT-5)
+
+- Removed the sleep-stage color customization block from `README.md`; like the
+  app's other direct config options, it does not need a dedicated user-guide
+  section.
+- Moved the semantic Python-config merge design, deployment boundary, test
+  matrix, and the separable multi-lineage builder follow-up out of this app's
+  `next_steps.md` and into upstream updater issue
+  `https://github.com/yzhaoinuw/desktop_app_source_updater/issues/2`.
+- The GitHub connector could read and search the upstream repository but lacked
+  issue-write permission, so the authenticated GitHub CLI created the issue
+  after confirming that no open duplicate existed.
+
 ### v0.16.7 Lightweight Color-Configuration Release Preparation (GPT-5)
 
 - Added a compatibility accessor in `make_figure.py`: configs that define

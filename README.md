@@ -56,26 +56,6 @@ To reset the view, click Reset Axes in the mode bar in the upper-right above the
 
 > Note: The spectrogram and the NE plot are fixed on the Y-axis, so you can only zoom on the X-axis on them. You can change this behavior for the NE plot. Open **_config.py_** in **_app_src/_** and change the line `FIX_NE_Y_RANGE = False` to `FIX_NE_Y_RANGE = True`.
 
-### Customize Sleep-Stage Colors
-
-The sleep-score overlays and legend use separate colors for Wake, NREM, REM,
-and MA. To customize them, open _app_src/config.py_ and add or edit this block:
-
-```python
-STAGE_COLORS = [
-    "rgb(124, 124, 251)",  # Wake
-    "rgb(251, 124, 124)",  # NREM
-    "rgb(123, 251, 123)",  # REM
-    "rgb(255, 255, 0)",  # MA
-]
-```
-
-The order must remain Wake, NREM, REM, and MA. Each entry can be any
-Plotly-compatible color, including a named color or hex value. Automatically
-updated installations may not already contain this block; add it manually to
-customize the colors. If the block is absent, the app continues to use the
-colors shown above.
-
 https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
 
 ## Annotation
