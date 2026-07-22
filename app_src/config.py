@@ -21,6 +21,18 @@ WINDOW_CONFIG = {
 # %% Figure customization
 FIX_NE_Y_RANGE = False  # True or False
 
+# Colors for each sleep stage, used for both the sleep-score heatmap and its
+# legend. Order matters and must match the stage order below:
+#   index 0 -> Wake, 1 -> NREM, 2 -> REM, 3 -> MA.
+# Any Plotly-accepted color string works, e.g. "rgb(124, 124, 251)",
+# "#7c7cfb", or a named color like "royalblue".
+STAGE_COLORS = [
+    "rgb(124, 124, 251)",  # Wake
+    "rgb(251, 124, 124)",  # NREM
+    "rgb(123, 251, 123)",  # REM
+    "rgb(255, 255, 0)",  # MA (yellow)
+]
+
 # see https://plotly.com/python/builtin-colorscales/, under Section Built-In Sequential Color scales
 SPECTROGRAM_COLORSCALE = "viridis"  # "turbo", "jet", etc.
 

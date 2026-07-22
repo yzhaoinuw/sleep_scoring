@@ -18,6 +18,28 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-21
+
+### Configurable sleep-stage colors (Opus 4.8)
+
+- Moved `STAGE_COLORS` (the four sleep-stage colors used by the sleep-score
+  heatmap and legend) from `app_src/make_figure.py` into `app_src/config.py` so
+  users can recolor stages by editing config, keeping the previous colors as the
+  default. Added a comment documenting stage order (Wake/NREM/REM/MA) and
+  accepted color formats.
+- `make_figure.py` now imports `STAGE_COLORS` from config; the derived
+  `COLORSCALE` recomputes from it. `run_inference_stats_model.py` still imports
+  `STAGE_COLORS` via `make_figure`, which re-exposes it unchanged.
+- Verified config/make_figure/inference all share the same object, `COLORSCALE`
+  builds for 3- and 4-class cases, and `run_desktop_app.py --smoke` passes.
+- Committed to `dev` only; not released. NOT auto-update-safe as written: this
+  changes `config.py`, which the source updater (`allowed_payload_paths=("app_src/",)`)
+  would overwrite, wiping user config, and the hard `from app_src.config import
+  STAGE_COLORS` would crash on any un-updated config. The reverted July-21
+  v0.16.7 solved both (in-code default + `getattr` fallback, plus a
+  `--preserve-path app_src/config.py` exclusion); re-adopt that before shipping
+  via the Windows auto-updater.
+
 ## 2026-07-14
 
 ### Lightweight Source Release Roadmap (GPT-5, default mode)
