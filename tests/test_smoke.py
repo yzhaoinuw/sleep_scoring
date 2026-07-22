@@ -44,6 +44,16 @@ class TestImports:
         ]
         assert [color for _, color in make_figure.COLORSCALE[4]] == (make_figure.STAGE_COLORS)
 
+    def test_sleep_stage_colors_fall_back_for_older_config(self):
+        """Existing installations can update without replacing their config file."""
+        from types import SimpleNamespace
+
+        from app_src import make_figure
+
+        assert make_figure.get_sleep_stage_colors(SimpleNamespace()) == (
+            make_figure.DEFAULT_SLEEP_STAGE_COLORS
+        )
+
     def test_import_version(self):
         """Test version is accessible."""
         from app_src import VERSION

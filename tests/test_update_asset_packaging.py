@@ -96,6 +96,39 @@ def test_align_update_asset_rejects_missing_packaged_runtime_file(tmp_path):
         MODULE.align_update_asset(update_zip, [("v0.16.5", package_zip)])
 
 
+def test_align_update_asset_omits_preserved_user_config(tmp_path):
+    update_zip = tmp_path / "update.zip"
+    manifest = {
+        "from_versions": ["v0.16.6"],
+        "changed_files": ["app_src/config.py", "app_src/make_figure.py"],
+        "files": [
+            {
+                "path": "app_src/config.py",
+                "sha256": "new-config",
+                "previous_sha256_by_version": {"v0.16.6": "old-config"},
+            },
+            {
+                "path": "app_src/make_figure.py",
+                "sha256": "new-figure",
+                "previous_sha256_by_version": {"v0.16.6": "old-figure"},
+            },
+        ],
+    }
+    with zipfile.ZipFile(update_zip, "w", zipfile.ZIP_DEFLATED) as update:
+        update.writestr("manifest.json", json.dumps(manifest))
+        update.writestr("app_src/config.py", b"new config\n")
+        update.writestr("app_src/make_figure.py", b"new figure\n")
+
+    MODULE.align_update_asset(update_zip, [], ("app_src/config.py",))
+
+    with zipfile.ZipFile(update_zip) as update:
+        updated_manifest = json.loads(update.read("manifest.json"))
+        assert "app_src/config.py" not in update.namelist()
+        assert update.read("app_src/make_figure.py") == b"new figure\n"
+    assert updated_manifest["changed_files"] == ["app_src/make_figure.py"]
+    assert [entry["path"] for entry in updated_manifest["files"]] == ["app_src/make_figure.py"]
+
+
 def test_export_runtime_writes_exact_git_blob_bytes(tmp_path):
     repo = Path(__file__).parents[1]
 
