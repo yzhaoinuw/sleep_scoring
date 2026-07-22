@@ -40,6 +40,14 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   full-package, and previously patched baseline hash when one installed version
   has multiple byte lineages. Added regression coverage for multiple package
   lineages instead of silently replacing the earlier hash.
+- The shared builder still treats any `setup.py` change as a full-package
+  trigger. For this release, independently verified that its only change is the
+  required `0.16.6` -> `0.16.7` metadata bump, then used a narrow builder
+  override that retained every other default dependency and packaging blocker.
+- Built the final automatic source-update candidate with
+  `app_src/__init__.py`, `app_src/config.py`, `app_src/make_figure.py`, and
+  `app_src/session.py`. SHA-256:
+  `25FC95E550BB0520F6832EE8EEF35CACAD1D304BDA2CC4CC7CB58D60D2E529E5`.
 - Pre-release verification:
   - Full pytest before the lineage fix -> `119 passed, 1 warning`; after the
     fix -> `120 passed, 1 warning` (existing Flask-Caching deprecation warning).
@@ -49,6 +57,11 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   - `python -m compileall -q app_src run_desktop_app.py`, `git diff --check`,
     and `python run_desktop_app.py --smoke` -> passed; smoke reported
     `Sleep Scoring App v0.16.7 smoke check OK`.
+  - Fresh v0.16.5 and v0.16.6 full-package fixtures each applied the v0.16.7
+    asset and passed the frozen executable smoke check.
+  - A fresh v0.16.5 package applied the published v0.16.6 asset, then the
+    v0.16.7 asset, and passed the frozen v0.16.7 smoke check. All three fixtures
+    confirmed `SLEEP_STAGE_COLORS` was present after updating.
 
 ### Configurable Sleep-Stage Colors (GPT-5, default mode)
 
