@@ -44,7 +44,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Built the v0.16.7 source-update asset from the committed runtime bytes. Its
   manifest accepts v0.16.5 and v0.16.6 and contains only
   `app_src/__init__.py`, `app_src/make_figure.py`, and `app_src/session.py`;
-  `app_src/config.py` is absent. Candidate SHA-256:
+  `app_src/config.py` is absent. Final SHA-256:
   `A874CBB6900762A5C06ECB13C29E1586D51535CA2141A3843031D516DC2DE40F`.
 - Applied that asset to three extracted released-app fixtures: fresh v0.16.5,
   fresh full v0.16.6, and v0.16.5 previously patched to v0.16.6. All reported
@@ -52,7 +52,15 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   remained unchanged in every fixture; an old config used the fallback palette
   while preserving an edited `SLEEP_SCORING_MODEL`, and a config with manually
   added colors exposed those exact colors through `make_figure`.
-- Tag, push, and GitHub publication are pending.
+- Tagged release commit `68a7fd3` as v0.16.7, fast-forwarded both `dev` and
+  `main`, pushed the tag, and published the lightweight GitHub Release with
+  only the update ZIP and checksum. GitHub reports the expected 6,766-byte ZIP
+  and the same SHA-256 digest.
+- Restored an edited fixture to the exact v0.16.5 runtime files, removed the
+  local update URL override, and confirmed its frozen updater discovered and
+  downloaded the public v0.16.7 asset, preserved the config hash, and passed
+  the v0.16.7 smoke check. The release is available at
+  `https://github.com/yzhaoinuw/sleep_scoring/releases/tag/v0.16.7`.
 
 ## 2026-07-21
 
