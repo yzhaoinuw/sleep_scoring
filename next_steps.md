@@ -7,7 +7,8 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 ## Currently Hot
 
 - Establish lightweight `app_src` patch releases on top of the v0.16.6 full
-  Windows base, then use the full-path video-association fix as the first trial.
+  Windows base with the v0.16.7 sleep-stage color configuration release, then
+  continue with the full-path video-association fix.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
 
@@ -34,9 +35,10 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 - Use three release fixtures for the first lightweight release: fresh v0.16.5,
   fresh full v0.16.6, and v0.16.5 updated to v0.16.6. Require each to discover,
   apply, and smoke-test the new release successfully.
-- Make the normalized full-path MAT-to-video association and collision-proof
-  generated-clip identity the first lightweight patch, with regression tests
-  for identical MAT and video basenames in different folders.
+- After the v0.16.7 color-configuration trial, make the normalized full-path
+  MAT-to-video association and collision-proof generated-clip identity the
+  next lightweight patch, with regression tests for identical MAT and video
+  basenames in different folders.
 - Cut a new full base only when the frozen/package boundary changes or when a
   deliberate periodic roll-up is useful.
 

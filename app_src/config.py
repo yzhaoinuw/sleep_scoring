@@ -21,6 +21,15 @@ WINDOW_CONFIG = {
 # %% Figure customization
 FIX_NE_Y_RANGE = False  # True or False
 
+# Sleep-stage colors used by the score overlays and legend. Values can be any
+# Plotly-compatible CSS color string, including hex codes such as "#4477AA".
+SLEEP_STAGE_COLORS = {
+    "Wake": "rgb(124, 124, 251)",
+    "NREM": "rgb(251, 124, 124)",
+    "REM": "rgb(123, 251, 123)",
+    "MA": "rgb(255, 255, 0)",
+}
+
 # see https://plotly.com/python/builtin-colorscales/, under Section Built-In Sequential Color scales
 SPECTROGRAM_COLORSCALE = "viridis"  # "turbo", "jet", etc.
 
