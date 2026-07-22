@@ -62,6 +62,23 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   - A fresh v0.16.5 package applied the published v0.16.6 asset, then the
     v0.16.7 asset, and passed the frozen v0.16.7 smoke check. All three fixtures
     confirmed `SLEEP_STAGE_COLORS` was present after updating.
+- Final release verification and delivery:
+  - PR #9 (`dev` -> `main`) passed Python, JavaScript, formatting, and CodeQL
+    checks and merged as `e413c88`; `dev`, `main`, and annotated tag `v0.16.7`
+    all reached that release commit before publication.
+  - Published the lightweight release with only the automatic source-update
+    ZIP and SHA-256 file:
+    `https://github.com/yzhaoinuw/sleep_scoring/releases/tag/v0.16.7`.
+  - GitHub reported the update ZIP at 8,438 bytes with remote digest
+    `25FC95E550BB0520F6832EE8EEF35CACAD1D304BDA2CC4CC7CB58D60D2E529E5`,
+    matching the local artifact; the public latest-release endpoint selected
+    `v0.16.7` and exposed both expected assets.
+  - With no URL override, a fresh v0.16.6 full-package extraction queried the
+    real GitHub latest-release endpoint, printed
+    `updated to v0.16.7 (4 changed files)`, and passed the frozen v0.16.7 smoke
+    check with `SLEEP_STAGE_COLORS` present.
+  - This documentation-only publication follow-up leaves the release tag fixed
+    on the exact tested merge commit.
 
 ### Configurable Sleep-Stage Colors (GPT-5, default mode)
 
