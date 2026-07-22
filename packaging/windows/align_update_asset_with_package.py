@@ -58,13 +58,40 @@ def align_update_asset(update_zip: Path, package_specs: list[tuple[str, Path]]) 
     if not isinstance(files, list):
         raise ValueError("update manifest has no files list")
 
+    package_hashes_by_path: dict[str, dict[str, set[str]]] = {}
     for version, package_zip in package_specs:
         for file_entry in files:
             runtime_path = file_entry["path"]
             previous_hashes = file_entry["previous_sha256_by_version"]
             if version not in previous_hashes:
                 raise ValueError(f"{runtime_path!r} has no baseline entry for {version!r}")
-            previous_hashes[version] = sha256(read_packaged_file(package_zip, runtime_path))
+            package_hashes_by_path.setdefault(runtime_path, {}).setdefault(version, set()).add(
+                sha256(read_packaged_file(package_zip, runtime_path))
+            )
+
+    for file_entry in files:
+        runtime_path = file_entry["path"]
+        versioned_hashes = {
+            version: ({digest} if digest is not None else {None})
+            for version, digest in file_entry["previous_sha256_by_version"].items()
+        }
+        for version, hashes in package_hashes_by_path.get(runtime_path, {}).items():
+            versioned_hashes[version].update(hashes)
+
+        if any(len(hashes) > 1 for hashes in versioned_hashes.values()):
+            if any(None in hashes for hashes in versioned_hashes.values()):
+                raise ValueError(
+                    f"cannot combine multiple byte lineages with a missing-file baseline for "
+                    f"{runtime_path!r}"
+                )
+            file_entry["previous_sha256"] = sorted(
+                {digest for hashes in versioned_hashes.values() for digest in hashes}
+            )
+            file_entry.pop("previous_sha256_by_version")
+        else:
+            file_entry["previous_sha256_by_version"] = {
+                version: next(iter(hashes)) for version, hashes in versioned_hashes.items()
+            }
 
     manifest_bytes = json.dumps(manifest, indent=2).encode()
     update_zip.parent.mkdir(parents=True, exist_ok=True)

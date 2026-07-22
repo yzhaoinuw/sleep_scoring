@@ -32,9 +32,18 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Updated the lightweight-release roadmap to make this color-configuration
   release the first trial and move the full-path video-association fix to the
   next lightweight patch.
+- The first aligned candidate asset updated fresh v0.16.5 and v0.16.6 full
+  packages successfully, but the required v0.16.5 -> v0.16.6 -> v0.16.7
+  fixture exposed the documented same-version byte-lineage gap: files left
+  untouched by the v0.16.6 patch differed from the v0.16.6 full-package bytes.
+- Enhanced the app-specific alignment helper to preserve every verified Git,
+  full-package, and previously patched baseline hash when one installed version
+  has multiple byte lineages. Added regression coverage for multiple package
+  lineages instead of silently replacing the earlier hash.
 - Pre-release verification:
-  - Full pytest -> `119 passed, 1 warning` (existing Flask-Caching deprecation
-    warning).
+  - Full pytest before the lineage fix -> `119 passed, 1 warning`; after the
+    fix -> `120 passed, 1 warning` (existing Flask-Caching deprecation warning).
+  - Focused update-asset packaging tests -> `4 passed`.
   - Clientside Jest suite -> `38 passed`.
   - Repository-pinned Black 25.12.0 hook -> passed.
   - `python -m compileall -q app_src run_desktop_app.py`, `git diff --check`,
