@@ -18,11 +18,29 @@ from plotly.subplots import make_subplots
 from plotly_resampler import FigureResampler
 from plotly_resampler.aggregation import MinMaxLTTB
 
-from app_src.config import FIX_NE_Y_RANGE, STAGE_COLORS
+from app_src import config
 from app_src.get_fft_plots import get_fft_plots
 from app_src.mat_utils import get_ne_frequency
 
+# Keep an in-code default because lightweight updates preserve the user's
+# config.py. Config files from before v0.16.7 therefore do not define
+# STAGE_COLORS until the user adds it manually.
+DEFAULT_STAGE_COLORS = [
+    "rgb(124, 124, 251)",  # Wake
+    "rgb(251, 124, 124)",  # NREM
+    "rgb(123, 251, 123)",  # REM
+    "rgb(255, 255, 0)",  # MA (yellow)
+]
+
+
+def get_stage_colors(config_module=config):
+    """Return configured stage colors, or defaults for older config files."""
+    return getattr(config_module, "STAGE_COLORS", DEFAULT_STAGE_COLORS)
+
+
 # set up color config. STAGE_COLORS is user-customizable in app_src/config.py.
+FIX_NE_Y_RANGE = config.FIX_NE_Y_RANGE
+STAGE_COLORS = get_stage_colors()
 SLEEP_SCORE_OPACITY = 1
 STAGE_NAMES = ["Wake: 1", "NREM: 2", "REM: 3", "MA: 4"]
 COLORSCALE = {

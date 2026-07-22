@@ -1,5 +1,7 @@
 """Smoke tests to verify basic imports and module loading."""
 
+from types import SimpleNamespace
+
 
 class TestImports:
     """Test that all modules can be imported without errors."""
@@ -33,6 +35,21 @@ class TestImports:
 
         assert hasattr(config, "INSTANCE_SLOT")
         assert hasattr(config, "PEER_PORTS")
+        assert len(config.STAGE_COLORS) == 4
+
+    def test_stage_colors_support_updated_and_preserved_configs(self):
+        """New configs customize colors while pre-v0.16.7 configs use defaults."""
+        from app_src import make_figure
+
+        custom_colors = ["red", "blue", "green", "yellow"]
+
+        assert make_figure.get_stage_colors(SimpleNamespace()) == (make_figure.DEFAULT_STAGE_COLORS)
+        assert (
+            make_figure.get_stage_colors(SimpleNamespace(STAGE_COLORS=custom_colors))
+            is custom_colors
+        )
+        assert make_figure.STAGE_COLORS == make_figure.get_stage_colors()
+        assert [color for _, color in make_figure.COLORSCALE[4]] == (make_figure.STAGE_COLORS)
 
     def test_import_version(self):
         """Test version is accessible."""

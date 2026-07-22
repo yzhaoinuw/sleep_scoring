@@ -1,3 +1,8 @@
+#### v0.16.7
+1. Added optional sleep-stage color customization for Wake, NREM, REM, and MA through `app_src/config.py`.
+2. Kept automatically updated installations compatible with older or user-edited config files by using the standard color palette when `STAGE_COLORS` is absent.
+3. Preserved `app_src/config.py` during lightweight updates so existing user settings are not overwritten.
+
 #### v0.16.5
 1. Added support for opening up to three independent app windows so you can compare and annotate different recordings side by side.
 2. Kept unsaved annotation recovery and video selections separate for each window, and added a reminder when the same .mat file is already open in another window.

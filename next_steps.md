@@ -6,8 +6,8 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Establish lightweight `app_src` patch releases on top of the v0.16.6 full
-  Windows base, then use the full-path video-association fix as the first trial.
+- Continue lightweight `app_src` patch releases on top of the v0.16.6 full
+  Windows base; use the full-path video-association fix as the next candidate.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
 
@@ -35,16 +35,29 @@ in `project_overview.md` and `dash_app_cookbook.md`.
   fresh full v0.16.6, and v0.16.5 updated to v0.16.6. Require each to discover,
   apply, and smoke-test the new release successfully.
 - Make the normalized full-path MAT-to-video association and collision-proof
-  generated-clip identity the first lightweight patch, with regression tests
+  generated-clip identity the next lightweight patch, with regression tests
   for identical MAT and video basenames in different folders.
 - Cut a new full base only when the frozen/package boundary changes or when a
   deliberate periodic roll-up is useful.
 
-### Shared Updater Follow-Up
+### Shared Updater And Config Migration
 
-- No frozen runtime change is currently required in
-  `desktop_app_source_updater`: the installed updater already accepts multiple
-  previous SHA-256 values for one payload file.
+- Add a Python-config merge strategy to `desktop_app_source_updater`. The new
+  config file is the authoritative schema: preserve installed user values for
+  settings present in both files, use new defaults for added settings, and
+  discard settings removed from the new schema. Recursively apply the same rule
+  to mapping values such as `WINDOW_CONFIG`; treat scalar and list values as
+  atomic.
+- Explicitly identify user-editable assignments rather than preserving every
+  uppercase assignment in `config.py`. Parse without importing either file,
+  validate the merged result, stage it with a backup, and retain the updater's
+  all-file rollback behavior if merging or installation fails. Include explicit
+  rename and force-reset hooks for settings whose name, type, or meaning changes.
+- Implement and test the shared-updater change independently when convenient,
+  then pin it in the next full Windows redistribution. Existing frozen apps
+  cannot gain the new updater runtime from an `app_src`-only asset, so verify the
+  next full base and later lightweight updates with unedited, edited, older, and
+  malformed config fixtures.
 - Improve the shared maintainer-side asset builder so it can accept compact
   installed-baseline manifests and multiple valid byte lineages for the same
   installed version directly, instead of leaving that work to an app-specific
