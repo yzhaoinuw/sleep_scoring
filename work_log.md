@@ -20,6 +20,30 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-21
 
+### v0.16.7 User-Config Update Repair (GPT-5, default mode)
+
+- Traced the failed v0.16.6 -> v0.16.7 automatic update to the installed
+  `SLEEP_SCORING_MODEL = "sdreamer"` setting. That one legitimate edit changed
+  the `app_src/config.py` hash, so the updater refused to replace the file.
+- Made figure loading compatible with pre-v0.16.7 config files by falling back
+  to the existing sleep-stage palette when `SLEEP_STAGE_COLORS` is absent.
+- Marked `app_src/config.py` as user-owned in the source-update packaging step,
+  so automatic updates preserve it instead of treating user settings as
+  replaceable runtime code.
+- Committed the repair as `72a324a`, pushed it directly to `dev`, and
+  fast-forwarded `main` without a pull request. The v0.16.7 tag was not moved
+  and the version was not bumped.
+- Replaced only the existing v0.16.7 update ZIP and checksum assets. The public
+  update ZIP is 6,686 bytes with SHA-256
+  `DB647CA1C81AB1CEBBCCDD026ECD4E34B7ADA9F3C9B4332DC5BE9357BD78119E`.
+- Verification:
+  - Focused config/update packaging suite -> `14 passed`.
+  - Full pytest -> `122 passed, 1 warning`; source smoke check -> passed.
+  - The exact installed v0.16.6 config hash
+    `67be73b2c597e84b58f708520bd6a89737d898aa448a500185d798065b2536c6`
+    remained unchanged after applying both the local candidate and the public
+    GitHub asset; both runs updated to v0.16.7 and retained `"sdreamer"`.
+
 ### v0.16.7 Sleep-Stage Color Release Preparation (GPT-5, default mode)
 
 - Classified the change as a lightweight source-update release: runtime edits
