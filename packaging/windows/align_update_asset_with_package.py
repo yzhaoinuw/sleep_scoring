@@ -40,12 +40,7 @@ def read_packaged_file(package_zip: Path, runtime_path: str) -> bytes:
         return package.read(matches[0])
 
 
-def align_update_asset(
-    update_zip: Path,
-    package_specs: list[tuple[str, Path]],
-    preserved_paths: tuple[str, ...] = (),
-) -> None:
-    preserved_paths = {str(PurePosixPath(path)) for path in preserved_paths}
+def align_update_asset(update_zip: Path, package_specs: list[tuple[str, Path]]) -> None:
     with zipfile.ZipFile(update_zip) as source:
         manifest = json.loads(source.read("manifest.json"))
         entries = [(entry, source.read(entry.filename)) for entry in source.infolist()]
@@ -62,46 +57,14 @@ def align_update_asset(
     files = manifest.get("files")
     if not isinstance(files, list):
         raise ValueError("update manifest has no files list")
-    files = [entry for entry in files if entry["path"] not in preserved_paths]
-    manifest["files"] = files
-    manifest["changed_files"] = [
-        path for path in manifest.get("changed_files", []) if path not in preserved_paths
-    ]
 
-    package_hashes_by_path: dict[str, dict[str, set[str]]] = {}
     for version, package_zip in package_specs:
         for file_entry in files:
             runtime_path = file_entry["path"]
             previous_hashes = file_entry["previous_sha256_by_version"]
             if version not in previous_hashes:
                 raise ValueError(f"{runtime_path!r} has no baseline entry for {version!r}")
-            package_hashes_by_path.setdefault(runtime_path, {}).setdefault(version, set()).add(
-                sha256(read_packaged_file(package_zip, runtime_path))
-            )
-
-    for file_entry in files:
-        runtime_path = file_entry["path"]
-        versioned_hashes = {
-            version: ({digest} if digest is not None else {None})
-            for version, digest in file_entry["previous_sha256_by_version"].items()
-        }
-        for version, hashes in package_hashes_by_path.get(runtime_path, {}).items():
-            versioned_hashes[version].update(hashes)
-
-        if any(len(hashes) > 1 for hashes in versioned_hashes.values()):
-            if any(None in hashes for hashes in versioned_hashes.values()):
-                raise ValueError(
-                    f"cannot combine multiple byte lineages with a missing-file baseline for "
-                    f"{runtime_path!r}"
-                )
-            file_entry["previous_sha256"] = sorted(
-                {digest for hashes in versioned_hashes.values() for digest in hashes}
-            )
-            file_entry.pop("previous_sha256_by_version")
-        else:
-            file_entry["previous_sha256_by_version"] = {
-                version: next(iter(hashes)) for version, hashes in versioned_hashes.items()
-            }
+            previous_hashes[version] = sha256(read_packaged_file(package_zip, runtime_path))
 
     manifest_bytes = json.dumps(manifest, indent=2).encode()
     update_zip.parent.mkdir(parents=True, exist_ok=True)
@@ -115,8 +78,6 @@ def align_update_asset(
             for entry, data in entries:
                 if entry.filename == "manifest.json":
                     data = manifest_bytes
-                elif str(PurePosixPath(entry.filename)) in preserved_paths:
-                    continue
                 destination.writestr(entry, data)
         os.replace(temp_path, update_zip)
     finally:
@@ -138,14 +99,8 @@ def main(argv: list[str] | None = None) -> int:
         default=[],
         help="Released baseline in VERSION=PATH form. Repeat as needed.",
     )
-    parser.add_argument(
-        "--preserve-path",
-        action="append",
-        default=[],
-        help="User-owned runtime path to omit from the automatic update.",
-    )
     args = parser.parse_args(argv)
-    align_update_asset(args.update_zip, args.from_package_zip, tuple(args.preserve_path))
+    align_update_asset(args.update_zip, args.from_package_zip)
     return 0
 
 

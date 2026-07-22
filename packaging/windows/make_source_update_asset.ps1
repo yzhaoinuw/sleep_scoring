@@ -7,7 +7,6 @@ param(
     [string]$AssetPrefix = "sleep_scoring_app_update_",
     [string]$Output = "",
     [string[]]$FromPackageZip = @(),
-    [string[]]$PreserveRuntimePath = @("app_src/config.py"),
     [switch]$SkipTests,
     [switch]$AllowDirty
 )
@@ -140,7 +139,7 @@ foreach ($Ref in $FromRef) {
 
 Invoke-Conda -EnvName $TestEnv -CommandArgs $BuilderArgs
 
-if ($FromPackageZip.Count -gt 0 -or $PreserveRuntimePath.Count -gt 0) {
+if ($FromPackageZip.Count -gt 0) {
     $AlignArgs = @(
         "python",
         "packaging\windows\align_update_asset_with_package.py",
@@ -149,9 +148,6 @@ if ($FromPackageZip.Count -gt 0 -or $PreserveRuntimePath.Count -gt 0) {
     )
     foreach ($PackageSpec in $FromPackageZip) {
         $AlignArgs += @("--from-package-zip", $PackageSpec)
-    }
-    foreach ($RuntimePath in $PreserveRuntimePath) {
-        $AlignArgs += @("--preserve-path", $RuntimePath)
     }
     Invoke-Conda -EnvName $TestEnv -CommandArgs $AlignArgs
 }
