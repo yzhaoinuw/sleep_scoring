@@ -18,18 +18,14 @@ from plotly.subplots import make_subplots
 from plotly_resampler import FigureResampler
 from plotly_resampler.aggregation import MinMaxLTTB
 
-from app_src.config import FIX_NE_Y_RANGE
+from app_src.config import FIX_NE_Y_RANGE, SLEEP_STAGE_COLORS
 from app_src.get_fft_plots import get_fft_plots
 from app_src.mat_utils import get_ne_frequency
 
 # set up color config
 SLEEP_SCORE_OPACITY = 1
-STAGE_COLORS = [
-    "rgb(124, 124, 251)",  # Wake,
-    "rgb(251, 124, 124)",  # NREM,
-    "rgb(123, 251, 123)",  # REM,
-    "rgb(255, 255, 0)",  # MA yellow
-]
+STAGE_KEYS = ("Wake", "NREM", "REM", "MA")
+STAGE_COLORS = [SLEEP_STAGE_COLORS[stage] for stage in STAGE_KEYS]
 STAGE_NAMES = ["Wake: 1", "NREM: 2", "REM: 3", "MA: 4"]
 COLORSCALE = {
     3: [[0, STAGE_COLORS[0]], [0.5, STAGE_COLORS[1]], [1, STAGE_COLORS[2]]],

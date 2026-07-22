@@ -33,6 +33,16 @@ class TestImports:
 
         assert hasattr(config, "INSTANCE_SLOT")
         assert hasattr(config, "PEER_PORTS")
+        assert tuple(config.SLEEP_STAGE_COLORS) == ("Wake", "NREM", "REM", "MA")
+
+    def test_sleep_stage_colors_come_from_config(self):
+        """Figure stage colors follow the editable app configuration."""
+        from app_src import config, make_figure
+
+        assert make_figure.STAGE_COLORS == [
+            config.SLEEP_STAGE_COLORS[stage] for stage in make_figure.STAGE_KEYS
+        ]
+        assert [color for _, color in make_figure.COLORSCALE[4]] == (make_figure.STAGE_COLORS)
 
     def test_import_version(self):
         """Test version is accessible."""

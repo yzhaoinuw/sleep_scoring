@@ -51,9 +51,38 @@ def test_align_update_asset_uses_exact_packaged_baseline_bytes(tmp_path):
     with zipfile.ZipFile(update_zip) as update:
         manifest = json.loads(update.read("manifest.json"))
         assert update.read("app_src/session.py") == b"new\n"
-    assert manifest["files"][0]["previous_sha256_by_version"]["v0.16.5"] == (
-        hashlib.sha256(b"previous\r\n").hexdigest()
+    assert set(manifest["files"][0]["previous_sha256"]) == {
+        "git-blob-hash",
+        hashlib.sha256(b"previous\r\n").hexdigest(),
+    }
+    assert "previous_sha256_by_version" not in manifest["files"][0]
+
+
+def test_align_update_asset_preserves_multiple_package_lineages(tmp_path):
+    update_zip = tmp_path / "update.zip"
+    full_package_zip = tmp_path / "full.zip"
+    patched_package_zip = tmp_path / "patched.zip"
+    _write_update_zip(update_zip)
+    with zipfile.ZipFile(full_package_zip, "w", zipfile.ZIP_DEFLATED) as package:
+        package.writestr("full/app_src/session.py", b"full-package\r\n")
+    with zipfile.ZipFile(patched_package_zip, "w", zipfile.ZIP_DEFLATED) as package:
+        package.writestr("patched/app_src/session.py", b"previous-source-update\n")
+
+    MODULE.align_update_asset(
+        update_zip,
+        [
+            ("v0.16.5", full_package_zip),
+            ("v0.16.5", patched_package_zip),
+        ],
     )
+
+    with zipfile.ZipFile(update_zip) as update:
+        manifest = json.loads(update.read("manifest.json"))
+    assert set(manifest["files"][0]["previous_sha256"]) == {
+        "git-blob-hash",
+        hashlib.sha256(b"full-package\r\n").hexdigest(),
+        hashlib.sha256(b"previous-source-update\n").hexdigest(),
+    }
 
 
 def test_align_update_asset_rejects_missing_packaged_runtime_file(tmp_path):

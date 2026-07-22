@@ -69,6 +69,10 @@ In annotation mode, you can annotate sleep scores or use [automatic sleep scorin
 - You can overwrite existing annotations by selecting and reassigning them.
 - Use the Undo Annotation button in the bottom-left below the graph to undo the last annotation. This button only appears when there is something to undo.
 
+To customize the colors used for Wake, NREM, REM, and MA, edit
+`SLEEP_STAGE_COLORS` in _app_src/config.py_ and restart the app. Each value can
+be a Plotly-compatible color such as `"#4477AA"` or `"rgb(68, 119, 170)"`.
+
 https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
 
 ### Select a Contiguous Segment
