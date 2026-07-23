@@ -42,6 +42,9 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   clarified that **Save Annotations** writes only to the path confirmed in the
   native Save dialog; opening, annotating, and predicting do not overwrite the
   source `.mat` file.
+- After review, fast-forwarded the completed `readme-makeover` branch into
+  `dev` and then `main`, pushed both branches, and verified the local,
+  remote-tracking, and remote branch refs were aligned.
 - Verified all relative Markdown link targets in the active docs, balanced the
   README `<details>` tags, and passed `git diff --check`. `treaty validate .`
   could not run because the `treaty` command is not installed or available on
