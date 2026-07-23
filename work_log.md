@@ -38,6 +38,10 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   private test data, model checkpoints, generated videos, and package outputs.
 - Removed maintainer-specific absolute Conda and PowerShell paths from
   `AGENTS.md` while preserving portable Windows guidance.
+- Follow-up review standardized README section-title capitalization and
+  clarified that **Save Annotations** writes only to the path confirmed in the
+  native Save dialog; opening, annotating, and predicting do not overwrite the
+  source `.mat` file.
 - Verified all relative Markdown link targets in the active docs, balanced the
   README `<details>` tags, and passed `git diff --check`. `treaty validate .`
   could not run because the `treaty` command is not installed or available on

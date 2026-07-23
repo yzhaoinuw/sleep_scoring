@@ -9,15 +9,15 @@ generating automatic sleep scores.
 ## Contents
 
 - [Install](#install)
-- [Before your first session](#before-your-first-session)
-- [Use the app](#use-the-app)
-- [Input files](#input-files)
-- [Developer documentation](#developer-documentation)
+- [Before Your First Session](#before-your-first-session)
+- [Use The App](#use-the-app)
+- [Input Files](#input-files)
+- [Developer Documentation](#developer-documentation)
 - [Citation](#citation)
 
 ## Install
 
-### Choose an installation
+### Choose An Installation
 
 | You are... | Recommended installation | What you need |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ The packaged Windows app is the simplest route for most users. The source
 installation is public and cross-platform, but it requires command-line setup.
 The source version has been tested on macOS Tahoe.
 
-### Packaged Windows app
+### Packaged Windows App
 
 1. Open the private
    [sleep_scoring_project distribution folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
@@ -62,7 +62,7 @@ it and remove the empty outer wrapper.
 
 </details>
 
-#### Packaged app updates
+#### Packaged App Updates
 
 The Windows app checks the latest GitHub Release when it starts and may update
 compatible `app_src/` files before the window opens. If the check is offline,
@@ -72,7 +72,7 @@ replace, the app still opens normally.
 Dependency, model, launcher, or packaged-runtime changes require a new full
 Windows zip from the private distribution folder.
 
-### Run from source (Windows or macOS)
+### Run From Source (Windows Or macOS)
 
 Install [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 and [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html),
@@ -100,7 +100,7 @@ conda activate sleep_scoring_dash3.0
 The source checkout uses the statistical automatic-scoring model by default,
 which does not require PyTorch or separately distributed model checkpoints.
 
-#### Optional sDREAMER setup
+#### Optional sDREAMER Setup
 
 sDREAMER is not required for visualization, annotation, video, saving, or the
 default statistical model.
@@ -117,10 +117,8 @@ default statistical model.
 Set `SLEEP_SCORING_MODEL = "sdreamer"` in `app_src/config.py`, then restart the
 app.
 
-## Before your first session
+## Before Your First Session
 
-- The app edits the selected `.mat` file when you save annotations. Work on a
-  copy if you need to preserve the original unchanged.
 - For the packaged app, run it from a folder on your computer rather than
   directly from OneDrive, a network drive, or the downloaded zip.
 - You can open up to three app windows on one computer, but the same `.mat`
@@ -128,9 +126,9 @@ app.
 - If the graph feels slow, close unnecessary browser tabs and other
   resource-heavy applications.
 
-## Use the app
+## Use The App
 
-### Start the app and open a recording
+### Start The App And Open A Recording
 
 - **Packaged Windows app:** double-click `unblock_app.cmd` or
   `run_desktop_app.exe`.
@@ -145,7 +143,7 @@ app has two interaction modes:
 
 Press <kbd>M</kbd> to switch modes.
 
-### Navigate and zoom
+### Navigate And Zoom
 
 Every newly opened recording starts in navigation mode.
 
@@ -162,7 +160,7 @@ The spectrogram Y-axis is fixed. The NE Y-axis is adjustable by default; set
 
 https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
 
-### Annotate sleep stages
+### Annotate Sleep Stages
 
 In annotation mode:
 
@@ -177,7 +175,7 @@ In annotation mode:
 
 https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
 
-### Check aligned video
+### Check Aligned Video
 
 In annotation mode, select a region shorter than 300 seconds and click
 **Check Video** above the graph.
@@ -187,7 +185,7 @@ the matching `.avi` file. If the video was found during
 [preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data/tree/dev),
 the app displays that saved path to help you find it.
 
-### Generate automatic scores
+### Generate Automatic Scores
 
 Choose the backend in `app_src/config.py`:
 
@@ -206,10 +204,12 @@ After [setting up sDREAMER](#optional-sdreamer-setup), switch to annotation
 mode and click **Generate Predictions**. Prediction runs in the background;
 when it finishes, you can correct the result manually or undo it.
 
-### Save sleep scores
+### Save Sleep Scores
 
-Click **Save Annotations** below the graph. The app saves sleep scores into the
-selected `.mat` file.
+Click **Save Annotations** below the graph. A native Save dialog opens with the
+current `.mat` filename suggested. The app writes to the destination you
+choose; it replaces the original recording only if you select that file and
+confirm the replacement.
 
 If any recording segment remains unscored, the app reports the first unscored
 range as `[start, end] (duration s)`, even if you cancel the save dialog. Once
@@ -222,7 +222,7 @@ the Excel summary.
 
 https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
 
-### Use multiple windows and crash recovery
+### Use Multiple Windows And Crash Recovery
 
 Launch the app again to open as many as three independent windows. The second
 and third windows show `(2)` and `(3)` in their title bars.
@@ -235,7 +235,7 @@ and third windows show `(2)` and `(3)` in their title bars.
   position before opening a different file. Opening a different file clears
   that window's recovery state.
 
-## Input files
+## Input Files
 
 The app opens MATLAB `.mat` files produced from raw recordings by the
 [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data)
@@ -276,7 +276,7 @@ Visualization supports variable EEG/EMG sampling rates through
 uses those frequencies directly. sDREAMER resamples EEG/EMG to 512 Hz for
 prediction, while NE-aware sDREAMER expects NE at 10 Hz.
 
-## Developer documentation
+## Developer Documentation
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow, source setup, and
   checks
