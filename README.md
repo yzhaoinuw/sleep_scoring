@@ -1,254 +1,297 @@
+# Sleep Scoring
+
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
 
-# Installation
+A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
+manually annotating sleep stages, checking aligned video, and optionally
+generating automatic sleep scores.
 
-## Windows Users
+## Contents
 
-1. Go to the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g) on OneDrive. Contact Yue if you can't access it.
-2. Download **_sleep_scoring_app_vx.zip_**. The **x** in **vx** denotes the current version. If you unzip it to the same location as the zip file, you may end up with a nested folder, such as a _sleep_scoring_app_vx/_ folder inside another _sleep_scoring_app_vx/_ folder. If this happens, move the inner folder somewhere else and delete the outer one to avoid confusion.
-3. Check that inside the unzipped sleep_scoring_app_vx directory, you have:
-   - **__internal/_**
-   - **_app_src/_**
-   - **_models/_**
-   - **_unblock_app.cmd_**
-   - **_run_desktop_app.exe_**
-4. Double click **_unblock_app.cmd_**. It unblocks the downloaded app files if Windows marked them as blocked, then starts **_run_desktop_app.exe_**.
+- [Install](#install)
+- [Before your first session](#before-your-first-session)
+- [Use the app](#use-the-app)
+- [Input files](#input-files)
+- [Developer documentation](#developer-documentation)
+- [Citation](#citation)
 
-### Updates
+## Install
 
-Auto-update-enabled Windows builds check the latest GitHub Release when the app starts and may update **_app_src/_** before the window opens. If the update check fails, is offline, is incompatible, or detects local edits in files it needs to replace, the app opens normally and you can use a new full zip instead.
+### Choose an installation
 
-Dependency, model, or packaged runtime changes still require downloading a new full app zip.
+| You are... | Recommended installation | What you need |
+| --- | --- | --- |
+| A Windows user who wants to run the app without Git, Python, or Conda | [Packaged Windows app](#packaged-windows-app) | Access to the private distribution folder; request access from Yue Zhao if needed |
+| A Windows user who wants to inspect or modify the code | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda |
+| A macOS user | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda; no packaged macOS build is currently provided |
+| A contributor | [Run from source](#run-from-source-windows-or-macos) | Git, Miniconda, and the checks in [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-## Mac Users
+The packaged Windows app is the simplest route for most users. The source
+installation is public and cross-platform, but it requires command-line setup.
+The source version has been tested on macOS Tahoe.
 
-The app has been tested on macOS Tahoe. To download, follow [Build From Source](#build-from-source-run-using-anaconda).
+### Packaged Windows app
 
-## Before Usage
+1. Open the private
+   [sleep_scoring_project distribution folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
+   If you cannot open it, request access from Yue Zhao, the repository
+   maintainer.
+2. Download `sleep_scoring_app_vX.Y.Z-windows.zip`, where `X.Y.Z` is the
+   current version.
+3. Extract the zip and move the extracted app folder onto your computer.
+4. Double-click `unblock_app.cmd`. It removes Windows download blocking from
+   the app files and then starts `run_desktop_app.exe`.
 
-- For best performance, copy the unzipped app folder to your own computer before running it. The app includes the sDREAMER model files but does not include the optional sDREAMER Torch runtime needed for deep-learning automatic scoring.
-- Use only one Sleep Scoring App session per computer.
-- If the graph feels slow, close unnecessary browser tabs and other heavy apps before scoring.
+After the first launch, you can start the app with either `unblock_app.cmd` or
+`run_desktop_app.exe`.
 
-# Usage
+<details>
+<summary>Troubleshoot the extracted folder layout</summary>
 
-To open the app, double click **_unblock_app.cmd_** and it will open the app's home page. After the folder has been unblocked, double clicking **_run_desktop_app.exe_** directly also works. Select a .mat file to visualize its EEG, EMG, and/or NE signals. There are two modes: [**navigation/panning mode**](#navigation) and [**annotation mode**](#annotation). To swap between them, press M on the keyboard.
+The app folder should directly contain:
 
-## Navigation
+- `_internal/`
+- `app_src/`
+- `models/`
+- `unblock_app.cmd`
+- `run_desktop_app.exe`
 
-Every time you open a new mat file, you are in **navigation/panning mode** initially. When in this mode:
+Some extraction tools create an extra nested folder with the same name. If
+that happens, move the inner app folder to the location where you want to keep
+it and remove the empty outer wrapper.
 
-- Click-and-drag left/right on any plot to pan horizontally. You can also press the left or right arrow key to move horizontally. This may come especially handy when you are in annotation mode.
-- On the EEG and EMG plots, you may also drag up/down to pan vertically.
+</details>
 
-> Note: The spectrogram and NE plots are vertically fixed, so they only allow horizontal panning.
+#### Packaged app updates
 
-### Zooming
+The Windows app checks the latest GitHub Release when it starts and may update
+compatible `app_src/` files before the window opens. If the check is offline,
+fails, finds an incompatible update, or detects local edits to files it would
+replace, the app still opens normally.
 
-To zoom in or out:
+Dependency, model, launcher, or packaged-runtime changes require a new full
+Windows zip from the private distribution folder.
 
-- Hover your cursor over a plot and scroll your mouse wheel.
-- To zoom X-axis only, hover over the spectrogram or NE plot.
-- To zoom Y-axis only, move the cursor slightly to the left of the plot's Y-axis before scrolling.
-- Zooming inside the EEG and EMG plot interior zooms both axes.
+### Run from source (Windows or macOS)
 
-To reset the view, click Reset Axes in the mode bar in the upper-right above the graph. The mode bar may be hidden but will appear if your cursor is within the graph area.
+Install [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+and [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html),
+then run:
 
-> Note: The spectrogram and the NE plot are fixed on the Y-axis, so you can only zoom on the X-axis on them. You can change this behavior for the NE plot. Open **_config.py_** in **_app_src/_** and change the line `FIX_NE_Y_RANGE = False` to `FIX_NE_Y_RANGE = True`.
+```bash
+git clone https://github.com/yzhaoinuw/sleep_scoring.git
+cd sleep_scoring
+conda env create -f environment.yml
+conda activate sleep_scoring_dash3.0
+python run_desktop_app.py
+```
+
+Activate `sleep_scoring_dash3.0` again whenever you open a new terminal before
+running the app.
+
+To update an existing source installation:
+
+```bash
+git pull
+conda env update -f environment.yml
+conda activate sleep_scoring_dash3.0
+```
+
+The source checkout uses the statistical automatic-scoring model by default,
+which does not require PyTorch or separately distributed model checkpoints.
+
+#### Optional sDREAMER setup
+
+sDREAMER is not required for visualization, annotation, video, saving, or the
+default statistical model.
+
+- **Packaged Windows app:** download `torch.zip` from the private distribution
+  folder, extract it, and copy its contents directly into the app's
+  `_internal/` folder. After copying, `_internal/torch/` should exist.
+- **Source installation:** install the PyTorch build recommended for your
+  computer from [pytorch.org](https://pytorch.org/get-started/locally/), then
+  run `pip install timm==1.0.22 einops==0.8.1`. The sDREAMER checkpoint files
+  are not stored in this public repository; request them from Yue Zhao and
+  place them in `models/sdreamer/checkpoints/`.
+
+Set `SLEEP_SCORING_MODEL = "sdreamer"` in `app_src/config.py`, then restart the
+app.
+
+## Before your first session
+
+- The app edits the selected `.mat` file when you save annotations. Work on a
+  copy if you need to preserve the original unchanged.
+- For the packaged app, run it from a folder on your computer rather than
+  directly from OneDrive, a network drive, or the downloaded zip.
+- You can open up to three app windows on one computer, but the same `.mat`
+  file cannot be open in two windows at once.
+- If the graph feels slow, close unnecessary browser tabs and other
+  resource-heavy applications.
+
+## Use the app
+
+### Start the app and open a recording
+
+- **Packaged Windows app:** double-click `unblock_app.cmd` or
+  `run_desktop_app.exe`.
+- **Source installation:** activate the Conda environment and run
+  `python run_desktop_app.py`.
+
+Select a `.mat` file to visualize its EEG, EMG, and optional NE signals. The
+app has two interaction modes:
+
+- **Navigation mode:** pan and zoom the plots.
+- **Annotation mode:** select time ranges and assign sleep stages.
+
+Press <kbd>M</kbd> to switch modes.
+
+### Navigate and zoom
+
+Every newly opened recording starts in navigation mode.
+
+- Drag left or right on a plot to pan horizontally, or use the left and right
+  arrow keys.
+- Drag vertically on the EEG or EMG plot to pan its Y-axis.
+- Scroll over a plot to zoom.
+- Scroll over the spectrogram or NE plot to zoom only the X-axis.
+- Scroll just to the left of a Y-axis to zoom only that axis.
+- Use **Reset Axes** in the graph's upper-right mode bar to restore the view.
+
+The spectrogram Y-axis is fixed. The NE Y-axis is adjustable by default; set
+`FIX_NE_Y_RANGE = True` in `app_src/config.py` if you want to lock it.
 
 https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
 
-## Annotation
+### Annotate sleep stages
 
-In annotation mode, you can annotate sleep scores or use [automatic sleep scoring](#automatic-sleep-scoring). You can also [check video](#check-video).
+In annotation mode:
 
-- Click a region to highlight it with a thin selection box.
-- Assign a score by pressing 1, 2, or 3 on your keyboard. The selected region will be colored correspondingly.
-- To annotate a wider region, click-and-drag to draw a wider box.
-- If you keep dragging past the left or right edge of the visible graph, the view will auto-pan so you can continue selecting a longer region without leaving annotation mode.
-- You can overwrite existing annotations by selecting and reassigning them.
-- Use the Undo Annotation button in the bottom-left below the graph to undo the last annotation. This button only appears when there is something to undo.
+- Click a region, then press <kbd>1</kbd>, <kbd>2</kbd>, or <kbd>3</kbd> to
+  assign a sleep stage.
+- Drag to select a wider region. Dragging beyond the visible edge auto-pans the
+  graph so you can continue the selection.
+- Right-click inside a scored or unscored segment to select that entire
+  contiguous segment.
+- Select an existing annotation and assign a new score to overwrite it.
+- Use **Undo Annotation** below the graph to undo the most recent annotation.
 
 https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
 
-### Select a Contiguous Segment
+### Check aligned video
 
-While in annotation mode, right-click inside an existing scored or unscored segment to select that whole contiguous segment. You can then press 1, 2, or 3 to assign a score to the selected segment.
+In annotation mode, select a region shorter than 300 seconds and click
+**Check Video** above the graph.
 
-### Check Video
+The first time you check video for a recording, the app may ask you to locate
+the matching `.avi` file. If the video was found during
+[preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data/tree/dev),
+the app displays that saved path to help you find it.
 
-While in annotation mode:
+### Generate automatic scores
 
-- If your selected region spans less than 300 seconds, click the **Check Video** button in the upper-left above the graph to open and play the corresponding video clip.
+Choose the backend in `app_src/config.py`:
 
-> Note: If this is your first time checking video for a given .mat file, you will be prompted to choose the corresponding .avi file. If the .avi file was found during [preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data/tree/dev), the app will show the file path to help you find it.
+```python
+SLEEP_SCORING_MODEL = "stats_model"  # or "sdreamer"
+```
 
-### Automatic Sleep Scoring
-
-Automatic scoring can use either the statistical Wake/REM model or sDREAMER. To switch models, open _app_src/config.py_ and set `SLEEP_SCORING_MODEL` to either `"stats_model"` or `"sdreamer"`.
-
-The statistical model does not need the optional sDREAMER Torch runtime. Its user-facing settings are in _app_src/config.py_:
+The statistical model works with the standard installation. Its user-facing
+settings are also in `app_src/config.py`:
 
 - `STATS_MODEL_WAKE_THRESHOLD`
 - `STATS_MODEL_MIN_WAKE_DURATION`
 - `STATS_MODEL_MIN_REM_DURATION`
 
-For sDREAMER, the Windows app zip includes the model files, but not the optional Torch runtime. To enable sDREAMER:
+After [setting up sDREAMER](#optional-sdreamer-setup), switch to annotation
+mode and click **Generate Predictions**. Prediction runs in the background;
+when it finishes, you can correct the result manually or undo it.
 
-- Download *torch.zip* from the [sleep_scoring_project folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
-- Unzip it, ensuring it does not remain nested inside another folder.
-- Copy all folders and files from the unzipped runtime directly into the app's _internal/_ folder. After copying, _internal/_ should contain _torch/_.
-- Reopen the app and it should be enabled automatically.
+### Save sleep scores
 
-After enabling:
+Click **Save Annotations** below the graph. The app saves sleep scores into the
+selected `.mat` file.
 
-- While in annotation mode, click the **Generate Predictions** button in the upper-right above the graph. This will load the model and run prediction in the background.
-- You can track progress in the command-line window.
-- When finished, the prediction will appear on the graph.
-- You can annotate to correct it, or undo the prediction and annotate manually.
+If any recording segment remains unscored, the app reports the first unscored
+range as `[start, end] (duration s)`, even if you cancel the save dialog. Once
+the recording is completely scored, the app also offers to export sleep bouts
+and summary statistics to an Excel file.
 
-## Save Sleep Scores
-
-Click the **Save Annotations** button in the bottom-left below the graph to save your sleep scores. They will be saved directly into the original .mat file.
-
-If any part of the recording is still unscored, the app reports the first unscored range in the annotation message as `[start, end] (duration s)`, even if you cancel the .mat save dialog. Score that range and save again.
-
-If the .mat file has been sleep scored completely, you will also be prompted to export sleep bouts and simple statistics to an Excel file.
-
-> Note: When you use automatic sleep scoring, the last few seconds may be unscored because of the deep learning model's input sequence length. To get the sleep bout Excel file, manually score the last few seconds.
+Automatic scoring may leave a few seconds unscored at the end because of the
+model's input sequence length. Score that remainder manually before exporting
+the Excel summary.
 
 https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
 
-## Multiple Windows
+### Use multiple windows and crash recovery
 
-You can open up to three app windows at the same time, for example to compare two recordings side by side. Just launch the app again while it is already running; each window is fully independent. The second and third windows show a number in their title bar, e.g. `(2)`.
+Launch the app again to open as many as three independent windows. The second
+and third windows show `(2)` and `(3)` in their title bars.
 
-- The same .mat file cannot be open in two windows at once. If you select a file that another window already has open, the app shows a reminder instead of loading it — pick a different file, or close it in the other window first.
-- Video clips and each recording's video association are tracked per window.
-- When more than one window is open, only the first window checks for app updates at startup.
+- A recording already open in one window cannot be loaded in another.
+- Video clips and saved video associations are isolated by window.
+- Only the first window checks for app updates.
+- Unsaved crash recovery is also isolated by window position. Relaunch windows
+  in their original order and reopen the same recording in the matching
+  position before opening a different file. Opening a different file clears
+  that window's recovery state.
 
-## Additional Notes
+## Input files
 
-- Crash recovery is stored separately for each window position. Relaunch windows
-  in their original order and open the same .mat file in the matching position
-  before opening any other file: the first window has no number, the second
-  shows `(2)`, and the third shows `(3)`. Opening a different file clears that
-  window's unsaved recovery, including a file with the same name in a different
-  folder.
+The app opens MATLAB `.mat` files produced from raw recordings by the
+[preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data)
+workflow.
 
----
+Required fields:
 
-# Developer Notes
-
-For collaboration workflow, branch habits, test expectations, and documentation conventions, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Windows Packaging
-
-Windows packages are built with the scripts in [`packaging/windows/`](packaging/windows/) instead of running PyInstaller by hand. For a full app zip, run:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\make_full_app_zip.ps1
-```
-
-The script runs tests, builds with PyInstaller, copies `app_src/`, `models/`, and the starter command into the release folder, smoke-checks the packaged app, and writes the zip plus manifest/hash files under `release_artifacts/`. For code-only releases after an auto-update-enabled full build, see [`packaging/windows/README.md`](packaging/windows/README.md).
-
-## Input File
-
-The input files to the app must be `.mat` (MATLAB) files created from raw recording files with the [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data) MATLAB preprocessing workflow. The `.mat` files contain the following fields.
-
-#### Required fields
-
-| Field Name | Data Type |
+| Field | Type |
 | --- | --- |
-| **_eeg_** | 1 x *N* single |
-| **_eeg_frequency_** | double |
-| **_emg_** | 1 x *N* single |
+| `eeg` | 1 x *N* single |
+| `eeg_frequency` | double |
+| `emg` | 1 x *N* single |
 
-#### Optional fields
+<details>
+<summary>Optional fields and timing details</summary>
 
-| Field Name | Data Type |
+| Field | Type |
 | --- | --- |
-| *ne* | 1 x *M* single |
-| *ne_frequency* (alias: *fp_frequency*) | double |
-| *sleep_scores* | single |
-| *start_time* | double |
-| *video_name* | char |
-| *video_path* | char |
-| *video_start_time* | double |
+| `ne` | 1 x *M* single |
+| `ne_frequency` (alias: `fp_frequency`) | double |
+| `sleep_scores` | single |
+| `start_time` | double |
+| `video_name` | char |
+| `video_path` | char |
+| `video_start_time` | double |
 
-**Sampling-rate note:** Visualization supports variable EEG/EMG sampling rates through `eeg_frequency` and variable NE sampling rates through `ne_frequency` (or its `fp_frequency` alias, for recordings whose upstream pipeline names the fiber-photometry sampling rate that way); EMG is assumed to share `eeg_frequency`. Automatic scoring with `stats_model` uses those frequencies directly. sDREAMER can also accommodate non-512 Hz EEG/EMG by resampling them to 512 Hz for prediction, but NE-aware sDREAMER expects NE at 10 Hz.
+- `start_time` can be nonzero when a recording longer than 12 hours was split
+  into shorter files.
+- `video_path` is the `.avi` path found during preprocessing.
+- `video_start_time` is the video TTL onset measured on the EEG acquisition
+  side, such as Viewpoint or Pinnacle.
 
-**Explanations**
+</details>
 
-1. *start_time* is not *0* if the .mat file came from a longer recording (>12 hours) that was segmented into 12-hour or shorter bins.
-2. *video_path* is the .avi path found during preprocessing.
-3. *video_start_time* is the TTL pulse onset found on the EEG side, such as Viewpoint or Pinnacle.
+Visualization supports variable EEG/EMG sampling rates through
+`eeg_frequency` and variable NE sampling rates through `ne_frequency` or
+`fp_frequency`; EMG is assumed to share `eeg_frequency`. The statistical model
+uses those frequencies directly. sDREAMER resamples EEG/EMG to 512 Hz for
+prediction, while NE-aware sDREAMER expects NE at 10 Hz.
 
-## Build From Source (Run Using Anaconda)
+## Developer documentation
 
-There are two preparation steps that you need to follow before using the app with Anaconda.
+- [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow, source setup, and
+  checks
+- [project_overview.md](project_overview.md): current architecture and
+  repository boundaries
+- [dash_app_cookbook.md](dash_app_cookbook.md): feature-by-feature
+  implementation recipes
+- [packaging/windows/README.md](packaging/windows/README.md): Windows release
+  packaging and update assets
 
-1. Install Miniconda, a minimal install of Anaconda. Follow the instructions here: https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html
-2. Get Git if you haven't. You need it to download the repo and to get updates. Follow the instructions here: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
+## Citation
 
-### Download source code
+If you use this app in research, use GitHub's **Cite this repository** button
+or the repository's [CITATION.cff](CITATION.cff) file to obtain an APA or
+BibTeX entry.
 
-```bash
-git clone https://github.com/yzhaoinuw/sleep_scoring.git
-```
-
-This command downloads the source code into the directory where it is run. You can move the source code folder anywhere you like afterwards. Then use `cd` in your command line to change to the folder where you placed the **_sleep_scoring/_** folder.
-
-
-### Set up the environment
-
-After you have done the prep work above, open your Anaconda terminal or Anaconda Powershell Prompt. To recreate the project environment, run this from the `sleep_scoring/` folder:
-
-```bash
-conda env create -f environment.yml
-conda activate sleep_scoring_dash3.0
-```
-
-In the future, every time before you run the app, make sure you activate this environment.
-
-
-If you want to use sDREAMER, install the PyTorch build recommended for the target computer from https://pytorch.org/get-started/locally/, then install the sDREAMER helper packages:
-
-```bash
-pip install timm==1.0.22 einops==0.8.1
-```
-
-### Running the app
-
-Last step, type:
-
-```bash
-python run_desktop_app.py
-```
-
-to run the app.
-
-### Updating the app
-
-When there's an update announced, it's straightforward to get the update from source. Have the environment activated, cd to the source code folder, then type:
-
-```bash
-git pull
-```
-
-If dependencies have changed, reinstall:
-
-```bash
-pip install -e .
-```
-
-# Citation
-
-If you use this app in your research, please cite it. The repository includes a
-[`CITATION.cff`](CITATION.cff) file, so you can use GitHub's **"Cite this
-repository"** button (top right of the repo page) to get an APA or BibTeX
-entry.
-
-A JOSS paper describing the software is in preparation (see
-[`paper/paper.md`](paper/paper.md)); once it is published, please cite the paper
-instead.
+A JOSS paper is in preparation in [paper/paper.md](paper/paper.md). Once it is
+published, please cite the paper instead.

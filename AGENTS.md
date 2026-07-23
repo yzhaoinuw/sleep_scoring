@@ -9,9 +9,8 @@ file automatically; use the map below to choose only what is relevant.
 
 - Project folder: `sleep_scoring`
 - Conda env: `sleep_scoring_dash3.0`
-- Conda envs live under `C:\Users\yzhao\miniconda3\envs\`.
-- If `conda` is not on PATH, use
-  `C:\Users\yzhao\miniconda3\condabin\conda.bat`.
+- If `conda` is not on PATH, use a Miniconda/Anaconda terminal or invoke the
+  `condabin/conda.bat` file from that computer's Conda installation.
 
 Common commands:
 
@@ -65,7 +64,7 @@ not remove locks, reset state, or broaden command scope to work around the
 failure. For pushes, use:
 
 ```powershell
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "git push origin <branch>"
+git push origin <branch>
 ```
 
 After branch, merge, commit, tag, or push work, verify with targeted refs:
@@ -106,7 +105,7 @@ work-log dates after the workstation date.
   real follow-ups only.
 - `project_overview.md`: codebase map for unfamiliar areas and active-vs-legacy
   boundaries.
-- `README.md`: user-facing setup, packaging, usage, and input-file contracts.
+- `README.md`: user-facing installation, usage, and input-file contracts.
 - `CONTRIBUTING.md`: collaboration workflow, branch/test expectations, and doc
   conventions.
 

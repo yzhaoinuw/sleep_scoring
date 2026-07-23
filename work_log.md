@@ -18,6 +18,31 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-23
+
+### Public-facing documentation makeover (GPT-5)
+
+- Created `readme-makeover` from a clean `dev` worktree and pushed the
+  completed documentation makeover to the matching branch on `origin`.
+- Reorganized `README.md` around a compact installation-choice table that
+  keeps the private packaged Windows route and the public Windows/macOS source
+  route together at the top, with explicit audience, access, update, and
+  optional sDREAMER requirements.
+- Added a table of contents and limited collapsible sections to secondary
+  folder-layout troubleshooting and optional input fields; kept first-run and
+  core usage instructions visible.
+- Corrected stale user guidance about the supported three-window workflow and
+  the `FIX_NE_Y_RANGE` setting.
+- Replaced the local-only inventory in `project_overview.md` with an
+  architecture map of tracked GitHub content and explicit boundaries for
+  private test data, model checkpoints, generated videos, and package outputs.
+- Removed maintainer-specific absolute Conda and PowerShell paths from
+  `AGENTS.md` while preserving portable Windows guidance.
+- Verified all relative Markdown link targets in the active docs, balanced the
+  README `<details>` tags, and passed `git diff --check`. `treaty validate .`
+  could not run because the `treaty` command is not installed or available on
+  PATH in this shell.
+
 ## 2026-07-22
 
 ### Post-release documentation placement (GPT-5)
