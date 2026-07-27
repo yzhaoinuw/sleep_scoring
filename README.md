@@ -164,8 +164,8 @@ https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
 
 In annotation mode:
 
-- Click a region, then press <kbd>1</kbd>, <kbd>2</kbd>, or <kbd>3</kbd> to
-  assign a sleep stage.
+- Click a region, then press <kbd>1</kbd> for Wake, <kbd>2</kbd> for NREM,
+  <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
 - Drag to select a wider region. Dragging beyond the visible edge auto-pans the
   graph so you can continue the selection.
 - Right-click inside a scored or unscored segment to select that entire
@@ -214,7 +214,8 @@ confirm the replacement.
 If any recording segment remains unscored, the app reports the first unscored
 range as `[start, end] (duration s)`, even if you cancel the save dialog. Once
 the recording is completely scored, the app also offers to export sleep bouts
-and summary statistics to an Excel file.
+and summary statistics to an Excel file. Manually scored microarousals are
+retained in the `Sleep_bouts` sheet and included in the `Sleep_stats` summary.
 
 Automatic scoring may leave a few seconds unscored at the end because of the
 model's input sequence length. Score that remainder manually before exporting

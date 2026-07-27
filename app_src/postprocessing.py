@@ -44,45 +44,25 @@ def get_first_unscored_segment(sleep_scores):
 
 
 def get_sleep_segments(sleep_scores):
-    transition_indices = np.flatnonzero(np.diff(sleep_scores))
-    transition_indices = np.append(transition_indices, len(sleep_scores) - 1)
+    """Return one row for each contiguous run of sleep-score labels."""
+    sleep_scores = np.asarray(sleep_scores).ravel()
+    columns = ["sleep_scores", "start", "end", "duration"]
+    if sleep_scores.size == 0:
+        return pd.DataFrame(columns=columns)
 
-    REM_end_indices = np.flatnonzero(sleep_scores[transition_indices] == 2)
-    REM_start_indices = REM_end_indices - 1
-    REM_end_indices = transition_indices[REM_end_indices]
-    REM_start_indices = transition_indices[REM_start_indices] + 1
+    end_indices = np.flatnonzero(sleep_scores[1:] != sleep_scores[:-1])
+    end_indices = np.append(end_indices, sleep_scores.size - 1)
+    start_indices = np.insert(end_indices[:-1] + 1, 0, 0)
 
-    wake_end_indices = np.flatnonzero(sleep_scores[transition_indices] == 0)
-    wake_start_indices = wake_end_indices - 1
-    wake_end_indices = transition_indices[wake_end_indices]
-    wake_start_indices = transition_indices[wake_start_indices] + 1
-
-    SWS_end_indices = np.flatnonzero(sleep_scores[transition_indices] == 1)
-    SWS_start_indices = SWS_end_indices - 1
-    SWS_end_indices = transition_indices[SWS_end_indices]
-    SWS_start_indices = transition_indices[SWS_start_indices] + 1
-
-    df_rem = pd.DataFrame()
-    df_rem["sleep_scores"] = pd.Series(np.array([2] * REM_end_indices.size))
-    df_rem["start"] = pd.Series(REM_start_indices)
-    df_rem["end"] = pd.Series(REM_end_indices)
-
-    df_wake = pd.DataFrame()
-    df_wake["sleep_scores"] = pd.Series(np.array([0] * wake_end_indices.size))
-    df_wake["start"] = pd.Series(wake_start_indices)
-    df_wake["end"] = pd.Series(wake_end_indices)
-
-    df_SWS = pd.DataFrame()
-    df_SWS["sleep_scores"] = pd.Series(np.array([1] * SWS_end_indices.size))
-    df_SWS["start"] = pd.Series(SWS_start_indices)
-    df_SWS["end"] = pd.Series(SWS_end_indices)
-
-    frames = [df_rem, df_wake, df_SWS]
-    df = pd.concat(frames)
-    df = df.sort_values(by=["end"], ignore_index=True)
-    df.at[0, "start"] = 0
-    df["duration"] = df["end"] - df["start"] + 1
-    return df
+    return pd.DataFrame(
+        {
+            "sleep_scores": sleep_scores[end_indices],
+            "start": start_indices,
+            "end": end_indices,
+            "duration": end_indices - start_indices + 1,
+        },
+        columns=columns,
+    )
 
 
 def merge_consecutive_sleep_scores(df):

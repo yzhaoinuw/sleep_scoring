@@ -58,6 +58,22 @@ class TestGetSleepSegments:
         assert df.iloc[0]["sleep_scores"] == 1
         assert df.iloc[0]["duration"] == 10
 
+    def test_preserves_explicit_microarousal_segment(self):
+        """Explicit MA labels should remain in the contiguous bout table."""
+        scores = np.array([1] * 20 + [3] * 5 + [0] * 20)
+
+        df = get_sleep_segments(scores)
+
+        expected = pd.DataFrame(
+            {
+                "sleep_scores": [1, 3, 0],
+                "start": [0, 20, 25],
+                "end": [19, 24, 44],
+                "duration": [20, 5, 20],
+            }
+        )
+        pd.testing.assert_frame_equal(df, expected)
+
 
 class TestGetFirstUnscoredSegment:
     """Tests for finding the first unscored sleep-score segment."""

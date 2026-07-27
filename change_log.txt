@@ -1,3 +1,7 @@
+#### v0.16.8
+1. Fixed Excel sleep-bout exports so manually scored microarousals are retained and included in microarousal duration, count, percentage, and transition statistics.
+2. Existing saved .mat annotations can be reopened and saved again to generate a corrected spreadsheet without rescoring the recording.
+
 #### v0.16.7
 1. Added optional sleep-stage color customization for Wake, NREM, REM, and MA through `app_src/config.py`.
 2. Kept automatically updated installations compatible with older or user-edited config files by using the standard color palette when `STAGE_COLORS` is absent.

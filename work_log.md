@@ -18,6 +18,45 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-27
+
+### v0.16.8 Microarousal Spreadsheet Fix (GPT-5)
+
+- Reproduced the reported zero-microarousal spreadsheet result on the current
+  v0.16.7 runtime with an annotation array containing an explicit MA bout
+  (`sleep_scores == 3`).
+- Confirmed that keyboard `4` correctly writes label `3` and **Save
+  Annotations** preserves it in the MAT payload, but `get_sleep_segments()`
+  constructs bout rows only for Wake `0`, NREM `1`, and REM `2`. Explicit MA
+  intervals are therefore omitted before `get_pred_label_stats()` receives
+  the bout table.
+- The downstream statistics function counts explicit MA rows correctly when
+  given one, so the defect is localized to bout construction. The omission
+  also removes MA rows from `Sleep_bouts`, excludes their duration from the
+  `Sleep_stats` denominator, and can misclassify transitions across the gap.
+- A focused reproduction with 20 s NREM, 5 s MA, and 20 s Wake produced only
+  the NREM and Wake bout rows and reported MA time/count as zero. The existing
+  postprocessing and save-helper suites still passed (`42 passed`), confirming
+  that explicit label-3 export coverage is missing.
+- Replaced the hard-coded three-stage bout builder with contiguous-run
+  construction that preserves every score label, including explicit MA label
+  `3`, without changing the downstream short-Wake-to-MA statistics rule.
+- Added direct bout-table coverage and a complete **Save Annotations**
+  regression that reads both generated workbook sheets and verifies MA bout,
+  duration, count, and percentage data.
+- The user manually confirmed the corrected export behavior in the desktop app.
+- Updated runtime/package metadata to v0.16.8 and added user-facing changelog
+  and README guidance for MA annotation and spreadsheet export behavior.
+- Verification passed: focused postprocessing/save tests (`44 passed`), full
+  pytest (`123 passed`), repository-pinned Black hook, `compileall`,
+  `run_desktop_app.py --smoke`, and `git diff --check`.
+- The runtime change is limited to `app_src/postprocessing.py`, so it is
+  eligible for the automatic source-update release path. A release still needs
+  a multi-baseline update asset, publication, and installed-app update checks
+  before packaged users receive it.
+- Commit, multi-baseline asset validation, branch synchronization, tag, and
+  GitHub publication are pending.
+
 ## 2026-07-23
 
 ### Public-facing documentation makeover (GPT-5)

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import dash
 import numpy as np
+import pandas as pd
 
 
 class TestWriteMetadata:
@@ -207,6 +208,51 @@ class TestInitializeCache:
 
 class TestSaveAnnotations:
     """Tests for save annotation behavior."""
+
+    def test_export_counts_explicit_microarousals(self, tmp_path):
+        from app_src.callbacks.saving import save_annotations
+        from scipy.io import loadmat
+
+        sleep_scores = np.array([1] * 20 + [3] * 5 + [0] * 20, dtype=float)
+        mat = {
+            "sleep_scores": np.zeros(sleep_scores.size),
+            "ne": np.array([]),
+        }
+        mat_save_path = tmp_path / "saved_recording.mat"
+        excel_save_path = tmp_path / "saved_recording_table.xlsx"
+        cache_values = {
+            "filepath": str(tmp_path / "source_recording.mat"),
+            "filename": "recording",
+            "sleep_scores_history": [sleep_scores],
+        }
+
+        with (
+            patch("app_src.callbacks.saving.TEMP_PATH", tmp_path),
+            patch(
+                "app_src.callbacks.saving.cache.get",
+                side_effect=lambda key: cache_values.get(key),
+            ),
+            patch("app_src.callbacks.saving.loadmat", return_value=mat),
+            patch(
+                "app_src.callbacks.saving.save_file_dialog",
+                side_effect=[str(mat_save_path), str(excel_save_path)],
+            ),
+        ):
+            message, max_intervals = save_annotations(1)
+
+        bouts = pd.read_excel(excel_save_path, sheet_name="Sleep_bouts", index_col=0)
+        stats = pd.read_excel(excel_save_path, sheet_name="Sleep_stats", index_col=0)
+        saved_scores = loadmat(mat_save_path, squeeze_me=True)["sleep_scores"]
+
+        np.testing.assert_array_equal(saved_scores, sleep_scores)
+        assert bouts["sleep_scores"].tolist() == [1, 3, 0]
+        assert bouts["duration"].tolist() == [20, 5, 20]
+        assert stats.loc["Time (s)", "MA"] == 5
+        assert stats.loc["Count", "MA"] == 1
+        assert abs(stats.loc["Time (%)"].sum() - 100) < 0.1
+        assert str(mat_save_path) in message
+        assert str(excel_save_path) in message
+        assert max_intervals == 5
 
     def test_cancelled_mat_save_still_reports_unscored_segment(self, tmp_path):
         from app_src.callbacks.saving import save_annotations
