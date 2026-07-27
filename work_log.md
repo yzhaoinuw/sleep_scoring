@@ -68,8 +68,17 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   chained v0.16.5 -> v0.16.6 -> v0.16.7 packaged fixtures. Every fixture
   reported an update to v0.16.8, preserved the exact `config.py` hash, and
   passed the frozen v0.16.8 smoke check.
-- Final branch synchronization, annotated tag, and GitHub publication are
-  pending.
+- Fast-forwarded `main` from `dev`, pushed both branches through release commit
+  `4fc44c9`, created and pushed annotated tag `v0.16.8` at that commit, and
+  published the official non-prerelease GitHub Release:
+  `https://github.com/yzhaoinuw/sleep_scoring/releases/tag/v0.16.8`.
+- The release contains only the 10,179-byte automatic-update ZIP and its
+  checksum file. GitHub reports the ZIP digest as
+  `sha256:bcdc6ceb3da78257750643e79fdf44ac9e77a363f9fe397ca37d1eea2c0fb5a8`,
+  matching the local artifact exactly.
+- GitHub's public latest-release endpoint returns v0.16.8 with both expected
+  assets, and the app's real release-API check from an already-v0.16.8 source
+  checkout reports `no update available`.
 
 ## 2026-07-23
 
