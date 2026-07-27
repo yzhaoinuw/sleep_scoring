@@ -6,9 +6,6 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Publish the microarousal spreadsheet fix in the next lightweight
-  source-update patch, with an asset that accepts every live v0.16.5-v0.16.7
-  packaged installation state.
 - Continue lightweight `app_src` patch releases on top of the v0.16.6 full
   Windows base; use the full-path video-association fix as the next candidate.
 - Continue the REM-within-Wake statistical-model experiment.

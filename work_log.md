@@ -54,8 +54,22 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   eligible for the automatic source-update release path. A release still needs
   a multi-baseline update asset, publication, and installed-app update checks
   before packaged users receive it.
-- Commit, multi-baseline asset validation, branch synchronization, tag, and
-  GitHub publication are pending.
+- Committed the v0.16.8 candidate as `7d1df7e`, pushed it to `dev`, and
+  confirmed the exact commit passed GitHub CI (Python tests, JavaScript tests,
+  and formatting) plus all CodeQL jobs.
+- Built the lightweight asset after verifying that `setup.py` differs from
+  each supported release only by its version assignment. The manifest accepts
+  v0.16.5, v0.16.6, and v0.16.7, preserves `app_src/config.py`, and contains
+  `app_src/__init__.py`, `app_src/make_figure.py`,
+  `app_src/postprocessing.py`, and `app_src/session.py` for direct jump-ahead
+  updates. Candidate SHA-256:
+  `BCDC6CEB3DA78257750643E79FDF44AC9E77A363F9FE397CA37D1EEA2C0FB5A8`.
+- Applied the candidate asset to extracted fresh v0.16.5, fresh v0.16.6, and
+  chained v0.16.5 -> v0.16.6 -> v0.16.7 packaged fixtures. Every fixture
+  reported an update to v0.16.8, preserved the exact `config.py` hash, and
+  passed the frozen v0.16.8 smoke check.
+- Final branch synchronization, annotated tag, and GitHub publication are
+  pending.
 
 ## 2026-07-23
 
