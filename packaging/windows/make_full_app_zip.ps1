@@ -81,7 +81,13 @@ $Version = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
 )
 
 $Version = $Version.Trim()
-$DistName = "sleep_scoring_app_$Version"
+$ReleaseLine = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
+    "python",
+    (Join-Path $ScriptDir "package_naming.py"),
+    $Version
+)
+$ReleaseLine = $ReleaseLine.Trim()
+$DistName = "sleep_scoring_app_$ReleaseLine"
 $DistPath = Join-Path $Repo "dist\$DistName"
 $ZipPath = Join-Path $ArtifactDir "$DistName-windows.zip"
 $TorchVersion = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
@@ -101,13 +107,43 @@ Write-Host "Build environment: $BuildEnv"
 Write-Host "Test environment:  $TestEnv"
 
 Invoke-Conda -EnvName $BuildEnv -CommandArgs @("python", "-m", "pip", "check")
+$BuildEnvFreeze = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
+    "python",
+    "-m",
+    "pip",
+    "freeze"
+)
+$UpdaterRequirement = @(
+    Get-Content -LiteralPath (Join-Path $Repo "requirements.txt") |
+        Where-Object { $_ -match "^desktop-app-source-updater\s+@" }
+)
+if ($UpdaterRequirement.Count -ne 1 -or $UpdaterRequirement[0] -notmatch "@([0-9a-f]{40})$") {
+    throw "requirements.txt must pin desktop-app-source-updater to one 40-character commit."
+}
+$RequiredUpdaterCommit = $Matches[1]
+$InstalledUpdater = @(
+    $BuildEnvFreeze -split "\r?\n" |
+        Where-Object { $_ -match "^desktop-app-source-updater\s+@" }
+)
+if (
+    $InstalledUpdater.Count -ne 1 -or
+    $InstalledUpdater[0] -notmatch [regex]::Escape("@$RequiredUpdaterCommit")
+) {
+    throw (
+        "Build environment $BuildEnv does not contain the updater commit pinned " +
+        "in requirements.txt ($RequiredUpdaterCommit). Refresh the environment before packaging."
+    )
+}
 
 if (-not $SkipTests) {
     New-Item -ItemType Directory -Force -Path (Join-Path $Repo ".pytest_tmp") | Out-Null
+    $PytestBaseTemp = Join-Path (
+        Join-Path $Repo ".pytest_tmp"
+    ) ("build_" + [guid]::NewGuid().ToString("N"))
     Invoke-Conda -EnvName $TestEnv -CommandArgs @(
         "pytest",
         "--basetemp",
-        ".pytest_tmp\build",
+        $PytestBaseTemp,
         "-p",
         "no:cacheprovider"
     )
@@ -214,11 +250,12 @@ $Hash = Get-FileHash -LiteralPath $ZipPath -Algorithm SHA256
 "$($Hash.Hash)  $(Split-Path $ZipPath -Leaf)" |
     Set-Content -LiteralPath "$ZipPath.sha256.txt" -Encoding UTF8
 
-$Freeze = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @("python", "-m", "pip", "freeze")
-$Freeze | Set-Content -LiteralPath "$ZipPath.build_env_requirements.txt" -Encoding UTF8
+$BuildEnvFreeze |
+    Set-Content -LiteralPath "$ZipPath.build_env_requirements.txt" -Encoding UTF8
 
 $Manifest = [ordered]@{
     version = $Version
+    release_line = $ReleaseLine
     kind = "full-windows"
     branch = Invoke-NativeCapture -FilePath "git" -CommandArgs @("branch", "--show-current")
     git_commit = Invoke-NativeCapture -FilePath "git" -CommandArgs @("rev-parse", "HEAD")

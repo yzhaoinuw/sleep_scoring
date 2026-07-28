@@ -6,10 +6,33 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Continue lightweight `app_src` patch releases on top of the v0.16.6 full
-  Windows base; use the full-path video-association fix as the next candidate.
+- Prepare the v0.17 full Windows base with the rate-limit-safe updater, stable
+  v0.17 package-folder naming, and the remaining user-selected changes; do not
+  build or publish the package until that candidate is complete.
+- Hold additional v0.16 lightweight releases while the v0.17 candidate is
+  assembled; reconsider the full-path video-association fix among the changes
+  to include in that full release.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
+
+## v0.17 Full Windows Base
+
+Status: base preparation is complete; candidate assembly, packaging, and
+publication are intentionally deferred.
+
+- Collect the remaining intended v0.17 changes and checks.
+- When the complete candidate is known, bump `app_src/__init__.py` and
+  `setup.py` together to v0.17.0 and write the final changelog/release notes,
+  including the new exact-version startup message and stable v0.17 package
+  folder.
+- Run the single `release_full.ps1` candidate gate. Do not repeat its
+  individual checks unless the candidate commit changes.
+- After the full package is built, export its compact installed baseline,
+  switch future lightweight-release fixtures to the v0.17 base, and enable
+  schema-2 config merging before the first post-v0.17 lightweight release.
+- Make the release notes explicit that v0.16.x installations cannot replace
+  their bundled launcher/updater through a source-only update and must download
+  the new full package.
 
 ## Lightweight Source Releases
 
@@ -18,27 +41,34 @@ in `project_overview.md` and `dash_app_cookbook.md`.
   ZIP, its SHA-256 file, and release notes. Direct new users to the v0.16.6 full
   package, which should patch itself to the latest source release on first
   launch.
-- Add one lightweight-release command that runs full pytest, the repository
-  Black hook, compile/smoke checks, source-update construction, manifest
-  validation, and representative installed-app update tests without rebuilding
-  PyInstaller or Torch.
-- Make that command refuse the lightweight path when dependencies, models,
-  launcher/updater runtime, PyInstaller configuration, packaged layout, or
-  unsupported runtime deletions/renames changed. Allow tests, documentation,
-  and a validated version-only `setup.py` change alongside `app_src/` updates.
-- Preserve jump-ahead support for all live installation states: the original
-  v0.16.5 full package, the canonical v0.16.6 full package, and v0.16.5 patched
-  to v0.16.6. Store compact installed-baseline hashes and emit every accepted
-  previous hash for an existing file so line-ending differences do not reject
-  an otherwise untouched installation.
-- Use three release fixtures for the first lightweight release: fresh v0.16.5,
-  fresh full v0.16.6, and v0.16.5 updated to v0.16.6. Require each to discover,
-  apply, and smoke-test the new release successfully.
+- Use `packaging/windows/release_lightweight.ps1` as the standard candidate
+  gate. Keep its tracked v0.16.5/v0.16.6 installed baselines and three frozen
+  fixture paths intact while those distributions remain supported.
+- Keep lightweight assets on manifest schema 1 until a future full
+  redistribution intentionally bundles the newer updater runtime. At that
+  point, evaluate schema-2 configuration merging and refresh the compatible
+  base/fixture policy together.
 - Make the normalized full-path MAT-to-video association and collision-proof
   generated-clip identity the next lightweight patch, with regression tests
   for identical MAT and video basenames in different folders.
 - Cut a new full base only when the frozen/package boundary changes or when a
   deliberate periodic roll-up is useful.
+
+## Research Impact Measurement
+
+Status: planning only; keep separate from the v0.17 updater/package work.
+
+- Define a small annual-report metric set, initially GitHub release-asset
+  downloads, private full-package downloads where SharePoint exposes them,
+  number of recordings scored, and total recording hours scored.
+- Decide whether app-use totals should remain local for a user-exported impact
+  summary or be sent through an explicit opt-in reporting mechanism.
+- Collect only aggregate counts. Do not collect recording names, paths, signal
+  data, annotations, animal identifiers, or other research data.
+- Define what counts as "scored" and prevent repeated saves or reopening the
+  same recording from inflating the totals.
+- Choose where any shared aggregates would be received, retained, and exported
+  for the group's annual research impact report before adding instrumentation.
 
 ## Statistical Model
 

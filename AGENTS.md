@@ -19,6 +19,8 @@ conda activate sleep_scoring_dash3.0
 python run_desktop_app.py
 python run_desktop_app.py --smoke
 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q
+powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\release_full.ps1 -ValidateOnly
+powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\release_lightweight.ps1
 ```
 
 ## Active App And Packaging
@@ -42,13 +44,15 @@ Updater config:
 
 - app: `sleep_scoring`
 - version file: `app_src/__init__.py`
-- release API: `https://api.github.com/repos/yzhaoinuw/sleep_scoring/releases/latest`
+- latest-release URL: `https://github.com/yzhaoinuw/sleep_scoring/releases/latest`
 - asset prefix: `sleep_scoring_app_update_`
 - allowed payload path: `app_src/`
 - env vars: `SLEEP_SCORING_SKIP_UPDATE`, `SLEEP_SCORING_UPDATE_ZIP_URL`,
+  `SLEEP_SCORING_UPDATE_LATEST_RELEASE_URL`,
   `SLEEP_SCORING_UPDATE_RELEASE_API_URL`,
   `SLEEP_SCORING_UPDATE_ASSET_PREFIX`,
-  `SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS`
+  `SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS`, `SLEEP_SCORING_UPDATE_STATE_FILE`,
+  `SLEEP_SCORING_FORCE_UPDATE_CHECK`
 
 ## Worktree And Git
 
@@ -90,6 +94,10 @@ release, as release work. Before creating or pushing a tag:
 - update `work_log.md` with verification and branch/tag state;
 - run the relevant tests/smoke/package checks;
 - only then tag, push, and verify pushed refs.
+
+Use `release_full.ps1` or `release_lightweight.ps1` as the applicable candidate
+gate. Once the gate passes, do not rerun its individual checks unless the
+candidate commit changes.
 
 Never write future-dated work-log entries. The current treaty validator rejects
 work-log dates after the workstation date.

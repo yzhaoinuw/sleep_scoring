@@ -22,6 +22,15 @@ EXPORT_SPEC = importlib.util.spec_from_file_location("export_runtime_from_git", 
 EXPORT_MODULE = importlib.util.module_from_spec(EXPORT_SPEC)
 EXPORT_SPEC.loader.exec_module(EXPORT_MODULE)
 
+LIGHTWEIGHT_SCRIPT_PATH = (
+    Path(__file__).parents[1] / "packaging" / "windows" / "lightweight_release.py"
+)
+LIGHTWEIGHT_SPEC = importlib.util.spec_from_file_location(
+    "lightweight_release", LIGHTWEIGHT_SCRIPT_PATH
+)
+LIGHTWEIGHT_MODULE = importlib.util.module_from_spec(LIGHTWEIGHT_SPEC)
+LIGHTWEIGHT_SPEC.loader.exec_module(LIGHTWEIGHT_MODULE)
+
 
 def _write_update_zip(path):
     manifest = {
@@ -96,6 +105,60 @@ def test_align_update_asset_rejects_missing_packaged_runtime_file(tmp_path):
         MODULE.align_update_asset(update_zip, [("v0.16.5", package_zip)])
 
 
+def test_align_update_asset_reads_windows_package_member_separators(tmp_path):
+    update_zip = tmp_path / "update.zip"
+    package_zip = tmp_path / "full.zip"
+    _write_update_zip(update_zip)
+    with zipfile.ZipFile(package_zip, "w", zipfile.ZIP_DEFLATED) as package:
+        package.writestr(
+            r"sleep_scoring_app_v0.16.5\app_src\session.py",
+            b"packaged\r\n",
+        )
+
+    MODULE.align_update_asset(update_zip, [("v0.16.5", package_zip)])
+
+    with zipfile.ZipFile(update_zip) as update:
+        manifest = json.loads(update.read("manifest.json"))
+    assert hashlib.sha256(b"packaged\r\n").hexdigest() in set(
+        manifest["files"][0]["previous_sha256"]
+    )
+
+
+def test_align_update_asset_preserves_builder_multi_hash_representation(tmp_path):
+    update_zip = tmp_path / "update.zip"
+    manifest = {
+        "from_versions": ["v0.16.5"],
+        "changed_files": ["app_src/config.py", "app_src/session.py"],
+        "files": [
+            {
+                "path": "app_src/config.py",
+                "sha256": "new-config",
+                "previous_sha256": ["old-config-a", "old-config-b"],
+            },
+            {
+                "path": "app_src/session.py",
+                "sha256": hashlib.sha256(b"new\n").hexdigest(),
+                "previous_sha256": ["old-session-a", "old-session-b"],
+            },
+        ],
+    }
+    with zipfile.ZipFile(update_zip, "w", zipfile.ZIP_DEFLATED) as update:
+        update.writestr("manifest.json", json.dumps(manifest))
+        update.writestr("app_src/config.py", b"new config\n")
+        update.writestr("app_src/session.py", b"new\n")
+
+    MODULE.align_update_asset(update_zip, [], ("app_src/config.py",))
+
+    with zipfile.ZipFile(update_zip) as update:
+        updated_manifest = json.loads(update.read("manifest.json"))
+        assert "app_src/config.py" not in update.namelist()
+    assert updated_manifest["changed_files"] == ["app_src/session.py"]
+    assert updated_manifest["files"][0]["previous_sha256"] == [
+        "old-session-a",
+        "old-session-b",
+    ]
+
+
 def test_align_update_asset_omits_preserved_user_config(tmp_path):
     update_zip = tmp_path / "update.zip"
     manifest = {
@@ -137,3 +200,168 @@ def test_export_runtime_writes_exact_git_blob_bytes(tmp_path):
     assert "app_src/__init__.py" in exported
     expected = subprocess.check_output(["git", "-C", str(repo), "show", "HEAD:app_src/__init__.py"])
     assert (tmp_path / "app_src" / "__init__.py").read_bytes() == expected
+
+
+def test_export_installed_baseline_hashes_exact_windows_zip_bytes(tmp_path):
+    package_zip = tmp_path / "full.zip"
+    output = tmp_path / "baseline.json"
+    with zipfile.ZipFile(package_zip, "w", zipfile.ZIP_DEFLATED) as package:
+        package.writestr(
+            r"sleep_scoring_app_v1.2.3\app_src\__init__.py",
+            b'VERSION = "v1.2.3"\r\n',
+        )
+        package.writestr(
+            r"sleep_scoring_app_v1.2.3\app_src\session.py",
+            b"packaged\r\n",
+        )
+
+    manifest = LIGHTWEIGHT_MODULE.export_installed_baseline(package_zip, "v1.2.3", output)
+
+    assert manifest["runtime_paths"] == ["app_src"]
+    assert manifest["files"]["app_src/session.py"] == hashlib.sha256(b"packaged\r\n").hexdigest()
+    assert json.loads(output.read_text(encoding="utf-8")) == manifest
+
+
+def test_export_installed_baseline_rejects_wrong_embedded_version(tmp_path):
+    package_zip = tmp_path / "full.zip"
+    with zipfile.ZipFile(package_zip, "w", zipfile.ZIP_DEFLATED) as package:
+        package.writestr(
+            r"sleep_scoring_app_v1.2.3\app_src\__init__.py",
+            b'VERSION = "v1.2.2"\n',
+        )
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="reports v1.2.2, expected v1.2.3",
+    ):
+        LIGHTWEIGHT_MODULE.export_installed_baseline(
+            package_zip, "v1.2.3", tmp_path / "baseline.json"
+        )
+
+
+def test_validate_setup_version_only_accepts_matching_assignment():
+    previous = b'setup(\n    name="sleep_scoring",\n    version="1.2.2",\n)\n'
+    current = b'setup(\n    name="sleep_scoring",\n    version="1.2.3",\n)\n'
+
+    LIGHTWEIGHT_MODULE.validate_setup_version_only(
+        previous,
+        current,
+        previous_app_version="v1.2.2",
+        current_app_version="v1.2.3",
+    )
+
+
+def test_validate_setup_version_only_rejects_other_setup_changes():
+    previous = b'setup(\n    name="sleep_scoring",\n    version="1.2.2",\n)\n'
+    current = b'setup(\n    name="renamed",\n    version="1.2.3",\n)\n'
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="changed beyond its version assignment",
+    ):
+        LIGHTWEIGHT_MODULE.validate_setup_version_only(
+            previous,
+            current,
+            previous_app_version="v1.2.2",
+            current_app_version="v1.2.3",
+        )
+
+
+def test_materialize_baseline_marks_new_runtime_files_absent(tmp_path, monkeypatch):
+    source = tmp_path / "source.json"
+    output = tmp_path / "materialized.json"
+    source.write_text(
+        json.dumps(
+            {
+                "version": "v1.2.2",
+                "runtime_paths": ["app_src"],
+                "files": {"app_src/existing.py": "a" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        LIGHTWEIGHT_MODULE,
+        "changed_runtime_paths",
+        lambda repo, from_refs, to_ref: [
+            "app_src/existing.py",
+            "app_src/new_module.py",
+        ],
+    )
+
+    materialized = LIGHTWEIGHT_MODULE.materialize_baseline(
+        source, output, tmp_path, ["v1.2.2"], "HEAD"
+    )
+
+    assert materialized["files"] == {
+        "app_src/existing.py": "a" * 64,
+        "app_src/new_module.py": None,
+    }
+
+
+def _git(repo, *args):
+    subprocess.run(
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        check=True,
+    )
+
+
+def _write_candidate_repo(repo):
+    (repo / "app_src").mkdir()
+    (repo / "app_src" / "__init__.py").write_text('VERSION = "v1.2.2"\n', encoding="utf-8")
+    (repo / "app_src" / "config.py").write_text("SETTING = 1\n", encoding="utf-8")
+    (repo / "app_src" / "session.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (repo / "setup.py").write_text(
+        'setup(\n    name="sleep_scoring",\n    version="1.2.2",\n)\n',
+        encoding="utf-8",
+    )
+    _git(repo, "init")
+    _git(repo, "config", "user.email", "tests@example.com")
+    _git(repo, "config", "user.name", "Tests")
+    _git(repo, "add", ".")
+    _git(repo, "-c", "commit.gpgsign=false", "commit", "-m", "baseline")
+    _git(repo, "tag", "v1.2.2")
+
+
+def test_validate_candidate_rejects_new_schema1_config_change(tmp_path):
+    _write_candidate_repo(tmp_path)
+    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v1.2.3"\n', encoding="utf-8")
+    (tmp_path / "app_src" / "config.py").write_text("SETTING = 2\n", encoding="utf-8")
+    (tmp_path / "setup.py").write_text(
+        'setup(\n    name="sleep_scoring",\n    version="1.2.3",\n)\n',
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="schema-1 releases cannot deliver",
+    ):
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v1.2.2"], "HEAD")
+
+
+def test_validate_candidate_rejects_forgotten_setup_version_bump(tmp_path):
+    _write_candidate_repo(tmp_path)
+    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v1.2.3"\n', encoding="utf-8")
+    (tmp_path / "app_src" / "session.py").write_text("VALUE = 2\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="does not match 'v1.2.3'",
+    ):
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v1.2.2"], "HEAD")
+
+
+def test_lightweight_release_gate_does_not_repeat_source_tests_in_builder():
+    script = LIGHTWEIGHT_SCRIPT_PATH.with_name("release_lightweight.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert script.count('"pytest",') == 1
+    assert "SkipTests = $true" in script
+    assert "AllowDirty = $true" in script
+    assert '"lightweight_release_" + [guid]::NewGuid()' in script

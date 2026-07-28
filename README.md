@@ -36,8 +36,8 @@ The source version has been tested on macOS Tahoe.
    [sleep_scoring_project distribution folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
    If you cannot open it, request access from Yue Zhao, the repository
    maintainer.
-2. Download `sleep_scoring_app_vX.Y.Z-windows.zip`, where `X.Y.Z` is the
-   current version.
+2. Download `sleep_scoring_app_vX.Y-windows.zip`, where `X.Y` is the current
+   major/minor release line.
 3. Extract the zip and move the extracted app folder onto your computer.
 4. Double-click `unblock_app.cmd`. It removes Windows download blocking from
    the app files and then starts `run_desktop_app.exe`.
@@ -64,10 +64,14 @@ it and remove the empty outer wrapper.
 
 #### Packaged App Updates
 
-The Windows app checks the latest GitHub Release when it starts and may update
-compatible `app_src/` files before the window opens. If the check is offline,
-fails, finds an incompatible update, or detects local edits to files it would
-replace, the app still opens normally.
+The Windows app checks the latest GitHub Release at most once every 24 hours
+and may update compatible `app_src/` files before the window opens. It compares
+versions before downloading an update asset. The startup terminal shows the
+exact installed version; the app window title shows it too, even though the
+installation folder keeps the stable `vX.Y` release-line name. When an update
+is available, the terminal reports both the installed and target versions. If
+the check is offline, fails, finds an incompatible update, or detects local
+edits to files it would replace, the app still opens normally.
 
 Dependency, model, launcher, or packaged-runtime changes require a new full
 Windows zip from the private distribution folder.

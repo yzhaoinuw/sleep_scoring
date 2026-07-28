@@ -36,12 +36,31 @@ function Assert-Any {
     }
 }
 
+function Assert-PythonAssignment {
+    param(
+        [string]$RelativePath,
+        [string]$Assignment
+    )
+
+    $FullPath = Join-Path $ReleasePath $RelativePath
+    if (-not (Test-Path -LiteralPath $FullPath -PathType Leaf)) {
+        throw "Missing expected release file: $RelativePath"
+    }
+
+    $Pattern = "(?m)^[ \t]*$([regex]::Escape($Assignment))[ \t]*="
+    $Contents = Get-Content -LiteralPath $FullPath -Raw
+    if ($Contents -notmatch $Pattern) {
+        throw "Missing expected $Assignment assignment in $RelativePath"
+    }
+}
+
 if ($Kind -eq "Full") {
     Assert-Exists "_internal"
     Assert-Exists "run_desktop_app.exe"
     Assert-Exists "unblock_app.cmd"
     Assert-Exists "models"
     Assert-Any "models\sdreamer\checkpoints" "*.pt"
+    Assert-PythonAssignment "app_src\config.py" "STAGE_COLORS"
 }
 
 Assert-Exists "app_src"

@@ -5,20 +5,49 @@ from types import SimpleNamespace
 import run_desktop_app
 
 
-def test_startup_update_prints_checking_and_result(monkeypatch, capsys):
+def test_reads_installed_version_without_importing_app_src(monkeypatch, tmp_path):
+    app_src = tmp_path / "app_src"
+    app_src.mkdir()
+    (app_src / "__init__.py").write_text('VERSION = "v1.2.3"\n', encoding="utf-8")
+    monkeypatch.setattr(run_desktop_app, "base_path", str(tmp_path))
+
+    assert run_desktop_app.get_installed_version() == "v1.2.3"
+
+
+def test_missing_installed_version_is_reported_as_unknown(monkeypatch, tmp_path):
+    monkeypatch.setattr(run_desktop_app, "base_path", str(tmp_path))
+
+    assert run_desktop_app.get_installed_version() == "unknown"
+
+
+def test_startup_update_prints_checking_and_result(monkeypatch, capsys, tmp_path):
     result = SimpleNamespace(status="up-to-date", message="installed version is current")
+    calls = []
+
+    def fake_run_startup_update(config, *, force_check=False):
+        calls.append((config, force_check))
+        return result
+
     fake_updater = SimpleNamespace(
         UpdateConfig=lambda **kwargs: kwargs,
         format_update_message=lambda update_result: "",
-        run_startup_update=lambda config: result,
+        run_startup_update=fake_run_startup_update,
     )
 
     monkeypatch.setattr(run_desktop_app, "should_run_startup_update", lambda: True)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     monkeypatch.setitem(sys.modules, "desktop_app_source_updater", fake_updater)
 
-    succeeded = run_desktop_app.run_startup_update_if_enabled()
+    succeeded = run_desktop_app.run_startup_update_if_enabled(force_check=True)
 
     assert succeeded is True
+    config, force_check = calls[0]
+    assert force_check is True
+    assert config["latest_release_url"] == run_desktop_app.LATEST_RELEASE_URL
+    assert config["release_api_url"] == ""
+    assert config["check_state_file"] == tmp_path / "sleep_scoring" / "update-check.json"
+    assert config["force_check_env"] == run_desktop_app.FORCE_UPDATE_CHECK_ENV
+    assert config["on_update_available"] is run_desktop_app.show_update_available
     assert capsys.readouterr().out.strip().splitlines() == [
         "[startup-update] checking for updates...",
         "[startup-update] no update available",
@@ -28,6 +57,7 @@ def test_startup_update_prints_checking_and_result(monkeypatch, capsys):
 def test_source_run_prints_skipped_message(monkeypatch, capsys):
     monkeypatch.delenv(run_desktop_app.SKIP_UPDATE_ENV, raising=False)
     monkeypatch.delenv(run_desktop_app.UPDATE_ZIP_URL_ENV, raising=False)
+    monkeypatch.delenv(run_desktop_app.UPDATE_LATEST_RELEASE_ENV, raising=False)
     monkeypatch.delenv(run_desktop_app.UPDATE_RELEASE_API_ENV, raising=False)
     monkeypatch.setattr(run_desktop_app.sys, "frozen", False, raising=False)
 
@@ -49,15 +79,46 @@ def test_skip_env_prints_disabled_message(monkeypatch, capsys):
 
 
 def test_update_check_mode_uses_failure_exit_code(monkeypatch):
-    monkeypatch.setattr(run_desktop_app, "run_startup_update_if_enabled", lambda: False)
+    monkeypatch.setattr(run_desktop_app, "print_installed_version", lambda: None)
+    received = []
+    monkeypatch.setattr(
+        run_desktop_app,
+        "run_startup_update_if_enabled",
+        lambda force_check=False: received.append(force_check) or False,
+    )
 
     assert run_desktop_app.main(["--check-update"]) == 1
+    assert received == [True]
 
 
 def test_update_check_mode_uses_success_exit_code(monkeypatch):
-    monkeypatch.setattr(run_desktop_app, "run_startup_update_if_enabled", lambda: True)
+    monkeypatch.setattr(run_desktop_app, "print_installed_version", lambda: None)
+    received = []
+    monkeypatch.setattr(
+        run_desktop_app,
+        "run_startup_update_if_enabled",
+        lambda force_check=False: received.append(force_check) or True,
+    )
 
     assert run_desktop_app.main(["--check-update"]) == 0
+    assert received == [True]
+
+
+def test_update_check_prints_version_before_checking(monkeypatch, capsys):
+    monkeypatch.setattr(run_desktop_app, "get_installed_version", lambda: "v1.2.3")
+
+    def fake_update(force_check=False):
+        assert force_check is True
+        print("[startup-update] checking for updates...")
+        return True
+
+    monkeypatch.setattr(run_desktop_app, "run_startup_update_if_enabled", fake_update)
+
+    assert run_desktop_app.main(["--check-update"]) == 0
+    assert capsys.readouterr().out.strip().splitlines() == [
+        "[startup] Sleep Scoring App version: v1.2.3",
+        "[startup-update] checking for updates...",
+    ]
 
 
 def test_formats_successful_update_message():
@@ -69,6 +130,58 @@ def test_formats_successful_update_message():
     )
 
     assert message == "updated to v1.2.3 (4 changed files)"
+
+
+def test_prints_explicit_update_versions(capsys):
+    run_desktop_app.show_update_available("v1.2.3", "v1.3.0")
+
+    assert capsys.readouterr().out.strip() == (
+        "[startup-update] updating from version v1.2.3 to version v1.3.0..."
+    )
+
+
+def test_legacy_api_override_disables_default_redirect(monkeypatch):
+    monkeypatch.setenv(
+        run_desktop_app.UPDATE_RELEASE_API_ENV,
+        "https://example.test/releases/latest",
+    )
+    monkeypatch.delenv(run_desktop_app.UPDATE_LATEST_RELEASE_ENV, raising=False)
+
+    assert run_desktop_app.get_latest_release_url() == ""
+
+
+def test_latest_release_override_takes_precedence_over_legacy_api(monkeypatch):
+    monkeypatch.setenv(
+        run_desktop_app.UPDATE_RELEASE_API_ENV,
+        "https://example.test/api/releases/latest",
+    )
+    monkeypatch.setenv(
+        run_desktop_app.UPDATE_LATEST_RELEASE_ENV,
+        "https://example.test/releases/latest",
+    )
+
+    assert run_desktop_app.get_latest_release_url() == run_desktop_app.LATEST_RELEASE_URL
+
+
+def test_update_state_file_can_be_overridden(monkeypatch, tmp_path):
+    state_file = tmp_path / "custom-update-state.json"
+    monkeypatch.setenv(run_desktop_app.UPDATE_STATE_FILE_ENV, str(state_file))
+
+    assert run_desktop_app.get_update_state_file() == str(state_file)
+
+
+def test_formats_deferred_check_as_network_skip():
+    result = SimpleNamespace(
+        status="up-to-date",
+        message="startup update check deferred by the configured interval",
+    )
+
+    message = run_desktop_app.format_startup_update_console_message(
+        result,
+        lambda update_result: "",
+    )
+
+    assert message == "recent update check still current; network check skipped"
 
 
 def test_formats_failed_update_message_as_non_blocking():

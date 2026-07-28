@@ -7,9 +7,11 @@ Created on Tue Dec  2 17:54:32 2025
 
 import multiprocessing
 import os
+import re
 import socket
 import sys
 import threading
+from pathlib import Path
 
 import webview
 
@@ -20,11 +22,16 @@ INSTANCE_SLOT_ENV = "SLEEP_SCORING_INSTANCE_SLOT"
 PEER_PORTS_ENV = "SLEEP_SCORING_PEER_PORTS"
 
 UPDATE_ASSET_PREFIX = "sleep_scoring_app_update_"
+LATEST_RELEASE_URL = "https://github.com/yzhaoinuw/sleep_scoring/releases/latest"
 SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
 UPDATE_ZIP_URL_ENV = "SLEEP_SCORING_UPDATE_ZIP_URL"
+UPDATE_LATEST_RELEASE_ENV = "SLEEP_SCORING_UPDATE_LATEST_RELEASE_URL"
 UPDATE_RELEASE_API_ENV = "SLEEP_SCORING_UPDATE_RELEASE_API_URL"
 UPDATE_ASSET_PREFIX_ENV = "SLEEP_SCORING_UPDATE_ASSET_PREFIX"
 UPDATE_TIMEOUT_ENV = "SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS"
+UPDATE_STATE_FILE_ENV = "SLEEP_SCORING_UPDATE_STATE_FILE"
+FORCE_UPDATE_CHECK_ENV = "SLEEP_SCORING_FORCE_UPDATE_CHECK"
+VERSION_PATTERN = re.compile(r"""VERSION\s*=\s*["']([^"']+)["']""")
 
 
 def get_base_path():
@@ -39,6 +46,20 @@ base_path = get_base_path()
 sys.path.insert(0, base_path)
 
 
+def get_installed_version():
+    version_file = os.path.join(base_path, "app_src", "__init__.py")
+    try:
+        with open(version_file, encoding="utf-8") as source:
+            match = VERSION_PATTERN.search(source.read())
+    except OSError:
+        return "unknown"
+    return match.group(1) if match else "unknown"
+
+
+def print_installed_version():
+    print(f"[startup] Sleep Scoring App version: {get_installed_version()}", flush=True)
+
+
 def _env_flag_is_enabled(name):
     return os.environ.get(name, "").lower() in {"1", "true", "yes", "on"}
 
@@ -46,9 +67,38 @@ def _env_flag_is_enabled(name):
 def should_run_startup_update():
     if _env_flag_is_enabled(SKIP_UPDATE_ENV):
         return False
-    if os.environ.get(UPDATE_ZIP_URL_ENV) or os.environ.get(UPDATE_RELEASE_API_ENV):
+    if any(
+        os.environ.get(name)
+        for name in (
+            UPDATE_ZIP_URL_ENV,
+            UPDATE_LATEST_RELEASE_ENV,
+            UPDATE_RELEASE_API_ENV,
+        )
+    ):
         return True
     return getattr(sys, "frozen", False)
+
+
+def get_latest_release_url():
+    if os.environ.get(UPDATE_RELEASE_API_ENV) and not os.environ.get(UPDATE_LATEST_RELEASE_ENV):
+        return ""
+    return LATEST_RELEASE_URL
+
+
+def get_update_state_file():
+    configured_path = os.environ.get(UPDATE_STATE_FILE_ENV)
+    if configured_path:
+        return configured_path
+    state_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".cache"))
+    return state_root / "sleep_scoring" / "update-check.json"
+
+
+def show_update_available(installed_version, target_version):
+    print(
+        f"[startup-update] updating from version {installed_version} "
+        f"to version {target_version}...",
+        flush=True,
+    )
 
 
 def get_startup_update_skip_message():
@@ -59,7 +109,7 @@ def get_startup_update_skip_message():
     return ""
 
 
-def run_startup_update_if_enabled():
+def run_startup_update_if_enabled(force_check=False):
     if not should_run_startup_update():
         message = get_startup_update_skip_message()
         if message:
@@ -84,15 +134,21 @@ def run_startup_update_if_enabled():
                 app_name="sleep_scoring",
                 app_root=base_path,
                 installed_version_file="app_src/__init__.py",
-                release_api_url="https://api.github.com/repos/yzhaoinuw/sleep_scoring/releases/latest",
+                latest_release_url=get_latest_release_url(),
+                latest_release_env=UPDATE_LATEST_RELEASE_ENV,
+                release_api_url="",
                 asset_prefix=UPDATE_ASSET_PREFIX,
                 allowed_payload_paths=("app_src/",),
+                check_state_file=get_update_state_file(),
+                force_check_env=FORCE_UPDATE_CHECK_ENV,
+                on_update_available=show_update_available,
                 skip_update_env=SKIP_UPDATE_ENV,
                 update_zip_url_env=UPDATE_ZIP_URL_ENV,
                 release_api_env=UPDATE_RELEASE_API_ENV,
                 asset_prefix_env=UPDATE_ASSET_PREFIX_ENV,
                 timeout_env=UPDATE_TIMEOUT_ENV,
-            )
+            ),
+            force_check=force_check,
         )
     except Exception as exc:  # Keep update failures from blocking normal app startup.
         print(f"[startup-update] failed unexpectedly: {exc}; continuing startup", flush=True)
@@ -107,6 +163,8 @@ def run_startup_update_if_enabled():
 def format_startup_update_console_message(result, format_update_message):
     message = format_update_message(result)
     if result.status == "up-to-date":
+        if "deferred by the configured interval" in result.message:
+            return "recent update check still current; network check skipped"
         return "no update available"
     if result.status == "updated":
         return message or result.message
@@ -212,7 +270,8 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
 
     if "--check-update" in argv:
-        return 0 if run_startup_update_if_enabled() else 1
+        print_installed_version()
+        return 0 if run_startup_update_if_enabled(force_check=True) else 1
 
     if "--smoke" in argv:
         from app_src import VERSION
@@ -234,6 +293,7 @@ def main(argv=None):
         str(BASE_PORT + other) for other in range(MAX_SESSIONS) if other != slot
     )
 
+    print_installed_version()
     peer_guards = claim_peer_slots(slot) if slot == 0 else None
     if peer_guards is None:
         # Never patch app_src while another window may be running from it.

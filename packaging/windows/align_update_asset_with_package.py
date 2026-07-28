@@ -31,7 +31,7 @@ def read_packaged_file(package_zip: Path, runtime_path: str) -> bytes:
         matches = [
             name
             for name in package.namelist()
-            if PurePosixPath(name).parts[-len(wanted_parts) :] == wanted_parts
+            if PurePosixPath(name.replace("\\", "/")).parts[-len(wanted_parts) :] == wanted_parts
         ]
         if len(matches) != 1:
             raise ValueError(
@@ -72,18 +72,33 @@ def align_update_asset(
     for version, package_zip in package_specs:
         for file_entry in files:
             runtime_path = file_entry["path"]
-            previous_hashes = file_entry["previous_sha256_by_version"]
-            if version not in previous_hashes:
+            previous_hashes = file_entry.get("previous_sha256_by_version")
+            if previous_hashes is not None and version not in previous_hashes:
                 raise ValueError(f"{runtime_path!r} has no baseline entry for {version!r}")
+            if previous_hashes is None and "previous_sha256" not in file_entry:
+                raise ValueError(f"{runtime_path!r} has no supported previous-hash representation")
             package_hashes_by_path.setdefault(runtime_path, {}).setdefault(version, set()).add(
                 sha256(read_packaged_file(package_zip, runtime_path))
             )
 
     for file_entry in files:
         runtime_path = file_entry["path"]
+        if "previous_sha256" in file_entry:
+            accepted_hashes = set(file_entry["previous_sha256"])
+            accepted_hashes.update(
+                digest
+                for hashes in package_hashes_by_path.get(runtime_path, {}).values()
+                for digest in hashes
+            )
+            file_entry["previous_sha256"] = sorted(accepted_hashes)
+            continue
+
+        previous_hashes_by_version = file_entry.get("previous_sha256_by_version")
+        if not isinstance(previous_hashes_by_version, dict):
+            raise ValueError(f"{runtime_path!r} has no supported previous-hash representation")
         versioned_hashes = {
             version: ({digest} if digest is not None else {None})
-            for version, digest in file_entry["previous_sha256_by_version"].items()
+            for version, digest in previous_hashes_by_version.items()
         }
         for version, hashes in package_hashes_by_path.get(runtime_path, {}).items():
             versioned_hashes[version].update(hashes)

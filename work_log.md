@@ -18,7 +18,98 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-28
+
+### v0.17 updater and full-release preparation (GPT-5)
+
+- Handed the reusable updater work to a separate
+  `desktop_app_source_updater` task. That task completed local branch
+  `fix/durable-startup-checks` at commit
+  `22475b7893231897afbbf21599c0132786375a39` with redirect-based GitHub
+  discovery, compare-before-download behavior, a 24-hour check-state/backoff
+  cache, forced checks, explicit installed/target versions, and an
+  update-available callback. The updater task then merged that unchanged
+  package tree with the treaty v0.4.1 work through commit
+  `85bb68e42155ad8b661f669df8d281fbe683a045`; upstream `main` and `dev` were
+  both pushed to that verified tip. No updater tag or release was created.
+- Pinned this app to that exact merged updater revision and changed the normal
+  packaged startup path away from GitHub's anonymous Releases REST endpoint.
+  The app now stores per-user check state under LocalAppData, supports a
+  forced-check environment override, retains the old release-API override for
+  compatibility, and reports when a recent check lets it skip the network.
+- Added exact version output before startup-update status and explicit
+  `updating from version ... to version ...` progress before an available
+  asset is downloaded. `--check-update` bypasses the daily interval for
+  packaging and diagnostics.
+- Changed full-package naming to the stable major/minor release line, such as
+  `sleep_scoring_app_v0.17`, while preserving the exact patch version in the
+  manifest, terminal, and app window title.
+- Added a full-package preflight and smoke requirement for the customizable
+  `STAGE_COLORS` assignment in `app_src/config.py`.
+- Added `release_full.ps1` as the single full-candidate entry point. It
+  validates version/changelog/updater-pin/config invariants, runs each source
+  quality layer once, delegates the package build, and verifies the resulting
+  sidecars, checksum, and manifest. The wrapper avoids a duplicate repository
+  status check; pytest uses a unique Windows temp directory; npm is
+  preflighted and can use PATH, an explicit `-NpmExe`, or the bundled Codex
+  runtime.
+- Recorded research-impact measurement as a separate planning item in
+  `next_steps.md`, including download counts, scored-recording counts, scored
+  hours, deduplication, privacy boundaries, and local-export versus explicit
+  opt-in reporting decisions.
+- Verification:
+  - 53 focused launcher and packaging tests passed.
+  - The complete validation-only full-release gate passed 157 Python tests,
+    repository-pinned Black, compileall, 38 JavaScript tests, and the source
+    smoke check using the standard `sleep_scoring_dash3.0` environment, with
+    no upstream-worktree `PYTHONPATH` override.
+  - A fresh isolated pip install resolved and built updater 0.2.0 from exact
+    pushed commit `85bb68e42155ad8b661f669df8d281fbe683a045`;
+    a live forced GitHub check reported the installed v0.16.8 app current
+    without downloading an update asset.
+  - Both `sleep_scoring_dash3.0` and `sleep_scoring_dash3.0_dist` now import
+    updater 0.2.0 from that pin, expose the forced-check API and 86,400-second
+    interval, and pass `pip check`.
+  - PowerShell syntax validation and `git diff --check` passed.
+- The app remains at v0.16.8 so the user's remaining v0.17 changes can be
+  added before the final candidate is versioned and documented. No PyInstaller
+  build, ZIP, tag, release, or publication was performed.
+
 ## 2026-07-27
+
+### One-command Lightweight Release Gate (GPT-5)
+
+- Fast-forwarded the existing local `auto-update` branch to the current
+  v0.16.8 `main`/`dev` commit before starting the release-tooling work; the
+  branch had no unique commits to preserve.
+- Added `packaging/windows/release_lightweight.ps1` as the standard
+  maintainer-side candidate gate. It discovers compatible release tags, runs
+  pytest/Black/compile/source-smoke checks once, builds and validates the
+  schema-1 asset, and applies it through three retained frozen Windows
+  installation states.
+- Added compact exact-byte manifests for the fresh v0.16.5 full package, fresh
+  v0.16.6 full package, and v0.16.5 patched to v0.16.6. The lower-level builder
+  materializes missing future runtime paths as absent and uses the newer shared
+  builder's multiple-baseline support without changing the updater runtime
+  pinned and frozen in user distributions.
+- Added an explicit lightweight-boundary validator. It rejects dependency,
+  model, launcher/updater, PyInstaller, release-helper, runtime deletion, and
+  runtime rename changes; `setup.py` is accepted only when the version literal
+  is its sole difference and both old/new values match `app_src/__init__.py`.
+- Kept `app_src/config.py` on the existing preserve-in-place schema-1 path.
+  The gate refuses a newly changed config because it cannot be delivered by
+  schema 1. Schema-2 configuration merging still requires a future full
+  redistribution and is intentionally outside this change.
+- Updated the legacy package-alignment helper to accept both valid schema-1
+  previous-hash representations and real Windows ZIP member separators.
+- Verification:
+  - 14 focused release-packaging tests and 132 full pytest tests passed.
+  - The complete one-command run passed repository-pinned Black, compileall,
+    source smoke, schema-1 manifest/checksum validation, and frozen update/smoke
+    checks for fresh v0.16.5, fresh v0.16.6, and
+    v0.16.5 -> v0.16.6 -> v0.16.8.
+  - The generated v0.16.8 artifact was written only to `.pytest_tmp` as a
+    development fixture and was not published.
 
 ### v0.16.8 Microarousal Spreadsheet Fix (GPT-5)
 
