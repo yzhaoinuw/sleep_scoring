@@ -20,6 +20,24 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-28
 
+### Delivered updater preparation through dev (GPT-5)
+
+- Rechecked the independently completed shared-updater task after both jobs
+  finished. Upstream `main` and `dev` were pushed to
+  `85bb68e42155ad8b661f669df8d281fbe683a045`; its updater package and
+  `pyproject.toml` trees are byte-identical to the previously integrated
+  implementation commit `22475b7893231897afbbf21599c0132786375a39`.
+- Re-pinned this repository to the authoritative merged upstream tip, proved a
+  fresh GitHub pip install from that exact SHA, synchronized both project Conda
+  environments, and reran the complete validation-only gate without an
+  upstream-worktree path override.
+- Committed the updater and release-workflow preparation as `e50af3f`, pushed
+  `auto-update`, fast-forwarded `dev`, and pushed `dev`. Remote
+  `auto-update` and `dev` both resolved to the exact tested commit before this
+  delivery record was added.
+- No PyInstaller package, app version bump, tag, GitHub Release, pull request,
+  or merge to `main` was performed.
+
 ### v0.17 updater and full-release preparation (GPT-5)
 
 - Handed the reusable updater work to a separate
