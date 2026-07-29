@@ -44,11 +44,33 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Verified: `cffconvert --validate` passes against CFF schema 1.2.0 (run from a
   scratch venv, not the project env), CITATION.cff `version` matches
   `app_src.VERSION`, Black clean, `tests/test_smoke.py` 8 passed.
-- Open follow-ups: `paper/paper.bib` still carries the sDREAMER TODO and the
-  mis-keyed `miladinovic2022somnotate` entry, but the live draft is on the
-  `publication` branch, so those belong there rather than on `dev`. The
-  redistribution license for the adapted `models/sdreamer/` code is still
-  unconfirmed against the original authors.
+- Added `NOTICE` recording third-party provenance for `models/sdreamer/`. NIH
+  policy was checked directly rather than assumed: GPS 8.2.1 defines "data" to
+  include software and permits copyrighting it without NIH approval, reserving
+  only a federal-purposes license, so U19 funding does not by itself place the
+  adapted code in the public domain or pick a license. NIH recommends
+  OSI-approved permissive licenses, which makes MIT the compliant choice, and
+  NIH explicitly defers ownership questions to the institution. UR's IP policy
+  covers software and requires an IP agreement from everyone in sponsored
+  research, so copyright most likely sits with the University rather than with
+  the departed original developers.
+- Merged `publication` into `dev` to consolidate the paper draft. Resolving the
+  merge recovered the 2026-06-20 work-log entry, which existed only on
+  `publication` and had fallen through the archive rotation; it is now at
+  `work_log_archive/work_log_2026-06-20_to_2026-06-20.md`. That entry documents
+  who drafted `paper/paper.bib` and is the provenance for the fabricated
+  bibliography entries found below.
+- Checked every `paper.bib` entry carrying a DOI against Crossref. Six verified
+  clean. Three did not: the sDREAMER placeholder, the somnotate entry (keyed to
+  the SPINDLE first author, wrong year, no metadata), and the AccuSleep entry,
+  whose title did not match its DOI. Fixed on `publication` and routed to `dev`
+  through PR #11 rather than committed directly, keeping the deferred JOSS work
+  behind review.
+- Open follow-ups: confirm with the PI and UR Ventures that `models/sdreamer/`
+  may be redistributed under MIT, and fill the grant-number TODO in `NOTICE`.
+  Zenodo still needs the repository enabled and a release cut afterward; the
+  webhook does not archive releases retroactively, so v0.17.0 will not be
+  picked up.
 
 ### v0.17.0 full-release verification (GPT-5)
 
