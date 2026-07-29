@@ -32,6 +32,12 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Made the v0.16.x upgrade boundary explicit: those installations need the
   v0.17 full Windows ZIP once because their frozen launcher/updater cannot be
   replaced by an `app_src`-only update.
+- The first actual package attempt passed the complete source gate and
+  PyInstaller build, then exposed a folder-handoff mismatch before ZIP
+  creation: PyInstaller staged the exact patch-version folder while the
+  packaging smoke check expected the stable release-line folder. Updated the
+  builder to move that exact staging output to the v0.17 folder before Torch
+  separation and packaged checks, with regression coverage for the ordering.
 
 ### Delivered updater preparation through dev (GPT-5)
 

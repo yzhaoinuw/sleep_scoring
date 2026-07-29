@@ -14,6 +14,7 @@ SPEC.loader.exec_module(FULL_RELEASE)
 POWERSHELL = shutil.which("powershell.exe") or shutil.which("powershell")
 SMOKE_SCRIPT = MODULE_PATH.with_name("smoke_check_release.ps1")
 FULL_RELEASE_SCRIPT = MODULE_PATH.with_name("release_full.ps1")
+FULL_PACKAGE_SCRIPT = MODULE_PATH.with_name("make_full_app_zip.ps1")
 
 
 def _write_candidate(tmp_path, *, app_version="v0.17.0", setup_version="0.17.0"):
@@ -93,6 +94,17 @@ def test_full_release_gate_does_not_repeat_source_tests_in_builder():
     assert "SkipTests = $true" in source
     assert "AllowDirty = $true" in source
     assert '"full_release_" + [guid]::NewGuid()' in source
+
+
+def test_full_package_builder_moves_exact_version_stage_to_release_line():
+    source = FULL_PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+    assert '$PyInstallerDistName = "sleep_scoring_app_$Version"' in source
+    assert '$DistName = "sleep_scoring_app_$ReleaseLine"' in source
+    assert "Move-Item -LiteralPath $PyInstallerDistPath -Destination $DistPath" in source
+    assert source.index("Move-Item -LiteralPath $PyInstallerDistPath") < source.index(
+        '$BundledTorchDir = Join-Path $DistPath "_internal\\torch"'
+    )
 
 
 def _write_full_release_fixture(tmp_path, *, include_stage_colors):

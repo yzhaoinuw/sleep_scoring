@@ -89,6 +89,8 @@ $ReleaseLine = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
 $ReleaseLine = $ReleaseLine.Trim()
 $DistName = "sleep_scoring_app_$ReleaseLine"
 $DistPath = Join-Path $Repo "dist\$DistName"
+$PyInstallerDistName = "sleep_scoring_app_$Version"
+$PyInstallerDistPath = Join-Path $Repo "dist\$PyInstallerDistName"
 $ZipPath = Join-Path $ArtifactDir "$DistName-windows.zip"
 $TorchVersion = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
     "python",
@@ -149,8 +151,10 @@ if (-not $SkipTests) {
     )
 }
 
-if (Test-Path -LiteralPath $DistPath) {
-    Remove-Item -LiteralPath $DistPath -Recurse -Force
+foreach ($ExistingDistPath in @($DistPath, $PyInstallerDistPath) | Select-Object -Unique) {
+    if (Test-Path -LiteralPath $ExistingDistPath) {
+        Remove-Item -LiteralPath $ExistingDistPath -Recurse -Force
+    }
 }
 
 Invoke-Conda -EnvName $BuildEnv -CommandArgs @(
@@ -161,6 +165,13 @@ Invoke-Conda -EnvName $BuildEnv -CommandArgs @(
     "--noconfirm",
     "packaging\windows\app.spec"
 )
+
+if (-not (Test-Path -LiteralPath $PyInstallerDistPath -PathType Container)) {
+    throw "PyInstaller did not produce the expected staging folder: $PyInstallerDistPath"
+}
+if ($PyInstallerDistPath -ne $DistPath) {
+    Move-Item -LiteralPath $PyInstallerDistPath -Destination $DistPath
+}
 
 $BundledTorchDir = Join-Path $DistPath "_internal\torch"
 if (Test-Path -LiteralPath $BundledTorchDir) {
