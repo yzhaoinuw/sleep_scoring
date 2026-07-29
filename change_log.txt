@@ -1,3 +1,10 @@
+#### v0.17.0
+1. Reworked automatic update checks to avoid GitHub API rate limits, check at most once per day during normal startup, and compare versions before downloading an update.
+2. Added clearer startup update messages that show the exact installed version and identify both the installed and target versions when an update is available.
+3. Changed the full Windows download and extracted folder to the stable `sleep_scoring_app_v0.17` name. The exact patch version remains visible in the startup terminal and app window title.
+4. Included sleep-stage color customization through `STAGE_COLORS` in `app_src/config.py`.
+5. Existing v0.16.x installations must download this full Windows package once because a source-only update cannot replace their bundled launcher and updater.
+
 #### v0.16.8
 1. Fixed Excel sleep-bout exports so manually scored microarousals are retained and included in microarousal duration, count, percentage, and transition statistics.
 2. Existing saved .mat annotations can be reopened and saved again to generate a corrected spreadsheet without rescoring the recording.

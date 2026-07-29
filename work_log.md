@@ -20,6 +20,19 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-28
 
+### v0.17.0 full-package candidate assembly (GPT-5)
+
+- Confirmed v0.17.0 as the full-package compatibility launchpad for the newer
+  shared updater. Deferred schema-2 configuration merging, impact measurement,
+  and the full-path video-association fix to later source-only work.
+- Advanced `app_src/__init__.py` and `setup.py` together to v0.17.0 and added
+  user-facing release notes for rate-limit-safe daily checks, compare-before-
+  download behavior, exact version messages, stable v0.17 folder naming, and
+  the included sleep-stage color configuration.
+- Made the v0.16.x upgrade boundary explicit: those installations need the
+  v0.17 full Windows ZIP once because their frozen launcher/updater cannot be
+  replaced by an `app_src`-only update.
+
 ### Delivered updater preparation through dev (GPT-5)
 
 - Rechecked the independently completed shared-updater task after both jobs
