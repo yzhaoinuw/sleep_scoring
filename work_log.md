@@ -78,3 +78,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   ordinary replacement file. The frozen published v0.17.0 executable applied
   it successfully, preserved the customized config values, advanced to
   v0.17.1, and passed smoke. The disposable worktree and artifact were removed.
+- After reviewing the branch policy, the maintainer chose to advance `main`
+  with the completed Schema 2 release tooling rather than keep it exclusively
+  on `dev`. The published `v0.17.0` tag and artifacts remain tied to the
+  original release commit; `main` now represents the latest tested stable code.
