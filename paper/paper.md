@@ -35,7 +35,7 @@ EEG/EMG/NE traces, and any existing sleep scores, and lets a human scorer label
 segments as Wake, Slow-Wave Sleep (SWS), or REM using keyboard shortcuts. When
 the optional PyTorch dependency is installed, the app can hand a recording to
 the externally-developed sDREAMER transformer model
-[@TODO_sdreamer_citation] for automatic scoring; the same UI is then used to
+[@chen2023sdreamer] for automatic scoring; the same UI is then used to
 inspect and correct the predicted labels. Finished annotations are written back
 into the original `.mat` file, and per-bout and per-stage summary statistics are
 exported to Excel. The application is distributed as a single-folder
@@ -59,7 +59,7 @@ Commercial packages such as SleepSign and Neuroscore are closed-source,
 vendor-locked to specific acquisition hardware, and do not natively accept an
 NE channel. Open-source alternatives—including AccuSleep
 [@barger2019accusleep], SPINDLE [@miladinovic2019spindle], somnotate
-[@miladinovic2022somnotate], Visbrain Sleep [@combrisson2019visbrain], and
+[@brodersen2024somnotate], Visbrain Sleep [@combrisson2019visbrain], and
 SleepEEGpy—variously provide either an interactive viewer or an automated
 classifier, but rarely both in one workflow, and none accept NE as an input
 feature.
@@ -74,7 +74,7 @@ keyboard-driven epoch selection, contiguous-segment selection, and
 undo/crash-recovery behavior; and (ii) the integrated behavior-video clip
 extraction synchronized to the annotation selection. The sDREAMER scorer
 itself is developed and published separately within the same research
-program [@TODO_sdreamer_citation]; this app integrates both its EEG/EMG-only
+program [@chen2023sdreamer]; this app integrates both its EEG/EMG-only
 and NE-aware variants behind a one-button prediction flow, with a small set
 of rule-based post-processing heuristics layered on top, but does not claim
 the model as its own contribution. The result is a tight predict →
@@ -120,7 +120,7 @@ hosted in a `pywebview` window so that end users see a normal desktop
 application rather than a browser tab. Signal processing relies on
 `scipy.signal.ShortTimeFFT`, NumPy [@harris2020numpy], and pandas
 [@mckinney2010pandas]. The upstream sDREAMER model
-[@TODO_sdreamer_citation] is vendored under `models/sdreamer/` and loaded via
+[@chen2023sdreamer] is vendored under `models/sdreamer/` and loaded via
 PyTorch [@paszke2019pytorch] using `timm` and `einops` when the optional `ml`
 dependencies are installed; the app itself adds only the prediction routing,
 post-processing heuristics, and integration with the annotation UI. The repository ships with a
