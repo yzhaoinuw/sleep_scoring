@@ -9,7 +9,21 @@ param(
     [string]$UpdaterRepo = "",
     [string[]]$InstalledBaselineManifest = @(),
     [string[]]$FromPackageZip = @(),
-    [string[]]$PreserveRuntimePath = @("app_src/config.py"),
+    [string]$PythonConfigMergePath = "app_src/config.py",
+    [string[]]$EditableConfigAssignment = @(
+        "WINDOW_CONFIG",
+        "FIX_NE_Y_RANGE",
+        "STAGE_COLORS",
+        "SPECTROGRAM_COLORSCALE",
+        "THETA_DELTA_RATIO_LINE_COLOR",
+        "THETA_DELTA_RATIO_LINE_OPACITY",
+        "GAUSSIAN_FILTER_SIGMA",
+        "POSTPROCESS",
+        "SLEEP_SCORING_MODEL",
+        "STATS_MODEL_WAKE_THRESHOLD",
+        "STATS_MODEL_MIN_WAKE_DURATION",
+        "STATS_MODEL_MIN_REM_DURATION"
+    ),
     [switch]$SkipTests,
     [switch]$AllowDirty
 )
@@ -97,6 +111,16 @@ foreach ($Ref in $FromRef) {
 }
 Invoke-Conda -EnvName $TestEnv -CommandArgs $CandidateArgs
 
+$PythonConfigChanged = $false
+foreach ($Ref in $FromRef) {
+    & git diff --quiet $Ref $ToRef -- $PythonConfigMergePath
+    if ($LASTEXITCODE -eq 1) {
+        $PythonConfigChanged = $true
+    } elseif ($LASTEXITCODE -ne 0) {
+        throw "Could not compare $PythonConfigMergePath between $Ref and $ToRef."
+    }
+}
+
 $Version = Invoke-CondaCapture -EnvName $TestEnv -CommandArgs @(
     "python",
     $ReleaseHelper,
@@ -120,6 +144,7 @@ Write-Host "Building source update asset: $ZipPath"
 Write-Host "Compatible previous refs: $($FromRef -join ', ')"
 Write-Host "Target ref: $ToRef"
 Write-Host "Test environment: $TestEnv"
+Write-Host "Update manifest schema: $(if ($PythonConfigChanged) { 2 } else { 1 })"
 
 if (-not $UpdaterRepo) {
     $SiblingUpdaterRepo = Join-Path (Split-Path $Repo -Parent) "desktop_app_source_updater"
@@ -250,6 +275,12 @@ try {
     foreach ($Baseline in $PreparedBaselines) {
         $BuilderArgs += @("--installed-baseline-manifest", $Baseline)
     }
+    if ($PythonConfigChanged) {
+        $BuilderArgs += @("--python-config-merge", $PythonConfigMergePath)
+        foreach ($Assignment in $EditableConfigAssignment) {
+            $BuilderArgs += @("--editable-assignment", $Assignment)
+        }
+    }
     foreach ($BlockedName in @(
         "app.spec",
         "environment.yml",
@@ -294,7 +325,7 @@ try {
     }
 }
 
-if ($FromPackageZip.Count -gt 0 -or $PreserveRuntimePath.Count -gt 0) {
+if ($FromPackageZip.Count -gt 0) {
     $AlignArgs = @(
         "python",
         "packaging\windows\align_update_asset_with_package.py",
@@ -303,9 +334,6 @@ if ($FromPackageZip.Count -gt 0 -or $PreserveRuntimePath.Count -gt 0) {
     )
     foreach ($PackageSpec in $FromPackageZip) {
         $AlignArgs += @("--from-package-zip", $PackageSpec)
-    }
-    foreach ($RuntimePath in $PreserveRuntimePath) {
-        $AlignArgs += @("--preserve-path", $RuntimePath)
     }
     Invoke-Conda -EnvName $TestEnv -CommandArgs $AlignArgs
 }

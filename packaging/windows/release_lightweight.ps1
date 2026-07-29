@@ -1,6 +1,6 @@
 param(
     [string[]]$FromRef = @(),
-    [string]$MinimumCompatibleVersion = "v0.16.5",
+    [string]$MinimumCompatibleVersion = "v0.17.0",
     [string]$ToRef = "HEAD",
     [string]$TestEnv = "sleep_scoring_dash3.0",
     [string]$CondaExe = "",
@@ -229,9 +229,7 @@ if (-not $SkipQualityChecks) {
 }
 
 $InstalledBaselines = @(
-    (Join-Path $BaselineDir "v0.16.5-windows.json"),
-    (Join-Path $BaselineDir "v0.16.6-windows.json"),
-    (Join-Path $BaselineDir "v0.16.6-from-v0.16.5-source-update.json")
+    (Join-Path $BaselineDir "v0.17.0-windows.json")
 )
 foreach ($Baseline in $InstalledBaselines) {
     if (-not (Test-Path -LiteralPath $Baseline)) {
@@ -256,56 +254,24 @@ if ($UpdaterRepo) {
 & $BuildScript @BuildParameters
 
 if (-not $SkipInstalledAppTests) {
-    $V0165Package = Join-Path $FixtureArtifactDir "sleep_scoring_app_v0.16.5-windows.zip"
-    $V0166Package = Join-Path $FixtureArtifactDir "sleep_scoring_app_v0.16.6-windows.zip"
-    $V0166Update = Join-Path $FixtureArtifactDir "sleep_scoring_app_update_v0.16.6.zip"
-    foreach ($FixtureArtifact in @($V0165Package, $V0166Package, $V0166Update)) {
-        if (-not (Test-Path -LiteralPath $FixtureArtifact)) {
-            throw (
-                "Missing installed-app fixture artifact: $FixtureArtifact. " +
-                "Restore the retained release artifact or use -SkipInstalledAppTests " +
-                "for packaging-script development only."
-            )
-        }
+    $V017Package = Join-Path $FixtureArtifactDir "sleep_scoring_app_v0.17-windows.zip"
+    if (-not (Test-Path -LiteralPath $V017Package)) {
+        throw (
+            "Missing installed-app fixture artifact: $V017Package. " +
+            "Restore the retained release artifact or use -SkipInstalledAppTests " +
+            "for packaging-script development only."
+        )
     }
 
-    Write-Host "Testing fresh v0.16.5 full-package fixture"
+    Write-Host "Testing fresh v0.17.0 full-package fixture with customized config"
     Invoke-Conda -CommandArgs @(
         "python",
         $ReleaseHelper,
         "test-installed-update",
         "--package-zip",
-        $V0165Package,
+        $V017Package,
         "--expected-initial-version",
-        "v0.16.5",
-        "--update-zip",
-        $OutputZip
-    )
-
-    Write-Host "Testing fresh v0.16.6 full-package fixture"
-    Invoke-Conda -CommandArgs @(
-        "python",
-        $ReleaseHelper,
-        "test-installed-update",
-        "--package-zip",
-        $V0166Package,
-        "--expected-initial-version",
-        "v0.16.6",
-        "--update-zip",
-        $OutputZip
-    )
-
-    Write-Host "Testing v0.16.5 patched through the v0.16.6 source update"
-    Invoke-Conda -CommandArgs @(
-        "python",
-        $ReleaseHelper,
-        "test-installed-update",
-        "--package-zip",
-        $V0165Package,
-        "--expected-initial-version",
-        "v0.16.5",
-        "--prerequisite-update",
-        $V0166Update,
+        "v0.17.0",
         "--update-zip",
         $OutputZip
     )

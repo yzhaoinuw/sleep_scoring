@@ -45,3 +45,36 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - This release record is the only tracked change after the verified candidate.
   The full gate must therefore rebuild once from its final commit before
   `main`, the v0.17.0 tag, and the published artifacts are advanced together.
+
+### v0.17.0 publication and Schema 2 launchpad (GPT-5)
+
+- Rebuilt the full Windows candidate from final release commit
+  `d25414d2f31dc9a6eec0034a54c587f77a027841`. The complete gate passed with
+  158 Python tests, repository-pinned Black, compileall, 38 JavaScript tests,
+  source smoke, PyInstaller, packaged structure/config smoke, packaged
+  executable smoke, and a forced update check.
+- Fast-forwarded `main`, created and pushed annotated tag `v0.17.0`, and
+  published the GitHub Release with all seven custom release assets. Local
+  `main`/`dev`, remote `main`/`dev`, and the peeled tag matched the release
+  commit. The published full ZIP SHA-256 was
+  `D7F139F1390FFF2F036F6758043F711B11F8920015D489990649190B4268D461`;
+  the optional Torch runtime SHA-256 was
+  `DC9EDC03EFB98E9026F06B0F86E9E2514E71382EA01C96323D51EBE9A4A10C06`.
+  GitHub's reported digests matched both local artifacts.
+- Exported the published v0.17.0 full ZIP as the new compact installed
+  baseline with exact hashes for all 34 packaged `app_src` files. Future
+  lightweight candidates and frozen-app fixtures now begin at v0.17.0.
+- Enabled post-v0.17 Schema 2 configuration merging. A source update remains
+  Schema 1 when `app_src/config.py` is unchanged; when it changes, every
+  compatible installation must be v0.17.0 or newer and the builder declares
+  the approved 12 user-facing literal assignments. Runtime-derived and
+  profiling assignments remain authoritative from the downloaded template.
+- The release helper now customizes a freshly extracted config before applying
+  an update, verifies the exact recursive merge result, checks the installed
+  version, and runs the frozen executable smoke test. The repository-pinned
+  Black hook, all 163 Python tests, and both PowerShell parsers passed.
+- An isolated v0.17.1 trial built a real three-file Schema 2 asset through the
+  shared updater, including a new nested `WINDOW_CONFIG` default and an
+  ordinary replacement file. The frozen published v0.17.0 executable applied
+  it successfully, preserved the customized config values, advanced to
+  v0.17.1, and passed smoke. The disposable worktree and artifact were removed.

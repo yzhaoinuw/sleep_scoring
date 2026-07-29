@@ -99,14 +99,13 @@ For a release candidate, use the one-command gate:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\release_lightweight.ps1
 ```
 
-It discovers every compatible tag from v0.16.5 through the release immediately
+It discovers every compatible tag from v0.17.0 through the release immediately
 before the target version. It then validates the lightweight-release boundary,
 runs pytest, Black, JavaScript, compile, and source smoke checks once, builds
-and validates the schema-1 update asset, and tests it against:
+and validates the update asset, and tests it against:
 
-- a fresh v0.16.5 Windows package;
-- a fresh v0.16.6 Windows package; and
-- v0.16.5 patched through the v0.16.6 source update.
+- a fresh v0.17.0 Windows package containing the schema-2-capable updater; and
+- user-customized values in the approved `config.py` assignments.
 
 The retained full-package ZIPs are fixture inputs in the ignored
 `release_artifacts/` folder. Exact installed hashes are tracked compactly under
@@ -124,11 +123,31 @@ change and it matches `app_src/__init__.py`. It refuses dependency, model,
 launcher/updater, PyInstaller, release-helper, runtime deletion, and runtime
 rename changes. Those require a new full Windows package.
 
-The source asset still uses manifest schema 1. The newer shared updater checkout
-is used only as a maintainer-side builder; the updater frozen into existing user
-distributions does not change. A newly changed `app_src/config.py` is refused
-because schema 1 must preserve the installed copy; schema-2 configuration
-merging remains reserved for a future full redistribution.
+An update that does not change `app_src/config.py` remains manifest schema 1.
+When `config.py` changes, the builder emits schema 2 and requires every
+compatible installed version to be v0.17.0 or newer. The downloaded file is the
+authoritative template, while these user-facing literal assignments retain
+installed values:
+
+- `WINDOW_CONFIG`
+- `FIX_NE_Y_RANGE`
+- `STAGE_COLORS`
+- `SPECTROGRAM_COLORSCALE`
+- `THETA_DELTA_RATIO_LINE_COLOR`
+- `THETA_DELTA_RATIO_LINE_OPACITY`
+- `GAUSSIAN_FILTER_SIGMA`
+- `POSTPROCESS`
+- `SLEEP_SCORING_MODEL`
+- `STATS_MODEL_WAKE_THRESHOLD`
+- `STATS_MODEL_MIN_WAKE_DURATION`
+- `STATS_MODEL_MIN_REM_DURATION`
+
+For `WINDOW_CONFIG`, dictionary values merge recursively: existing keys keep the
+installed value, newly introduced keys use the downloaded default, and keys
+removed from the downloaded template stay removed. Imports, functions,
+comments, ordering, and non-user-facing assignments come from the downloaded
+template. Invalid or nonliteral editable values stop the update before any file
+is changed.
 
 Output goes to `release_artifacts/`:
 

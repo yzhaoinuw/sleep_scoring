@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -17,7 +18,22 @@ from pathlib import Path, PurePosixPath
 APP_NAME = "sleep_scoring"
 RUNTIME_PATH = "app_src"
 VERSION_FILE = "app_src/__init__.py"
-PRESERVED_RUNTIME_PATHS = ("app_src/config.py",)
+PYTHON_CONFIG_MERGE_PATH = "app_src/config.py"
+SCHEMA2_MINIMUM_VERSION = "v0.17.0"
+EDITABLE_CONFIG_ASSIGNMENTS = (
+    "WINDOW_CONFIG",
+    "FIX_NE_Y_RANGE",
+    "STAGE_COLORS",
+    "SPECTROGRAM_COLORSCALE",
+    "THETA_DELTA_RATIO_LINE_COLOR",
+    "THETA_DELTA_RATIO_LINE_OPACITY",
+    "GAUSSIAN_FILTER_SIGMA",
+    "POSTPROCESS",
+    "SLEEP_SCORING_MODEL",
+    "STATS_MODEL_WAKE_THRESHOLD",
+    "STATS_MODEL_MIN_WAKE_DURATION",
+    "STATS_MODEL_MIN_REM_DURATION",
+)
 UPDATE_ZIP_URL_ENV = "SLEEP_SCORING_UPDATE_ZIP_URL"
 SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
 
@@ -251,17 +267,21 @@ def validate_candidate(repo: Path, from_refs: list[str], to_ref: str) -> str:
             current_source=f"{to_ref}:setup.py",
         )
 
-    latest_ref = max(from_refs, key=lambda ref: version_key(versions_by_ref[ref]))
-    latest_changes = changed_paths(repo, latest_ref, to_ref)
-    newly_changed_preserved_paths = {
-        path for _, paths in latest_changes for path in paths if path in PRESERVED_RUNTIME_PATHS
-    }
-    if newly_changed_preserved_paths:
-        formatted = ", ".join(sorted(newly_changed_preserved_paths))
-        raise LightweightReleaseError(
-            "schema-1 releases cannot deliver newly changed user-owned runtime paths "
-            f"({formatted}); use a full package or a schema-2-capable distribution"
+    if PYTHON_CONFIG_MERGE_PATH in all_runtime_paths:
+        incompatible_versions = sorted(
+            {
+                version
+                for version in versions_by_ref.values()
+                if version_key(version) < version_key(SCHEMA2_MINIMUM_VERSION)
+            },
+            key=version_key,
         )
+        if incompatible_versions:
+            raise LightweightReleaseError(
+                f"{PYTHON_CONFIG_MERGE_PATH} requires schema-2-capable installed versions "
+                f"{SCHEMA2_MINIMUM_VERSION} or newer; incompatible versions: "
+                + ", ".join(incompatible_versions)
+            )
 
     changed_runtime_paths(repo, from_refs, to_ref)
     if blocked_paths:
@@ -270,11 +290,8 @@ def validate_candidate(repo: Path, from_refs: list[str], to_ref: str) -> str:
             "these changes cross the frozen-package boundary:\n  " + formatted
         )
 
-    deliverable_paths = all_runtime_paths - set(PRESERVED_RUNTIME_PATHS)
-    if not deliverable_paths:
-        raise LightweightReleaseError(
-            "no deliverable app_src files changed after preserving user-owned runtime paths"
-        )
+    if not all_runtime_paths:
+        raise LightweightReleaseError("no deliverable app_src files changed")
     return target_version
 
 
@@ -421,10 +438,6 @@ def validate_update_asset(
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise LightweightReleaseError(f"invalid update manifest: {exc}") from exc
 
-        if manifest.get("schema_version") != 1:
-            raise LightweightReleaseError(
-                "lightweight releases must remain schema 1 until the next full redistribution"
-            )
         if manifest.get("app") != APP_NAME:
             raise LightweightReleaseError("update manifest is for a different app")
         if manifest.get("version") != expected_version:
@@ -449,6 +462,22 @@ def validate_update_asset(
             raise LightweightReleaseError(
                 "changed_files must exactly match the ordered manifest file paths"
             )
+        config_changed = PYTHON_CONFIG_MERGE_PATH in paths
+        expected_schema = 2 if config_changed else 1
+        if manifest.get("schema_version") != expected_schema:
+            raise LightweightReleaseError(
+                f"update manifest must use schema {expected_schema} "
+                f"when {PYTHON_CONFIG_MERGE_PATH} is "
+                f"{'included' if config_changed else 'not included'}"
+            )
+        if config_changed and any(
+            version_key(version) < version_key(SCHEMA2_MINIMUM_VERSION)
+            for version in expected_from_versions
+        ):
+            raise LightweightReleaseError(
+                f"schema-2 config merging requires installed versions "
+                f"{SCHEMA2_MINIMUM_VERSION} or newer"
+            )
         if set(names) != {"manifest.json", *paths}:
             raise LightweightReleaseError(
                 "update ZIP payload does not exactly match the manifest file list"
@@ -458,9 +487,19 @@ def validate_update_asset(
             path = entry["path"]
             if not isinstance(path, str) or not path.startswith(f"{RUNTIME_PATH}/"):
                 raise LightweightReleaseError(f"unsafe update payload path: {path!r}")
-            if path in PRESERVED_RUNTIME_PATHS:
+            if path == PYTHON_CONFIG_MERGE_PATH:
+                if entry.get("update_strategy") != "python-config-merge":
+                    raise LightweightReleaseError(
+                        f"{path} must use the python-config-merge update strategy"
+                    )
+                if entry.get("editable_assignments") != list(EDITABLE_CONFIG_ASSIGNMENTS):
+                    raise LightweightReleaseError(
+                        f"{path}.editable_assignments does not match the approved "
+                        "user-facing configuration allowlist"
+                    )
+            elif "update_strategy" in entry or "editable_assignments" in entry:
                 raise LightweightReleaseError(
-                    f"user-owned runtime path must not be replaced: {path}"
+                    f"ordinary replacement entry must not declare config-merge metadata: {path}"
                 )
             expected_hash = _validate_digest(entry.get("sha256"), field=f"{path}.sha256")
             if sha256_bytes(update.read(path)) != expected_hash:
@@ -556,6 +595,112 @@ def _asset_version(update_zip: Path) -> str:
     return version
 
 
+def _asset_manifest(update_zip: Path) -> dict[str, object]:
+    try:
+        with zipfile.ZipFile(update_zip) as update:
+            manifest = json.loads(update.read("manifest.json"))
+    except (OSError, KeyError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
+        raise LightweightReleaseError(
+            f"could not read update manifest from {update_zip}: {exc}"
+        ) from exc
+    if not isinstance(manifest, dict):
+        raise LightweightReleaseError(f"{update_zip} manifest must be a JSON object")
+    return manifest
+
+
+def _literal_assignments(
+    source_bytes: bytes,
+    assignment_names: tuple[str, ...],
+    *,
+    source: str,
+) -> dict[str, object]:
+    try:
+        source_text = source_bytes.decode("utf-8")
+        tree = ast.parse(source_text, filename=source)
+    except (UnicodeDecodeError, SyntaxError) as exc:
+        raise LightweightReleaseError(f"could not parse {source}: {exc}") from exc
+
+    wanted = set(assignment_names)
+    values: dict[str, list[object]] = {name: [] for name in assignment_names}
+    for node in tree.body:
+        name = None
+        value_node = None
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            name = node.targets[0].id
+            value_node = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            value_node = node.value
+        if name not in wanted or value_node is None:
+            continue
+        try:
+            values[name].append(ast.literal_eval(value_node))
+        except (ValueError, TypeError) as exc:
+            raise LightweightReleaseError(
+                f"{source} has a nonliteral editable assignment: {name}"
+            ) from exc
+
+    invalid = [name for name, matches in values.items() if len(matches) != 1]
+    if invalid:
+        raise LightweightReleaseError(
+            f"{source} must contain exactly one literal assignment for: " + ", ".join(invalid)
+        )
+    return {name: matches[0] for name, matches in values.items()}
+
+
+def _merged_config_value(downloaded: object, installed: object) -> object:
+    if isinstance(downloaded, dict) and isinstance(installed, dict):
+        return {
+            key: (_merged_config_value(value, installed[key]) if key in installed else value)
+            for key, value in downloaded.items()
+        }
+    return installed
+
+
+def _customize_fixture_config(config_path: Path) -> None:
+    source_text = config_path.read_text(encoding="utf-8")
+    try:
+        tree = ast.parse(source_text, filename=str(config_path))
+    except SyntaxError as exc:
+        raise LightweightReleaseError(f"could not parse {config_path}: {exc}") from exc
+
+    replacements = {
+        "FIX_NE_Y_RANGE": lambda value: not value,
+        "SLEEP_SCORING_MODEL": lambda value: ("sdreamer" if value != "sdreamer" else "stats_model"),
+    }
+    changed = set()
+    for node in tree.body:
+        if (
+            not isinstance(node, ast.Assign)
+            or len(node.targets) != 1
+            or not isinstance(node.targets[0], ast.Name)
+        ):
+            continue
+        name = node.targets[0].id
+        if name not in replacements:
+            continue
+        try:
+            current_value = ast.literal_eval(node.value)
+        except (ValueError, TypeError) as exc:
+            raise LightweightReleaseError(
+                f"{config_path} has a nonliteral editable assignment: {name}"
+            ) from exc
+        node.value = ast.parse(repr(replacements[name](current_value)), mode="eval").body
+        changed.add(name)
+
+    if changed != set(replacements):
+        missing = ", ".join(sorted(set(replacements) - changed))
+        raise LightweightReleaseError(
+            f"could not customize installed config fixture; missing assignments: {missing}"
+        )
+    ast.fix_missing_locations(tree)
+    config_path.write_text(ast.unparse(tree) + "\n", encoding="utf-8")
+
+
 def test_installed_update(
     package_zip: Path,
     update_zip: Path,
@@ -578,10 +723,50 @@ def test_installed_update(
             raise LightweightReleaseError(
                 f"{package_zip} reports {initial_version}, expected {expected_initial_version}"
             )
-        config_path = app_root / PRESERVED_RUNTIME_PATHS[0]
-        config_hash = sha256_file(config_path)
+        config_path = app_root / PYTHON_CONFIG_MERGE_PATH
+        if version_key(initial_version) >= version_key(SCHEMA2_MINIMUM_VERSION):
+            _customize_fixture_config(config_path)
 
         for asset in [*prerequisite_updates, update_zip]:
+            manifest = _asset_manifest(asset)
+            config_entries = [
+                entry
+                for entry in manifest.get("files", [])
+                if isinstance(entry, dict) and entry.get("path") == PYTHON_CONFIG_MERGE_PATH
+            ]
+            config_hash = sha256_file(config_path)
+            expected_config_values = None
+            if config_entries:
+                if len(config_entries) != 1:
+                    raise LightweightReleaseError(
+                        f"{asset} has duplicate {PYTHON_CONFIG_MERGE_PATH} entries"
+                    )
+                config_entry = config_entries[0]
+                if config_entry.get("update_strategy") != "python-config-merge":
+                    raise LightweightReleaseError(
+                        f"{asset} would replace user-owned {PYTHON_CONFIG_MERGE_PATH}"
+                    )
+                editable_assignments = config_entry.get("editable_assignments")
+                if editable_assignments != list(EDITABLE_CONFIG_ASSIGNMENTS):
+                    raise LightweightReleaseError(
+                        f"{asset} has an unexpected editable config allowlist"
+                    )
+                installed_values = _literal_assignments(
+                    config_path.read_bytes(),
+                    EDITABLE_CONFIG_ASSIGNMENTS,
+                    source=str(config_path),
+                )
+                with zipfile.ZipFile(asset) as update:
+                    downloaded_values = _literal_assignments(
+                        update.read(PYTHON_CONFIG_MERGE_PATH),
+                        EDITABLE_CONFIG_ASSIGNMENTS,
+                        source=f"{asset}:{PYTHON_CONFIG_MERGE_PATH}",
+                    )
+                expected_config_values = {
+                    name: _merged_config_value(downloaded_values[name], installed_values[name])
+                    for name in EDITABLE_CONFIG_ASSIGNMENTS
+                }
+
             env = os.environ.copy()
             env.pop(SKIP_UPDATE_ENV, None)
             env[UPDATE_ZIP_URL_ENV] = str(asset.resolve())
@@ -595,9 +780,19 @@ def test_installed_update(
                     f"{asset} reported success but installed version is "
                     f"{installed_version}, expected {expected_version}"
                 )
-            if sha256_file(config_path) != config_hash:
+            if expected_config_values is not None:
+                actual_config_values = _literal_assignments(
+                    config_path.read_bytes(),
+                    EDITABLE_CONFIG_ASSIGNMENTS,
+                    source=str(config_path),
+                )
+                if actual_config_values != expected_config_values:
+                    raise LightweightReleaseError(
+                        f"{asset} did not preserve the approved user config values"
+                    )
+            elif sha256_file(config_path) != config_hash:
                 raise LightweightReleaseError(
-                    f"{asset} changed preserved {PRESERVED_RUNTIME_PATHS[0]}"
+                    f"{asset} changed {PYTHON_CONFIG_MERGE_PATH} without schema-2 merging"
                 )
 
         smoke_env = os.environ.copy()
@@ -684,7 +879,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.to_ref,
             )
             print(
-                f"Validated schema-1 update {manifest['version']} with "
+                f"Validated schema-{manifest['schema_version']} update {manifest['version']} with "
                 f"{len(manifest['files'])} payload files"
             )
         elif args.command == "test-installed-update":

@@ -6,39 +6,22 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Build and inspect the v0.17 full Windows base with the rate-limit-safe
-  updater and stable v0.17 package-folder naming; keep tagging and publication
-  separate until the candidate artifact is reviewed.
-- Hold additional v0.16 lightweight releases. Keep the full-path
-  video-association fix for a later app-source-only update.
+- Keep the full-path video-association fix for a later app-source-only update
+  based on the published v0.17.0 package.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
 
-## v0.17 Full Windows Base
-
-Status: candidate scope and metadata are complete; packaging and publication
-remain.
-
-- Run the single `release_full.ps1` candidate gate. Do not repeat its
-  individual checks unless the candidate commit changes.
-- Review the full ZIP, manifest, hashes, packaged smoke checks, and forced
-  update check before tagging or publication.
-- After the full package is published, export its compact installed baseline,
-  switch future lightweight-release fixtures to the v0.17 base, and enable
-  schema-2 config merging before the first post-v0.17 lightweight release.
-
 ## Lightweight Source Releases
 
-- Keep v0.16.6 as the current full Windows base until v0.17 is published. For
-  later compatible `app_src`-only changes, tag the tested commit and publish
-  only the automatic source-update ZIP, its SHA-256 file, and release notes.
+- Use v0.17.0 as the current full Windows base. For later compatible
+  `app_src`-only changes, tag the tested commit and publish only the automatic
+  source-update ZIP, its SHA-256 file, and release notes.
 - Use `packaging/windows/release_lightweight.ps1` as the standard candidate
-  gate. Keep its tracked v0.16.5/v0.16.6 installed baselines and three frozen
-  fixture paths intact while those distributions remain supported.
-- Keep lightweight assets on manifest schema 1 through the v0.17 full-base
-  publication. Before the first post-v0.17 lightweight release, enable
-  schema-2 configuration merging and refresh the compatible base/fixture
-  policy together.
+  gate. Keep the tracked v0.17.0 installed baseline and retained full-package
+  ZIP available for its frozen-app fixture.
+- Let the builder use schema 1 when `app_src/config.py` is unchanged and schema
+  2 when it changes. Keep the approved editable-assignment allowlist aligned
+  with the documented user-facing settings.
 - Make the normalized full-path MAT-to-video association and collision-proof
   generated-clip identity the next lightweight patch, with regression tests
   for identical MAT and video basenames in different folders.

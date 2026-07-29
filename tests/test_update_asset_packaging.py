@@ -307,13 +307,13 @@ def _git(repo, *args):
     )
 
 
-def _write_candidate_repo(repo):
+def _write_candidate_repo(repo, version="v0.17.0"):
     (repo / "app_src").mkdir()
-    (repo / "app_src" / "__init__.py").write_text('VERSION = "v1.2.2"\n', encoding="utf-8")
+    (repo / "app_src" / "__init__.py").write_text(f'VERSION = "{version}"\n', encoding="utf-8")
     (repo / "app_src" / "config.py").write_text("SETTING = 1\n", encoding="utf-8")
     (repo / "app_src" / "session.py").write_text("VALUE = 1\n", encoding="utf-8")
     (repo / "setup.py").write_text(
-        'setup(\n    name="sleep_scoring",\n    version="1.2.2",\n)\n',
+        f'setup(\n    name="sleep_scoring",\n    version="{version.removeprefix("v")}",\n)\n',
         encoding="utf-8",
     )
     _git(repo, "init")
@@ -321,39 +321,133 @@ def _write_candidate_repo(repo):
     _git(repo, "config", "user.name", "Tests")
     _git(repo, "add", ".")
     _git(repo, "-c", "commit.gpgsign=false", "commit", "-m", "baseline")
-    _git(repo, "tag", "v1.2.2")
+    _git(repo, "tag", version)
 
 
-def test_validate_candidate_rejects_new_schema1_config_change(tmp_path):
-    _write_candidate_repo(tmp_path)
-    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v1.2.3"\n', encoding="utf-8")
-    (tmp_path / "app_src" / "config.py").write_text("SETTING = 2\n", encoding="utf-8")
-    (tmp_path / "setup.py").write_text(
-        'setup(\n    name="sleep_scoring",\n    version="1.2.3",\n)\n',
+def _commit_config_candidate(repo, version):
+    (repo / "app_src" / "__init__.py").write_text(f'VERSION = "{version}"\n', encoding="utf-8")
+    (repo / "app_src" / "config.py").write_text("SETTING = 2\n", encoding="utf-8")
+    (repo / "setup.py").write_text(
+        f'setup(\n    name="sleep_scoring",\n    version="{version.removeprefix("v")}",\n)\n',
         encoding="utf-8",
     )
-    _git(tmp_path, "add", ".")
-    _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+    _git(repo, "add", ".")
+    _git(repo, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+
+
+def test_validate_candidate_allows_schema2_config_change_from_v017(tmp_path):
+    _write_candidate_repo(tmp_path)
+    _commit_config_candidate(tmp_path, "v0.17.1")
+
+    assert LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD") == "v0.17.1"
+
+
+def test_validate_candidate_rejects_schema2_config_change_from_pre_v017(tmp_path):
+    _write_candidate_repo(tmp_path, "v0.16.6")
+    _commit_config_candidate(tmp_path, "v0.17.0")
 
     with pytest.raises(
         LIGHTWEIGHT_MODULE.LightweightReleaseError,
-        match="schema-1 releases cannot deliver",
+        match="requires schema-2-capable installed versions v0.17.0 or newer",
     ):
-        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v1.2.2"], "HEAD")
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.16.6"], "HEAD")
+
+
+def _write_schema2_asset(repo, update_zip, *, editable_assignments=None, schema_version=2):
+    paths = ["app_src/__init__.py", "app_src/config.py"]
+    files = []
+    for path in paths:
+        data = (repo / path).read_bytes()
+        entry = {
+            "path": path,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "previous_sha256_by_version": {"v0.17.0": "a" * 64},
+        }
+        if path == "app_src/config.py" and schema_version == 2:
+            entry["update_strategy"] = "python-config-merge"
+            entry["editable_assignments"] = (
+                list(LIGHTWEIGHT_MODULE.EDITABLE_CONFIG_ASSIGNMENTS)
+                if editable_assignments is None
+                else editable_assignments
+            )
+        files.append(entry)
+    manifest = {
+        "schema_version": schema_version,
+        "app": "sleep_scoring",
+        "version": "v0.17.1",
+        "from_versions": ["v0.17.0"],
+        "changed_files": paths,
+        "files": files,
+    }
+    with zipfile.ZipFile(update_zip, "w", zipfile.ZIP_DEFLATED) as update:
+        update.writestr("manifest.json", json.dumps(manifest))
+        for path in paths:
+            update.write(repo / path, path)
+    checksum = update_zip.with_suffix(update_zip.suffix + ".sha256.txt")
+    checksum.write_text(
+        f"{hashlib.sha256(update_zip.read_bytes()).hexdigest()}  {update_zip.name}\n",
+        encoding="utf-8",
+    )
+    return checksum
+
+
+def test_validate_update_asset_accepts_approved_schema2_config_merge(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_candidate_repo(repo)
+    _commit_config_candidate(repo, "v0.17.1")
+    update_zip = tmp_path / "update.zip"
+    checksum = _write_schema2_asset(repo, update_zip)
+
+    manifest = LIGHTWEIGHT_MODULE.validate_update_asset(
+        update_zip, checksum, repo, ["v0.17.0"], "HEAD"
+    )
+
+    assert manifest["schema_version"] == 2
+
+
+def test_validate_update_asset_rejects_unapproved_config_allowlist(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_candidate_repo(repo)
+    _commit_config_candidate(repo, "v0.17.1")
+    update_zip = tmp_path / "update.zip"
+    checksum = _write_schema2_asset(repo, update_zip, editable_assignments=["SETTING"])
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="does not match the approved user-facing configuration allowlist",
+    ):
+        LIGHTWEIGHT_MODULE.validate_update_asset(update_zip, checksum, repo, ["v0.17.0"], "HEAD")
+
+
+def test_validate_update_asset_rejects_schema1_config_replacement(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_candidate_repo(repo)
+    _commit_config_candidate(repo, "v0.17.1")
+    update_zip = tmp_path / "update.zip"
+    checksum = _write_schema2_asset(repo, update_zip, schema_version=1)
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="must use schema 2",
+    ):
+        LIGHTWEIGHT_MODULE.validate_update_asset(update_zip, checksum, repo, ["v0.17.0"], "HEAD")
 
 
 def test_validate_candidate_rejects_forgotten_setup_version_bump(tmp_path):
     _write_candidate_repo(tmp_path)
-    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v1.2.3"\n', encoding="utf-8")
+    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v0.17.1"\n', encoding="utf-8")
     (tmp_path / "app_src" / "session.py").write_text("VALUE = 2\n", encoding="utf-8")
     _git(tmp_path, "add", ".")
     _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
 
     with pytest.raises(
         LIGHTWEIGHT_MODULE.LightweightReleaseError,
-        match="does not match 'v1.2.3'",
+        match="does not match 'v0.17.1'",
     ):
-        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v1.2.2"], "HEAD")
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD")
 
 
 def test_lightweight_release_gate_does_not_repeat_source_tests_in_builder():
@@ -365,3 +459,19 @@ def test_lightweight_release_gate_does_not_repeat_source_tests_in_builder():
     assert "SkipTests = $true" in script
     assert "AllowDirty = $true" in script
     assert '"lightweight_release_" + [guid]::NewGuid()' in script
+    assert '$MinimumCompatibleVersion = "v0.17.0"' in script
+    assert "sleep_scoring_app_v0.17-windows.zip" in script
+    assert "v0.16.6-windows.json" not in script
+
+
+def test_source_asset_builder_wires_the_approved_schema2_config_contract():
+    script = LIGHTWEIGHT_SCRIPT_PATH.with_name("make_source_update_asset.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"--python-config-merge", $PythonConfigMergePath' in script
+    assert '"--editable-assignment", $Assignment' in script
+    assert "$PythonConfigChanged" in script
+    assert "$PreserveRuntimePath" not in script
+    for assignment in LIGHTWEIGHT_MODULE.EDITABLE_CONFIG_ASSIGNMENTS:
+        assert f'"{assignment}"' in script
