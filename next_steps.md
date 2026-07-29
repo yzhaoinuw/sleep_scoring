@@ -55,19 +55,45 @@ Status: planning only; keep separate from the v0.17 updater/package work.
 - Keep the current default behavior stable until the alternative is clearly
   better on the targeted recordings.
 
-## Publication / JOSS Paper
+## Citation And Publication
 
-The draft remains on the `publication` branch in `paper/paper.md` and
-`paper/paper.bib`.
+### Zenodo Archive DOI (current priority)
 
-- Fill the remaining paper TODOs: co-authors, affiliations and ORCIDs,
-  acknowledgments, contributors, and funding/grant numbers.
-- Mirror finalized author details into `CITATION.cff`.
-- Verify every paper claim against the shipped app and resolve every bibliography
-  reference.
-- Prepare the JOSS submission and confirm the repository, MIT license, README,
-  and supporting documentation meet its requirements.
-- After acceptance, add the JOSS DOI as `preferred-citation` in `CITATION.cff`.
+`CITATION.cff` is ready: it matches the shipped version, carries an abstract,
+and cites the upstream sDREAMER model. Remaining steps, in order:
+
+- Confirm with the PI and UR Ventures that the adapted `models/sdreamer/` code
+  may be redistributed under MIT, and fill the grant-number TODO in `NOTICE`.
+  See that file for the specific assertion to confirm.
+- Enable `yzhaoinuw/sleep_scoring` on zenodo.org via the GitHub integration.
+- Cut a release *after* enabling it. Zenodo only archives releases published
+  once the webhook exists, so v0.17.0 will not be picked up retroactively.
+- Put the resulting concept DOI (not the version DOI) in the README badge and
+  in `CITATION.cff`.
+
+### JOSS Paper (under construction, deferred)
+
+The draft in `paper/` is not submission-ready and is not being actively worked.
+See `paper/README.md` for its status. Open items:
+
+- Fill the remaining `paper.md` TODOs: co-authors, affiliations (with their
+  ORCIDs), and the Acknowledgments (PI, data/model contributors, funding/grant
+  numbers).
+- Verify every claim in the paper against the current shipped app.
+- Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
+  reviewers: name one or two external adopters (in Acknowledgments or a
+  short Statement-of-need sentence) once such use exists, even at sandbox
+  scale. JOSS reviewers commonly ask "who outside the author's group uses
+  this?" and a concrete answer is the easiest mitigation.
+- Add an "Adapting input data" subsection to `README.md` documenting the
+  `.mat` field contract precisely enough for a non-BrainFlowZZZ lab to write
+  a thin (~50-line) converter. This neutralizes the most likely
+  "internal infrastructure" objection without forcing the ingestion code
+  itself to be generalized.
+- Set up the JOSS submission (fork of the `joss-reviews` process): confirm the
+  repo is public, has an OSI license (MIT, present), and a clear README/docs.
+- After acceptance, add a `preferred-citation:` block with the JOSS DOI to
+  `CITATION.cff`.
 
 ## Later Ideas
 
@@ -78,3 +104,9 @@ The draft remains on the `publication` branch in `paper/paper.md` and
   bottleneck again.
 - Consider an installer and code signing once the zip workflow is routine and
   repeatable.
+
+## Further Down The Line / Just A Thought
+
+- Multi-session support on one computer is low priority. If ever needed, launch
+  each app instance on its own free port and isolate cache/temp/video outputs per
+  process/session; current user guidance is one app session per computer.
