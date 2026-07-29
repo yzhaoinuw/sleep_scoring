@@ -109,6 +109,13 @@ which does not require PyTorch or separately distributed model checkpoints.
 sDREAMER is not required for visualization, annotation, video, saving, or the
 default statistical model.
 
+sDREAMER is a transformer model published by Chen et al. at IEEE ICDH 2023.
+The implementation in `models/sdreamer/` is adapted from the original authors'
+code, and the checkpoints this app loads were trained separately with
+[sdreamer_flow](https://github.com/yzhaoinuw/sdreamer_flow). If you publish
+results produced by sDREAMER, cite the original paper as well as this app; see
+[Citing sDREAMER](#citing-sdreamer).
+
 - **Packaged Windows app:** download `torch.zip` from the private distribution
   folder, extract it, and copy its contents directly into the app's
   `_internal/` folder. After copying, `_internal/torch/` should exist.
@@ -300,3 +307,41 @@ BibTeX entry.
 
 A JOSS paper is in preparation in [paper/paper.md](paper/paper.md). Once it is
 published, please cite the paper instead.
+
+### Citing sDREAMER
+
+The optional deep-learning backend is the sDREAMER model, developed by Chen et
+al. and published at IEEE ICDH 2023. It is a separate work from this app. If
+you report scores generated with `SLEEP_SCORING_MODEL = "sdreamer"`, cite that
+paper in addition to this app:
+
+> Chen, J., Yao, Y., Anderson, M., Hauglund, N., Kjaerby, C., Untiet, V.,
+> Nedergaard, M., & Luo, J. (2023). sDREAMER: Self-distilled
+> Mixture-of-Modality-Experts Transformer for Automatic Sleep Staging. In
+> *2023 IEEE International Conference on Digital Health (ICDH)* (pp. 131–142).
+> IEEE. https://doi.org/10.1109/ICDH60066.2023.00028
+
+```bibtex
+@inproceedings{chen2023sdreamer,
+  title     = {{sDREAMER}: Self-distilled Mixture-of-Modality-Experts Transformer for Automatic Sleep Staging},
+  author    = {Chen, Jingyuan and Yao, Yuan and Anderson, Mie and Hauglund, Natalie and Kjaerby, Celia and Untiet, Verena and Nedergaard, Maiken and Luo, Jiebo},
+  booktitle = {2023 IEEE International Conference on Digital Health (ICDH)},
+  pages     = {131--142},
+  year      = {2023},
+  publisher = {IEEE},
+  doi       = {10.1109/ICDH60066.2023.00028}
+}
+```
+
+Two details worth stating explicitly in a methods section:
+
+- The model code in `models/sdreamer/` is **adapted** from the original
+  authors' implementation, not a verbatim copy.
+- The checkpoints distributed with this app are **not** the original authors'
+  weights. They were trained with
+  [sdreamer_flow](https://github.com/yzhaoinuw/sdreamer_flow), a modified
+  training pipeline maintained by this repository's author, so reported
+  accuracy will not necessarily match the published numbers.
+
+Third-party provenance and licensing for `models/sdreamer/` are recorded in
+[NOTICE](NOTICE).

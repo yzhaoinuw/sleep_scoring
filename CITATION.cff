@@ -7,11 +7,22 @@ authors:
     family-names: Zhao
     affiliation: "University of Rochester, Rochester, NY, USA"
     orcid: "https://orcid.org/0000-0002-0819-5012"
-  # TODO: add co-authors (lab members who contributed code, models, or data)
+abstract: >-
+  An open-source desktop application for visualizing, manually annotating, and
+  automatically scoring rodent sleep stages from electroencephalogram (EEG),
+  electromyogram (EMG), and optional fiber-photometry norepinephrine (NE)
+  recordings. The app loads MATLAB .mat recordings, presents a synchronized
+  interactive view of the EEG spectrogram, raw traces, and existing sleep
+  scores, and lets a scorer label segments as Wake, Slow-Wave Sleep, or REM
+  with keyboard shortcuts and aligned video. With the optional PyTorch
+  dependency installed, a built-in transformer model (sDREAMER) scores a
+  recording automatically for review and correction in the same interface.
+  Annotations are written back into the original .mat file, and per-bout and
+  per-stage summary statistics are exported to Excel.
 repository-code: "https://github.com/yzhaoinuw/sleep_scoring"
 license: MIT
-version: 0.16.2
-date-released: "2026-06-15"
+version: 0.17.0
+date-released: "2026-07-29"
 keywords:
   - sleep scoring
   - electroencephalography
@@ -22,6 +33,49 @@ keywords:
   - deep learning
   - annotation
   - norepinephrine
+references:
+  # The optional deep-learning scoring backend. Cite this paper in addition to
+  # the application when reporting results produced by sDREAMER predictions.
+  - type: conference-paper
+    title: "sDREAMER: Self-distilled Mixture-of-Modality-Experts Transformer for Automatic Sleep Staging"
+    authors:
+      - given-names: Jingyuan
+        family-names: Chen
+      - given-names: Yuan
+        family-names: Yao
+      - given-names: Mie
+        family-names: Anderson
+      - given-names: Natalie
+        family-names: Hauglund
+      - given-names: Celia
+        family-names: Kjaerby
+      - given-names: Verena
+        family-names: Untiet
+      - given-names: Maiken
+        family-names: Nedergaard
+      - given-names: Jiebo
+        family-names: Luo
+    collection-title: "2023 IEEE International Conference on Digital Health (ICDH)"
+    publisher:
+      name: IEEE
+    year: 2023
+    start: 131
+    end: 142
+    doi: "10.1109/ICDH60066.2023.00028"
+    notes: >-
+      Original sDREAMER model. The implementation in models/sdreamer/ is
+      adapted from the authors' code; the checkpoints distributed with this
+      application were trained separately and are not the authors' weights.
+  - type: software
+    title: "sdreamer_flow: sDREAMER training pipeline"
+    authors:
+      - given-names: Yue
+        family-names: Zhao
+        orcid: "https://orcid.org/0000-0002-0819-5012"
+    repository-code: "https://github.com/yzhaoinuw/sdreamer_flow"
+    notes: >-
+      Modified training pipeline used to produce the sDREAMER checkpoints
+      shipped with this application.
 # A JOSS paper is in preparation (see paper/paper.md). Once published, add a
 # `preferred-citation:` block here pointing to the JOSS DOI so that GitHub's
 # "Cite this repository" button and downstream tools prefer the paper.

@@ -20,6 +20,36 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-29
 
+### Citation metadata and sDREAMER attribution (Claude)
+
+- Prepared `CITATION.cff` for a Zenodo archive DOI. Zenodo scrapes this file at
+  archive time, so the stale fields would have become the permanent record
+  metadata. Corrected `version` 0.16.2 to 0.17.0 and `date-released`
+  2026-06-15 to 2026-07-29 (the v0.17.0 tag date), and added an `abstract` so
+  the record carries a real description instead of the GitHub blurb.
+- Resolved the co-author TODO as sole authorship. The application code is the
+  repository author's; sDREAMER is a dependency relationship, not authorship,
+  so the original authors are cited rather than listed.
+- Added a `references:` block citing the original sDREAMER paper (Chen et al.,
+  IEEE ICDH 2023, doi 10.1109/ICDH60066.2023.00028) and the `sdreamer_flow`
+  training pipeline that produced the shipped checkpoints. Author list, venue,
+  pages, and DOI were confirmed against Crossref, not transcribed by hand.
+- Added a "Citing sDREAMER" README subsection with APA and BibTeX forms, a
+  pointer from the sDREAMER setup section, and a provenance docstring in
+  `models/sdreamer/__init__.py`. All three state that the code is adapted
+  rather than copied and that the shipped checkpoints are not the original
+  authors' weights.
+- Added `CITATION.cff` to the version-metadata bullet of the AGENTS.md release
+  gate. Its absence there is why the file drifted five releases behind.
+- Verified: `cffconvert --validate` passes against CFF schema 1.2.0 (run from a
+  scratch venv, not the project env), CITATION.cff `version` matches
+  `app_src.VERSION`, Black clean, `tests/test_smoke.py` 8 passed.
+- Open follow-ups: `paper/paper.bib` still carries the sDREAMER TODO and the
+  mis-keyed `miladinovic2022somnotate` entry, but the live draft is on the
+  `publication` branch, so those belong there rather than on `dev`. The
+  redistribution license for the adapted `models/sdreamer/` code is still
+  unconfirmed against the original authors.
+
 ### v0.17.0 full-release verification (GPT-5)
 
 - Prepared v0.17.0 as the full Windows compatibility boundary for the

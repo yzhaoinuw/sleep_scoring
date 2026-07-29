@@ -89,7 +89,8 @@ Treat any request that combines commit, push, and tag, or asks to publish/cut a
 release, as release work. Before creating or pushing a tag:
 
 - verify the local date with `Get-Date -Format yyyy-MM-dd`;
-- update version metadata (`app_src/__init__.py`, `setup.py`);
+- update version metadata (`app_src/__init__.py`, `setup.py`, and the `version`
+  and `date-released` fields in `CITATION.cff`);
 - update release notes/changelog and user-facing docs when behavior changed;
 - update `work_log.md` with verification and branch/tag state;
 - run the relevant tests/smoke/package checks;
