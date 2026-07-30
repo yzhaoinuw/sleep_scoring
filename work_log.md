@@ -33,18 +33,27 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `failed / could not download update asset: HTTP 404`. It is the state every
   installed app would have entered after the next full release.
 - Fixed upstream in `desktop_app_source_updater` on branch
-  `fix/redirect-missing-asset` (commit `7913f3d`, not yet pushed): a composed
-  asset URL is probed with a no-redirect HEAD before the update-available
-  callback fires, and a definitive 404/410 reports `up-to-date` with
-  "no matching source update asset". Also added `failure_retry_seconds` so a
-  failed or offline check retries in an hour instead of a full day.
+  `fix/redirect-missing-asset`, merged through PR #3: a composed asset URL is
+  probed with a no-redirect HEAD before the update-available callback fires,
+  and a definitive 404/410 reports `up-to-date` with "no matching source update
+  asset". Also added `failure_retry_seconds` so a failed or offline check
+  retries in an hour instead of a full day.
 - App side: `format_startup_update_console_message` now recognizes the case
-  where the check found a newer release it cannot install and names it, rather
-  than saying "no update available". It compares versions instead of matching
-  the updater's message text, because this launcher ships frozen and cannot be
-  corrected by a source update. README documents the new terminal message.
-- Verification: 26 launcher tests passed; upstream 39 tests passed (34 before),
-  `compileall` and the builder `--help` gate passed.
+  where the check found a newer release it cannot install, names it, and prints
+  the Releases URL, rather than saying "no update available". It compares
+  versions instead of matching the updater's message text, because this
+  launcher ships frozen and cannot be corrected by a source update.
+- The message originally said "see the README installation steps". Review
+  caught that the generated full package contains only `app_src/`, `models/`,
+  the launcher, and `unblock_app.cmd` — no `README.md` — so a packaged user,
+  the only user who ever sees this message, has nothing to open. It now carries
+  the Releases URL. Used the public `LATEST_RELEASE_URL` constant rather than
+  the configured check URL, which an env override can repoint at a test
+  endpoint. Shipping the README inside the package was the alternative, but
+  that changes the documented folder contract and the frozen fixture for no
+  gain over a URL; noted as a possible follow-up instead.
+- Verification: 26 launcher tests passed; upstream 41 tests passed (34 before
+  this work), `compileall` and the builder `--help` gate passed.
 - Upstream PR #3 merged to `dev` and `main` as `5eab40b`, including two review
   rounds on `UpdateConfig` field ordering. Bumped the `requirements.txt` pin
   from `85bb68e` to `5eab40b`, which clears the blocker noted above; a packaged
@@ -60,8 +69,11 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `failed / HTTP 404` after announcing an update.
 - Also confirmed `packaging/windows/full_release.py` parses the new pin, since
   that gate is what would reject a malformed SHA at release time.
-- Verification: 163 tests passed, smoke check passed, release-gate pin parse
-  passed.
+- Verification at the final branch head: `pytest` collected 166, with 164
+  passed and 2 skipped (both skips pre-existing). Smoke check passed,
+  release-gate pin parse passed, Black clean, `git diff --check` clean.
+  Earlier entries in this section quote lower counts because they were run
+  before later commits added tests; each was accurate when written.
 
 ### Public GitHub Windows installation (GPT-5)
 

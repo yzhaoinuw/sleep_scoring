@@ -188,9 +188,14 @@ def format_startup_update_console_message(result, format_update_message):
         if "deferred by the configured interval" in result.message:
             return "recent update check still current; network check skipped"
         if found_release_needing_full_package(result):
+            # Name the download location rather than pointing at the README:
+            # the packaged app folder ships app_src, models, and the launcher
+            # only, so a packaged user has no local README to open. Use the
+            # public constant, not the configured check URL, which a test
+            # override can repoint away from the real releases page.
             return (
                 f"release {result.target_version} is available as a full package "
-                "download; see the README installation steps"
+                f"download: {LATEST_RELEASE_URL}"
             )
         return "no update available"
     if result.status == "updated":

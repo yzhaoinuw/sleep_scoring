@@ -198,9 +198,28 @@ def test_formats_full_package_only_release_as_actionable():
     )
 
     assert message == (
-        "release v0.18.0 is available as a full package download; "
-        "see the README installation steps"
+        "release v0.18.0 is available as a full package download: "
+        "https://github.com/yzhaoinuw/sleep_scoring/releases/latest"
     )
+
+
+def test_full_package_message_points_somewhere_a_packaged_user_can_reach():
+    # The packaged folder ships no README, so the message must carry a URL
+    # rather than refer to documentation that is not installed.
+    result = SimpleNamespace(
+        status="up-to-date",
+        message="release v0.18.0 has no matching source update asset",
+        installed_version="0.17.0",
+        target_version="v0.18.0",
+    )
+
+    message = run_desktop_app.format_startup_update_console_message(
+        result,
+        lambda update_result: "",
+    )
+
+    assert run_desktop_app.LATEST_RELEASE_URL in message
+    assert "README" not in message
 
 
 def test_current_release_is_still_reported_as_no_update():
