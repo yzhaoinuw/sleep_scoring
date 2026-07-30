@@ -20,6 +20,44 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-30
 
+### Local-only usage tracker for research impact reporting (Claude)
+
+- Implemented the `next_steps.md` "Research Impact Measurement" plan as a
+  local-only v1 on `feature/usage-tracker`, and recorded the decisions the plan
+  had left open.
+- Chose local-only over opt-in telemetry. That removes the plan's hardest open
+  item (where shared aggregates would be received and retained), carries no
+  compliance surface, and at the current user count would give an N too small
+  to defend in a report; asking adopting labs directly scales further for now.
+  A reporting endpoint would also turn github.com-only traffic into traffic to
+  a server we run, which needs explicit opt-in and a compliance conversation.
+- Defined "scored" as a recording saved with every second annotated, counted
+  once on the first such save. Dedup uses a 16-hex-character SHA-256 digest of
+  the EEG array, since annotating never changes it: reopening, re-saving, or
+  saving under a new name all fingerprint identically. Deliberately not the
+  filename or path, which are both mutable and identifying.
+- `app_src/usage_stats.py` stores counts plus fingerprints in a per-user file
+  beside the updater state, never in the app folder, which a full-package
+  update replaces wholesale. `record_scored_recording` cannot raise: an
+  uncounted recording is an acceptable loss, a broken save is not.
+- Writing a test for the unwritable-store case caught a real bug: the atomic
+  write swallowed `OSError` while the caller still reported the recording as
+  counted, so an unwritable store would have silently lost every count while
+  looking successful. The write now reports its outcome.
+- Fingerprints are one-way and local-only, but they are still stable
+  per-recording tokens, so they are excluded from the exported summary and
+  documented as never leaving the machine. The exported file carries counts
+  only.
+- Added an "Export impact summary" button, a README section explaining what is
+  counted and that nothing is transmitted, and a README "Privacy" section
+  stating the app's only network requests are the GitHub update check.
+- Verification: 174 existing tests plus 16 new ones passed (13 unit, 3 driving
+  the real `save_annotations` callback), `run_desktop_app.py --smoke` passed,
+  and the layout/callback wiring was checked against the built Dash app rather
+  than assumed.
+- Not addressed here: GitHub and Zenodo download counts, which need no app
+  instrumentation and stay on the `next_steps.md` list.
+
 ### Public GitHub Windows installation (GPT-5)
 
 - Replaced the private SharePoint/OneDrive package path in `README.md` with the
