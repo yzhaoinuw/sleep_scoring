@@ -130,8 +130,11 @@ manual testing.
 
 # Acknowledgments
 
-We thank <!-- TODO: list lab PI, data contributors, model contributors,
-funding sources, and grant numbers --> for their support during the
-development of this software.
+This work was supported by the BRAIN Initiative of the US National Institutes
+of Health (U19NS128613).
+
+<!-- TODO: thank the lab PI, data contributors, and model contributors by
+name. The funding sentence above is the PI-approved wording and should be
+kept verbatim. -->
 
 # References

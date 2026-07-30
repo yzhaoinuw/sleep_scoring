@@ -5,6 +5,9 @@ sleep_scoring
 Copyright (c) 2024 Yue Zhao
 Licensed under the MIT License. See LICENSE for the full text.
 
+This work was supported by the BRAIN Initiative of the US National Institutes
+of Health (U19NS128613).
+
 This product includes third-party components. Their provenance is recorded
 below.
 
@@ -22,7 +25,7 @@ model. It is adapted from code developed by the model's original authors:
     https://doi.org/10.1109/ICDH60066.2023.00028
 
 That work was carried out at the University of Rochester under the NIH U19
-BrainFlowZZZ research program (grant number: TODO). Copyright in the original
+BrainFlowZZZ research program (U19NS128613). Copyright in the original
 implementation is held by the University of Rochester under its Intellectual
 Property Policy, and the code is redistributed here under the MIT License in
 keeping with the program's public code-availability requirement.
