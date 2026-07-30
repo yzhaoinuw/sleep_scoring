@@ -130,9 +130,21 @@ backend_div = html.Div(
     ]
 )
 
+usage_summary_button = html.Button(
+    "Export impact summary",
+    id="usage-summary-button",
+    title=(
+        "Save a text summary of how much scoring has been done on this "
+        "computer. Counts only; nothing is sent anywhere."
+    ),
+    style={"marginLeft": "10px"},
+)
+
 home_div = html.Div(
     [
         mat_upload_button,
+        usage_summary_button,
+        html.Div(id="usage-summary-message", style={"marginLeft": "10px"}),
         html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
         html.Div(id="debug-message", style={"marginLeft": "10px"}),
         backend_div,

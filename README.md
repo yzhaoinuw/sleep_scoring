@@ -19,6 +19,7 @@ aligned video, and optionally generating automatic sleep scores.
 - [Use The App](#use-the-app)
 - [App Updates](#app-updates)
 - [Optional sDREAMER Model](#optional-sdreamer-model)
+- [Privacy](#privacy)
 - [Input Files](#input-files)
 - [Developer Documentation](#developer-documentation)
 - [Citation](#citation)
@@ -178,6 +179,24 @@ If anything is still unscored, the app reports the first gap as
 `[start, end] (duration s)`. Once the recording is fully scored, it also offers
 to export sleep bouts and summary statistics to Excel.
 
+### Export An Impact Summary
+
+The app keeps a running count of how many recordings have been scored on this
+computer and how many hours they add up to. A recording counts once, the first
+time you save it with every second scored; reopening it, re-saving it, or
+saving it under a new name does not count it again.
+
+Click **Export impact summary** at the top of the window to save those totals
+as a text file. This is useful for reporting tool use in annual research
+reports, and you can share the file with the developer if you would like your
+lab's use reflected in the project's reported impact.
+
+These totals never leave your computer on their own. The app has no reporting
+endpoint and makes no network call for this; the only way the numbers travel is
+if you export the file and send it yourself. The stored totals and the exported
+summary contain no recording names, file paths, signal data, annotations, or
+animal identifiers.
+
 ### Use Multiple Windows And Crash Recovery
 
 Launch the app again to open as many as three independent windows. The second
@@ -220,6 +239,22 @@ are not in this public repository; request them from Yue Zhao. See
      `pip install timm==1.0.22 einops==0.8.1`.
 2. Put the checkpoint files in `models/sdreamer/checkpoints/`.
 3. Set `SLEEP_SCORING_MODEL = "sdreamer"` in `app_src/config.py` and restart.
+
+## Privacy
+
+The app makes exactly two kinds of network request, both to github.com, and
+neither one sends anything about your recordings:
+
+- **Update check.** The packaged Windows app asks GitHub for the latest release
+  tag at most once every 24 hours, and downloads a code-only update asset when
+  one applies. Set `SLEEP_SCORING_SKIP_UPDATE=1` to turn this off.
+- **Nothing else.** There is no analytics, telemetry, or usage-reporting
+  endpoint. The scoring totals behind
+  [Export An Impact Summary](#export-an-impact-summary) are stored only on your
+  computer and are shared only if you export the file and send it yourself.
+
+Your recordings, file paths, annotations, and animal identifiers are never
+transmitted, and the source installation makes no update check at all.
 
 ## Input Files
 

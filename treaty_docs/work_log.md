@@ -15,6 +15,24 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-08-30
+
+### Rebase and harden the local usage tracker (Codex GPT-5; effort/tokens not reported)
+
+- Rebased `feature/usage-tracker` onto current `dev`, preserving the adaptive
+  score-history flow, current update guidance, and the local-only impact
+  tracker.
+- Usage-stat updates now take an operating-system file lock, so saves from the
+  app's supported multiple windows cannot overwrite one another's increment.
+  The lock is released automatically when a process exits; accounting failures
+  still cannot interrupt a user save.
+- Verification:
+  - Focused usage-tracker tests, including same-process and cross-process lock
+    coverage, passed.
+  - The repository-pinned Black hook passed for the changed Python files.
+  - `python run_desktop_app.py --smoke` passed.
+  - `git diff --check` passed.
+
 ## 2026-08-28
 
 ### Begin the adaptive statistical-model branch

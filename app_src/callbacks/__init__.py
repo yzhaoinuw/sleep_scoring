@@ -7,5 +7,6 @@ from app_src.callbacks import (
     navigation,
     prediction,
     saving,
+    usage,
     video,
 )

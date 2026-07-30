@@ -39,18 +39,45 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Research Impact Measurement
 
-Status: planning only; keep separate from the v0.17 updater/package work.
+Status: local-only v1 implemented on `feature/usage-tracker`; keep separate
+from the v0.17 updater/package work.
 
-- Define a small annual-report metric set, initially GitHub release-asset
-  downloads, number of recordings scored, and total recording hours scored.
-- Decide whether app-use totals should remain local for a user-exported impact
-  summary or be sent through an explicit opt-in reporting mechanism.
-- Collect only aggregate counts. Do not collect recording names, paths, signal
-  data, annotations, animal identifiers, or other research data.
-- Define what counts as "scored" and prevent repeated saves or reopening the
-  same recording from inflating the totals.
-- Choose where any shared aggregates would be received, retained, and exported
-  for the group's annual research impact report before adding instrumentation.
+Settled decisions:
+
+- App-use totals stay **local**. There is no reporting endpoint and no network
+  call in `app_src/usage_stats.py`. This was chosen over opt-in telemetry
+  because it removes the hardest open question (where aggregates would be
+  received and retained), carries no compliance surface, and would give an N
+  too small to be defensible at the current user count anyway. Asking adopting
+  labs directly scales further than telemetry does for now.
+- "Scored" means a recording saved with every second annotated. It counts once,
+  on the first such save, deduplicated by a truncated one-way digest of the EEG
+  signal, so reopening, re-saving, or saving under a new name cannot inflate
+  the totals.
+- The store holds counts and fingerprints only: no recording names, paths,
+  signal values, annotations, or animal identifiers. Fingerprints never leave
+  the machine and never appear in the exported summary.
+
+Remaining work:
+
+- Collect GitHub release-asset download counts for the annual report. These
+  need no instrumentation (`assets[].download_count`), but record the caveats:
+  they are not deduplicated, they include bots and mirrors, and they are
+  per-asset, so the 2026-07-30 rename of the v0.17.0 full package reset that
+  asset's counter.
+- Add Zenodo record views and downloads to the metric set now that the
+  repository is enabled. For an annual research-impact report these are a
+  stronger number than GitHub's, and the DOI also accrues citations.
+- Decide whether to add distinct-sites and manual-correction-volume metrics.
+  Correction volume is the most direct "this tool saved time" number and the
+  best answer to the JOSS "who uses this outside your group?" question, but
+  every added metric is added surface; keep v1 to what the report prints.
+- Revisit shared reporting only if the adopter base outgrows asking directly.
+  If that happens, the startup update check is the natural carrier, since it is
+  already a once-per-24-hour request with tested throttle and backoff. Note
+  that it would convert github.com-only traffic into traffic to a server we
+  run, which is the line needing explicit opt-in and a conversation with UR
+  research compliance first.
 
 ## Statistical Model
 
