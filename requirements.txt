@@ -9,7 +9,7 @@ pywebview==6.1
 imageio-ffmpeg==0.6.0
 xlsxwriter==3.2.9
 tqdm==4.67.1
-desktop-app-source-updater @ git+https://github.com/yzhaoinuw/desktop_app_source_updater.git@85bb68e42155ad8b661f669df8d281fbe683a045
+desktop-app-source-updater @ git+https://github.com/yzhaoinuw/desktop_app_source_updater.git@5eab40b283774c71c138433e9250897e8267d215
 torch==2.9.1
 einops==0.8.1
 timm==1.0.22

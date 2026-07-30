@@ -45,11 +45,23 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   corrected by a source update. README documents the new terminal message.
 - Verification: 26 launcher tests passed; upstream 39 tests passed (34 before),
   `compileall` and the builder `--help` gate passed.
-- Still open on this branch: bump the `requirements.txt` updater pin to the
-  upstream fix. The full-release gate requires a 40-character commit SHA
-  (`packaging/windows/full_release.py`), so the upstream branch has to be
-  pushed and merged before the pin can move. Until then a packaged build would
-  still carry the old behavior.
+- Upstream PR #3 merged to `dev` and `main` as `5eab40b`, including two review
+  rounds on `UpdateConfig` field ordering. Bumped the `requirements.txt` pin
+  from `85bb68e` to `5eab40b`, which clears the blocker noted above; a packaged
+  build now carries the fix. `pyproject.toml` tracks `@main` and needed no
+  change.
+- Verified the pin rather than assuming it resolves: installed
+  `git+...@5eab40b` into a throwaway venv (not the project env) exactly as a
+  packaged build would, confirmed the installed module has `_asset_is_available`
+  and the appended `failure_retry_seconds`, then re-ran the live production
+  config against the real repo. A simulated 0.16.8 install now reports
+  `up-to-date / release v0.17.0 has no matching source update asset` with no
+  update-available callback, where the old pin reported
+  `failed / HTTP 404` after announcing an update.
+- Also confirmed `packaging/windows/full_release.py` parses the new pin, since
+  that gate is what would reject a malformed SHA at release time.
+- Verification: 163 tests passed, smoke check passed, release-gate pin parse
+  passed.
 
 ### Public GitHub Windows installation (GPT-5)
 
