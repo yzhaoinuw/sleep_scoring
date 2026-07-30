@@ -11,6 +11,7 @@ generating automatic sleep scores.
 - [Install](#install)
 - [Before Your First Session](#before-your-first-session)
 - [Use The App](#use-the-app)
+- [Privacy](#privacy)
 - [Input Files](#input-files)
 - [Developer Documentation](#developer-documentation)
 - [Citation](#citation)
@@ -233,6 +234,24 @@ the Excel summary.
 
 https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
 
+### Export An Impact Summary
+
+The app keeps a running count of how many recordings have been scored on this
+computer and how many hours they add up to. A recording counts once, the first
+time you save it with every second scored; reopening it, re-saving it, or
+saving it under a new name does not count it again.
+
+Click **Export impact summary** at the top of the window to save those totals
+as a text file. This is useful for reporting tool use in annual research
+reports, and you can share the file with the developer if you would like your
+lab's use reflected in the project's reported impact.
+
+These totals never leave your computer on their own. The app has no reporting
+endpoint and makes no network call for this; the only way the numbers travel is
+if you export the file and send it yourself. The stored totals and the exported
+summary contain no recording names, file paths, signal data, annotations, or
+animal identifiers.
+
 ### Use Multiple Windows And Crash Recovery
 
 Launch the app again to open as many as three independent windows. The second
@@ -245,6 +264,22 @@ and third windows show `(2)` and `(3)` in their title bars.
   in their original order and reopen the same recording in the matching
   position before opening a different file. Opening a different file clears
   that window's recovery state.
+
+## Privacy
+
+The app makes exactly two kinds of network request, both to github.com, and
+neither one sends anything about your recordings:
+
+- **Update check.** The packaged Windows app asks GitHub for the latest release
+  tag at most once every 24 hours, and downloads a code-only update asset when
+  one applies. Set `SLEEP_SCORING_SKIP_UPDATE=1` to turn this off.
+- **Nothing else.** There is no analytics, telemetry, or usage-reporting
+  endpoint. The scoring totals behind
+  [Export An Impact Summary](#export-an-impact-summary) are stored only on your
+  computer and are shared only if you export the file and send it yourself.
+
+Your recordings, file paths, annotations, and animal identifiers are never
+transmitted, and the source installation makes no update check at all.
 
 ## Input Files
 
