@@ -20,6 +20,49 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-30
 
+### Release gates now enforce the CITATION.cff bullet (Claude)
+
+- The 2026-07-29 session added `CITATION.cff` to the AGENTS.md version-metadata
+  bullet after finding it five releases behind. Checking what enforces that
+  bullet found nothing: `CITATION` appeared nowhere in `packaging/`, `.github/`,
+  or `tests/`. `full_release.py` compared `app_src/__init__.py` against
+  `setup.py` and required a `change_log.txt` heading, and stopped there. So the
+  instruction gap was closed and the enforcement gap was not, which is how the
+  drift reached five releases instead of one.
+- This matters more now than it did before: Zenodo is enabled and scrapes
+  `CITATION.cff` when a release is published, so a stale version becomes the
+  permanent citation for that archived record and cannot be fixed in place.
+- Added `validate_citation_metadata` to both `full_release.py` and
+  `lightweight_release.py`: `version` must equal the app version with `v`
+  stripped, and `date-released` must parse and not be in the future. The
+  version equality is the load-bearing half, since it forces the file to be
+  edited every release; the date check only catches typos.
+- Included the lightweight gate deliberately. Lightweight releases are still
+  tags and Zenodo archives every published release, so a stale citation is
+  just as permanent there. The file is not shipped inside the source-update
+  asset, which carries only `app_src/`; it is the tagged repo state Zenodo
+  reads.
+- Duplicated the check across both scripts rather than sharing a module. The
+  tests load each script standalone through `spec_from_file_location`, which
+  does not put the package directory on `sys.path`, so a sibling import would
+  not resolve. `VERSION_RE` and `SETUP_VERSION_RE` are already duplicated for
+  the same reason; the docstring records this so it does not read as careless
+  copy-paste.
+- Regexes anchor to unindented top-level CFF keys, because the `references:`
+  block contains its own indented `version:` and `date-released:`. Both test
+  fixtures now carry a cited work with different values so a regex that
+  matched the wrong key would fail the happy-path test.
+- Fixing the fixtures exposed a test-integrity problem:
+  `test_validate_candidate_rejects_forgotten_setup_version_bump` left
+  `CITATION.cff` stale too, and the citation error fires first with a message
+  that also matched its `does not match 'v0.17.1'` regex. It would have kept
+  passing while no longer testing setup.py at all. That test now bumps the
+  citation and matches a setup-specific message.
+- Verified the real checkout passes its own new gate:
+  `python packaging/windows/full_release.py --repo .` prints
+  `v0.17.0	5eab40b...`.
+- Verification: 169 passed, 2 skipped (4 new tests), Black clean.
+
 ### Full-package-only releases no longer look like failed updates (Claude)
 
 - Pre-release review of the updater found a redirect-discovery gap. Redirect

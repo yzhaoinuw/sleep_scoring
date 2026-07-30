@@ -90,7 +90,10 @@ release, as release work. Before creating or pushing a tag:
 
 - verify the local date with `Get-Date -Format yyyy-MM-dd`;
 - update version metadata (`app_src/__init__.py`, `setup.py`, and the `version`
-  and `date-released` fields in `CITATION.cff`);
+  and `date-released` fields in `CITATION.cff`). Both release gates now verify
+  all three, so a stale `CITATION.cff` fails the candidate check rather than
+  reaching a published release. Zenodo scrapes that file when a release is
+  published and the archived record cannot be corrected in place afterwards;
 - update release notes/changelog and user-facing docs when behavior changed;
 - update `work_log.md` with verification and branch/tag state;
 - run the relevant tests/smoke/package checks;

@@ -5,11 +5,16 @@ from __future__ import annotations
 import argparse
 import ast
 import re
+from datetime import date
 from pathlib import Path
 
 
 APP_VERSION_RE = re.compile(r"""VERSION\s*=\s*["']([^"']+)["']""")
 SETUP_VERSION_RE = re.compile(r"""(?m)^[ \t]*version[ \t]*=[ \t]*["']([^"']+)["'][ \t]*,[ \t]*$""")
+# Top-level CFF keys only. Nested keys under `references:` are indented, so
+# anchoring to the start of the line keeps this from matching a cited work.
+CITATION_VERSION_RE = re.compile(r"""(?m)^version:[ \t]*["']?([^"'\s]+)["']?[ \t]*$""")
+CITATION_DATE_RE = re.compile(r"""(?m)^date-released:[ \t]*["']?(\d{4}-\d{2}-\d{2})["']?[ \t]*$""")
 PINNED_UPDATER_RE = re.compile(
     r"(?m)^desktop-app-source-updater\s+@\s+"
     r"git\+https://github\.com/yzhaoinuw/desktop_app_source_updater\.git@"
@@ -43,6 +48,32 @@ def _has_assignment(source: str, assignment: str) -> bool:
     )
 
 
+def validate_citation_metadata(
+    citation: str, app_version: str, source: str = "CITATION.cff"
+) -> None:
+    """Check the archive metadata a release permanently bakes in.
+
+    Zenodo scrapes CITATION.cff when a release is published, so a stale version
+    or date becomes the citation of record for that archived version and cannot
+    be corrected in place afterwards. Nothing else in the release path reads
+    this file, which is how it once drifted five releases behind the shipped
+    app before anyone noticed.
+    """
+    citation_version = _single_match(CITATION_VERSION_RE, citation, source)
+    if citation_version != app_version.removeprefix("v"):
+        raise FullReleaseError(
+            f"{source} version {citation_version!r} does not match {app_version!r}"
+        )
+
+    released = _single_match(CITATION_DATE_RE, citation, source)
+    try:
+        released_date = date.fromisoformat(released)
+    except ValueError as exc:
+        raise FullReleaseError(f"{source} date-released {released!r} is not a valid date") from exc
+    if released_date > date.today():
+        raise FullReleaseError(f"{source} date-released {released} is in the future")
+
+
 def validate_full_candidate(repo: Path) -> tuple[str, str]:
     app_version = _single_match(
         APP_VERSION_RE,
@@ -56,6 +87,11 @@ def validate_full_candidate(repo: Path) -> tuple[str, str]:
     )
     if setup_version != app_version.removeprefix("v"):
         raise FullReleaseError(f"setup.py version {setup_version!r} does not match {app_version!r}")
+
+    validate_citation_metadata(
+        (repo / "CITATION.cff").read_text(encoding="utf-8"),
+        app_version,
+    )
 
     changelog = (repo / "change_log.txt").read_text(encoding="utf-8")
     if not re.search(rf"(?m)^#### {re.escape(app_version)}[ \t]*$", changelog):

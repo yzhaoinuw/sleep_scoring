@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from datetime import date
 from pathlib import Path, PurePosixPath
 
 
@@ -38,6 +39,11 @@ UPDATE_ZIP_URL_ENV = "SLEEP_SCORING_UPDATE_ZIP_URL"
 SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
 
 VERSION_RE = re.compile(r"""VERSION\s*=\s*["']([^"']+)["']""")
+CITATION_FILE = "CITATION.cff"
+# Top-level CFF keys only. Nested keys under `references:` are indented, so
+# anchoring to the start of the line keeps this from matching a cited work.
+CITATION_VERSION_RE = re.compile(r"""(?m)^version:[ \t]*["']?([^"'\s]+)["']?[ \t]*$""")
+CITATION_DATE_RE = re.compile(r"""(?m)^date-released:[ \t]*["']?(\d{4}-\d{2}-\d{2})["']?[ \t]*$""")
 SETUP_VERSION_RE = re.compile(
     r"""(?m)^([ \t]*version[ \t]*=[ \t]*)(["'])([^"']+)(\2)([ \t]*,[ \t]*)$"""
 )
@@ -125,6 +131,49 @@ def read_version_bytes(data: bytes, *, source: str) -> str:
 
 def read_version_from_ref(repo: Path, ref: str) -> str:
     return read_version_bytes(git_file(repo, ref, VERSION_FILE), source=f"{ref}:{VERSION_FILE}")
+
+
+def _single_citation_match(pattern: re.Pattern[str], text: str, source: str) -> str:
+    matches = pattern.findall(text)
+    if len(matches) != 1:
+        raise LightweightReleaseError(f"{source} must contain exactly one matching value")
+    return matches[0]
+
+
+def validate_citation_metadata(citation: bytes, app_version: str, *, source: str) -> None:
+    """Check the archive metadata a release permanently bakes in.
+
+    Zenodo scrapes CITATION.cff when a release is published, so a stale version
+    or date becomes the citation of record for that archived version and cannot
+    be corrected in place afterwards. This applies to lightweight releases as
+    much as full ones: they are still tags, and Zenodo archives every published
+    release. The file is not shipped inside the source-update asset, which only
+    carries `app_src/`; it is the tagged repository state that gets scraped.
+
+    Deliberately duplicated from full_release.py rather than shared. Both
+    scripts are loaded standalone by file path, so a sibling import would not
+    resolve; the version regexes above are duplicated for the same reason.
+    """
+    try:
+        text = citation.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise LightweightReleaseError(f"{source} is not UTF-8") from exc
+
+    citation_version = _single_citation_match(CITATION_VERSION_RE, text, source)
+    if citation_version != app_version.removeprefix("v"):
+        raise LightweightReleaseError(
+            f"{source} version {citation_version!r} does not match {app_version!r}"
+        )
+
+    released = _single_citation_match(CITATION_DATE_RE, text, source)
+    try:
+        released_date = date.fromisoformat(released)
+    except ValueError as exc:
+        raise LightweightReleaseError(
+            f"{source} date-released {released!r} is not a valid date"
+        ) from exc
+    if released_date > date.today():
+        raise LightweightReleaseError(f"{source} date-released {released} is in the future")
 
 
 def version_key(version: str) -> tuple[int, ...]:
@@ -236,6 +285,11 @@ def validate_candidate(repo: Path, from_refs: list[str], to_ref: str) -> str:
 
     target_version = read_version_from_ref(repo, to_ref)
     target_key = version_key(target_version)
+    validate_citation_metadata(
+        git_file(repo, to_ref, CITATION_FILE),
+        target_version,
+        source=f"{to_ref}:{CITATION_FILE}",
+    )
     versions_by_ref = {from_ref: read_version_from_ref(repo, from_ref) for from_ref in from_refs}
     all_runtime_paths = set()
     blocked_paths = set()
