@@ -14,5 +14,6 @@ Adapted from the original sDREAMER implementation by Chen et al.:
 
 The checkpoints loaded by this package were trained separately with
 https://github.com/yzhaoinuw/sdreamer_flow and are not the original authors'
-weights. See the Citing sDREAMER section of README.md.
+weights. See the NOTICE file at the repository root for provenance and
+citation.
 """
