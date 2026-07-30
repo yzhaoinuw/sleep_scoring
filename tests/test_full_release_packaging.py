@@ -80,7 +80,8 @@ def test_full_candidate_requires_aligned_setup_version(tmp_path):
 def test_full_candidate_requires_current_citation_version(tmp_path):
     # The drift that actually happened: CITATION.cff left five releases behind
     # while the app moved on. Zenodo scrapes this file at publish time, so the
-    # stale value would become the permanent citation for the archived record.
+    # stale value is what gets published, and fixing the repository afterwards
+    # does not reach records already published.
     _write_candidate(tmp_path, citation_version="0.16.2")
 
     with pytest.raises(FULL_RELEASE.FullReleaseError, match="CITATION.cff version"):
@@ -99,6 +100,48 @@ def test_full_candidate_rejects_unparseable_release_date(tmp_path):
 
     with pytest.raises(FULL_RELEASE.FullReleaseError, match="not a valid date"):
         FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_rejects_mismatched_citation_quotes(tmp_path):
+    # An unterminated scalar is a YAML error, so Zenodo could not read this
+    # file. A pattern with independently optional quotes accepted it.
+    _write_candidate(tmp_path)
+    (tmp_path / "CITATION.cff").write_text(
+        'cff-version: 1.2.0\nversion: "0.17.0\'\ndate-released: "2026-07-29"\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="not valid YAML"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_rejects_citation_broken_elsewhere_in_the_document(tmp_path):
+    # The version and date lines are both correct here; the file is still
+    # unusable, which pattern matching those two lines could not detect.
+    _write_candidate(tmp_path)
+    (tmp_path / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\n"
+        "version: 0.17.0\n"
+        'date-released: "2026-07-29"\n'
+        "authors: [ {given-names: Yue\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="not valid YAML"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_accepts_an_unquoted_release_date(tmp_path):
+    # PyYAML resolves this to a date object rather than a string.
+    _write_candidate(tmp_path)
+    (tmp_path / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\nversion: 0.17.0\ndate-released: 2026-07-29\n",
+        encoding="utf-8",
+    )
+
+    version, _ = FULL_RELEASE.validate_full_candidate(tmp_path)
+
+    assert version == "v0.17.0"
 
 
 def test_citation_check_reads_top_level_keys_not_cited_works(tmp_path):

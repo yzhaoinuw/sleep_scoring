@@ -30,28 +30,46 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   instruction gap was closed and the enforcement gap was not, which is how the
   drift reached five releases instead of one.
 - This matters more now than it did before: Zenodo is enabled and scrapes
-  `CITATION.cff` when a release is published, so a stale version becomes the
-  permanent citation for that archived record and cannot be fixed in place.
+  `CITATION.cff` when a release is published, so a stale version is what gets
+  published as the record's metadata.
+- Correction, from review: an earlier draft of this entry and of the gate
+  docstrings claimed the published metadata could not be fixed afterwards.
+  That is wrong, and checked against Zenodo's own docs rather than conceded:
+  "Metadata CAN be modified. Files and the persistent identifier CANNOT be
+  modified", and editing metadata does not affect the DOI. The real cost is
+  narrower — the correction is manual, on Zenodo, per record, and editing the
+  repository file later does not propagate to records already published. The
+  2026-07-29 entry below carries the same imprecision; it is left as written
+  rather than rewritten, since it records what that session believed.
 - Added `validate_citation_metadata` to both `full_release.py` and
   `lightweight_release.py`: `version` must equal the app version with `v`
   stripped, and `date-released` must parse and not be in the future. The
   version equality is the load-bearing half, since it forces the file to be
   edited every release; the date check only catches typos.
 - Included the lightweight gate deliberately. Lightweight releases are still
-  tags and Zenodo archives every published release, so a stale citation is
-  just as permanent there. The file is not shipped inside the source-update
-  asset, which carries only `app_src/`; it is the tagged repo state Zenodo
-  reads.
+  tags and Zenodo archives every published release, so a stale citation costs
+  the same manual correction there. The file is not shipped inside the
+  source-update asset, which carries only `app_src/`; it is the tagged repo
+  state Zenodo reads.
 - Duplicated the check across both scripts rather than sharing a module. The
   tests load each script standalone through `spec_from_file_location`, which
   does not put the package directory on `sys.path`, so a sibling import would
   not resolve. `VERSION_RE` and `SETUP_VERSION_RE` are already duplicated for
   the same reason; the docstring records this so it does not read as careless
   copy-paste.
-- Regexes anchor to unindented top-level CFF keys, because the `references:`
-  block contains its own indented `version:` and `date-released:`. Both test
-  fixtures now carry a cited work with different values so a regex that
-  matched the wrong key would fail the happy-path test.
+- The first implementation pattern-matched the two lines. Review showed the
+  quotes were independently optional, so `version: "0.17.0'` — an unterminated
+  YAML scalar Zenodo could not read — matched and passed; verified that the old
+  pattern did extract `0.17.0` from it. Matching two lines also could not see a
+  document broken anywhere else. Now parsed with `yaml.safe_load`, which
+  rejects both classes and removes the top-level-versus-`references:` key
+  ambiguity entirely, since parsing returns the top-level mapping directly.
+  Added malformed-input tests to both gate suites: mismatched quotes, a
+  document broken away from these two keys, and an unquoted `date-released`
+  that PyYAML resolves to a date object rather than a string.
+- `pyyaml` declared in the `dev` extra, not the runtime dependencies, so it
+  stays out of the packaged Windows app. It was already importable in the env
+  as a transitive dependency; the gate should not rely on that silently.
 - Fixing the fixtures exposed a test-integrity problem:
   `test_validate_candidate_rejects_forgotten_setup_version_bump` left
   `CITATION.cff` stale too, and the citation error fires first with a message
@@ -61,7 +79,8 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Verified the real checkout passes its own new gate:
   `python packaging/windows/full_release.py --repo .` prints
   `v0.17.0	5eab40b...`.
-- Verification: 169 passed, 2 skipped (4 new tests), Black clean.
+- Verification: 173 passed, 2 skipped (8 new tests), Black clean,
+  `git diff --check` clean.
 
 ### Full-package-only releases no longer look like failed updates (Claude)
 

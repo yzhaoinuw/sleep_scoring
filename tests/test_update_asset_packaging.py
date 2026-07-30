@@ -489,6 +489,30 @@ def test_validate_candidate_rejects_forgotten_citation_version_bump(tmp_path):
         LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD")
 
 
+def test_validate_candidate_rejects_unparseable_citation(tmp_path):
+    # Mismatched quotes make this an unterminated YAML scalar. The version and
+    # date lines look right to a pattern match, but Zenodo could not read it.
+    _write_candidate_repo(tmp_path)
+    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v0.17.1"\n', encoding="utf-8")
+    (tmp_path / "app_src" / "session.py").write_text("VALUE = 2\n", encoding="utf-8")
+    (tmp_path / "setup.py").write_text(
+        'setup(\n    name="sleep_scoring",\n    version="0.17.1",\n)\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "CITATION.cff").write_text(
+        'cff-version: 1.2.0\nversion: "0.17.1\'\ndate-released: "2026-07-29"\n',
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="not valid YAML",
+    ):
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD")
+
+
 def test_lightweight_release_gate_does_not_repeat_source_tests_in_builder():
     script = LIGHTWEIGHT_SCRIPT_PATH.with_name("release_lightweight.ps1").read_text(
         encoding="utf-8"

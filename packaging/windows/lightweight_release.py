@@ -12,8 +12,10 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path, PurePosixPath
+
+import yaml
 
 
 APP_NAME = "sleep_scoring"
@@ -40,10 +42,6 @@ SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
 
 VERSION_RE = re.compile(r"""VERSION\s*=\s*["']([^"']+)["']""")
 CITATION_FILE = "CITATION.cff"
-# Top-level CFF keys only. Nested keys under `references:` are indented, so
-# anchoring to the start of the line keeps this from matching a cited work.
-CITATION_VERSION_RE = re.compile(r"""(?m)^version:[ \t]*["']?([^"'\s]+)["']?[ \t]*$""")
-CITATION_DATE_RE = re.compile(r"""(?m)^date-released:[ \t]*["']?(\d{4}-\d{2}-\d{2})["']?[ \t]*$""")
 SETUP_VERSION_RE = re.compile(
     r"""(?m)^([ \t]*version[ \t]*=[ \t]*)(["'])([^"']+)(\2)([ \t]*,[ \t]*)$"""
 )
@@ -133,22 +131,39 @@ def read_version_from_ref(repo: Path, ref: str) -> str:
     return read_version_bytes(git_file(repo, ref, VERSION_FILE), source=f"{ref}:{VERSION_FILE}")
 
 
-def _single_citation_match(pattern: re.Pattern[str], text: str, source: str) -> str:
-    matches = pattern.findall(text)
-    if len(matches) != 1:
-        raise LightweightReleaseError(f"{source} must contain exactly one matching value")
-    return matches[0]
+def _citation_release_date(value: object, source: str) -> date:
+    # PyYAML resolves an unquoted ISO date to a date object and a timestamp to
+    # a datetime; a quoted one stays a string. Accept all three spellings.
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise LightweightReleaseError(
+                f"{source} date-released {value!r} is not a valid date"
+            ) from exc
+    raise LightweightReleaseError(f"{source} has no usable date-released")
 
 
 def validate_citation_metadata(citation: bytes, app_version: str, *, source: str) -> None:
-    """Check the archive metadata a release permanently bakes in.
+    """Check the citation metadata a release publishes.
 
-    Zenodo scrapes CITATION.cff when a release is published, so a stale version
-    or date becomes the citation of record for that archived version and cannot
-    be corrected in place afterwards. This applies to lightweight releases as
-    much as full ones: they are still tags, and Zenodo archives every published
-    release. The file is not shipped inside the source-update asset, which only
-    carries `app_src/`; it is the tagged repository state that gets scraped.
+    Zenodo scrapes CITATION.cff when a release is published. A published
+    record's metadata can be edited afterwards without changing its DOI, so a
+    stale version here is recoverable, but only by hand on Zenodo, per record,
+    and fixing the repository file later does not propagate to records already
+    published.
+
+    This applies to lightweight releases as much as full ones: they are still
+    tags, and Zenodo archives every published release. The file is not shipped
+    inside the source-update asset, which only carries `app_src/`; it is the
+    tagged repository state that gets scraped.
+
+    The document is parsed rather than pattern-matched so that a CITATION.cff
+    Zenodo cannot read fails here instead of at publication.
 
     Deliberately duplicated from full_release.py rather than shared. Both
     scripts are loaded standalone by file path, so a sibling import would not
@@ -159,21 +174,26 @@ def validate_citation_metadata(citation: bytes, app_version: str, *, source: str
     except UnicodeDecodeError as exc:
         raise LightweightReleaseError(f"{source} is not UTF-8") from exc
 
-    citation_version = _single_citation_match(CITATION_VERSION_RE, text, source)
-    if citation_version != app_version.removeprefix("v"):
+    try:
+        document = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise LightweightReleaseError(f"{source} is not valid YAML: {exc}") from exc
+    if not isinstance(document, dict):
+        raise LightweightReleaseError(f"{source} must be a YAML mapping")
+
+    citation_version = document.get("version")
+    if not isinstance(citation_version, (str, int, float)):
+        raise LightweightReleaseError(f"{source} has no usable version")
+    if str(citation_version) != app_version.removeprefix("v"):
         raise LightweightReleaseError(
-            f"{source} version {citation_version!r} does not match {app_version!r}"
+            f"{source} version {str(citation_version)!r} does not match {app_version!r}"
         )
 
-    released = _single_citation_match(CITATION_DATE_RE, text, source)
-    try:
-        released_date = date.fromisoformat(released)
-    except ValueError as exc:
-        raise LightweightReleaseError(
-            f"{source} date-released {released!r} is not a valid date"
-        ) from exc
+    released_date = _citation_release_date(document.get("date-released"), source)
     if released_date > date.today():
-        raise LightweightReleaseError(f"{source} date-released {released} is in the future")
+        raise LightweightReleaseError(
+            f"{source} date-released {released_date.isoformat()} is in the future"
+        )
 
 
 def version_key(version: str) -> tuple[int, ...]:
