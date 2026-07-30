@@ -20,6 +20,37 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-30
 
+### Full-package-only releases no longer look like failed updates (Claude)
+
+- Pre-release review of the updater found a redirect-discovery gap. Redirect
+  mode composes the asset filename from the release tag instead of reading a
+  release asset list, so it always believes an asset exists. A newer release
+  without a `sleep_scoring_app_update_<tag>.zip` therefore announced
+  "updating from version X to version Y..." and then failed with HTTP 404,
+  once per 24-hour check window, on a `console=True` window the user sees.
+- This was reproduced against the live repo, not just in tests: v0.17.0 is
+  full-package only, so a simulated 0.16.8 install reported
+  `failed / could not download update asset: HTTP 404`. It is the state every
+  installed app would have entered after the next full release.
+- Fixed upstream in `desktop_app_source_updater` on branch
+  `fix/redirect-missing-asset` (commit `7913f3d`, not yet pushed): a composed
+  asset URL is probed with a no-redirect HEAD before the update-available
+  callback fires, and a definitive 404/410 reports `up-to-date` with
+  "no matching source update asset". Also added `failure_retry_seconds` so a
+  failed or offline check retries in an hour instead of a full day.
+- App side: `format_startup_update_console_message` now recognizes the case
+  where the check found a newer release it cannot install and names it, rather
+  than saying "no update available". It compares versions instead of matching
+  the updater's message text, because this launcher ships frozen and cannot be
+  corrected by a source update. README documents the new terminal message.
+- Verification: 26 launcher tests passed; upstream 39 tests passed (34 before),
+  `compileall` and the builder `--help` gate passed.
+- Still open on this branch: bump the `requirements.txt` updater pin to the
+  upstream fix. The full-release gate requires a 40-character commit SHA
+  (`packaging/windows/full_release.py`), so the upstream branch has to be
+  pushed and merged before the pin can move. Until then a packaged build would
+  still carry the old behavior.
+
 ### Public GitHub Windows installation (GPT-5)
 
 - Replaced the private SharePoint/OneDrive package path in `README.md` with the

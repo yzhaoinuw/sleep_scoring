@@ -75,6 +75,11 @@ is available, the terminal reports both the installed and target versions. If
 the check is offline, fails, finds an incompatible update, or detects local
 edits to files it would replace, the app still opens normally.
 
+When the newest release is a full Windows package rather than a code-only
+update, the terminal says so and names the release instead of reporting an
+update it cannot install. Follow the installation steps above to move to that
+release; the app keeps opening normally in the meantime.
+
 Dependency, model, launcher, or packaged-runtime changes require a new full
 Windows release. When one is announced, repeat the installation steps above
 with the newest GitHub Release containing
