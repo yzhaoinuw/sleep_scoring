@@ -21,7 +21,7 @@ generating automatic sleep scores.
 
 | You are... | Recommended installation | What you need |
 | --- | --- | --- |
-| A Windows user who wants to run the app without Git, Python, or Conda | [Packaged Windows app](#packaged-windows-app) | Access to the private distribution folder; request access from Yue Zhao if needed |
+| A Windows user who wants to run the app without Git, Python, or Conda | [Packaged Windows app](#packaged-windows-app) | A web browser; the package is public on GitHub Releases |
 | A Windows user who wants to inspect or modify the code | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda |
 | A macOS user | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda; no packaged macOS build is currently provided |
 | A contributor | [Run from source](#run-from-source-windows-or-macos) | Git, Miniconda, and the checks in [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -32,18 +32,21 @@ The source version has been tested on macOS Tahoe.
 
 ### Packaged Windows App
 
-1. Open the private
-   [sleep_scoring_project distribution folder](https://uofr-my.sharepoint.com/:f:/g/personal/yzhao38_ur_rochester_edu/ErxPdMtspCVDuXvfwtKK4rIBnIWP8SF5BkX-J2yD4MY11g).
-   If you cannot open it, request access from Yue Zhao, the repository
-   maintainer.
-2. Download `sleep_scoring_app_vX.Y-windows.zip`, where `X.Y` is the current
-   major/minor release line.
-3. Extract the zip and move the extracted app folder onto your computer.
-4. Double-click `unblock_app.cmd`. It removes Windows download blocking from
+1. Open the public [GitHub Releases](https://github.com/yzhaoinuw/sleep_scoring/releases)
+   page.
+2. Starting with the newest release, find the newest one whose **Assets**
+   include `sleep_scoring_app_vX.Y-windows.zip`. This is a full Windows
+   release. A newer code-only release may not include the full package.
+3. Download `sleep_scoring_app_vX.Y-windows.zip`. Do not download GitHub's
+   automatically generated **Source code** archives; they are not the packaged
+   app.
+4. Extract the zip and move the extracted app folder onto your computer.
+5. Double-click `unblock_app.cmd`. It removes Windows download blocking from
    the app files and then starts `run_desktop_app.exe`.
 
-After the first launch, you can start the app with either `unblock_app.cmd` or
-`run_desktop_app.exe`.
+The installed full release automatically checks for later compatible app
+updates, so you do not need to download or apply code-only update packages
+yourself.
 
 <details>
 <summary>Troubleshoot the extracted folder layout</summary>
@@ -62,7 +65,7 @@ it and remove the empty outer wrapper.
 
 </details>
 
-#### Packaged App Updates
+#### Automatic Packaged-App Updates
 
 The Windows app checks the latest GitHub Release at most once every 24 hours
 and may update compatible `app_src/` files before the window opens. It compares
@@ -74,7 +77,10 @@ the check is offline, fails, finds an incompatible update, or detects local
 edits to files it would replace, the app still opens normally.
 
 Dependency, model, launcher, or packaged-runtime changes require a new full
-Windows zip from the private distribution folder.
+Windows release. When one is announced, repeat the installation steps above
+with the newest GitHub Release containing
+`sleep_scoring_app_vX.Y-windows.zip`; later compatible code-only releases will
+again update automatically from that base.
 
 ### Run From Source (Windows Or macOS)
 
@@ -116,9 +122,9 @@ code, and the checkpoints this app loads were trained separately with
 results produced by sDREAMER, cite the original paper as well as this app; see
 [Citing sDREAMER](#citing-sdreamer).
 
-- **Packaged Windows app:** download `torch.zip` from the private distribution
-  folder, extract it, and copy its contents directly into the app's
-  `_internal/` folder. After copying, `_internal/torch/` should exist.
+- **Packaged Windows app:** download `torch.zip` from the same GitHub Release
+  as the full Windows app, extract it, and copy its contents directly into the
+  app's `_internal/` folder. After copying, `_internal/torch/` should exist.
 - **Source installation:** install the PyTorch build recommended for your
   computer from [pytorch.org](https://pytorch.org/get-started/locally/), then
   run `pip install timm==1.0.22 einops==0.8.1`. The sDREAMER checkpoint files
@@ -130,8 +136,8 @@ app.
 
 ## Before Your First Session
 
-- For the packaged app, run it from a folder on your computer rather than
-  directly from OneDrive, a network drive, or the downloaded zip.
+- For the packaged app, run it from a local folder on your computer rather
+  than a cloud-synced folder, network drive, or the downloaded zip.
 - You can open up to three app windows on one computer, but the same `.mat`
   file cannot be open in two windows at once.
 - If the graph feels slow, close unnecessary browser tabs and other

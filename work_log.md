@@ -18,6 +18,27 @@ two most recent dated entries; search older entries with targeted terms using
 the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
 by its date range. See `AGENTS.md` for the full rotation policy.
 
+## 2026-07-30
+
+### Public GitHub Windows installation (GPT-5)
+
+- Replaced the private SharePoint/OneDrive package path in `README.md` with the
+  public GitHub Releases page. Windows users are now told to find the newest
+  release containing `sleep_scoring_app_vX.Y-windows.zip`, avoid GitHub's
+  source-code archives, and install that full Windows base.
+- Clarified that compatible code-only releases update automatically after the
+  full package is installed, while dependency, model, launcher, or packaged
+  runtime changes require downloading a newer full Windows release.
+- Pointed the optional packaged sDREAMER setup to `torch.zip` on the same
+  GitHub Release and replaced the OneDrive-specific runtime warning with a
+  general warning against cloud-synced and network folders.
+- Audited the README for duplicate installation/update instructions. It retains
+  one packaged-install section and one automatic-update section; source
+  installation updates and optional sDREAMER setup remain separate because
+  they serve different workflows. Internal anchors, relative links, balanced
+  details blocks, stale distribution references, and `git diff --check` all
+  passed.
+
 ## 2026-07-29
 
 ### Citation metadata and sDREAMER attribution (Claude)
