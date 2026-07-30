@@ -2,6 +2,7 @@ param(
     [string]$BuildEnv = "sleep_scoring_dash3.0_dist",
     [string]$TestEnv = "sleep_scoring_dash3.0",
     [string]$CondaExe = "",
+    [int]$PackagedUpdateCheckTimeoutSeconds = 30,
     [switch]$SkipTests,
     [switch]$AllowDirty
 )
@@ -248,8 +249,40 @@ if (Test-Path -LiteralPath $VideoDir) {
 New-Item -ItemType Directory -Force -Path $VideoDir | Out-Null
 
 & (Join-Path $ScriptDir "smoke_check_release.ps1") -Path $DistPath -Kind Full
-Invoke-Native -FilePath (Join-Path $DistPath "run_desktop_app.exe") -CommandArgs @("--smoke")
-Invoke-Native -FilePath (Join-Path $DistPath "run_desktop_app.exe") -CommandArgs @("--check-update")
+$PackagedLauncher = Join-Path $DistPath "run_desktop_app.exe"
+Invoke-Native -FilePath $PackagedLauncher -CommandArgs @("--smoke")
+$UpdateCheckStateDir = Join-Path (
+    $ArtifactDir
+) ("packaged_update_check_" + [guid]::NewGuid().ToString("N"))
+$OriginalUpdateStateFile = [Environment]::GetEnvironmentVariable(
+    "SLEEP_SCORING_UPDATE_STATE_FILE",
+    "Process"
+)
+try {
+    New-Item -ItemType Directory -Force -Path $UpdateCheckStateDir | Out-Null
+    [Environment]::SetEnvironmentVariable(
+        "SLEEP_SCORING_UPDATE_STATE_FILE",
+        (Join-Path $UpdateCheckStateDir "update-check.json"),
+        "Process"
+    )
+    Invoke-Conda -EnvName $TestEnv -CommandArgs @(
+        "python",
+        "-c",
+        "import subprocess, sys; subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))",
+        $PackagedUpdateCheckTimeoutSeconds.ToString(),
+        $PackagedLauncher,
+        "--check-update"
+    )
+} finally {
+    [Environment]::SetEnvironmentVariable(
+        "SLEEP_SCORING_UPDATE_STATE_FILE",
+        $OriginalUpdateStateFile,
+        "Process"
+    )
+    if (Test-Path -LiteralPath $UpdateCheckStateDir) {
+        Remove-Item -LiteralPath $UpdateCheckStateDir -Recurse -Force
+    }
+}
 
 if (Test-Path -LiteralPath $ZipPath) {
     Remove-Item -LiteralPath $ZipPath -Force

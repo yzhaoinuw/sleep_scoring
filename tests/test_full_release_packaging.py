@@ -199,9 +199,15 @@ def test_full_release_gate_does_not_repeat_source_tests_in_builder():
 def test_full_package_builder_moves_exact_version_stage_to_release_line():
     source = FULL_PACKAGE_SCRIPT.read_text(encoding="utf-8")
 
+    assert "[int]$PackagedUpdateCheckTimeoutSeconds = 30" in source
     assert '$PyInstallerDistName = "sleep_scoring_app_$Version"' in source
     assert '$DistName = "sleep_scoring_app_$ReleaseLine"' in source
     assert '$ZipPath = Join-Path $ArtifactDir "$($DistName)_full.zip"' in source
+    assert "subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))" in source
+    assert "$PackagedUpdateCheckTimeoutSeconds.ToString()" in source
+    assert '"SLEEP_SCORING_UPDATE_STATE_FILE"' in source
+    assert '"packaged_update_check_" + [guid]::NewGuid()' in source
+    assert "Remove-Item -LiteralPath $UpdateCheckStateDir -Recurse -Force" in source
     assert "Move-Item -LiteralPath $PyInstallerDistPath -Destination $DistPath" in source
     assert source.index("Move-Item -LiteralPath $PyInstallerDistPath") < source.index(
         '$BundledTorchDir = Join-Path $DistPath "_internal\\torch"'

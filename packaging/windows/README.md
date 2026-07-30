@@ -62,10 +62,13 @@ expected files, including the double-click starter. It runs
 `run_desktop_app.exe --smoke` to verify that the built launcher can import the
 side-by-side `app_src/` folder, verifies that the packaged config exposes
 `STAGE_COLORS`, then runs `run_desktop_app.exe --check-update` in forced-check
-mode. A discovery or updater failure stops the package build instead of
-shipping a broken automatic update check. The build also refuses to run when
-the updater installed in the PyInstaller environment does not match the exact
-commit pinned in `requirements.txt`.
+mode with an isolated temporary state file and a 30-second process deadline.
+The isolated state keeps build sandboxes from redirecting or denying the
+packaged app's normal `%LOCALAPPDATA%` write. A discovery failure, updater
+failure, or hung packaged check stops the package build instead of shipping a
+broken automatic update check. The build also refuses to run when the updater
+installed in the PyInstaller environment does not match the exact commit
+pinned in `requirements.txt`.
 The packaged `app_src/` files are written directly from the release commit's
 Git blobs, without checkout or archive transformations, so their bytes match
 the automatic-update manifests on Windows as well as source runs.

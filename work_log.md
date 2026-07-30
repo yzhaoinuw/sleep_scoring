@@ -43,6 +43,14 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   the adapted `models/sdreamer/` code may be redistributed under MIT. The NIH
   grant number is already present in `NOTICE`; `next_steps.md` now distinguishes
   that completed item from the remaining confirmation.
+- The first local full-package attempt completed all 175 Python tests, Black,
+  JavaScript tests, source smoke checks, PyInstaller collection, and packaged
+  smoke validation, then remained indefinitely in the live packaged
+  `--check-update` probe. Focused reproduction showed that the packaged check
+  completed normally with a workspace-local state file but stalled when this
+  sandboxed run tried to use `%LOCALAPPDATA%`. The builder now gives the probe
+  an isolated temporary state directory plus a hard 30-second deadline, so
+  sandbox write restrictions or a transient process hang fail promptly.
 
 ### Release gates now enforce the CITATION.cff bullet (Claude)
 
