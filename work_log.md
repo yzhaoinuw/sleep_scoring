@@ -67,9 +67,19 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   Added malformed-input tests to both gate suites: mismatched quotes, a
   document broken away from these two keys, and an unquoted `date-released`
   that PyYAML resolves to a date object rather than a string.
-- `pyyaml` declared in the `dev` extra, not the runtime dependencies, so it
-  stays out of the packaged Windows app. It was already importable in the env
-  as a transitive dependency; the gate should not rely on that silently.
+- `pyyaml` declared in the `dev` and `test` extras, not the runtime
+  dependencies, so it stays out of the packaged Windows app. It was already
+  importable in the env as a transitive dependency; the gate should not rely on
+  that silently.
+- Putting it in `dev` alone turned CI red and the local suite stayed green.
+  `.github/workflows/ci.yml` installs `.[dev]` for formatting and `.[test]` for
+  pytest in separate jobs, while the conda env installs `-e .[dev,test]`
+  together, so the local run could not see the missing test-extra dependency.
+  The packaging tests import the release gates, which now import `yaml`, so the
+  `test` job failed at collection. Verified the fix the way CI does rather than
+  by re-running the local suite: a clean venv with only `-e .[test]` installed,
+  where `yaml` imports and all 173 tests pass. Worth remembering that a green
+  local suite proves nothing about extras placement in this repo.
 - Fixing the fixtures exposed a test-integrity problem:
   `test_validate_candidate_rejects_forgotten_setup_version_bump` left
   `CITATION.cff` stale too, and the citation error fires first with a message
