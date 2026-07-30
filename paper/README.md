@@ -21,10 +21,15 @@ this draft is not.
 - The draft body is written and scoped to the U19 BrainFlowZZZ program.
 - sDREAMER is framed throughout as an externally developed upstream model the
   app integrates, not a contribution of this paper.
-- Every bibliography entry with a DOI was verified against Crossref on
-  2026-07-29. Three entries had defects and were corrected: the sDREAMER
-  placeholder, the somnotate entry (wrong key, wrong year, missing metadata),
-  and the AccuSleep entry (the title did not match the DOI).
+- Every bibliography entry carrying a DOI was checked against Crossref on
+  2026-07-29 on these fields: title, venue, volume, pages, year, DOI, and
+  author names. `paszke2019pytorch` has no registered DOI and is unverified.
+- Five defects were found and corrected: the sDREAMER placeholder; the
+  somnotate entry (wrong key, wrong year, missing metadata); the AccuSleep
+  title, which did not match its DOI; and two wrong given names, SPINDLE's
+  Benjamin Gallusser and Visbrain's Aymeric Guillot.
+- Two given names intentionally differ from Crossref, which lowercases them.
+  See the header comment in `paper.bib`.
 
 ## What is still open
 
