@@ -35,9 +35,9 @@ The source version has been tested on macOS Tahoe.
 1. Open the public [GitHub Releases](https://github.com/yzhaoinuw/sleep_scoring/releases)
    page.
 2. Starting with the newest release, find the newest one whose **Assets**
-   include `sleep_scoring_app_vX.Y-windows.zip`. This is a full Windows
+   include `sleep_scoring_app_vX.Y_full.zip`. This is a full Windows
    release. A newer code-only release may not include the full package.
-3. Download `sleep_scoring_app_vX.Y-windows.zip`. Do not download GitHub's
+3. Download `sleep_scoring_app_vX.Y_full.zip`. Do not download GitHub's
    automatically generated **Source code** archives; they are not the packaged
    app.
 4. Extract the zip and move the extracted app folder onto your computer.
@@ -79,7 +79,7 @@ edits to files it would replace, the app still opens normally.
 Dependency, model, launcher, or packaged-runtime changes require a new full
 Windows release. When one is announced, repeat the installation steps above
 with the newest GitHub Release containing
-`sleep_scoring_app_vX.Y-windows.zip`; later compatible code-only releases will
+`sleep_scoring_app_vX.Y_full.zip`; later compatible code-only releases will
 again update automatically from that base.
 
 ### Run From Source (Windows Or macOS)

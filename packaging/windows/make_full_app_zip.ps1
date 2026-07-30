@@ -91,7 +91,7 @@ $DistName = "sleep_scoring_app_$ReleaseLine"
 $DistPath = Join-Path $Repo "dist\$DistName"
 $PyInstallerDistName = "sleep_scoring_app_$Version"
 $PyInstallerDistPath = Join-Path $Repo "dist\$PyInstallerDistName"
-$ZipPath = Join-Path $ArtifactDir "$DistName-windows.zip"
+$ZipPath = Join-Path $ArtifactDir "$($DistName)_full.zip"
 $TorchVersion = Invoke-CondaCapture -EnvName $BuildEnv -CommandArgs @(
     "python",
     "-c",

@@ -40,20 +40,22 @@ environment is `sleep_scoring_dash3.0`.
 Output goes to `release_artifacts/`:
 
 ```text
-sleep_scoring_app_vX.Y-windows.zip
-sleep_scoring_app_vX.Y-windows.zip.manifest.json
-sleep_scoring_app_vX.Y-windows.zip.sha256.txt
-sleep_scoring_app_vX.Y-windows.zip.build_env_requirements.txt
+sleep_scoring_app_vX.Y_full.zip
+sleep_scoring_app_vX.Y_full.zip.manifest.json
+sleep_scoring_app_vX.Y_full.zip.sha256.txt
+sleep_scoring_app_vX.Y_full.zip.build_env_requirements.txt
 torch.zip
 torch.zip.manifest.json
 torch.zip.sha256.txt
 ```
 
-The full ZIP and its extracted top-level folder use only the major/minor
-release line, for example `sleep_scoring_app_v0.17`. The exact patch version,
-such as `v0.17.0`, remains authoritative in the manifest, startup terminal
-message, and app window title. This prevents an installation folder name from
-becoming a stale version report after source-only updates.
+The `_full.zip` suffix distinguishes the installable package from automatic
+source-update assets. The version token in the full ZIP and its extracted
+top-level folder use only the major/minor release line, for example
+`sleep_scoring_app_v0.17_full.zip` and `sleep_scoring_app_v0.17`. The exact
+patch version, such as `v0.17.0`, remains authoritative in the manifest,
+startup terminal message, and app window title. This prevents an installation
+folder name from becoming a stale version report after source-only updates.
 
 Before creating the zip, the script checks that the release folder contains the
 expected files, including the double-click starter. It runs

@@ -22,6 +22,10 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 - Let the builder use schema 1 when `app_src/config.py` is unchanged and schema
   2 when it changes. Keep the approved editable-assignment allowlist aligned
   with the documented user-facing settings.
+- Keep v0.17.x automatic assets on the frozen
+  `sleep_scoring_app_update_vX.Y.Z.zip` convention. Before the next full base,
+  add configurable suffix-style discovery to the shared updater, then switch
+  later automatic assets to `sleep_scoring_app_vX.Y.Z_update.zip`.
 - Make the normalized full-path MAT-to-video association and collision-proof
   generated-clip identity the next lightweight patch, with regression tests
   for identical MAT and video basenames in different folders.
@@ -33,8 +37,7 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 Status: planning only; keep separate from the v0.17 updater/package work.
 
 - Define a small annual-report metric set, initially GitHub release-asset
-  downloads, private full-package downloads where SharePoint exposes them,
-  number of recordings scored, and total recording hours scored.
+  downloads, number of recordings scored, and total recording hours scored.
 - Decide whether app-use totals should remain local for a user-exported impact
   summary or be sent through an explicit opt-in reporting mechanism.
 - Collect only aggregate counts. Do not collect recording names, paths, signal

@@ -94,6 +94,7 @@ def test_full_release_gate_does_not_repeat_source_tests_in_builder():
     assert "SkipTests = $true" in source
     assert "AllowDirty = $true" in source
     assert '"full_release_" + [guid]::NewGuid()' in source
+    assert "release_artifacts\\sleep_scoring_app_$($ReleaseLine)_full.zip" in source
 
 
 def test_full_package_builder_moves_exact_version_stage_to_release_line():
@@ -101,6 +102,7 @@ def test_full_package_builder_moves_exact_version_stage_to_release_line():
 
     assert '$PyInstallerDistName = "sleep_scoring_app_$Version"' in source
     assert '$DistName = "sleep_scoring_app_$ReleaseLine"' in source
+    assert '$ZipPath = Join-Path $ArtifactDir "$($DistName)_full.zip"' in source
     assert "Move-Item -LiteralPath $PyInstallerDistPath -Destination $DistPath" in source
     assert source.index("Move-Item -LiteralPath $PyInstallerDistPath") < source.index(
         '$BundledTorchDir = Join-Path $DistPath "_internal\\torch"'

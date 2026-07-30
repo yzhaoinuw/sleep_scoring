@@ -122,7 +122,7 @@ $ReleaseLine = Invoke-CondaCapture -EnvName $TestEnv -CommandArgs @(
     $PackageNamingHelper,
     $Version
 )
-$ExpectedZip = Join-Path $Repo "release_artifacts\sleep_scoring_app_$ReleaseLine-windows.zip"
+$ExpectedZip = Join-Path $Repo "release_artifacts\sleep_scoring_app_$($ReleaseLine)_full.zip"
 
 Write-Host "Full-release candidate: $Version"
 Write-Host "Full-package release line: $ReleaseLine"

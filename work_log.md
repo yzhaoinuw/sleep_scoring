@@ -24,7 +24,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 - Replaced the private SharePoint/OneDrive package path in `README.md` with the
   public GitHub Releases page. Windows users are now told to find the newest
-  release containing `sleep_scoring_app_vX.Y-windows.zip`, avoid GitHub's
+  release containing `sleep_scoring_app_vX.Y_full.zip`, avoid GitHub's
   source-code archives, and install that full Windows base.
 - Clarified that compatible code-only releases update automatically after the
   full package is installed, while dependency, model, launcher, or packaged
@@ -38,6 +38,30 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   they serve different workflows. Internal anchors, relative links, balanced
   details blocks, stale distribution references, and `git diff --check` all
   passed.
+
+### Explicit full-package asset naming (GPT-5)
+
+- Adopted `sleep_scoring_app_vX.Y_full.zip` as the full-package convention.
+  The version remains immediately after the app name, `_full` makes the
+  installable asset obvious, and the extracted folder remains
+  `sleep_scoring_app_vX.Y` so later patch updates do not make its name stale.
+- Updated the full builder, full-release gate, frozen v0.17.0 fixture, tests,
+  public README, packaging documentation, and v0.17.0 change log. The
+  `windows` filename suffix is no longer used.
+- Preserved `sleep_scoring_app_update_vX.Y.Z.zip` for v0.17.x because the
+  already distributed updater constructs that exact prefix-style name. Added
+  a next-full-base task to extend the shared updater with configurable
+  suffix-style discovery before adopting
+  `sleep_scoring_app_vX.Y.Z_update.zip`.
+- Renamed the retained and published v0.17.0 archive to
+  `sleep_scoring_app_v0.17_full.zip` without rebuilding it. Its SHA-256 remains
+  `D7F139F1390FFF2F036F6758043F711B11F8920015D489990649190B4268D461`.
+  Corrected manifest and checksum sidecars were uploaded, the stale old-name
+  sidecars were removed, and the GitHub Release notes now use the new name.
+- Verification passed: repository-pinned Black, 29 focused packaging tests,
+  all three edited PowerShell scripts parsed, local archive/manifest/checksum
+  consistency passed, GitHub reported seven expected custom assets with no
+  old-name copies, and every new remote digest matched its local file.
 
 ## 2026-07-29
 

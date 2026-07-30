@@ -254,7 +254,7 @@ if ($UpdaterRepo) {
 & $BuildScript @BuildParameters
 
 if (-not $SkipInstalledAppTests) {
-    $V017Package = Join-Path $FixtureArtifactDir "sleep_scoring_app_v0.17-windows.zip"
+    $V017Package = Join-Path $FixtureArtifactDir "sleep_scoring_app_v0.17_full.zip"
     if (-not (Test-Path -LiteralPath $V017Package)) {
         throw (
             "Missing installed-app fixture artifact: $V017Package. " +
