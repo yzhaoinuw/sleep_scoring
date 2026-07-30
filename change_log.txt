@@ -1,3 +1,9 @@
+#### v0.17.1
+1. Fixed startup update checks so releases that require a new full package no longer appear as failed automatic updates, and added a direct link to the GitHub Releases page when a manual package download is needed.
+2. Moved the public Windows installation guidance to GitHub Releases and adopted the explicit `sleep_scoring_app_v0.17_full.zip` package name.
+3. Added formal citation metadata, the NIH BRAIN Initiative funding acknowledgment, and clearer provenance and citation guidance for the adapted sDREAMER model.
+4. Existing v0.17.0 installations should download this full Windows package once because the bundled launcher and updater changed.
+
 #### v0.17.0
 1. Reworked automatic update checks to avoid GitHub API rate limits, check at most once per day during normal startup, and compare versions before downloading an update.
 2. Added clearer startup update messages that show the exact installed version and identify both the installed and target versions when an update is available.

@@ -524,6 +524,11 @@ def test_lightweight_release_gate_does_not_repeat_source_tests_in_builder():
     assert '"lightweight_release_" + [guid]::NewGuid()' in script
     assert '$MinimumCompatibleVersion = "v0.17.0"' in script
     assert "sleep_scoring_app_v0.17_full.zip" in script
+    assert "v0.17.0-windows.json" in script
+    assert "v0.17.1-windows.json" in script
+    assert 'Join-Path $FixtureArtifactDir "v0.17.0"' in script
+    assert 'Join-Path $FixtureArtifactDir "v0.17.1"' in script
+    assert "foreach ($Fixture in $InstalledPackageFixtures)" in script
     assert "v0.16.6-windows.json" not in script
 
 

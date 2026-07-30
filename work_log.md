@@ -20,6 +20,30 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-30
 
+### v0.17.1 full-release preparation (GPT-5)
+
+- Merged reviewed PR #14 into `dev` as `101ad76951a06c5bc9574f9d47c5eda1f66004e9`;
+  local `dev`, `origin/dev`, and remote `dev` were verified at that commit.
+- Chose v0.17.1 rather than rewriting the already-published v0.17.0 tag and
+  release. The v0.17.0 package has already been downloaded, and the updater
+  deliberately treats equal installed and target versions as current, so two
+  different packages called v0.17.0 would be ambiguous and undiscoverable.
+- This is a full release because `run_desktop_app.py` and the packaged updater
+  pin in `requirements.txt` changed after v0.17.0. Those files are frozen
+  outside `app_src/` and cannot be delivered by a lightweight source update.
+- Bumped the app, package, and citation metadata to v0.17.1 with release date
+  2026-07-30. Added user-facing notes telling v0.17.0 users to download the
+  full package once.
+- Extended the future lightweight-release fixture policy to retain both
+  v0.17.0 and v0.17.1 full packages and compact installed baselines. The
+  stable `sleep_scoring_app_v0.17_full.zip` filename is reused across patch
+  releases, so the retained packages now live in version-specific fixture
+  folders instead of overwriting one another.
+- Publication remains gated on confirmation from the PI and UR Ventures that
+  the adapted `models/sdreamer/` code may be redistributed under MIT. The NIH
+  grant number is already present in `NOTICE`; `next_steps.md` now distinguishes
+  that completed item from the remaining confirmation.
+
 ### Release gates now enforce the CITATION.cff bullet (Claude)
 
 - The 2026-07-29 session added `CITATION.cff` to the AGENTS.md version-metadata

@@ -7,18 +7,18 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 ## Currently Hot
 
 - Keep the full-path video-association fix for a later app-source-only update
-  based on the published v0.17.0 package.
+  based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
 
 ## Lightweight Source Releases
 
-- Use v0.17.0 as the current full Windows base. For later compatible
+- Use v0.17.1 as the current full Windows base. For later compatible
   `app_src`-only changes, tag the tested commit and publish only the automatic
   source-update ZIP, its SHA-256 file, and release notes.
 - Use `packaging/windows/release_lightweight.ps1` as the standard candidate
-  gate. Keep the tracked v0.17.0 installed baseline and retained full-package
-  ZIP available for its frozen-app fixture.
+  gate. Keep the tracked v0.17.0 and v0.17.1 installed baselines and retained
+  full-package ZIPs available for their frozen-app fixtures.
 - Let the builder use schema 1 when `app_src/config.py` is unchanged and schema
   2 when it changes. Keep the approved editable-assignment allowlist aligned
   with the documented user-facing settings.
@@ -62,15 +62,14 @@ Status: planning only; keep separate from the v0.17 updater/package work.
 
 ### Zenodo Archive DOI (current priority)
 
-`CITATION.cff` is ready: it matches the shipped version, carries an abstract,
-and cites the upstream sDREAMER model. Remaining steps, in order:
+`CITATION.cff` is ready for v0.17.1: it carries an abstract and cites the
+upstream sDREAMER model. Remaining steps, in order:
 
 - Confirm with the PI and UR Ventures that the adapted `models/sdreamer/` code
-  may be redistributed under MIT, and fill the grant-number TODO in `NOTICE`.
-  See that file for the specific assertion to confirm.
-- Enable `yzhaoinuw/sleep_scoring` on zenodo.org via the GitHub integration.
-- Cut a release *after* enabling it. Zenodo only archives releases published
-  once the webhook exists, so v0.17.0 will not be picked up retroactively.
+  may be redistributed under MIT. `NOTICE` now carries the confirmed NIH grant
+  number; its redistribution statement is the remaining assertion to confirm.
+- Publish the prepared v0.17.1 full release now that the repository is enabled
+  in Zenodo, then verify that Zenodo creates the expected version record.
 - Put the resulting concept DOI (not the version DOI) in the README badge and
   in `CITATION.cff`.
 

@@ -116,9 +116,16 @@ the large package ZIPs just to align line-ending variants.
 
 When a future full Windows base is introduced, create its compact baseline with
 `lightweight_release.py export-baseline`, review the generated JSON, and update
-the fixture policy in `release_lightweight.ps1` in the same change. Use
-`-FixtureArtifactDir` when retained fixture ZIPs live somewhere other than
-`release_artifacts/`.
+the fixture policy in `release_lightweight.ps1` in the same change. Retain each
+full-package fixture under a version-specific folder, for example:
+
+```text
+release_artifacts/fixtures/v0.17.0/sleep_scoring_app_v0.17_full.zip
+release_artifacts/fixtures/v0.17.1/sleep_scoring_app_v0.17_full.zip
+```
+
+Use `-FixtureArtifactDir` when the version-specific fixture folders live
+somewhere other than `release_artifacts/fixtures/`.
 
 The command allows `setup.py` only when its version assignment is the sole
 change and it matches `app_src/__init__.py`. It refuses dependency, model,

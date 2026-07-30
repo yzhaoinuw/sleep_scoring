@@ -26,7 +26,7 @@ if (-not $ArtifactDir) {
 }
 $ArtifactDir = [System.IO.Path]::GetFullPath($ArtifactDir)
 if (-not $FixtureArtifactDir) {
-    $FixtureArtifactDir = Join-Path $Repo "release_artifacts"
+    $FixtureArtifactDir = Join-Path $Repo "release_artifacts\fixtures"
 }
 $FixtureArtifactDir = [System.IO.Path]::GetFullPath($FixtureArtifactDir)
 
@@ -229,7 +229,8 @@ if (-not $SkipQualityChecks) {
 }
 
 $InstalledBaselines = @(
-    (Join-Path $BaselineDir "v0.17.0-windows.json")
+    (Join-Path $BaselineDir "v0.17.0-windows.json"),
+    (Join-Path $BaselineDir "v0.17.1-windows.json")
 )
 foreach ($Baseline in $InstalledBaselines) {
     if (-not (Test-Path -LiteralPath $Baseline)) {
@@ -254,27 +255,43 @@ if ($UpdaterRepo) {
 & $BuildScript @BuildParameters
 
 if (-not $SkipInstalledAppTests) {
-    $V017Package = Join-Path $FixtureArtifactDir "sleep_scoring_app_v0.17_full.zip"
-    if (-not (Test-Path -LiteralPath $V017Package)) {
-        throw (
-            "Missing installed-app fixture artifact: $V017Package. " +
-            "Restore the retained release artifact or use -SkipInstalledAppTests " +
-            "for packaging-script development only."
+    $InstalledPackageFixtures = @(
+        [pscustomobject]@{
+            Version = "v0.17.0"
+            PackageZip = Join-Path (
+                Join-Path $FixtureArtifactDir "v0.17.0"
+            ) "sleep_scoring_app_v0.17_full.zip"
+        },
+        [pscustomobject]@{
+            Version = "v0.17.1"
+            PackageZip = Join-Path (
+                Join-Path $FixtureArtifactDir "v0.17.1"
+            ) "sleep_scoring_app_v0.17_full.zip"
+        }
+    )
+
+    foreach ($Fixture in $InstalledPackageFixtures) {
+        if (-not (Test-Path -LiteralPath $Fixture.PackageZip)) {
+            throw (
+                "Missing installed-app fixture artifact: $($Fixture.PackageZip). " +
+                "Restore the retained release artifact or use -SkipInstalledAppTests " +
+                "for packaging-script development only."
+            )
+        }
+
+        Write-Host "Testing fresh $($Fixture.Version) full-package fixture with customized config"
+        Invoke-Conda -CommandArgs @(
+            "python",
+            $ReleaseHelper,
+            "test-installed-update",
+            "--package-zip",
+            $Fixture.PackageZip,
+            "--expected-initial-version",
+            $Fixture.Version,
+            "--update-zip",
+            $OutputZip
         )
     }
-
-    Write-Host "Testing fresh v0.17.0 full-package fixture with customized config"
-    Invoke-Conda -CommandArgs @(
-        "python",
-        $ReleaseHelper,
-        "test-installed-update",
-        "--package-zip",
-        $V017Package,
-        "--expected-initial-version",
-        "v0.17.0",
-        "--update-zip",
-        $OutputZip
-    )
 }
 
 $Hash = Get-FileHash -LiteralPath $OutputZip -Algorithm SHA256
