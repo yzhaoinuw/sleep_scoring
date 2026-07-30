@@ -160,11 +160,43 @@ def run_startup_update_if_enabled(force_check=False):
     return result.status != "failed"
 
 
+def get_version_sort_key(version):
+    return tuple(int(part) for part in re.findall(r"\d+", version)) or (0,)
+
+
+def found_release_needing_full_package(result):
+    """True when the check found a newer release it cannot install itself.
+
+    A release that ships no code-only update asset is a normal `up-to-date`
+    outcome: full packages, and any later change to the update asset naming
+    convention, look the same to an installed app. Reporting "no update
+    available" would be wrong, because a newer release does exist and only
+    needs a manual full-package install. Compare the versions rather than
+    matching the updater's wording, since this launcher ships frozen and
+    cannot be corrected by a source update.
+    """
+    installed_version = getattr(result, "installed_version", None)
+    target_version = getattr(result, "target_version", None)
+    if not installed_version or not target_version:
+        return False
+    return get_version_sort_key(target_version) > get_version_sort_key(installed_version)
+
+
 def format_startup_update_console_message(result, format_update_message):
     message = format_update_message(result)
     if result.status == "up-to-date":
         if "deferred by the configured interval" in result.message:
             return "recent update check still current; network check skipped"
+        if found_release_needing_full_package(result):
+            # Name the download location rather than pointing at the README:
+            # the packaged app folder ships app_src, models, and the launcher
+            # only, so a packaged user has no local README to open. Use the
+            # public constant, not the configured check URL, which a test
+            # override can repoint away from the real releases page.
+            return (
+                f"release {result.target_version} is available as a full package "
+                f"download: {LATEST_RELEASE_URL}"
+            )
         return "no update available"
     if result.status == "updated":
         return message or result.message

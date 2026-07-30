@@ -184,6 +184,60 @@ def test_formats_deferred_check_as_network_skip():
     assert message == "recent update check still current; network check skipped"
 
 
+def test_formats_full_package_only_release_as_actionable():
+    result = SimpleNamespace(
+        status="up-to-date",
+        message="release v0.18.0 has no matching source update asset",
+        installed_version="0.17.0",
+        target_version="v0.18.0",
+    )
+
+    message = run_desktop_app.format_startup_update_console_message(
+        result,
+        lambda update_result: "",
+    )
+
+    assert message == (
+        "release v0.18.0 is available as a full package download: "
+        "https://github.com/yzhaoinuw/sleep_scoring/releases/latest"
+    )
+
+
+def test_full_package_message_points_somewhere_a_packaged_user_can_reach():
+    # The packaged folder ships no README, so the message must carry a URL
+    # rather than refer to documentation that is not installed.
+    result = SimpleNamespace(
+        status="up-to-date",
+        message="release v0.18.0 has no matching source update asset",
+        installed_version="0.17.0",
+        target_version="v0.18.0",
+    )
+
+    message = run_desktop_app.format_startup_update_console_message(
+        result,
+        lambda update_result: "",
+    )
+
+    assert run_desktop_app.LATEST_RELEASE_URL in message
+    assert "README" not in message
+
+
+def test_current_release_is_still_reported_as_no_update():
+    result = SimpleNamespace(
+        status="up-to-date",
+        message="installed version 0.17.0 is up to date",
+        installed_version="0.17.0",
+        target_version="v0.17.0",
+    )
+
+    message = run_desktop_app.format_startup_update_console_message(
+        result,
+        lambda update_result: "",
+    )
+
+    assert message == "no update available"
+
+
 def test_formats_failed_update_message_as_non_blocking():
     result = SimpleNamespace(status="failed", message="could not download update metadata")
 

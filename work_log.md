@@ -20,6 +20,61 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-30
 
+### Full-package-only releases no longer look like failed updates (Claude)
+
+- Pre-release review of the updater found a redirect-discovery gap. Redirect
+  mode composes the asset filename from the release tag instead of reading a
+  release asset list, so it always believes an asset exists. A newer release
+  without a `sleep_scoring_app_update_<tag>.zip` therefore announced
+  "updating from version X to version Y..." and then failed with HTTP 404,
+  once per 24-hour check window, on a `console=True` window the user sees.
+- This was reproduced against the live repo, not just in tests: v0.17.0 is
+  full-package only, so a simulated 0.16.8 install reported
+  `failed / could not download update asset: HTTP 404`. It is the state every
+  installed app would have entered after the next full release.
+- Fixed upstream in `desktop_app_source_updater` on branch
+  `fix/redirect-missing-asset`, merged through PR #3: a composed asset URL is
+  probed with a no-redirect HEAD before the update-available callback fires,
+  and a definitive 404/410 reports `up-to-date` with "no matching source update
+  asset". Also added `failure_retry_seconds` so a failed or offline check
+  retries in an hour instead of a full day.
+- App side: `format_startup_update_console_message` now recognizes the case
+  where the check found a newer release it cannot install, names it, and prints
+  the Releases URL, rather than saying "no update available". It compares
+  versions instead of matching the updater's message text, because this
+  launcher ships frozen and cannot be corrected by a source update.
+- The message originally said "see the README installation steps". Review
+  caught that the generated full package contains only `app_src/`, `models/`,
+  the launcher, and `unblock_app.cmd` — no `README.md` — so a packaged user,
+  the only user who ever sees this message, has nothing to open. It now carries
+  the Releases URL. Used the public `LATEST_RELEASE_URL` constant rather than
+  the configured check URL, which an env override can repoint at a test
+  endpoint. Shipping the README inside the package was the alternative, but
+  that changes the documented folder contract and the frozen fixture for no
+  gain over a URL; noted as a possible follow-up instead.
+- Verification: 26 launcher tests passed; upstream 41 tests passed (34 before
+  this work), `compileall` and the builder `--help` gate passed.
+- Upstream PR #3 merged to `dev` and `main` as `5eab40b`, including two review
+  rounds on `UpdateConfig` field ordering. Bumped the `requirements.txt` pin
+  from `85bb68e` to `5eab40b`, which clears the blocker noted above; a packaged
+  build now carries the fix. `pyproject.toml` tracks `@main` and needed no
+  change.
+- Verified the pin rather than assuming it resolves: installed
+  `git+...@5eab40b` into a throwaway venv (not the project env) exactly as a
+  packaged build would, confirmed the installed module has `_asset_is_available`
+  and the appended `failure_retry_seconds`, then re-ran the live production
+  config against the real repo. A simulated 0.16.8 install now reports
+  `up-to-date / release v0.17.0 has no matching source update asset` with no
+  update-available callback, where the old pin reported
+  `failed / HTTP 404` after announcing an update.
+- Also confirmed `packaging/windows/full_release.py` parses the new pin, since
+  that gate is what would reject a malformed SHA at release time.
+- Verification at the final branch head: `pytest` collected 166, with 164
+  passed and 2 skipped (both skips pre-existing). Smoke check passed,
+  release-gate pin parse passed, Black clean, `git diff --check` clean.
+  Earlier entries in this section quote lower counts because they were run
+  before later commits added tests; each was accurate when written.
+
 ### Public GitHub Windows installation (GPT-5)
 
 - Replaced the private SharePoint/OneDrive package path in `README.md` with the
