@@ -51,6 +51,14 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   sandboxed run tried to use `%LOCALAPPDATA%`. The builder now gives the probe
   an isolated temporary state directory plus a hard 30-second deadline, so
   sandbox write restrictions or a transient process hang fail promptly.
+- The corrected standard full-release gate passed at
+  `c0fbe2ca3cec20a4dc4f292c5f7bf40b1d7e0ec5`: 175 Python tests, Black,
+  38 JavaScript tests, source and packaged smoke checks, the bounded live
+  updater check, PyInstaller packaging, and checksum verification all passed.
+  The resulting full ZIP had SHA-256
+  `FBBF11166AF4531996FD647BABAEF71A4D7006DDBB869CF11214498CF541746E`;
+  its 34-file v0.17.1 installed baseline was exported and reviewed, differing
+  from v0.17.0 only in the expected version-file hash.
 
 ### Release gates now enforce the CITATION.cff bullet (Claude)
 
