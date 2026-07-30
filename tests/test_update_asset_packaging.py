@@ -3,6 +3,7 @@ import importlib.util
 import json
 import subprocess
 import zipfile
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -307,6 +308,18 @@ def _git(repo, *args):
     )
 
 
+def _write_citation(repo, version):
+    # Today's date keeps the fixture valid whatever the workstation clock says,
+    # since the validator rejects a future date-released.
+    (repo / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\n"
+        'title: "sleep_scoring"\n'
+        f"version: {version.removeprefix('v')}\n"
+        f'date-released: "{date.today().isoformat()}"\n',
+        encoding="utf-8",
+    )
+
+
 def _write_candidate_repo(repo, version="v0.17.0"):
     (repo / "app_src").mkdir()
     (repo / "app_src" / "__init__.py").write_text(f'VERSION = "{version}"\n', encoding="utf-8")
@@ -316,6 +329,7 @@ def _write_candidate_repo(repo, version="v0.17.0"):
         f'setup(\n    name="sleep_scoring",\n    version="{version.removeprefix("v")}",\n)\n',
         encoding="utf-8",
     )
+    _write_citation(repo, version)
     _git(repo, "init")
     _git(repo, "config", "user.email", "tests@example.com")
     _git(repo, "config", "user.name", "Tests")
@@ -331,6 +345,7 @@ def _commit_config_candidate(repo, version):
         f'setup(\n    name="sleep_scoring",\n    version="{version.removeprefix("v")}",\n)\n',
         encoding="utf-8",
     )
+    _write_citation(repo, version)
     _git(repo, "add", ".")
     _git(repo, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
 
@@ -440,12 +455,60 @@ def test_validate_candidate_rejects_forgotten_setup_version_bump(tmp_path):
     _write_candidate_repo(tmp_path)
     (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v0.17.1"\n', encoding="utf-8")
     (tmp_path / "app_src" / "session.py").write_text("VALUE = 2\n", encoding="utf-8")
+    # Bump the citation too, so setup.py is the only stale file and this test
+    # still fails for the reason it names. Leaving it stale would trip the
+    # citation check first, whose message also mentions v0.17.1.
+    _write_citation(tmp_path, "v0.17.1")
     _git(tmp_path, "add", ".")
     _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
 
     with pytest.raises(
         LIGHTWEIGHT_MODULE.LightweightReleaseError,
-        match="does not match 'v0.17.1'",
+        match=r"setup\.py version '0\.17\.0' does not match 'v0\.17\.1'",
+    ):
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD")
+
+
+def test_validate_candidate_rejects_forgotten_citation_version_bump(tmp_path):
+    # Lightweight releases are still tags, and Zenodo archives every published
+    # release, so a stale citation matters here as much as in a full release.
+    _write_candidate_repo(tmp_path)
+    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v0.17.1"\n', encoding="utf-8")
+    (tmp_path / "app_src" / "session.py").write_text("VALUE = 2\n", encoding="utf-8")
+    (tmp_path / "setup.py").write_text(
+        'setup(\n    name="sleep_scoring",\n    version="0.17.1",\n)\n',
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match=r"CITATION\.cff version '0\.17\.0' does not match 'v0\.17\.1'",
+    ):
+        LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD")
+
+
+def test_validate_candidate_rejects_unparseable_citation(tmp_path):
+    # Mismatched quotes make this an unterminated YAML scalar. The version and
+    # date lines look right to a pattern match, but Zenodo could not read it.
+    _write_candidate_repo(tmp_path)
+    (tmp_path / "app_src" / "__init__.py").write_text('VERSION = "v0.17.1"\n', encoding="utf-8")
+    (tmp_path / "app_src" / "session.py").write_text("VALUE = 2\n", encoding="utf-8")
+    (tmp_path / "setup.py").write_text(
+        'setup(\n    name="sleep_scoring",\n    version="0.17.1",\n)\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "CITATION.cff").write_text(
+        'cff-version: 1.2.0\nversion: "0.17.1\'\ndate-released: "2026-07-29"\n',
+        encoding="utf-8",
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "commit.gpgsign=false", "commit", "-m", "candidate")
+
+    with pytest.raises(
+        LIGHTWEIGHT_MODULE.LightweightReleaseError,
+        match="not valid YAML",
     ):
         LIGHTWEIGHT_MODULE.validate_candidate(tmp_path, ["v0.17.0"], "HEAD")
 

@@ -20,6 +20,78 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 
 ## 2026-07-30
 
+### Release gates now enforce the CITATION.cff bullet (Claude)
+
+- The 2026-07-29 session added `CITATION.cff` to the AGENTS.md version-metadata
+  bullet after finding it five releases behind. Checking what enforces that
+  bullet found nothing: `CITATION` appeared nowhere in `packaging/`, `.github/`,
+  or `tests/`. `full_release.py` compared `app_src/__init__.py` against
+  `setup.py` and required a `change_log.txt` heading, and stopped there. So the
+  instruction gap was closed and the enforcement gap was not, which is how the
+  drift reached five releases instead of one.
+- This matters more now than it did before: Zenodo is enabled and scrapes
+  `CITATION.cff` when a release is published, so a stale version is what gets
+  published as the record's metadata.
+- Correction, from review: an earlier draft of this entry and of the gate
+  docstrings claimed the published metadata could not be fixed afterwards.
+  That is wrong, and checked against Zenodo's own docs rather than conceded:
+  "Metadata CAN be modified. Files and the persistent identifier CANNOT be
+  modified", and editing metadata does not affect the DOI. The real cost is
+  narrower — the correction is manual, on Zenodo, per record, and editing the
+  repository file later does not propagate to records already published. The
+  2026-07-29 entry below carries the same imprecision; it is left as written
+  rather than rewritten, since it records what that session believed.
+- Added `validate_citation_metadata` to both `full_release.py` and
+  `lightweight_release.py`: `version` must equal the app version with `v`
+  stripped, and `date-released` must parse and not be in the future. The
+  version equality is the load-bearing half, since it forces the file to be
+  edited every release; the date check only catches typos.
+- Included the lightweight gate deliberately. Lightweight releases are still
+  tags and Zenodo archives every published release, so a stale citation costs
+  the same manual correction there. The file is not shipped inside the
+  source-update asset, which carries only `app_src/`; it is the tagged repo
+  state Zenodo reads.
+- Duplicated the check across both scripts rather than sharing a module. The
+  tests load each script standalone through `spec_from_file_location`, which
+  does not put the package directory on `sys.path`, so a sibling import would
+  not resolve. `VERSION_RE` and `SETUP_VERSION_RE` are already duplicated for
+  the same reason; the docstring records this so it does not read as careless
+  copy-paste.
+- The first implementation pattern-matched the two lines. Review showed the
+  quotes were independently optional, so `version: "0.17.0'` — an unterminated
+  YAML scalar Zenodo could not read — matched and passed; verified that the old
+  pattern did extract `0.17.0` from it. Matching two lines also could not see a
+  document broken anywhere else. Now parsed with `yaml.safe_load`, which
+  rejects both classes and removes the top-level-versus-`references:` key
+  ambiguity entirely, since parsing returns the top-level mapping directly.
+  Added malformed-input tests to both gate suites: mismatched quotes, a
+  document broken away from these two keys, and an unquoted `date-released`
+  that PyYAML resolves to a date object rather than a string.
+- `pyyaml` declared in the `dev` and `test` extras, not the runtime
+  dependencies, so it stays out of the packaged Windows app. It was already
+  importable in the env as a transitive dependency; the gate should not rely on
+  that silently.
+- Putting it in `dev` alone turned CI red and the local suite stayed green.
+  `.github/workflows/ci.yml` installs `.[dev]` for formatting and `.[test]` for
+  pytest in separate jobs, while the conda env installs `-e .[dev,test]`
+  together, so the local run could not see the missing test-extra dependency.
+  The packaging tests import the release gates, which now import `yaml`, so the
+  `test` job failed at collection. Verified the fix the way CI does rather than
+  by re-running the local suite: a clean venv with only `-e .[test]` installed,
+  where `yaml` imports and all 173 tests pass. Worth remembering that a green
+  local suite proves nothing about extras placement in this repo.
+- Fixing the fixtures exposed a test-integrity problem:
+  `test_validate_candidate_rejects_forgotten_setup_version_bump` left
+  `CITATION.cff` stale too, and the citation error fires first with a message
+  that also matched its `does not match 'v0.17.1'` regex. It would have kept
+  passing while no longer testing setup.py at all. That test now bumps the
+  citation and matches a setup-specific message.
+- Verified the real checkout passes its own new gate:
+  `python packaging/windows/full_release.py --repo .` prints
+  `v0.17.0	5eab40b...`.
+- Verification: 173 passed, 2 skipped (8 new tests), Black clean,
+  `git diff --check` clean.
+
 ### Full-package-only releases no longer look like failed updates (Claude)
 
 - Pre-release review of the updater found a redirect-discovery gap. Redirect

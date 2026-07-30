@@ -36,10 +36,17 @@ ml = [
 dev = [
     "black==25.12.0",
     "pre-commit==4.5.1",
+    # Release preflight parses CITATION.cff. Declared in dev and test rather
+    # than in the runtime dependencies so it stays out of the packaged Windows
+    # app. It must be in both: the release gates need it, and the packaging
+    # tests import those gates. CI installs the two extras in separate jobs,
+    # so keep the pins identical.
+    "pyyaml==6.0.3",
 ]
 test = [
     "pytest==9.0.2",
     #"pytest-cov",
+    "pyyaml==6.0.3",  # see the note in dev; the packaging tests import the release gates
 ]
 
 [tool.setuptools.dynamic]

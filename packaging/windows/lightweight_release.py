@@ -12,7 +12,10 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from datetime import date, datetime
 from pathlib import Path, PurePosixPath
+
+import yaml
 
 
 APP_NAME = "sleep_scoring"
@@ -38,6 +41,7 @@ UPDATE_ZIP_URL_ENV = "SLEEP_SCORING_UPDATE_ZIP_URL"
 SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
 
 VERSION_RE = re.compile(r"""VERSION\s*=\s*["']([^"']+)["']""")
+CITATION_FILE = "CITATION.cff"
 SETUP_VERSION_RE = re.compile(
     r"""(?m)^([ \t]*version[ \t]*=[ \t]*)(["'])([^"']+)(\2)([ \t]*,[ \t]*)$"""
 )
@@ -125,6 +129,71 @@ def read_version_bytes(data: bytes, *, source: str) -> str:
 
 def read_version_from_ref(repo: Path, ref: str) -> str:
     return read_version_bytes(git_file(repo, ref, VERSION_FILE), source=f"{ref}:{VERSION_FILE}")
+
+
+def _citation_release_date(value: object, source: str) -> date:
+    # PyYAML resolves an unquoted ISO date to a date object and a timestamp to
+    # a datetime; a quoted one stays a string. Accept all three spellings.
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise LightweightReleaseError(
+                f"{source} date-released {value!r} is not a valid date"
+            ) from exc
+    raise LightweightReleaseError(f"{source} has no usable date-released")
+
+
+def validate_citation_metadata(citation: bytes, app_version: str, *, source: str) -> None:
+    """Check the citation metadata a release publishes.
+
+    Zenodo scrapes CITATION.cff when a release is published. A published
+    record's metadata can be edited afterwards without changing its DOI, so a
+    stale version here is recoverable, but only by hand on Zenodo, per record,
+    and fixing the repository file later does not propagate to records already
+    published.
+
+    This applies to lightweight releases as much as full ones: they are still
+    tags, and Zenodo archives every published release. The file is not shipped
+    inside the source-update asset, which only carries `app_src/`; it is the
+    tagged repository state that gets scraped.
+
+    The document is parsed rather than pattern-matched so that a CITATION.cff
+    Zenodo cannot read fails here instead of at publication.
+
+    Deliberately duplicated from full_release.py rather than shared. Both
+    scripts are loaded standalone by file path, so a sibling import would not
+    resolve; the version regexes above are duplicated for the same reason.
+    """
+    try:
+        text = citation.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise LightweightReleaseError(f"{source} is not UTF-8") from exc
+
+    try:
+        document = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise LightweightReleaseError(f"{source} is not valid YAML: {exc}") from exc
+    if not isinstance(document, dict):
+        raise LightweightReleaseError(f"{source} must be a YAML mapping")
+
+    citation_version = document.get("version")
+    if not isinstance(citation_version, (str, int, float)):
+        raise LightweightReleaseError(f"{source} has no usable version")
+    if str(citation_version) != app_version.removeprefix("v"):
+        raise LightweightReleaseError(
+            f"{source} version {str(citation_version)!r} does not match {app_version!r}"
+        )
+
+    released_date = _citation_release_date(document.get("date-released"), source)
+    if released_date > date.today():
+        raise LightweightReleaseError(
+            f"{source} date-released {released_date.isoformat()} is in the future"
+        )
 
 
 def version_key(version: str) -> tuple[int, ...]:
@@ -236,6 +305,11 @@ def validate_candidate(repo: Path, from_refs: list[str], to_ref: str) -> str:
 
     target_version = read_version_from_ref(repo, to_ref)
     target_key = version_key(target_version)
+    validate_citation_metadata(
+        git_file(repo, to_ref, CITATION_FILE),
+        target_version,
+        source=f"{to_ref}:{CITATION_FILE}",
+    )
     versions_by_ref = {from_ref: read_version_from_ref(repo, from_ref) for from_ref in from_refs}
     all_runtime_paths = set()
     blocked_paths = set()

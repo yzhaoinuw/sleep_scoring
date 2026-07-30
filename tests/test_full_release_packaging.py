@@ -17,7 +17,14 @@ FULL_RELEASE_SCRIPT = MODULE_PATH.with_name("release_full.ps1")
 FULL_PACKAGE_SCRIPT = MODULE_PATH.with_name("make_full_app_zip.ps1")
 
 
-def _write_candidate(tmp_path, *, app_version="v0.17.0", setup_version="0.17.0"):
+def _write_candidate(
+    tmp_path,
+    *,
+    app_version="v0.17.0",
+    setup_version="0.17.0",
+    citation_version="0.17.0",
+    citation_date="2026-07-29",
+):
     app_src = tmp_path / "app_src"
     app_src.mkdir()
     (app_src / "__init__.py").write_text(f'VERSION = "{app_version}"\n', encoding="utf-8")
@@ -38,6 +45,20 @@ def _write_candidate(tmp_path, *, app_version="v0.17.0", setup_version="0.17.0")
         "git+https://github.com/yzhaoinuw/desktop_app_source_updater.git@" + ("a" * 40) + "\n",
         encoding="utf-8",
     )
+    # A cited work carries its own indented version/date keys; the validator
+    # must read the top-level ones describing this release.
+    (tmp_path / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\n"
+        'title: "sleep_scoring"\n'
+        f"version: {citation_version}\n"
+        f'date-released: "{citation_date}"\n'
+        "references:\n"
+        "  - type: article\n"
+        '    title: "An upstream model"\n'
+        "    version: 1.2.3\n"
+        '    date-released: "2023-01-01"\n',
+        encoding="utf-8",
+    )
 
 
 def test_full_candidate_validation_returns_version_and_updater_pin(tmp_path):
@@ -54,6 +75,84 @@ def test_full_candidate_requires_aligned_setup_version(tmp_path):
 
     with pytest.raises(FULL_RELEASE.FullReleaseError, match="does not match"):
         FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_requires_current_citation_version(tmp_path):
+    # The drift that actually happened: CITATION.cff left five releases behind
+    # while the app moved on. Zenodo scrapes this file at publish time, so the
+    # stale value is what gets published, and fixing the repository afterwards
+    # does not reach records already published.
+    _write_candidate(tmp_path, citation_version="0.16.2")
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="CITATION.cff version"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_rejects_future_release_date(tmp_path):
+    _write_candidate(tmp_path, citation_date="2099-01-01")
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="in the future"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_rejects_unparseable_release_date(tmp_path):
+    _write_candidate(tmp_path, citation_date="2026-13-45")
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="not a valid date"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_rejects_mismatched_citation_quotes(tmp_path):
+    # An unterminated scalar is a YAML error, so Zenodo could not read this
+    # file. A pattern with independently optional quotes accepted it.
+    _write_candidate(tmp_path)
+    (tmp_path / "CITATION.cff").write_text(
+        'cff-version: 1.2.0\nversion: "0.17.0\'\ndate-released: "2026-07-29"\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="not valid YAML"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_rejects_citation_broken_elsewhere_in_the_document(tmp_path):
+    # The version and date lines are both correct here; the file is still
+    # unusable, which pattern matching those two lines could not detect.
+    _write_candidate(tmp_path)
+    (tmp_path / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\n"
+        "version: 0.17.0\n"
+        'date-released: "2026-07-29"\n'
+        "authors: [ {given-names: Yue\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FULL_RELEASE.FullReleaseError, match="not valid YAML"):
+        FULL_RELEASE.validate_full_candidate(tmp_path)
+
+
+def test_full_candidate_accepts_an_unquoted_release_date(tmp_path):
+    # PyYAML resolves this to a date object rather than a string.
+    _write_candidate(tmp_path)
+    (tmp_path / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\nversion: 0.17.0\ndate-released: 2026-07-29\n",
+        encoding="utf-8",
+    )
+
+    version, _ = FULL_RELEASE.validate_full_candidate(tmp_path)
+
+    assert version == "v0.17.0"
+
+
+def test_citation_check_reads_top_level_keys_not_cited_works(tmp_path):
+    # The fixture's `references:` block carries version 1.2.3 and a 2023 date.
+    # Matching either of those instead of the top-level keys would make the
+    # check silently meaningless, so prove the happy path still validates.
+    _write_candidate(tmp_path)
+
+    version, _ = FULL_RELEASE.validate_full_candidate(tmp_path)
+
+    assert version == "v0.17.0"
 
 
 def test_full_candidate_requires_changelog_heading(tmp_path):
