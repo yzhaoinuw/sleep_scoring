@@ -1,8 +1,14 @@
-% TODO: verify all entries below against the original publications.
-% DOIs and years are best-effort placeholders; please confirm before submission.
+% All entries below were verified against Crossref on 2026-07-29: title, venue,
+% volume, pages, year, DOI, and author names. The only unverified entry is
+% paszke2019pytorch, a NeurIPS proceedings paper with no registered DOI.
+%
+% Two given names deliberately differ from Crossref, which lowercases them:
+% Saive, Anne-Lise (combrisson2019visbrain) and Van Der Donckt, Jeroen
+% (vanderdonckt2022plotlyresampler), where Crossref is internally inconsistent
+% with its own first author. The published articles use the forms kept here.
 
 @article{barger2019accusleep,
-  title   = {{AccuSleep}: a toolbox for sleep scoring in mice},
+  title   = {Robust, automated sleep scoring by a compact neural network with distributional shift correction},
   author  = {Barger, Zeke and Frye, Charles G. and Liu, Danqian and Dan, Yang and Bouchard, Kristofer E.},
   journal = {PLOS ONE},
   volume  = {14},
@@ -14,7 +20,7 @@
 
 @article{miladinovic2019spindle,
   title   = {{SPINDLE}: End-to-end learning from {EEG/EMG} to extrapolate animal sleep scoring across experimental settings, labs and species},
-  author  = {Miladinovi{\'c}, {\DJ}or{\dj}e and Muheim, Christine and Bauer, Stefan and Spinnler, Andrea and Noain, Daniela and Bandarabadi, Mojtaba and Gallusser, Beno{\^i}t and Krummenacher, Gabriel and Baumann, Christian R. and Adamantidis, Antoine and others},
+  author  = {Miladinovi{\'c}, {\DJ}or{\dj}e and Muheim, Christine and Bauer, Stefan and Spinnler, Andrea and Noain, Daniela and Bandarabadi, Mojtaba and Gallusser, Benjamin and Krummenacher, Gabriel and Baumann, Christian R. and Adamantidis, Antoine and others},
   journal = {PLOS Computational Biology},
   volume  = {15},
   number  = {4},
@@ -23,17 +29,20 @@
   doi     = {10.1371/journal.pcbi.1006968}
 }
 
-@article{miladinovic2022somnotate,
-  title   = {{somnotate}: A probabilistic sleep stage classifier for studying vigilance state transitions},
-  author  = {TODO: confirm authors},
-  journal = {TODO},
-  year    = {2022},
-  doi     = {TODO}
+@article{brodersen2024somnotate,
+  title   = {{Somnotate}: A probabilistic sleep stage classifier for studying vigilance state transitions},
+  author  = {Brodersen, Paul J. N. and Alfonsa, Hannah and Krone, Lukas B. and Blanco-Duque, Cristina and Fisk, Angus S. and Flaherty, Sarah J. and Guillaumin, Mathilde C. C. and Huang, Yi-Ge and Kahn, Martin C. and McKillop, Laura E. and Milinski, Linus and Taylor, Lewis and Thomas, Christopher W. and Yamagata, Tomoko and Foster, Russell G. and Vyazovskiy, Vladyslav V. and Akerman, Colin J.},
+  journal = {PLOS Computational Biology},
+  volume  = {20},
+  number  = {1},
+  pages   = {e1011793},
+  year    = {2024},
+  doi     = {10.1371/journal.pcbi.1011793}
 }
 
 @article{combrisson2019visbrain,
   title   = {Visbrain: A multi-purpose {GPU}-accelerated open-source suite for multimodal brain data visualization},
-  author  = {Combrisson, Etienne and Vallat, Raphael and O'Reilly, Christian and Jas, Mainak and Pascarella, Annalisa and Saive, Anne-Lise and Thiery, Thomas and Meunier, David and Altukhov, Dmitrii and Lajnef, Tarek and Ruby, Perrine and Guillot, Alain and Jerbi, Karim},
+  author  = {Combrisson, Etienne and Vallat, Raphael and O'Reilly, Christian and Jas, Mainak and Pascarella, Annalisa and Saive, Anne-Lise and Thiery, Thomas and Meunier, David and Altukhov, Dmitrii and Lajnef, Tarek and Ruby, Perrine and Guillot, Aymeric and Jerbi, Karim},
   journal = {Frontiers in Neuroinformatics},
   volume  = {13},
   pages   = {14},
@@ -77,15 +86,16 @@
   year      = {2019}
 }
 
-% sDREAMER is developed and published separately by a collaborator in the
-% U19 BrainFlowZZZ program. Replace the placeholder below with the actual
-% citation (journal article, preprint, or Zenodo DOI for the model release)
-% before submission, and update the @TODO_sdreamer_citation key in paper.md
-% to match.
-@misc{TODO_sdreamer_citation,
-  author       = {TODO: sDREAMER authors},
-  title        = {sDREAMER: TODO transformer-based sleep scoring model},
-  year         = {TODO},
-  doi          = {TODO},
-  note         = {Upstream model integrated by \texttt{sleep\_scoring}; not a contribution of this paper}
+% sDREAMER is developed and published separately by collaborators in the
+% U19 BrainFlowZZZ program. It is an upstream model this app integrates, not a
+% contribution of this paper.
+@inproceedings{chen2023sdreamer,
+  title     = {{sDREAMER}: Self-distilled Mixture-of-Modality-Experts Transformer for Automatic Sleep Staging},
+  author    = {Chen, Jingyuan and Yao, Yuan and Anderson, Mie and Hauglund, Natalie and Kjaerby, Celia and Untiet, Verena and Nedergaard, Maiken and Luo, Jiebo},
+  booktitle = {2023 IEEE International Conference on Digital Health (ICDH)},
+  pages     = {131--142},
+  year      = {2023},
+  publisher = {IEEE},
+  doi       = {10.1109/ICDH60066.2023.00028},
+  note      = {Upstream model integrated by \texttt{sleep\_scoring}; not a contribution of this paper}
 }
