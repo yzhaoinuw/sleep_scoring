@@ -1,22 +1,44 @@
 # Work Log
 
-Prepend new session notes to the top of this file. If you log multiple
-sessions on the same calendar date, add a new `###` subsection under the
-existing `## YYYY-MM-DD` header instead of starting a second header for the
-same date.
+Prepend new session notes to this file. Record project decisions, reusable
+evidence, and shared-state changes—not routine content already explained by the
+diff. Each session ends with a `- Verification:` subsection. See
+[`treaty_conventions.md`](treaty_conventions.md#work-log-discipline).
 
-Historical verification commands may include absolute paths from the original
-development machine. When replaying or adapting them, keep the project folder
-name `sleep_scoring` and conda environment name `sleep_scoring_dash3.0`, but
-replace the user/home prefix and clone location with the collaborator's local
-setup.
+If today's date is already at the top, add a new `###` subsection beneath it.
+The live log holds at most five unique dates; when a new date would exceed that
+limit, move the oldest five-date chunk to
+`work_log_archive/work_log_<earliest>_to_<latest>.md`.
 
-Reading note for agents: this file holds at most the 5 most recent unique
-calendar dates. Older entries are rotated in chunks of 5 dates into
-`work_log_archive/work_log_<earliest>_to_<latest>.md`. Default to reading the
-two most recent dated entries; search older entries with targeted terms using
-the `^## [0-9]{4}-[0-9]{2}-[0-9]{2}` anchor, or open the relevant archive file
-by its date range. See `AGENTS.md` for the full rotation policy.
+Historical commands can contain machine-specific paths. When replaying them,
+keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
+but adapt the user prefix and clone location. Default to the two newest dates;
+search older entries by date anchor rather than reading every archive.
+
+## 2026-08-01
+
+### Adopt Treaty v0.6.0 as a managed baseline (Codex GPT-5)
+
+- Chose the stable `v0.6.0` tag for project use rather than the post-release
+  commit on the treaty's `dev` branch; the local treaty `main` checkout now
+  matches the release commit `cdfb3c8`.
+- Converted the hand-copied adoption into a Copier-managed baseline pinned to
+  `v0.6.0`, with `dev` recorded as this repository's integration branch. The
+  upstream-maintained conventions are now separate from project guidance.
+- Preserved the repository-specific runtime, updater, release, Git, and
+  documentation rules while aligning `AGENTS.md` and `project_overview.md` with
+  the stable template headings. Normalized eight historical work-log entries
+  whose verification evidence did not use the validator's required subsection.
+- Verification:
+  - `Get-Date -Format yyyy-MM-dd` -> `2026-08-01`.
+  - `treaty --version` -> CLI and template `v0.6.0`.
+  - `treaty diff .` found no removed or added template sections in `AGENTS.md`
+    or `project_overview.md`; their remaining modifications are customized
+    project content.
+  - `treaty validate .` passed.
+  - `treaty update --dry-run` passed against a clean temporary mirror and kept
+    template version `v0.6.0` without writing changes.
+  - Placeholder search and `git diff --check` passed.
 
 ## 2026-07-30
 
@@ -59,6 +81,10 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `FBBF11166AF4531996FD647BABAEF71A4D7006DDBB869CF11214498CF541746E`;
   its 34-file v0.17.1 installed baseline was exported and reviewed, differing
   from v0.17.0 only in the expected version-file hash.
+- Verification:
+  - The standard full-release gate passed with the 175 Python tests, 38
+    JavaScript tests, smoke/package/update checks, and artifact review recorded
+    above.
 
 ### Release gates now enforce the CITATION.cff bullet (Claude)
 
@@ -129,8 +155,9 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Verified the real checkout passes its own new gate:
   `python packaging/windows/full_release.py --repo .` prints
   `v0.17.0	5eab40b...`.
-- Verification: 173 passed, 2 skipped (8 new tests), Black clean,
-  `git diff --check` clean.
+- Verification:
+  - 173 passed, 2 skipped (8 new tests), Black clean, and
+    `git diff --check` clean.
 
 ### Full-package-only releases no longer look like failed updates (Claude)
 
@@ -181,11 +208,11 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `failed / HTTP 404` after announcing an update.
 - Also confirmed `packaging/windows/full_release.py` parses the new pin, since
   that gate is what would reject a malformed SHA at release time.
-- Verification at the final branch head: `pytest` collected 166, with 164
-  passed and 2 skipped (both skips pre-existing). Smoke check passed,
-  release-gate pin parse passed, Black clean, `git diff --check` clean.
-  Earlier entries in this section quote lower counts because they were run
-  before later commits added tests; each was accurate when written.
+- Verification:
+  - At the final branch head, `pytest` collected 166, with 164 passed and 2
+    skipped (both skips pre-existing). Smoke check, release-gate pin parsing,
+    Black, and `git diff --check` passed. Earlier counts above were accurate at
+    the commits where they were run.
 
 ### Public GitHub Windows installation (GPT-5)
 
@@ -199,12 +226,12 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - Pointed the optional packaged sDREAMER setup to `torch.zip` on the same
   GitHub Release and replaced the OneDrive-specific runtime warning with a
   general warning against cloud-synced and network folders.
-- Audited the README for duplicate installation/update instructions. It retains
-  one packaged-install section and one automatic-update section; source
-  installation updates and optional sDREAMER setup remain separate because
-  they serve different workflows. Internal anchors, relative links, balanced
-  details blocks, stale distribution references, and `git diff --check` all
-  passed.
+- Verification:
+  - The README audit retained one packaged-install section and one automatic-
+    update section; source installation and optional sDREAMER setup remain
+    separate because they serve different workflows. Internal anchors,
+    relative links, balanced details blocks, stale distribution references,
+    and `git diff --check` all passed.
 
 ### Explicit full-package asset naming (GPT-5)
 
@@ -225,10 +252,10 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   `D7F139F1390FFF2F036F6758043F711B11F8920015D489990649190B4268D461`.
   Corrected manifest and checksum sidecars were uploaded, the stale old-name
   sidecars were removed, and the GitHub Release notes now use the new name.
-- Verification passed: repository-pinned Black, 29 focused packaging tests,
-  all three edited PowerShell scripts parsed, local archive/manifest/checksum
-  consistency passed, GitHub reported seven expected custom assets with no
-  old-name copies, and every new remote digest matched its local file.
+- Verification:
+  - Repository-pinned Black, 29 focused packaging tests, and all three edited
+    PowerShell parsers passed. Local archive/manifest/checksum consistency and
+    every GitHub asset digest matched, with no old-name copies.
 
 ## 2026-07-29
 
@@ -253,9 +280,10 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   authors' weights.
 - Added `CITATION.cff` to the version-metadata bullet of the AGENTS.md release
   gate. Its absence there is why the file drifted five releases behind.
-- Verified: `cffconvert --validate` passes against CFF schema 1.2.0 (run from a
-  scratch venv, not the project env), CITATION.cff `version` matches
-  `app_src.VERSION`, Black clean, `tests/test_smoke.py` 8 passed.
+- Verification:
+  - `cffconvert --validate` passed against CFF schema 1.2.0 from a scratch
+    environment, `CITATION.cff` matched `app_src.VERSION`, Black was clean, and
+    `tests/test_smoke.py` passed 8 tests.
 - Added `NOTICE` recording third-party provenance for `models/sdreamer/`. NIH
   policy was checked directly rather than assumed: GPS 8.2.1 defines "data" to
   include software and permits copyrighting it without NIH approval, reserving
@@ -309,6 +337,10 @@ by its date range. See `AGENTS.md` for the full rotation policy.
 - This release record is the only tracked change after the verified candidate.
   The full gate must therefore rebuild once from its final commit before
   `main`, the v0.17.0 tag, and the published artifacts are advanced together.
+- Verification:
+  - The standard full-release gate passed at the candidate commit with the 158
+    Python tests, 38 JavaScript tests, smoke checks, PyInstaller checks, and
+    artifact hashes recorded above.
 
 ### v0.17.0 publication and Schema 2 launchpad (GPT-5)
 
@@ -346,3 +378,7 @@ by its date range. See `AGENTS.md` for the full rotation policy.
   with the completed Schema 2 release tooling rather than keep it exclusively
   on `dev`. The published `v0.17.0` tag and artifacts remain tied to the
   original release commit; `main` now represents the latest tested stable code.
+- Verification:
+  - The final release gate, repository-pinned Black hook, 163 Python tests,
+    both PowerShell parsers, published refs and digests, and the isolated Schema
+    2 update trial all passed as recorded above.

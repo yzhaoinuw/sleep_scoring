@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; you should not edit this file manually.
+_commit: v0.6.0
+_src_path: gh:yzhaoinuw/agent_collab_treaty
+agent_pointers: []
+env_activation: conda activate sleep_scoring_dash3.0
+has_releases: true
+include_git_ownership_note: true
+include_treaty_badge: true
+integration_branch: dev
+uses_precommit: true
+verification_command: python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider
+    -q

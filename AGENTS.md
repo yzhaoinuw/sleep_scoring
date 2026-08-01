@@ -1,21 +1,30 @@
-# Agent Collaboration Notes For This Project
+# Guidelines and Tips for Agents
+
+This is the first file to read in a session. Keep it lean and project-specific;
+generic mechanics live in [`treaty_conventions.md`](treaty_conventions.md).
 
 ## Startup Rule
 
-At the start of a new session, read this file first. Do not read every Markdown
-file automatically; use the map below to choose only what is relevant.
+At the start of a session, read this file first. Use the documentation map
+below instead of automatically reading every Markdown file.
 
-## Runtime
+## Runtime Environment
 
 - Project folder: `sleep_scoring`
-- Conda env: `sleep_scoring_dash3.0`
-- If `conda` is not on PATH, use a Miniconda/Anaconda terminal or invoke the
-  `condabin/conda.bat` file from that computer's Conda installation.
+- Conda environment: `sleep_scoring_dash3.0`
+- Conda environments live under `C:\Users\yzhao\miniconda3\envs\`.
+- If `conda` is not on PATH, use the `condabin\conda.bat` under that Miniconda
+  installation or open a Miniconda terminal.
 
-Common commands:
+Activate the environment before running the app, tests, or one-off scripts:
 
 ```powershell
 conda activate sleep_scoring_dash3.0
+```
+
+## Common Tasks
+
+```powershell
 python run_desktop_app.py
 python run_desktop_app.py --smoke
 python -m pytest --basetemp .pytest_tmp\codex -p no:cacheprovider -q
@@ -23,53 +32,78 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\release_
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\release_lightweight.ps1
 ```
 
-## Active App And Packaging
+Before editing, run `git status --short --branch` and preserve unrelated local
+changes and untracked files. Before committing, run the checks appropriate to
+the touched surface and `git diff --check`.
 
-- Desktop entrypoint: `run_desktop_app.py`.
-- Active runtime package: `app_src/`.
-- Version source of truth: `app_src/__init__.py`; keep `setup.py` aligned.
-- Windows packaging docs/scripts: `packaging/windows/`.
-- Full Windows package: `packaging/windows/make_full_app_zip.ps1`.
-- Source-update asset: `packaging/windows/make_source_update_asset.ps1`.
+## When To Update Treaty Docs
 
-Startup auto-update lives in `run_desktop_app.py` before importing `app_src`.
-Packaged builds check GitHub Release source-update assets. Source runs skip the
-check unless update-test env vars are set. Only the first app window (port
-slot 0) runs the check; later windows skip it so `app_src/` is never patched
-under a running window. Use a full app zip when dependencies,
-models, packaging, launcher, or runtime layout changed; use source-update assets
-only for compatible `app_src/` changes.
+At the end of substantive work, prepend the decisions and reusable evidence to
+`work_log.md` and keep `next_steps.md` accurate. Routine changes already clear
+from the diff do not need narration. See
+[Work Log Discipline](treaty_conventions.md#work-log-discipline) for the exact
+criteria and entry structure.
 
-Updater config:
+## Branch Handoff Discipline
 
-- app: `sleep_scoring`
-- version file: `app_src/__init__.py`
-- latest-release URL: `https://github.com/yzhaoinuw/sleep_scoring/releases/latest`
-- asset prefix: `sleep_scoring_app_update_`
-- allowed payload path: `app_src/`
-- env vars: `SLEEP_SCORING_SKIP_UPDATE`, `SLEEP_SCORING_UPDATE_ZIP_URL`,
-  `SLEEP_SCORING_UPDATE_LATEST_RELEASE_URL`,
-  `SLEEP_SCORING_UPDATE_RELEASE_API_URL`,
-  `SLEEP_SCORING_UPDATE_ASSET_PREFIX`,
-  `SLEEP_SCORING_UPDATE_TIMEOUT_SECONDS`, `SLEEP_SCORING_UPDATE_STATE_FILE`,
-  `SLEEP_SCORING_FORCE_UPDATE_CHECK`
+Pull requests normally target `dev`; `main` is the published integration point
+for releases. Before leaving an experimental branch, ensure its work is tested,
+committed, and either delivered or intentionally parked. See
+[Branch Handoff](treaty_conventions.md#branch-handoff).
 
-## Worktree And Git
+## Release / Tag Checklist
 
-Before editing, run `git status --short --branch`. Preserve unrelated local
-changes and untracked files.
+Treat any request combining commit, push, and tag—or asking to publish/cut a
+release—as release work. Before creating or pushing a tag:
 
-This Windows checkout may need approval/escalation for Git and GitHub CLI
-operations. If an authorized `git` or `gh` command fails because the sandbox
-cannot write Git metadata or access host credentials, retry the same narrow
-command with `sandbox_permissions: "require_escalated"` before changing the
-plan or asking the user to reauthenticate. Required approvals still apply; do
-not remove locks, reset state, or broaden command scope to work around the
-failure. For pushes, use:
+- verify the local date with `Get-Date -Format yyyy-MM-dd`;
+- align `app_src/__init__.py`, `setup.py`, and the `version` and
+  `date-released` fields in `CITATION.cff`;
+- update release notes/changelog and user-facing docs when behavior changed;
+- update `work_log.md` with verification and branch/tag state;
+- run the applicable tests, smoke checks, and package gate;
+- only then tag, push, and verify pushed refs.
 
-```powershell
-git push origin <branch>
-```
+Both release gates reject stale citation metadata. Zenodo reads `CITATION.cff`
+when a release is published; later repository corrections do not propagate to
+an existing Zenodo record. Use `release_full.ps1` or `release_lightweight.ps1`
+as the candidate gate, and do not rerun individual checks after a passing gate
+unless the candidate commit changes. Never write future-dated work-log entries.
+The full procedure is in [Release Gate](treaty_conventions.md#release-gate).
+
+## Updating The Treaty
+
+Treaty updates are a maintainer decision, distinct from work-log maintenance.
+Use `treaty diff`, then `treaty update --dry-run`, then `treaty update`.
+Preserve project guidance and resolve every unmerged file before committing;
+see [Updating The Treaty](treaty_conventions.md#updating-the-treaty).
+
+## Documentation
+
+- `treaty_conventions.md`: upstream-maintained work-log, branch, release, and
+  update mechanics; avoid local edits.
+- `work_log.md` / `work_log_archive/`: decisions, evidence, and delivery state.
+  The live log holds at most five unique dates; find date anchors with
+  `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md work_log_archive/`.
+- `next_steps.md`: unfinished work; `Currently Hot` names active threads.
+- `project_overview.md`: codebase map and active-versus-legacy boundaries.
+- `README.md`: user-facing installation, usage, and input-file contracts.
+- `CONTRIBUTING.md`: collaboration and verification workflow.
+
+## Commit Message Guidelines
+
+Use a short title line. Add a short body with flat bullets only when a commit
+contains multiple requested changes. Describe high-level behavior, not internal
+implementation details. Do not mention tests, docs, or project-memory work in a
+feature commit unless that internal work is the commit's main purpose.
+
+## Git Ownership Note
+
+This Windows checkout may need approval for Git metadata or host credentials.
+If an authorized `git` or `gh` command fails with a metadata-lock, sandbox, or
+credential-boundary error, retry the same narrow command with the required
+approval before changing the plan. Do not remove locks, reset state, or broaden
+the command. For pushes, use `git push origin <branch>`.
 
 After branch, merge, commit, tag, or push work, verify with targeted refs:
 
@@ -80,56 +114,36 @@ git ls-remote --heads origin <branch>
 git ls-remote --tags origin <tag>
 ```
 
-Before leaving an experimental branch, make sure its work is committed, tested,
-and either merged/pushed or intentionally parked.
+For `detected dubious ownership`, use a repository-scoped safe-directory
+override or mark only this repository safe; do not change OS ownership.
 
-## Release / Tag Gate
+## Pre-commit Note
 
-Treat any request that combines commit, push, and tag, or asks to publish/cut a
-release, as release work. Before creating or pushing a tag:
+The reliable Black check on this Windows environment is:
 
-- verify the local date with `Get-Date -Format yyyy-MM-dd`;
-- update version metadata (`app_src/__init__.py`, `setup.py`, and the `version`
-  and `date-released` fields in `CITATION.cff`). Both release gates now verify
-  all three, so a stale `CITATION.cff` fails the candidate check rather than
-  reaching a published release. Zenodo scrapes that file when a release is
-  published; a published record's metadata can still be edited without changing
-  its DOI, but only by hand on Zenodo, per record, and correcting the
-  repository file afterwards does not propagate to records already published;
-- update release notes/changelog and user-facing docs when behavior changed;
-- update `work_log.md` with verification and branch/tag state;
-- run the relevant tests/smoke/package checks;
-- only then tag, push, and verify pushed refs.
+```powershell
+$env:PYTHONUTF8='1'; conda run -n sleep_scoring_dash3.0 pre-commit run black --all-files
+```
 
-Use `release_full.ps1` or `release_lightweight.ps1` as the applicable candidate
-gate. Once the gate passes, do not rerun its individual checks unless the
-candidate commit changes.
+If pre-commit cannot write its default cache, point `PRE_COMMIT_HOME` at a
+repo-local ignored directory rather than disabling the hook.
 
-Never write future-dated work-log entries. The current treaty validator rejects
-work-log dates after the workstation date.
+## Project-Specific Reminders
 
-## Documentation Map
-
-- `work_log.md` / `work_log_archive/`: recent implementation history,
-  decisions, verification, and release state. Live log holds at most 5 unique
-  dates; archive the oldest 5-date chunk when needed. Read only the relevant
-  date slice; find headers with
-  `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' work_log.md work_log_archive/`.
-- `next_steps.md`: concrete unfinished work. Remove completed items and add
-  real follow-ups only.
-- `project_overview.md`: codebase map for unfamiliar areas and active-vs-legacy
-  boundaries.
-- `README.md`: user-facing installation, usage, and input-file contracts.
-- `CONTRIBUTING.md`: collaboration workflow, branch/test expectations, and doc
-  conventions.
-
-Update `work_log.md` after substantive sessions: file edits, meaningful
-debugging/validation, technical decisions, branch/release state changes, or
-follow-ups future agents need. Skip casual Q&A and trivial one-off commands.
-
-## Commit Messages
-
-Use a short title line. Add a short body with flat bullets only when a commit
-contains multiple requested changes. Describe high-level behavior, not internal
-implementation details. Do not mention tests/docs/project-memory work unless
-that is the main purpose of the commit.
+- Desktop entrypoint: `run_desktop_app.py`; active runtime package: `app_src/`.
+- Version source of truth: `app_src/__init__.py`; keep `setup.py` and
+  `CITATION.cff` aligned for releases.
+- Windows packaging lives in `packaging/windows/`; full packages use
+  `make_full_app_zip.ps1`, while compatible code-only updates use
+  `make_source_update_asset.ps1`.
+- Startup update logic runs in `run_desktop_app.py` before importing `app_src`.
+  Source runs skip it unless test overrides are set, and only window slot 0
+  checks so `app_src/` is never patched under another running window.
+- Use a full package when dependencies, models, packaging, the launcher, or
+  runtime layout changes; source-update assets may contain only compatible
+  `app_src/` changes.
+- Updater contract: app `sleep_scoring`, version file `app_src/__init__.py`,
+  latest release `https://github.com/yzhaoinuw/sleep_scoring/releases/latest`,
+  asset prefix `sleep_scoring_app_update_`, allowed payload `app_src/`.
+- Update tests use `SLEEP_SCORING_UPDATE_*`, `SLEEP_SCORING_SKIP_UPDATE`, and
+  `SLEEP_SCORING_FORCE_UPDATE_CHECK`.

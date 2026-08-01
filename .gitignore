@@ -17,7 +17,6 @@ scripts/
 user_interface_optimization.txt
 
 # Local generated artifacts and scratch worktrees
-.copier-answers.yml
 .merge_worktrees/
 app_pyinstaller_test.spec
 chatgpt_preview_outputs/

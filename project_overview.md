@@ -1,11 +1,11 @@
-# Sleep Scoring Project Overview
+# Project Overview
 
 This document maps the current GitHub repository and active runtime. End-user
 installation, usage, and input-file instructions belong in
 [README.md](README.md); contribution workflow belongs in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Product and repository boundary
+## What This Repo Is
 
 Sleep Scoring is a Dash application embedded in a native `pywebview` window.
 It can:
@@ -29,7 +29,7 @@ outputs. In particular, these local or generated paths are ignored:
 The packaged Windows distribution contains the runtime files and model
 checkpoints needed by that distribution. See the README for access and setup.
 
-## Runtime flow
+## Active Runtime Path
 
 ```text
 run_desktop_app.py
@@ -50,9 +50,9 @@ Up to three app processes can run side by side. Each claims one port beginning
 at 8050 and receives its own window slot. Only slot 0 checks for packaged
 source updates, so `app_src/` is not replaced while another window is using it.
 
-## Active code map
+### Active Code Map
 
-### Application shell
+#### Application shell
 
 | Path | Responsibility |
 | --- | --- |
@@ -63,7 +63,7 @@ source updates, so `app_src/` is not replaced while another window is using it.
 | [`app_src/session.py`](app_src/session.py) | Recording setup, metadata extraction, cache initialization, recovery, and same-file peer checks |
 | [`app_src/resampling.py`](app_src/resampling.py) | Live resampler-figure store and patch/profiling helpers |
 
-### UI and interaction
+#### UI and interaction
 
 | Path | Responsibility |
 | --- | --- |
@@ -79,7 +79,7 @@ annotation history and recovery state, save results, and prepare video clips.
 For a deeper feature-by-feature explanation, see
 [dash_app_cookbook.md](dash_app_cookbook.md).
 
-### Figure generation
+#### Figure generation
 
 [`app_src/make_figure.py`](app_src/make_figure.py) creates the interactive
 Plotly figure and overlays sleep-score heatmaps. The standard four-row layout
@@ -96,7 +96,7 @@ spectrogram and theta/delta ratio with `scipy.signal.ShortTimeFFT`.
 [`app_src/config.py`](app_src/config.py) holds user-adjustable display and
 inference settings.
 
-### Prediction
+#### Prediction
 
 [`app_src/inference.py`](app_src/inference.py) routes to the backend selected by
 `SLEEP_SCORING_MODEL`:
@@ -118,7 +118,7 @@ definitions and transformer layers. Its checkpoint directory is intentionally
 excluded from GitHub and supplied separately for installations that use
 sDREAMER. The statistical model does not need Torch or checkpoint files.
 
-### Saving and video
+#### Saving and video
 
 [`app_src/postprocessing.py`](app_src/postprocessing.py) converts dense scores
 into contiguous bouts, applies prediction cleanup rules, derives summary
@@ -130,7 +130,7 @@ present.
 video. Generated clips live in ignored per-window subfolders under
 `app_src/assets/videos/`; they are runtime output, not repository content.
 
-## User-data contract
+## User Data Expectations
 
 The app reads `.mat` files created by the
 [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data)
@@ -154,7 +154,7 @@ Runtime data stays local to the user's computer:
 - each desktop-window slot isolates its cache, recovery state, and generated
   clips.
 
-## GitHub-visible structure
+## Repo Structure Map
 
 This map intentionally lists tracked, maintained content rather than every
 folder that may exist in a developer's checkout:
@@ -185,7 +185,50 @@ sleep_scoring/
 |- environment.yml                # portable Conda environment
 ```
 
-## Suggested reading order
+## What Looks Active vs. Legacy
+
+### Active / relevant now
+
+- `run_desktop_app.py`, `app_src/`, `models/sdreamer/`, `tests/`, and
+  `packaging/windows/` are the maintained runtime, model, verification, and
+  distribution surfaces.
+- `README.md`, `CONTRIBUTING.md`, `dash_app_cookbook.md`, and the treaty files
+  are maintained documentation. `paper/` contains the JOSS manuscript source.
+
+### Likely older or secondary
+
+- `archive/` contains superseded application and model experiments retained as
+  historical reference; it is not imported by the supported desktop entrypoint.
+- Ignored local recordings, checkpoints, generated clips, caches, and package
+  outputs are not evidence of an active tracked implementation.
+
+## Authored vs. Derived
+
+### Authored — hand-edit these
+
+- `run_desktop_app.py`, `app_src/`, `models/sdreamer/`, `tests/`,
+  `packaging/windows/`, and the tracked documentation are source material.
+- `app_src/__init__.py` is the application-version source of truth; release
+  preparation keeps `setup.py` and `CITATION.cff` aligned with it.
+
+### Derived or local — regenerate instead
+
+- `build/`, `dist/`, and `release_artifacts/` come from the Windows packaging
+  workflow; do not patch their contents as source.
+- `app_src/assets/videos/`, caches, crash-recovery state, and local spreadsheets
+  are runtime output. sDREAMER checkpoints are supplied separately and remain
+  untracked.
+
+## Tests And Fixtures
+
+- `tests/` contains Python unit, integration, smoke, launcher, and packaging
+  tests. Shared synthetic fixtures live in `tests/conftest.py`.
+- `tests/js/` contains the clientside callback tests and their locked npm test
+  environment.
+- Full and lightweight release gates under `packaging/windows/` exercise the
+  candidate-specific package and artifact contracts beyond the ordinary suite.
+
+## Practical Mental Model
 
 To understand the current product:
 
@@ -205,3 +248,9 @@ To understand the current product:
 Use [packaging/windows/README.md](packaging/windows/README.md) for release
 artifact construction and [CONTRIBUTING.md](CONTRIBUTING.md) for collaboration
 and verification.
+
+## Questions Worth Clarifying Later
+
+`next_steps.md` is the source of truth for open decisions. Current questions
+include confirmation of sDREAMER checkpoint redistribution terms and the
+remaining JOSS authorship, affiliation, acknowledgment, and funding details.
