@@ -17,6 +17,52 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-08-01
 
+### Recover the stuck Zenodo deposit for v0.17.1 (Claude Fable 5)
+
+- The v0.17.1 Zenodo deposit sat on "processing" for over 24 hours because
+  Zenodo's receiver returned 500 on the `published` webhook and never created a
+  record. Redelivering from GitHub cannot fix this: Zenodo keys each event on
+  GitHub's delivery GUID, a redelivery reuses that GUID, and the retry is
+  rejected 409 as a duplicate. Only a new release produces a usable event.
+- Recovered by deleting and recreating the GitHub release rather than cutting a
+  throwaway version. `gh release delete` leaves the tag alone without
+  `--cleanup-tag`, so `v0.17.1` never moved off `54534cd`. Assets were pulled
+  down and checksum-verified first, then re-uploaded to a draft that was
+  published only once complete, so the webhook fired once against a finished
+  release.
+- Zenodo returned **403 on the `published` action and 202 on `released` 180 ms
+  later**, and the record was created. A non-2xx on `published` is therefore not
+  evidence of failure; query the Zenodo API for the record before concluding
+  anything from delivery status codes.
+- Zenodo archives only the GitHub source zipball (344 KB here), never the
+  release assets. The 300 MB of Windows packages are irrelevant to the deposit,
+  so asset size is never a plausible cause of a failed deposit.
+- Adopted the concept DOI as the citation of record, in `CITATION.cff` and as a
+  README badge. It resolves to the newest release, so neither needs editing per
+  release. The release gate accepts the added `doi:` key; it parses the document
+  and checks `version` and `date-released` without rejecting unknown fields.
+- The v0.17.1 release notes claim citation metadata gained the NIH BRAIN
+  acknowledgment, but that text landed only in `README.md` and `paper/paper.md`.
+  CFF 1.2.0 has no funding field, so `CITATION.cff` cannot carry it; funding
+  belongs in a `.zenodo.json` or Zenodo's post-publication edit UI. Left alone
+  deliberately, because a malformed `.zenodo.json` is a documented cause of real
+  deposit failures and was not worth risking during the recovery.
+- Verification:
+  - `gh api .../hooks/659055767/deliveries` showed the original
+    `published` -> 500 and its redelivery -> 409; reading an individual delivery
+    body needs `admin:repo_hook`, which the `repo` token lacks.
+  - `shasum -a 256` on both archives matched the shipped `.sha256.txt` files
+    (`0feb2999...96ab`, `111bae08...35bb`) before and after re-upload; all seven
+    assets returned at byte-identical sizes and the notes body round-tripped
+    unchanged.
+  - `git ls-remote --tags origin v0.17.1` -> `54534cd` before and after;
+    `releases/latest` returned to `v0.17.1`.
+  - Zenodo record 21748495 published with version `v0.17.1`, ORCID, and MIT
+    license; concept DOI `10.5281/zenodo.21748494` resolves to it, and the
+    badge SVG returns 200 `image/svg+xml`.
+  - `validate_citation_metadata(CITATION.cff, "v0.17.1")` passed after the
+    `doi:` addition.
+
 ### Adopt Treaty v0.6.0 as a managed baseline (Codex GPT-5)
 
 - Chose the stable `v0.6.0` tag for project use rather than the post-release

@@ -20,6 +20,9 @@ abstract: >-
   Annotations are written back into the original .mat file, and per-bout and
   per-stage summary statistics are exported to Excel.
 repository-code: "https://github.com/yzhaoinuw/sleep_scoring"
+# Zenodo concept DOI. It resolves to the newest release, so it stays correct
+# without editing; the per-release DOIs are reachable from that record.
+doi: "10.5281/zenodo.21748494"
 license: MIT
 version: 0.17.1
 date-released: "2026-07-30"

@@ -64,6 +64,16 @@ release—as release work. Before creating or pushing a tag:
 - run the applicable tests, smoke checks, and package gate;
 - only then tag, push, and verify pushed refs.
 
+After publishing, confirm Zenodo minted a DOI instead of assuming it did. Query
+`https://zenodo.org/api/records?q=sleep_scoring&all_versions=true` rather than
+reading webhook status codes: Zenodo returns 403 on the `published` action and
+202 on `released`, so a non-2xx there does not mean the deposit failed. A
+deposit genuinely stuck on "processing" cannot be repaired by redelivering the
+webhook—Zenodo rejects the reused delivery GUID with 409—so delete and recreate
+the GitHub release, which keeps the tag unless `--cleanup-tag` is passed. Zenodo
+archives only the source zipball, never release assets. See the 2026-08-01
+work-log entry.
+
 Both release gates reject stale citation metadata. Zenodo reads `CITATION.cff`
 when a release is published; later repository corrections do not propagate to
 an existing Zenodo record. Use `release_full.ps1` or `release_lightweight.ps1`

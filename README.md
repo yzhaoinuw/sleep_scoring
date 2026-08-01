@@ -1,6 +1,7 @@
 # Sleep Scoring
 
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21748494.svg)](https://doi.org/10.5281/zenodo.21748494)
 
 A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
 manually annotating sleep stages, checking aligned video, and optionally
@@ -309,6 +310,11 @@ prediction, while NE-aware sDREAMER expects NE at 10 Hz.
 If you use this app in research, use GitHub's **Cite this repository** button
 or the repository's [CITATION.cff](CITATION.cff) file to obtain an APA or
 BibTeX entry.
+
+Each release is archived on Zenodo. Cite the concept DOI
+[10.5281/zenodo.21748494](https://doi.org/10.5281/zenodo.21748494), which
+resolves to the newest release; use a release's own DOI only when you need to
+pin the exact version you ran.
 
 A JOSS paper is in preparation in [paper/paper.md](paper/paper.md). Once it is
 published, please cite the paper instead.

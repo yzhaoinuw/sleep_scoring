@@ -10,6 +10,9 @@ in `project_overview.md` and `dash_app_cookbook.md`.
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
+- Optionally add the NIH BRAIN award (U19NS128613) to Zenodo record 21748495
+  through Zenodo's edit UI, and correct the v0.17.1 release notes, which claim
+  the acknowledgment reached `CITATION.cff` when CFF 1.2.0 has no funding field.
 
 ## Lightweight Source Releases
 
