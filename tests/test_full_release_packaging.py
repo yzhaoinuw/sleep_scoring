@@ -36,8 +36,8 @@ def _write_candidate(
         f'setup(\n    version="{setup_version}",\n)\n',
         encoding="utf-8",
     )
-    (tmp_path / "change_log.txt").write_text(
-        f"#### {app_version}\n1. Candidate.\n",
+    (tmp_path / "CHANGELOG.md").write_text(
+        f"## {app_version}\n\n- Candidate.\n",
         encoding="utf-8",
     )
     (tmp_path / "requirements.txt").write_text(
@@ -157,7 +157,10 @@ def test_citation_check_reads_top_level_keys_not_cited_works(tmp_path):
 
 def test_full_candidate_requires_changelog_heading(tmp_path):
     _write_candidate(tmp_path)
-    (tmp_path / "change_log.txt").write_text("#### v0.16.9\n1. Previous.\n", encoding="utf-8")
+    (tmp_path / "CHANGELOG.md").write_text(
+        "## v0.16.9\n\n- Previous.\n",
+        encoding="utf-8",
+    )
 
     with pytest.raises(FULL_RELEASE.FullReleaseError, match="release heading"):
         FULL_RELEASE.validate_full_candidate(tmp_path)

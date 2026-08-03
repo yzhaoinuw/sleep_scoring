@@ -120,9 +120,9 @@ def validate_full_candidate(repo: Path) -> tuple[str, str]:
         app_version,
     )
 
-    changelog = (repo / "change_log.txt").read_text(encoding="utf-8")
-    if not re.search(rf"(?m)^#### {re.escape(app_version)}[ \t]*$", changelog):
-        raise FullReleaseError(f"change_log.txt has no {app_version} release heading")
+    changelog = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
+    if not re.search(rf"(?m)^## {re.escape(app_version)}[ \t]*$", changelog):
+        raise FullReleaseError(f"CHANGELOG.md has no {app_version} release heading")
 
     config_source = (repo / "app_src" / "config.py").read_text(encoding="utf-8")
     if not _has_assignment(config_source, "STAGE_COLORS"):

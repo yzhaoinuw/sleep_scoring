@@ -15,6 +15,25 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-08-03
+
+### Make the changelog user-facing (Codex GPT-5)
+
+- Renamed `change_log.txt` to the conventional `CHANGELOG.md` and updated the
+  full-release gate and its tests to use the new path and Markdown headings.
+- Rewrote the release history around observable app behavior, configuration
+  choices, upgrade requirements, and corrected outputs. Removed framework,
+  callback, metadata, logging, and packaging-implementation notes that belong
+  in this work log rather than public release notes.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest
+    tests/test_full_release_packaging.py --basetemp .pytest_tmp/changelog
+    -p no:cacheprovider -q` -> 16 passed.
+  - `conda run -n sleep_scoring_dash3.0 python
+    packaging/windows/full_release.py` -> validated `v0.17.1` and the pinned
+    updater commit.
+  - `treaty validate .` passed; `git diff --check` passed.
+
 ## 2026-08-01
 
 ### Recover the stuck Zenodo deposit for v0.17.1 (Claude Fable 5)
