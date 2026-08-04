@@ -203,6 +203,12 @@ In annotation mode:
 - Use **Undo Annotation** below the graph to undo the most recent annotation.
 
 ### Check Aligned Video
+<!-- To render this as an inline player, drag
+     media/sleep_scoring_check_video_demo.mp4 into any GitHub issue or pull
+     request comment, then replace the link below with the resulting
+     https://github.com/user-attachments/assets/... URL on its own line. -->
+
+https://github.com/user-attachments/assets/2a650d69-95f0-4b25-af85-3000641ae304
 
 In annotation mode, select a region shorter than 300 seconds and click
 **Check Video** above the graph.
@@ -212,14 +218,13 @@ the matching `.avi` file. If the video was found during
 [preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data),
 the app displays that saved path to help you find it.
 
+### Generate Automatic Scores
 <!-- To render this as an inline player, drag
-     media/sleep_scoring_check_video_demo.mp4 into any GitHub issue or pull
+     media/sleep_scoring_auto_scores_demo.mp4 into any GitHub issue or pull
      request comment, then replace the link below with the resulting
      https://github.com/user-attachments/assets/... URL on its own line. -->
 
-[Watch checking aligned video](media/sleep_scoring_check_video_demo.mp4) (17 s, captioned, no audio)
-
-### Generate Automatic Scores
+https://github.com/user-attachments/assets/47ba95ca-c7aa-49fd-bf25-659e290bbdb4
 
 Choose the backend in `app_src/config.py`:
 
@@ -237,13 +242,6 @@ settings are also in `app_src/config.py`:
 After [setting up sDREAMER](#optional-sdreamer-setup), switch to annotation
 mode and click **Generate Predictions**. Prediction runs in the background;
 when it finishes, you can correct the result manually or undo it.
-
-<!-- To render this as an inline player, drag
-     media/sleep_scoring_auto_scores_demo.mp4 into any GitHub issue or pull
-     request comment, then replace the link below with the resulting
-     https://github.com/user-attachments/assets/... URL on its own line. -->
-
-[Watch automatic scoring](media/sleep_scoring_auto_scores_demo.mp4) (9 s, captioned, no audio)
 
 ### Save Sleep Scores
 
