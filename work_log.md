@@ -17,6 +17,37 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-08-04
 
+### Turn the demo builder into a reusable tool (Claude Opus 5)
+
+- Maintainer's call, made once all three players were embedded from
+  `user-attachments` URLs: stop tracking the mp4s. GitHub hosts them, so the
+  repository copies were pure weight (~9 MB). The GIF stays tracked because the
+  README references it by relative path. `*.mp4` is globally ignored again —
+  the `!media/*.mp4` exception is gone.
+- Restructured so re-recording does not mean editing Python. `media/demos.toml`
+  holds each demo's source, crop, kept segments, frozen tail, and caption cues;
+  `media/build_demo.py` holds no demo-specific data. `media/README.md` carries
+  the workflow.
+- Added `build_demo.py inspect RECORDING`, which probes a file, auto-detects
+  the app-window crop with `cropdetect`, and writes a timestamped contact
+  sheet. This was the ad-hoc step used to find every caption cue and to catch
+  every caption bug, so it is now part of the tool rather than a throwaway.
+  Verified it detects `2880:1806:112:76` on `check_video_demo.mov` unaided.
+- Recorded the cause of the "idle" stretch in the video demo, which the
+  maintainer diagnosed: the capture was scoped to the app window, so the macOS
+  file picker — a separate window — was never recorded. `media/README.md` tells
+  the next person to capture full-screen for any demo that opens a system
+  dialog, and to drop the cut if that demo is re-recorded.
+- Verification:
+  - Regression on both output paths through the rewritten tool: the annotation
+    GIF rebuilt to sha256
+    `62fe98077103413bf0ee590a41f4dabcc7df40930cc1e355269b5baa865a40f1` and the
+    auto-scoring mp4 to
+    `0e2c63a4808e2396b9fbf48ef776851eb910229ae41a9105b1aec3c342b6c3b7`, both
+    byte-identical to the files built before the refactor.
+  - `inspect` run end to end on a raw recording and its contact sheet read.
+  - `python -m black media/build_demo.py`, `git diff --check` clean.
+
 ### Add the video and automatic-scoring demos (Claude Opus 5)
 
 - `build_demo.py` now declares each demo in a `DEMOS` table — source recording,

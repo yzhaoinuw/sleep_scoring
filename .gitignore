@@ -31,10 +31,10 @@ sleep_scoring_app_data/
 # Generated or demo video assets
 *.mp4
 app_src/assets/videos/
-# except the documentation assets committed for the README
-!media/*.mp4
-# caption strips scratch dirs written by media/build_demo.py
-.strips_*/
+# scratch written by media/build_demo.py; see media/README.md
+media/.strips_*/
+media/.inspect_frames/
+media/inspect_sheet.png
 
 # Node (JS test harness in tests/js/)
 node_modules/

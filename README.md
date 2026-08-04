@@ -149,10 +149,6 @@ app.
   resource-heavy applications.
 
 ## Use The App
-<!-- To render this as an inline player, drag media/sleep_scoring_demo.mp4 into
-     any GitHub issue or pull request comment, then replace the link below with
-     the resulting https://github.com/user-attachments/assets/... URL on its own
-     line. GitHub strips <video> tags, so a repository path cannot autoplay. -->
 
 https://github.com/user-attachments/assets/45c5a132-65fc-4a74-9f94-5ffeadcf5799
 
@@ -203,10 +199,6 @@ In annotation mode:
 - Use **Undo Annotation** below the graph to undo the most recent annotation.
 
 ### Check Aligned Video
-<!-- To render this as an inline player, drag
-     media/sleep_scoring_check_video_demo.mp4 into any GitHub issue or pull
-     request comment, then replace the link below with the resulting
-     https://github.com/user-attachments/assets/... URL on its own line. -->
 
 https://github.com/user-attachments/assets/2a650d69-95f0-4b25-af85-3000641ae304
 
@@ -219,10 +211,6 @@ the matching `.avi` file. If the video was found during
 the app displays that saved path to help you find it.
 
 ### Generate Automatic Scores
-<!-- To render this as an inline player, drag
-     media/sleep_scoring_auto_scores_demo.mp4 into any GitHub issue or pull
-     request comment, then replace the link below with the resulting
-     https://github.com/user-attachments/assets/... URL on its own line. -->
 
 https://github.com/user-attachments/assets/47ba95ca-c7aa-49fd-bf25-659e290bbdb4
 
@@ -324,6 +312,8 @@ prediction, while NE-aware sDREAMER expects NE at 10 Hz.
   implementation recipes
 - [packaging/windows/README.md](packaging/windows/README.md): Windows release
   packaging and update assets
+- [media/README.md](media/README.md): recording and rebuilding the demo clips
+  on this page
 
 ## Citation
 
