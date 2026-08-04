@@ -17,6 +17,43 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-08-04
 
+### Add the video and automatic-scoring demos (Claude Opus 5)
+
+- `build_demo.py` now declares each demo in a `DEMOS` table — source recording,
+  the source ranges to keep and at what speed, an optional frozen tail, and
+  caption cues in source time — instead of taking one recording's worth of
+  geometry on the command line. All three recordings share the same window
+  position, so `CROP` stays global.
+- Both new recordings needed pacing repair rather than plain captions.
+  `check_video_demo.mov` holds a frozen file-picker dialog from 4.3 s to 10.3 s
+  while the `.avi` is chosen in Finder, which the screen capture never shows;
+  that range is dropped, taking the clip from 23.0 s to 17.0 s. The cut is
+  invisible because the dialog is motionless across it.
+  `generate_automatic_scores.mov` stops 0.5 s after the scored trace appears,
+  so a 2.5 s `tpad=stop_mode=clone` tail holds the payoff frame long enough to
+  read the final caption.
+- Bug found by frame inspection, worth knowing if the table grows: `remap` used
+  to clamp any timestamp past the last kept segment to the total duration, so
+  the auto-scoring payoff caption collapsed from 2.7 s to 0.4 s and never
+  became visible through its fade. Time past the final segment now advances at
+  1x so captions can sit over a frozen tail.
+- The annotation GIF lead-in (0 s to the mode switch at 5.95 s) now plays at
+  1.5x, on the maintainer's call that the navigation-only opening risked losing
+  impatient readers. 45.0 s to 43.0 s, 4.5 MB to 4.2 MB. The mp4 was
+  deliberately left at 1x. Caption cues stay in source time and are remapped,
+  so the table still reads against the original recording.
+- Verification:
+  - Regression: rebuilding the annotation GIF through the refactored table
+    reproduced the installed file byte-for-byte (sha256
+    `62fe98077103413bf0ee590a41f4dabcc7df40930cc1e355269b5baa865a40f1`), before
+    and after the `remap` fix.
+  - Contact sheets from the rendered outputs — 13 frames across the sped-up
+    GIF, 6 across `check_video`, 4 across `auto_scores` — confirm every caption
+    matches what is on screen and that the dropped dialog range reads as
+    continuous.
+  - `ffprobe` durations: 43.0 s GIF (430 frames, infinite loop), 17.0 s
+    `check_video` (1.9 MB), 8.5 s `auto_scores` (0.97 MB).
+
 ### Add the captioned annotation demo to the README (Claude Opus 5)
 
 - Source recording: `sleep_scoring_app_annotation_demo.mov`, 3104x2030, 45.0 s,

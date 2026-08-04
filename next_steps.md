@@ -6,12 +6,12 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Finish the README demo embed on `readme-makeover`: drag
-  `media/sleep_scoring_demo.mp4` into a GitHub issue or PR comment and replace
-  the placeholder link under "Use The App" with the resulting
-  `user-attachments` URL, then decide whether the two older clips under
-  "Navigate And Zoom" and "Annotate Sleep Stages" still earn their place now
-  that one captioned walkthrough covers both.
+- Finish the README demo embeds on `readme-makeover`: the main walkthrough
+  under "Use The App" is already an inline player, so repeat that swap for
+  `media/sleep_scoring_check_video_demo.mp4` under "Check Aligned Video" and
+  `media/sleep_scoring_auto_scores_demo.mp4` under "Generate Automatic Scores"
+  — drag each into a GitHub issue or PR comment and replace the placeholder
+  link with the resulting `user-attachments` URL.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.

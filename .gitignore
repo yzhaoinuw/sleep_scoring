@@ -33,6 +33,8 @@ sleep_scoring_app_data/
 app_src/assets/videos/
 # except the documentation assets committed for the README
 !media/*.mp4
+# caption strips scratch dirs written by media/build_demo.py
+.strips_*/
 
 # Node (JS test harness in tests/js/)
 node_modules/
