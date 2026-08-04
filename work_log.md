@@ -17,6 +17,79 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-08-03
 
+### Fix intermittent right-click bout selection (Claude Opus 5)
+
+- Root cause, ported back from the cookbook template where it was first found:
+  Plotly's `dragElement.onDone` calls `clickFn` unconditionally — its
+  right-click flag only suppresses a synthetic `click` re-dispatch (confirmed
+  in the bundled `plotly.min.js`). So a right-click reached Plotly's drag layer
+  and landed a `plotly_click` in `clickData` on mouseup, and
+  `read_click_select` overwrote the bout box with its 0.5%-of-view strip. Both
+  callbacks also write `video-button.style`, so the video button's visibility
+  flipped with the race.
+- Why it looked intermittent rather than broken: Plotly emits the click only
+  when it has live hover data, and skips `clickFn` entirely when the press
+  jittered past the drag threshold. On macOS `contextmenu` fires on mouse
+  *down*, so when the click did fire it always arrived last and won.
+- Decision: fix at the source rather than by ordering or debouncing the two
+  callbacks. `graphContextMenu.js` swallows the right-button press in the
+  capture phase, the same way `annotationAutoPan.js` already swallows the
+  left-button one. `stopPropagation` only — `preventDefault` on `mousedown`
+  cancels `contextmenu` in WebKit, which is the event the feature runs on.
+- Same class of bug for ctrl+left-click, the macOS secondary click:
+  `beginDrag` now ignores ctrl-held presses, which otherwise dispatched a
+  `kind: "click"` selection on pointerup that replaced the bout the right-click
+  had just selected. That one failed every time, not intermittently.
+- Ctrl+click is inherited, not a designed gesture. The feature binds to
+  `contextmenu`, not to `button === 2`, and macOS raises `contextmenu` for both
+  a real right-click and ctrl+left-click, so the gesture has worked since the
+  feature was written. Ctrl+left is still a `button === 0` press, though, so
+  `annotationAutoPan`'s ordinary left-click path ran alongside it and undid the
+  selection; the guards suppress that second path rather than adding support.
+  Consequence on the shipping platform: Windows does not raise `contextmenu` on
+  ctrl+click, so ctrl+left selects no bout there and now does nothing on the
+  graph instead of selecting the click strip. That matches
+  `graphCustomPointerPan.js:74`, which already treats any held modifier as not
+  its gesture.
+- Eligible for the next lightweight source-update release, not shipped by this
+  branch — `app_src/`-only, no `config.py` change, so manifest schema 1 and no
+  new full Windows package. Confirmed the served assets are the patchable
+  side-by-side copy: `app_src/server.py` builds `Dash(__name__)`, so Flask's
+  root path is `<exe dir>/app_src` and the assets folder is
+  `<exe dir>/app_src/assets`, which is what `lightweight_release.py` replaces.
+  Its gate is wider than the `.lock`/`.spec` suffixes: `BLOCKED_PATH_NAMES`
+  also blocks `app.spec`, `environment.yml`, `poetry.lock`, `pyproject.toml`,
+  `requirements.txt`, `run_desktop_app.py`, `setup.cfg`, and
+  `unblock_app.cmd`; `BLOCKED_PATH_PREFIXES` blocks `.worktrees/`, `archive/`,
+  `build/`, `cache/`, `data/`, `dist/`, `models/`, and
+  `packaging/windows/release_helpers/`; and `changed_runtime_paths` rejects any
+  runtime change that is not a plain add or modify, so deletions and renames
+  need a full package. This diff is two `app_src/assets/*.js` modifications and
+  clears all of it.
+  The `_internal/assets` copy from `app.spec:26` is not what Dash serves —
+  nothing in the tree reads `sys._MEIPASS` — so it looks vestigial; worth a
+  look next time packaging is open.
+- The already-published v0.17.1 does not contain this fix; it needs the next
+  patch release to reach users.
+- CHANGELOG entry deliberately not added here — this branch is not a release,
+  and the file is organized by published version.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest -q` -> 173 passed,
+    2 skipped.
+  - `npm test` in `tests/js` -> 38 passed.
+  - `node --check` on both edited assets; `git diff --check` clean.
+  - Gesture verified by hand in this app on macOS: right-clicking a bout selects
+    the whole bout, with no fallback to the thin single-click strip. Ctrl+left
+    verified the same way. Also verified by hand in the cookbook template, which
+    carries identical code.
+  - Trackpad caveat, not an app behavior: on this Mac only the bottom-right
+    corner registers as a secondary click; presses elsewhere on the right half
+    arrive as a plain left click and correctly select the click strip. That is
+    the macOS "Secondary click" trackpad setting, so a user who has it on
+    "Click in bottom right corner" must hit that corner. Reviewers reproducing
+    the gesture should either use that corner, a two-finger click, or a real
+    mouse.
+
 ### Make the changelog user-facing (Codex GPT-5)
 
 - Renamed `change_log.txt` to the conventional `CHANGELOG.md` and updated the
