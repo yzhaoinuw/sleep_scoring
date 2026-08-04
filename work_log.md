@@ -15,6 +15,47 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-08-04
+
+### Add the captioned annotation demo to the README (Claude Opus 5)
+
+- Source recording: `sleep_scoring_app_annotation_demo.mov`, 3104x2030, 45.0 s,
+  variable frame rate (~31.8 fps average despite a 60 fps nominal rate), no
+  audio track. `cropdetect` puts the app window at `crop=2880:1806:112:76`; the
+  rest is desktop background and window shadow.
+- Reusable environment fact: the Homebrew ffmpeg 8.0.1 on this Mac is built
+  without libfreetype, so **`drawtext` does not exist** and any filter graph
+  using it fails with `No such filter`. `media/build_demo.py` works around this
+  by rendering each caption as a transparent PNG strip with PIL and compositing
+  it with `overlay`. Do not reach for `drawtext` here without checking
+  `ffmpeg -filters` first.
+- Trap worth remembering: caption strips are fed in with `-loop 1`, which makes
+  them infinite inputs. `-shortest` does not bound a single-output-stream
+  encode, so the first render ran past 45 s and reached 88 MB before it was
+  killed. The fix is `shortest=1` on every `overlay` plus an explicit `-t`.
+- Captions sit in a padded band below the frame rather than over the plots, so
+  the app's own status bar ("You selected bout ...") stays readable. Eight cues
+  at the timings the maintainer supplied, each extended into the following idle
+  gap so no caption is on screen for less than ~1.5 s.
+- Decision on formats: GIF at 720 px / 10 fps / 64 colors (4.5 MB) for the
+  README hero, mp4 at 1920 px / CRF 23 (6.1 MB) for the walkthrough link. The
+  10 MB ceiling is GitHub's drag-and-drop upload limit. Measured alternatives:
+  800 px / 12 fps GIF was 7.7 MB, 640 px / 8 fps was 3.4 MB; the mp4 at 1280 px
+  / CRF 30 was only 2.0 MB, so there was ample headroom to raise resolution.
+- GitHub's markdown sanitizer strips `<video>`, so a repository-relative mp4
+  path cannot render an inline player. Only a `user-attachments` URL produced by
+  dragging the file into an issue or PR comment does — which is what the two
+  existing clips in "Use The App" already use. The README carries a link plus an
+  HTML comment describing the swap; the GIF needs no such step because `<img>`
+  with a relative path is allowed.
+- Verification:
+  - `ffprobe` on the source for the crop, duration, and frame-rate figures.
+  - Contact sheet of 13 frames sampled from the rendered mp4 at 1.5, 4.5, 6.7,
+    9, 11.5, 15, 19, 22, 24.5, 28, 33, 38, and 43 s: every caption matches the
+    gesture on screen, and the idle stretches are correctly uncaptioned.
+  - `python -m black media/build_demo.py` (reformatted), `--dry-run` smoke test
+    of the script, `git diff --check` clean.
+
 ## 2026-08-03
 
 ### Fix intermittent right-click bout selection (Claude Opus 5)

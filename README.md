@@ -7,6 +7,11 @@ A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
 manually annotating sleep stages, checking aligned video, and optionally
 generating automatic sleep scores.
 
+<p align="center">
+  <img src="media/sleep_scoring_demo.gif" width="720"
+       alt="Zooming, panning, and annotating sleep stages in the Sleep Scoring app">
+</p>
+
 ## Contents
 
 - [Install](#install)
@@ -144,6 +149,16 @@ app.
   resource-heavy applications.
 
 ## Use The App
+
+The walkthrough below covers navigation and every annotation gesture described
+in this section, in one pass and at full resolution.
+
+<!-- To render this as an inline player, drag media/sleep_scoring_demo.mp4 into
+     any GitHub issue or pull request comment, then replace the link below with
+     the resulting https://github.com/user-attachments/assets/... URL on its own
+     line. GitHub strips <video> tags, so a repository path cannot autoplay. -->
+
+[Watch the annotation walkthrough](media/sleep_scoring_demo.mp4) (45 s, captioned, no audio)
 
 ### Start The App And Open A Recording
 

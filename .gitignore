@@ -31,6 +31,8 @@ sleep_scoring_app_data/
 # Generated or demo video assets
 *.mp4
 app_src/assets/videos/
+# except the documentation assets committed for the README
+!media/*.mp4
 
 # Node (JS test harness in tests/js/)
 node_modules/
