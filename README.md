@@ -1,7 +1,7 @@
 # Sleep Scoring
 
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21748494.svg)](https://doi.org/10.5281/zenodo.21748494)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21748494-blue.svg)](https://doi.org/10.5281/zenodo.21748494)
 
 A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
 manually annotating sleep stages, checking aligned video, and optionally
