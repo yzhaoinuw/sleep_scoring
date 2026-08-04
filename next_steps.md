@@ -32,6 +32,14 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 - Make the normalized full-path MAT-to-video association and collision-proof
   generated-clip identity the next lightweight patch, with regression tests
   for identical MAT and video basenames in different folders.
+- Include the right-click bout-selection fix (`fix/right-click-segment-selection`,
+  `app_src/assets/graphContextMenu.js` and `annotationAutoPan.js`) in that same
+  lightweight patch, and give it a CHANGELOG entry under the release that ships
+  it. The published v0.17.1 does not contain it.
+- While packaging is open, check whether the `_internal/assets` copy produced by
+  `app.spec:26` is vestigial. Dash serves `<exe dir>/app_src/assets`, and
+  nothing in the tree reads `sys._MEIPASS`, so the bundled copy appears to be
+  dead weight that a lightweight update never patches.
 - Cut a new full base only when the frozen/package boundary changes or when a
   deliberate periodic roll-up is useful.
 
@@ -63,18 +71,16 @@ Status: planning only; keep separate from the v0.17 updater/package work.
 
 ## Citation And Publication
 
-### Zenodo Archive DOI (current priority)
+### Zenodo Archive DOI
 
-`CITATION.cff` is ready for v0.17.1: it carries an abstract and cites the
-upstream sDREAMER model. Remaining steps, in order:
+Done as of v0.17.1: the release is archived, concept DOI
+`10.5281/zenodo.21748494` is in the README badge and `CITATION.cff`, and the
+v0.17.1 version DOI is `10.5281/zenodo.21748495`. Later releases inherit this
+setup and need no DOI work. Remaining:
 
 - Confirm with the PI and UR Ventures that the adapted `models/sdreamer/` code
   may be redistributed under MIT. `NOTICE` now carries the confirmed NIH grant
   number; its redistribution statement is the remaining assertion to confirm.
-- Publish the prepared v0.17.1 full release now that the repository is enabled
-  in Zenodo, then verify that Zenodo creates the expected version record.
-- Put the resulting concept DOI (not the version DOI) in the README badge and
-  in `CITATION.cff`.
 
 ### JOSS Paper (under construction, deferred)
 
@@ -104,7 +110,6 @@ See `paper/README.md` for its status. Open items:
 
 - Make figure height responsive so top-bottom tiled windows do not require
   vertical scrolling without making the four subplots unreadably cramped.
-- Revisit explicit full-bout selection with a right-click/context-menu gesture.
 - Consider precomputed downsample tiers only if on-demand resampling becomes a
   bottleneck again.
 - Consider an installer and code signing once the zip workflow is routine and

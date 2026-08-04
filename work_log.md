@@ -40,12 +40,32 @@ search older entries by date anchor rather than reading every archive.
   `beginDrag` now ignores ctrl-held presses, which otherwise dispatched a
   `kind: "click"` selection on pointerup that replaced the bout the right-click
   had just selected. That one failed every time, not intermittently.
-- Ships through the lightweight source-update path — `app_src/`-only, no
-  `config.py` change, so manifest schema 1 and no new full Windows package.
-  Confirmed the served assets are the patchable side-by-side copy:
-  `app_src/server.py` builds `Dash(__name__)`, so Flask's root path is
-  `<exe dir>/app_src` and the assets folder is `<exe dir>/app_src/assets`, which
-  is what `lightweight_release.py` replaces (it blocks only `.lock`/`.spec`).
+- Ctrl+click is inherited, not a designed gesture. The feature binds to
+  `contextmenu`, not to `button === 2`, and macOS raises `contextmenu` for both
+  a real right-click and ctrl+left-click, so the gesture has worked since the
+  feature was written. Ctrl+left is still a `button === 0` press, though, so
+  `annotationAutoPan`'s ordinary left-click path ran alongside it and undid the
+  selection; the guards suppress that second path rather than adding support.
+  Consequence on the shipping platform: Windows does not raise `contextmenu` on
+  ctrl+click, so ctrl+left selects no bout there and now does nothing on the
+  graph instead of selecting the click strip. That matches
+  `graphCustomPointerPan.js:74`, which already treats any held modifier as not
+  its gesture.
+- Eligible for the next lightweight source-update release, not shipped by this
+  branch — `app_src/`-only, no `config.py` change, so manifest schema 1 and no
+  new full Windows package. Confirmed the served assets are the patchable
+  side-by-side copy: `app_src/server.py` builds `Dash(__name__)`, so Flask's
+  root path is `<exe dir>/app_src` and the assets folder is
+  `<exe dir>/app_src/assets`, which is what `lightweight_release.py` replaces.
+  Its gate is wider than the `.lock`/`.spec` suffixes: `BLOCKED_PATH_NAMES`
+  also blocks `app.spec`, `environment.yml`, `poetry.lock`, `pyproject.toml`,
+  `requirements.txt`, `run_desktop_app.py`, `setup.cfg`, and
+  `unblock_app.cmd`; `BLOCKED_PATH_PREFIXES` blocks `.worktrees/`, `archive/`,
+  `build/`, `cache/`, `data/`, `dist/`, `models/`, and
+  `packaging/windows/release_helpers/`; and `changed_runtime_paths` rejects any
+  runtime change that is not a plain add or modify, so deletions and renames
+  need a full package. This diff is two `app_src/assets/*.js` modifications and
+  clears all of it.
   The `_internal/assets` copy from `app.spec:26` is not what Dash serves —
   nothing in the tree reads `sys._MEIPASS` — so it looks vestigial; worth a
   look next time packaging is open.
@@ -58,8 +78,17 @@ search older entries by date anchor rather than reading every archive.
     2 skipped.
   - `npm test` in `tests/js` -> 38 passed.
   - `node --check` on both edited assets; `git diff --check` clean.
-  - Gesture itself verified by hand in the cookbook template, which carries the
-    identical code; not yet exercised by hand in this app.
+  - Gesture verified by hand in this app on macOS: right-clicking a bout selects
+    the whole bout, with no fallback to the thin single-click strip. Ctrl+left
+    verified the same way. Also verified by hand in the cookbook template, which
+    carries identical code.
+  - Trackpad caveat, not an app behavior: on this Mac only the bottom-right
+    corner registers as a secondary click; presses elsewhere on the right half
+    arrive as a plain left click and correctly select the click strip. That is
+    the macOS "Secondary click" trackpad setting, so a user who has it on
+    "Click in bottom right corner" must hit that corner. Reviewers reproducing
+    the gesture should either use that corner, a two-finger click, or a real
+    mouse.
 
 ### Make the changelog user-facing (Codex GPT-5)
 
