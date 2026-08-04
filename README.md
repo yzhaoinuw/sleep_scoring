@@ -3,14 +3,14 @@
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21748494-blue.svg)](https://doi.org/10.5281/zenodo.21748494)
 
-A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
-manually annotating sleep stages, checking aligned video, and optionally
-generating automatic sleep scores.
-
 <p align="center">
   <img src="media/sleep_scoring_demo.gif" width="720"
        alt="Zooming, panning, and annotating sleep stages in the Sleep Scoring app">
 </p>
+
+A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
+manually annotating sleep stages, checking aligned video, and optionally
+generating automatic sleep scores.
 
 ## Contents
 
@@ -149,16 +149,15 @@ app.
   resource-heavy applications.
 
 ## Use The App
-
-The walkthrough below covers navigation and every annotation gesture described
-in this section, in one pass and at full resolution.
-
 <!-- To render this as an inline player, drag media/sleep_scoring_demo.mp4 into
      any GitHub issue or pull request comment, then replace the link below with
      the resulting https://github.com/user-attachments/assets/... URL on its own
      line. GitHub strips <video> tags, so a repository path cannot autoplay. -->
 
-[Watch the annotation walkthrough](media/sleep_scoring_demo.mp4) (45 s, captioned, no audio)
+https://github.com/user-attachments/assets/45c5a132-65fc-4a74-9f94-5ffeadcf5799
+
+The walkthrough below covers navigation and every annotation gesture described
+in this section, in one pass and at full resolution.
 
 ### Start The App And Open A Recording
 
@@ -190,8 +189,6 @@ Every newly opened recording starts in navigation mode.
 The spectrogram Y-axis is fixed. The NE Y-axis is adjustable by default; set
 `FIX_NE_Y_RANGE = True` in `app_src/config.py` if you want to lock it.
 
-https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
-
 ### Annotate Sleep Stages
 
 In annotation mode:
@@ -205,8 +202,6 @@ In annotation mode:
 - Select an existing annotation and assign a new score to overwrite it.
 - Use **Undo Annotation** below the graph to undo the most recent annotation.
 
-https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
-
 ### Check Aligned Video
 
 In annotation mode, select a region shorter than 300 seconds and click
@@ -214,7 +209,7 @@ In annotation mode, select a region shorter than 300 seconds and click
 
 The first time you check video for a recording, the app may ask you to locate
 the matching `.avi` file. If the video was found during
-[preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data/tree/dev),
+[preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data),
 the app displays that saved path to help you find it.
 
 ### Generate Automatic Scores
@@ -252,8 +247,6 @@ retained in the `Sleep_bouts` sheet and included in the `Sleep_stats` summary.
 Automatic scoring may leave a few seconds unscored at the end because of the
 model's input sequence length. Score that remainder manually before exporting
 the Excel summary.
-
-https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
 
 ### Use Multiple Windows And Crash Recovery
 
