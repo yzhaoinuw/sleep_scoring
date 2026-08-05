@@ -9,8 +9,8 @@
 </p>
 
 A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
-manually annotating sleep stages, checking aligned video, and optionally
-generating automatic sleep scores.
+manually annotating sleep scores (also known as sleep stages), checking aligned 
+video, and optionally generating automatic sleep scores.
 
 ## Contents
 
@@ -157,18 +157,19 @@ in this section, in one pass and at full resolution.
 
 ### Start The App And Open A Recording
 
-- **Packaged Windows app:** double-click `unblock_app.cmd` or
-  `run_desktop_app.exe`.
+- **Packaged Windows app:** First time running the app after download,
+  you must double-click `unblock_app.cmd` to run the app, which unblocks
+  the app from Windows down the line. In the future you can double-click
+  `run_desktop_app.exe` to open the app.
 - **Source installation:** activate the Conda environment and run
   `python run_desktop_app.py`.
 
-Select a `.mat` file to visualize its EEG, EMG, and optional NE signals. The
-app has two interaction modes:
+Select a `.mat` file to visualize its EEG, EMG, and NE (if exists) signals. 
 
+### Switch Between Modes
+The app has two interaction modes. Press <kbd>M</kbd> to switch between:
 - **Navigation mode:** pan and zoom the plots.
-- **Annotation mode:** select time ranges and assign sleep stages.
-
-Press <kbd>M</kbd> to switch modes.
+- **Annotation mode:** select time ranges and assign sleep scores.
 
 ### Navigate And Zoom
 
@@ -178,24 +179,23 @@ Every newly opened recording starts in navigation mode.
   arrow keys.
 - Drag vertically on the EEG or EMG plot to pan its Y-axis.
 - Scroll over a plot to zoom.
-- Scroll over the spectrogram or NE plot to zoom only the X-axis.
+- Scroll over the spectrogram to zoom only the X-axis.
 - Scroll just to the left of a Y-axis to zoom only that axis.
 - Use **Reset Axes** in the graph's upper-right mode bar to restore the view.
 
 The spectrogram Y-axis is fixed. The NE Y-axis is adjustable by default; set
 `FIX_NE_Y_RANGE = True` in `app_src/config.py` if you want to lock it.
 
-### Annotate Sleep Stages
+### Annotate Sleep Scores
 
 In annotation mode:
 
-- Click a region, then press <kbd>1</kbd> for Wake, <kbd>2</kbd> for NREM,
-  <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
-- Drag to select a wider region. Dragging beyond the visible edge auto-pans the
+- Click to select a thin strip, then press <kbd>1</kbd> for Wake, <kbd>2</kbd>
+for NREM, <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
+- Drag and draw a box to select a region. Dragging beyond the visible edge auto-pans the
   graph so you can continue the selection.
 - Right-click inside a scored or unscored segment to select that entire
   contiguous segment.
-- Select an existing annotation and assign a new score to overwrite it.
 - Use **Undo Annotation** below the graph to undo the most recent annotation.
 
 ### Check Aligned Video
@@ -233,16 +233,13 @@ when it finishes, you can correct the result manually or undo it.
 
 ### Save Sleep Scores
 
-Click **Save Annotations** below the graph. A native Save dialog opens with the
-current `.mat` filename suggested. The app writes to the destination you
-choose; it replaces the original recording only if you select that file and
-confirm the replacement.
+Click **Save Annotations** below the graph to the left. Choose the save path
+for the `.mat` file in the Save dialog window.
 
 If any recording segment remains unscored, the app reports the first unscored
 range as `[start, end] (duration s)`, even if you cancel the save dialog. Once
 the recording is completely scored, the app also offers to export sleep bouts
-and summary statistics to an Excel file. Manually scored microarousals are
-retained in the `Sleep_bouts` sheet and included in the `Sleep_stats` summary.
+and summary statistics to an Excel file. 
 
 Automatic scoring may leave a few seconds unscored at the end because of the
 model's input sequence length. Score that remainder manually before exporting
