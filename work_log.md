@@ -17,6 +17,35 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-08-04
 
+### Restructure the README around what users need (Claude Opus 5)
+
+- Maintainer's directive: keep it minimal enough that someone actually reads
+  the section they need. Over-explanation is the defect to hunt, and secondary
+  material does not belong in Install. 1824 to 1411 words; Install from 117
+  lines to 53.
+- Moved "Automatic Packaged-App Updates" and "Optional sDREAMER Setup" out of
+  Install to their own top-level sections between "Use The App" and "Input
+  Files", and cut both hard. The update section keeps only what a user acts on
+  — it updates itself, and a full-package release means reinstalling — and
+  drops the 24-hour cadence, version-comparison mechanics, and the enumeration
+  of what forces a full release. sDREAMER became three numbered steps.
+- Accuracy fix in the extraction troubleshooting note, which was wrong twice
+  over. It blamed "some extraction tools" and claimed the wrapper shares the
+  app folder's name. Verified against `make_full_app_zip.ps1:91,95,291`:
+  `Compress-Archive -Path $DistPath` puts a `sleep_scoring_app_vX.Y` folder at
+  the archive root, while the archive itself is `sleep_scoring_app_vX.Y_full.zip`.
+  Windows' Extract All then makes a wrapper named for the ZIP, so the names
+  differ by the `_full` suffix. Reworded to describe the real mechanism.
+- Other trims: dropped the paragraph under the install table that restated the
+  table, the "walkthrough below covers..." preamble that the video already
+  shows, and the note that automatic scoring covers the whole recording, which
+  was itself an over-explanation added earlier the same day. Reframed
+  "Generate Automatic Scores" so clicking the button comes first and the model
+  choice second — the old text made sDREAMER setup read like a prerequisite.
+- Verification: all eleven internal anchors resolve against GitHub-style
+  heading slugs, all three `user-attachments` video URLs intact, no prose line
+  over 80 characters.
+
 ### Retire the stale unscored-tail warning (Claude Opus 5)
 
 - The README claimed "automatic scoring may leave a few seconds unscored at the
