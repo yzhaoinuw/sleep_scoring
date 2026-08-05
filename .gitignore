@@ -30,6 +30,7 @@ sleep_scoring_app_data/
 
 # Generated or demo video assets
 *.mp4
+*.mov
 app_src/assets/videos/
 # scratch written by media/build_demo.py; see media/README.md
 media/.strips_*/

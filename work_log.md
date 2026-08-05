@@ -17,6 +17,52 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-08-04
 
+### Retire the stale unscored-tail warning (Claude Opus 5)
+
+- The README claimed "automatic scoring may leave a few seconds unscored at the
+  end because of the model's input sequence length". Verified false for every
+  inference path and removed. Both model families pad the final partial window
+  and stitch only the remainder back: `make_dataset` re-runs the last
+  `n_sequences` seconds when `n_seconds % n_sequences != 0`, and `infer` keeps
+  `all_pred[-1][-n_sequences:][-n_to_crop:]`, so the prediction vector comes
+  back exactly `n_seconds` long. The behavior predates this session — it
+  arrived with `n_to_crop` in `c731e4d`.
+- Measured on recordings whose length is deliberately not a multiple of the
+  sequence length, using the local `user_test_files/` and sDREAMER checkpoints:
+
+  | path | n_sequences | floor duration | remainder | predictions | unscored |
+  | --- | --- | --- | --- | --- | --- |
+  | stats_model `35_app13` | — | 10299 | 59 | 10300 | none |
+  | stats_model `115_gs` | — | 21740 | 44 | 21741 | none |
+  | stats_model `830` | — | 15294 | 62 | 15295 | none |
+  | sdreamer+NE `35_app13` | 256 | 10299 | 59 | 10299 | none |
+  | sdreamer+NE `115_gs` | 256 | 21740 | 236 | 21740 | none |
+  | sdreamer `35_app13` | 64 | 10299 | 59 | 10299 | none |
+
+  `get_first_unscored_segment` returned `None` in all six. The stats model
+  returns one extra label because it covers the trailing partial second, which
+  `reshape_sleep_data` clips for the neural paths (`end_time =
+  floor(eeg.size / eeg_freq)`).
+- Confirmed a maintainer README edit rather than reverting it: dropping "or NE
+  plot" from the X-axis-only scroll bullet is correct, because
+  `make_figure.py:342` sets the NE Y-axis `fixedrange=FIX_NE_Y_RANGE` and
+  `config.py:22` defaults that to `False`. Only the spectrogram is X-only.
+- Added the missed arrow-key cue to the annotation demo at 10.1-12.6 s and
+  trimmed the box-selection cue to 9.9 s so they no longer overlap. This
+  exposed a regression from the `demos.toml` refactor: `segments` had become
+  shared across formats, so the 1.5x GIF lead-in would have leaked into the
+  mp4, which the maintainer had asked to keep at 1x. Added
+  `overrides.<kind>`; the annotation demo now pins `overrides.mp4.segments` to
+  a single 1x run. GIF 43.0 s, mp4 back to 45.0 s.
+- Media files consolidated under `media/` by the maintainer:
+  `sleep_scoring_demo.gif` became `annotation_demo.gif`, and the raw `.mov`
+  recordings now sit beside `demos.toml`. `demos.toml` paths are relative to
+  that directory, and `*.mov` joins `*.mp4` in `.gitignore` — the three
+  recordings total ~128 MB and must not enter history.
+- Verification: contact sheets across both rebuilt outputs confirm the new cue
+  reads correctly and the pan is visible under it; `black --check` clean; a
+  `--dry-run` build of another demo confirms the relative-path resolution.
+
 ### Turn the demo builder into a reusable tool (Claude Opus 5)
 
 - Maintainer's call, made once all three players were embedded from

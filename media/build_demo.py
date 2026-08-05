@@ -272,9 +272,16 @@ def cmd_build(args):
         raise SystemExit(
             f"unknown demo {args.demo!r}; {args.spec} defines: " + ", ".join(sorted(spec["demos"]))
         )
-    demo = spec["demos"][args.demo]
+    demo = dict(spec["demos"][args.demo])
+    # A demo may retime differently per format, e.g. a GIF whose lead-in is
+    # sped up while the mp4 stays at 1x.
+    demo.update(demo.get("overrides", {}).get(args.kind, {}))
     preset = spec["presets"][args.kind]
     src = os.path.expanduser(args.src or demo["src"])
+    if not os.path.isabs(src):
+        # Spec paths are relative to this directory, where the raw recordings
+        # are kept alongside demos.toml.
+        src = os.path.join(HERE, src)
     if not os.path.exists(src):
         raise SystemExit(f"recording not found: {src}")
     crop = args.crop or demo.get("crop") or detect_crop(src)

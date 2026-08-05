@@ -4,13 +4,13 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21748494-blue.svg)](https://doi.org/10.5281/zenodo.21748494)
 
 <p align="center">
-  <img src="media/sleep_scoring_demo.gif" width="720"
-       alt="Zooming, panning, and annotating sleep stages in the Sleep Scoring app">
+  <img src="media/annotation_demo.gif" width="720"
+       alt="Zooming, panning, and annotating sleep scores in the Sleep Scoring app">
 </p>
 
 A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
-manually annotating sleep scores (also known as sleep stages), checking aligned 
-video, and optionally generating automatic sleep scores.
+manually annotating sleep scores (also known as sleep stages), checking
+aligned video, and optionally generating automatic sleep scores.
 
 ## Contents
 
@@ -157,17 +157,18 @@ in this section, in one pass and at full resolution.
 
 ### Start The App And Open A Recording
 
-- **Packaged Windows app:** First time running the app after download,
-  you must double-click `unblock_app.cmd` to run the app, which unblocks
-  the app from Windows down the line. In the future you can double-click
-  `run_desktop_app.exe` to open the app.
+- **Packaged Windows app:** the first time, double-click `unblock_app.cmd`.
+  It removes Windows download blocking and starts the app. Afterwards,
+  double-click `run_desktop_app.exe`.
 - **Source installation:** activate the Conda environment and run
   `python run_desktop_app.py`.
 
-Select a `.mat` file to visualize its EEG, EMG, and NE (if exists) signals. 
+Select a `.mat` file to visualize its EEG, EMG, and NE signals, if present.
 
 ### Switch Between Modes
-The app has two interaction modes. Press <kbd>M</kbd> to switch between:
+
+The app has two interaction modes. Press <kbd>M</kbd> to switch between them:
+
 - **Navigation mode:** pan and zoom the plots.
 - **Annotation mode:** select time ranges and assign sleep scores.
 
@@ -190,10 +191,10 @@ The spectrogram Y-axis is fixed. The NE Y-axis is adjustable by default; set
 
 In annotation mode:
 
-- Click to select a thin strip, then press <kbd>1</kbd> for Wake, <kbd>2</kbd>
-for NREM, <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
-- Drag and draw a box to select a region. Dragging beyond the visible edge auto-pans the
-  graph so you can continue the selection.
+- Click to select a thin strip, then press <kbd>1</kbd> for Wake,
+  <kbd>2</kbd> for NREM, <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
+- Drag a box to select a wider region. Dragging beyond the visible edge
+  auto-pans the graph so you can continue the selection.
 - Right-click inside a scored or unscored segment to select that entire
   contiguous segment.
 - Use **Undo Annotation** below the graph to undo the most recent annotation.
@@ -233,17 +234,16 @@ when it finishes, you can correct the result manually or undo it.
 
 ### Save Sleep Scores
 
-Click **Save Annotations** below the graph to the left. Choose the save path
-for the `.mat` file in the Save dialog window.
+Click **Save Annotations** at the lower left of the graph, then choose where
+to write the `.mat` file in the Save dialog.
 
 If any recording segment remains unscored, the app reports the first unscored
 range as `[start, end] (duration s)`, even if you cancel the save dialog. Once
 the recording is completely scored, the app also offers to export sleep bouts
-and summary statistics to an Excel file. 
+and summary statistics to an Excel file.
 
-Automatic scoring may leave a few seconds unscored at the end because of the
-model's input sequence length. Score that remainder manually before exporting
-the Excel summary.
+Automatic scoring covers the whole recording, so this normally reports nothing
+after a prediction run.
 
 ### Use Multiple Windows And Crash Recovery
 

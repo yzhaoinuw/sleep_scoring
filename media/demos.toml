@@ -25,10 +25,7 @@ crf = 23
 
 
 [demos.annotation]
-src = "~/Desktop/sleep_scoring_app_annotation_demo.mov"
-# The GIF is committed and linked from the top of the repository README, so it
-# has to keep this exact filename.
-out.gif = "sleep_scoring_demo.gif"
+src = "annotation_demo.mov"
 # Omit `crop` to auto-detect the app window. Pin it only if detection picks up
 # something wrong, e.g. a recording that opens on a dark frame.
 crop = "2880:1806:112:76"
@@ -37,11 +34,15 @@ crop = "2880:1806:112:76"
 # only, so it runs at 1.5x to reach the annotation work sooner.
 segments = [[0.0, 5.95, 1.5], [5.95, 45.01, 1.0]]
 tail_freeze = 0.0
+# The GIF loops at the top of the README, where a slow opening loses readers.
+# The mp4 is watched deliberately, so it plays at normal speed throughout.
+overrides.mp4.segments = [[0.0, 45.01, 1.0]]
 captions = [
   [0.30, 3.20, "Zoom in and out by scrolling"],
   [3.30, 5.90, "Pan by dragging"],
   [5.95, 7.45, "Switch to annotation mode"],
-  [7.50, 13.00, "Select a region by drawing a box"],
+  [7.50, 9.90, "Select a region by drawing a box"],
+  [10.10, 12.60, "Pan with the left and right arrow keys"],
   [17.00, 21.50, "Select a whole segment by right-clicking"],
   [23.00, 25.80, "Select a thin strip with a single click"],
   [26.00, 30.00, "Undo an annotation"],
@@ -49,7 +50,7 @@ captions = [
 ]
 
 [demos.check_video]
-src = "~/Desktop/check_video_demo.mov"
+src = "check_video_demo.mov"
 crop = "2880:1806:112:76"
 # 4.3-10.3 is a motionless file-picker dialog while the .avi is chosen in
 # Finder. The capture was scoped to the app window, so the picker — a separate
@@ -64,7 +65,7 @@ captions = [
 ]
 
 [demos.auto_scores]
-src = "~/Desktop/generate_automatic_scores.mov"
+src = "auto_scores_demo.mov"
 crop = "2880:1806:112:76"
 segments = [[0.0, 6.0, 1.0]]
 # The recording stops half a second after the scored trace appears, so hold

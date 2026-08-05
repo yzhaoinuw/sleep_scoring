@@ -6,6 +6,9 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- Re-upload `media/annotation_demo.mp4` and swap the "Use The App" player URL:
+  the committed GIF and the local mp4 now carry the arrow-key caption, but the
+  published `user-attachments` copy still predates it.
 - Merge `readme-makeover` into `dev` once the demo clips read well; all three
   players are embedded and the media tooling is documented in
   [`media/README.md`](media/README.md).

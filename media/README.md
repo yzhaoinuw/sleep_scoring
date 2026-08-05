@@ -7,13 +7,15 @@ app interface changes enough that the recordings look dated.
 
 | File | Tracked | Why |
 | --- | --- | --- |
-| `sleep_scoring_demo.gif` | yes | Linked from the top of the repository README by relative path, so it has to live in the repository |
+| `annotation_demo.gif` | yes | Linked from the top of the repository README by relative path, so it has to live in the repository |
 | `build_demo.py` | yes | The builder |
 | `demos.toml` | yes | What each demo is made of — the file you edit |
 | `*.mp4` | **no** | GitHub hosts the players; see [Publishing](#publishing) |
+| `*.mov` | **no** | Raw recordings, kept here beside `demos.toml` but too large to track |
 
-Raw `.mov` recordings are not tracked either. They are large, and everything
-needed to rebuild from them is in `demos.toml`.
+Keep the raw `.mov` recordings in this directory, named to match the `src`
+entries in `demos.toml`. They are ignored by git — together they run to well
+over 100 MB, and everything needed to rebuild from them is in `demos.toml`.
 
 ## Recording
 
@@ -28,7 +30,8 @@ frozen dialog while the file is chosen in a window that was never captured.
 That stretch has to be cut, and the step gets explained by a caption instead of
 shown. If you re-record that demo full-screen, drop the `segments` cut for it.
 
-Then put the file where `demos.toml` expects it, or pass `--src`.
+Then put the file in this directory under the name `demos.toml` expects, or
+pass `--src`. Paths in `demos.toml` are relative to this directory.
 
 ## Rebuilding
 
@@ -36,7 +39,7 @@ Then put the file where `demos.toml` expects it, or pass `--src`.
 conda activate sleep_scoring_dash3.0
 
 # 1. Probe the recording and get a grid of timestamped frames.
-python media/build_demo.py inspect ~/Desktop/my_new_demo.mov --frames 16
+python media/build_demo.py inspect media/annotation_demo.mov --frames 16
 
 # 2. Read caption times off media/inspect_sheet.png, then edit demos.toml.
 
@@ -45,7 +48,7 @@ python media/build_demo.py build annotation --kind gif
 python media/build_demo.py build check_video --kind mp4
 
 # 4. Check the result, sampling the moments where captions start and end.
-python media/build_demo.py inspect media/sleep_scoring_check_video.mp4 --frames 12
+python media/build_demo.py inspect media/check_video_demo.mp4 --frames 12
 ```
 
 Step 4 matters more than it sounds. Every caption-timing bug so far was found
@@ -69,6 +72,9 @@ speeding up a stretch does not mean renumbering every caption.
   the frame, so they never cover the app's own status bar.
 - `crop` — optional. Omit it and the app window is detected automatically;
   pin it only if detection is fooled, e.g. by a dark opening frame.
+- `overrides.<kind>` — per-format replacements for any of the above. The
+  annotation demo uses `overrides.mp4.segments` to keep the mp4 at 1x while
+  the looping GIF runs its navigation lead-in at 1.5x.
 
 Keep the wording imperative and short. A caption that does not fit the band
 fails the build rather than rendering clipped.
@@ -78,10 +84,10 @@ fails the build rather than rendering clipped.
 **The GIF** is committed and referenced with a relative path:
 
 ```html
-<img src="media/sleep_scoring_demo.gif" width="720" alt="...">
+<img src="media/annotation_demo.gif" width="720" alt="...">
 ```
 
-Keep the filename stable — `demos.toml` pins it via `out.gif`.
+If you rename it, update that tag too.
 
 **The mp4s are not committed.** GitHub's markdown sanitizer strips `<video>`
 tags, so a file in the repository cannot render an inline player no matter how
