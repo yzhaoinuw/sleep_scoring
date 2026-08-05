@@ -85,7 +85,8 @@ Status: planning only; keep separate from the v0.17 updater/package work.
 Done as of v0.17.1: the release is archived, concept DOI
 `10.5281/zenodo.21748494` is in the README badge and `CITATION.cff`, and the
 v0.17.1 version DOI is `10.5281/zenodo.21748495`. Later releases inherit this
-setup and need no DOI work. Remaining:
+setup and need no repository DOI metadata changes, but each published release
+still requires Zenodo record verification. Remaining:
 
 - Confirm with the PI and UR Ventures that the adapted `models/sdreamer/` code
   may be redistributed under MIT. `NOTICE` now carries the confirmed NIH grant
