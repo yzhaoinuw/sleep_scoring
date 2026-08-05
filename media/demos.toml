@@ -1,0 +1,78 @@
+# Demo specifications for build_demo.py.
+#
+# Edit this file when you re-record a demo; build_demo.py itself should not
+# need to change. See README.md in this directory for the full workflow.
+#
+# All times are in SOURCE seconds — that is, timestamps you read off the raw
+# recording. The builder maps them onto the output timeline for you, so
+# dropping or speeding up a stretch does not mean rewriting every caption.
+
+# Output geometry. `band` is the caption strip padded on below the frame;
+# `font` is its point size. Keep them proportional if you change `width`.
+[presets.gif]
+width = 720
+band = 46
+font = 24
+fps = 10
+colors = 64
+
+[presets.mp4]
+width = 1920
+band = 116
+font = 60
+fps = 30
+crf = 23
+
+
+[demos.annotation]
+src = "annotation_demo.mov"
+# Omit `crop` to auto-detect the app window. Pin it only if detection picks up
+# something wrong, e.g. a recording that opens on a dark frame.
+crop = "2880:1806:112:76"
+# [source_start, source_end, speed] for each stretch to KEEP, in order.
+# Anything between two entries is dropped. The lead-in here is navigation
+# only, so it runs at 1.5x to reach the annotation work sooner.
+segments = [[0.0, 5.95, 1.5], [5.95, 45.01, 1.0]]
+tail_freeze = 0.0
+# The GIF loops at the top of the README, where a slow opening loses readers.
+# The mp4 is watched deliberately, so it plays at normal speed throughout.
+overrides.mp4.segments = [[0.0, 45.01, 1.0]]
+captions = [
+  [0.30, 3.20, "Zoom in and out by scrolling"],
+  [3.30, 5.90, "Pan by dragging"],
+  [5.95, 7.45, "Switch to annotation mode"],
+  [7.50, 9.90, "Select a region by drawing a box"],
+  [10.10, 12.60, "Pan with the left and right arrow keys"],
+  [17.00, 21.50, "Select a whole segment by right-clicking"],
+  [23.00, 25.80, "Select a thin strip with a single click"],
+  [26.00, 30.00, "Undo an annotation"],
+  [31.00, 41.00, "Annotate continuously by dragging"],
+]
+
+[demos.check_video]
+src = "check_video_demo.mov"
+crop = "2880:1806:112:76"
+# 4.3-10.3 is a motionless file-picker dialog while the .avi is chosen in
+# Finder. The capture was scoped to the app window, so the picker — a separate
+# window — never appears and the stretch reads as idle. Dropping it is
+# invisible precisely because nothing moves across the cut.
+segments = [[0.0, 4.30, 1.0], [10.30, 22.99, 1.0]]
+tail_freeze = 0.0
+captions = [
+  [0.30, 3.10, "Select a region, then click Check Video"],
+  [3.55, 11.50, "Point the app to the matching video file"],
+  [12.30, 17.50, "The clip plays aligned to your selection"],
+]
+
+[demos.auto_scores]
+src = "auto_scores_demo.mov"
+crop = "2880:1806:112:76"
+segments = [[0.0, 6.0, 1.0]]
+# The recording stops half a second after the scored trace appears, so hold
+# the final frame long enough to read the payoff caption.
+tail_freeze = 2.5
+captions = [
+  [0.30, 2.60, "Click Generate Predictions"],
+  [2.90, 5.20, "Confirm that existing scores will be overwritten"],
+  [5.60, 8.30, "The whole recording is scored in one pass"],
+]

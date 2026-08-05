@@ -3,15 +3,22 @@
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21748494-blue.svg)](https://doi.org/10.5281/zenodo.21748494)
 
+<p align="center">
+  <img src="media/annotation_demo.gif" width="720"
+       alt="Zooming, panning, and annotating sleep scores in the app">
+</p>
+
 A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
-manually annotating sleep stages, checking aligned video, and optionally
-generating automatic sleep scores.
+manually annotating sleep scores (also known as sleep stages), checking
+aligned video, and optionally generating automatic sleep scores.
 
 ## Contents
 
 - [Install](#install)
 - [Before Your First Session](#before-your-first-session)
 - [Use The App](#use-the-app)
+- [App Updates](#app-updates)
+- [Optional sDREAMER Model](#optional-sdreamer-model)
 - [Input Files](#input-files)
 - [Developer Documentation](#developer-documentation)
 - [Citation](#citation)
@@ -19,74 +26,35 @@ generating automatic sleep scores.
 
 ## Install
 
-### Choose An Installation
-
-| You are... | Recommended installation | What you need |
+| You are... | Install | What you need |
 | --- | --- | --- |
-| A Windows user who wants to run the app without Git, Python, or Conda | [Packaged Windows app](#packaged-windows-app) | A web browser; the package is public on GitHub Releases |
+| A Windows user who just wants to run the app | [Packaged Windows app](#packaged-windows-app) | A web browser |
 | A Windows user who wants to inspect or modify the code | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda |
-| A macOS user | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda; no packaged macOS build is currently provided |
+| A macOS user | [Run from source](#run-from-source-windows-or-macos) | Git and Miniconda; no packaged macOS build yet, tested on macOS Tahoe |
 | A contributor | [Run from source](#run-from-source-windows-or-macos) | Git, Miniconda, and the checks in [CONTRIBUTING.md](CONTRIBUTING.md) |
-
-The packaged Windows app is the simplest route for most users. The source
-installation is public and cross-platform, but it requires command-line setup.
-The source version has been tested on macOS Tahoe.
 
 ### Packaged Windows App
 
-1. Open the public [GitHub Releases](https://github.com/yzhaoinuw/sleep_scoring/releases)
-   page.
-2. In **Assets**, look for the app ZIP whose filename ends in `_full.zip`.
-3. Download that `_full.zip` file. Do not download GitHub's
-   automatically generated **Source code** archives; they are not the packaged
-   app.
-4. Extract the zip and move the extracted app folder onto your computer.
-5. Double-click `unblock_app.cmd`. It removes Windows download blocking from
-   the app files and then starts `run_desktop_app.exe`.
-
-The installed full release automatically checks for later compatible app
-updates, so you do not need to download or apply code-only update packages
-yourself.
+1. From the latest
+   [release](https://github.com/yzhaoinuw/sleep_scoring/releases), download the
+   ZIP whose name ends in `_full.zip`. Not the **Source code** archives —
+   those are not the app.
+2. Extract it and move the app folder wherever you want to keep it.
+3. Double-click `unblock_app.cmd`. It unblocks the downloaded files and starts
+   the app.
 
 <details>
 <summary>Troubleshoot the extracted folder layout</summary>
 
-The app folder should directly contain:
+The app folder should directly contain `_internal/`, `app_src/`, `models/`,
+`unblock_app.cmd`, and `run_desktop_app.exe`.
 
-- `_internal/`
-- `app_src/`
-- `models/`
-- `unblock_app.cmd`
-- `run_desktop_app.exe`
-
-Some extraction tools create an extra nested folder with the same name. If
-that happens, move the inner app folder to the location where you want to keep
-it and remove the empty outer wrapper.
+Windows' **Extract All** creates a wrapper folder named after the ZIP and puts
+the app folder inside it, leaving you one level deeper than you expect. Move
+the inner `sleep_scoring_app_vX.Y` folder where you want it and delete the
+wrapper.
 
 </details>
-
-#### Automatic Packaged-App Updates
-
-The Windows app checks the latest GitHub Release at most once every 24 hours
-and may update compatible `app_src/` files before the window opens. It compares
-versions before downloading an update asset. The startup terminal shows the
-exact installed version; the app window title shows it too, even though the
-installation folder keeps the stable `vX.Y` release-line name. When an update
-is available, the terminal reports both the installed and target versions. If
-the check is offline, fails, finds an incompatible update, or detects local
-edits to files it would replace, the app still opens normally.
-
-When the newest release is a full Windows package rather than a code-only
-update, the terminal says so, names the release, and prints the Releases page
-link, instead of reporting an update it cannot install. Follow the installation
-steps above to move to that release; the app keeps opening normally in the
-meantime.
-
-Dependency, model, launcher, or packaged-runtime changes require a new full
-Windows release. When one is announced, repeat the installation steps above
-with the newest GitHub Release containing
-`sleep_scoring_app_vX.Y_full.zip`; later compatible code-only releases will
-again update automatically from that base.
 
 ### Run From Source (Windows Or macOS)
 
@@ -102,63 +70,39 @@ conda activate sleep_scoring_dash3.0
 python run_desktop_app.py
 ```
 
-Activate `sleep_scoring_dash3.0` again whenever you open a new terminal before
-running the app.
-
-To update an existing source installation:
+Activate the environment again in each new terminal. To update:
 
 ```bash
 git pull
 conda env update -f environment.yml
-conda activate sleep_scoring_dash3.0
 ```
-
-The source checkout uses the statistical automatic-scoring model by default,
-which does not require PyTorch or separately distributed model checkpoints.
-
-#### Optional sDREAMER Setup
-
-sDREAMER is not required for visualization, annotation, video, saving, or the
-default statistical model. It is an externally developed model bundled with the
-app; see [NOTICE](NOTICE) for its provenance and citation.
-
-- **Packaged Windows app:** download `torch.zip` from the same GitHub Release
-  as the full Windows app, extract it, and copy its contents directly into the
-  app's `_internal/` folder. After copying, `_internal/torch/` should exist.
-- **Source installation:** install the PyTorch build recommended for your
-  computer from [pytorch.org](https://pytorch.org/get-started/locally/), then
-  run `pip install timm==1.0.22 einops==0.8.1`. The sDREAMER checkpoint files
-  are not stored in this public repository; request them from Yue Zhao and
-  place them in `models/sdreamer/checkpoints/`.
-
-Set `SLEEP_SCORING_MODEL = "sdreamer"` in `app_src/config.py`, then restart the
-app.
 
 ## Before Your First Session
 
-- For the packaged app, run it from a local folder on your computer rather
-  than a cloud-synced folder, network drive, or the downloaded zip.
-- You can open up to three app windows on one computer, but the same `.mat`
-  file cannot be open in two windows at once.
-- If the graph feels slow, close unnecessary browser tabs and other
-  resource-heavy applications.
+- Run the packaged app from a local folder, not a cloud-synced folder, network
+  drive, or the ZIP itself.
+- You can open up to three windows, but not the same `.mat` file in two of them.
+- If the graph feels slow, close other browser tabs and heavy applications.
 
 ## Use The App
 
+https://github.com/user-attachments/assets/48d4a954-ede9-4dcb-9299-9702263d2057
+
 ### Start The App And Open A Recording
 
-- **Packaged Windows app:** double-click `unblock_app.cmd` or
-  `run_desktop_app.exe`.
+- **Packaged Windows app:** the first time, double-click `unblock_app.cmd`.
+  Afterwards, double-click `run_desktop_app.exe`.
 - **Source installation:** activate the Conda environment and run
   `python run_desktop_app.py`.
 
-Select a `.mat` file to visualize its EEG, EMG, and optional NE signals. The
-app has two interaction modes:
+Select a `.mat` file to visualize its EEG, EMG, and NE signals, if present.
+
+### Switch Between Modes
+
+Press <kbd>M</kbd> to switch between:
 
 - **Navigation mode:** pan and zoom the plots.
-- **Annotation mode:** select time ranges and assign sleep stages.
-
-Press <kbd>M</kbd> to switch modes.
+- **Annotation mode:** select time ranges and assign sleep scores.
 
 ### Navigate And Zoom
 
@@ -168,90 +112,106 @@ Every newly opened recording starts in navigation mode.
   arrow keys.
 - Drag vertically on the EEG or EMG plot to pan its Y-axis.
 - Scroll over a plot to zoom.
-- Scroll over the spectrogram or NE plot to zoom only the X-axis.
+- Scroll over the spectrogram to zoom only the X-axis.
 - Scroll just to the left of a Y-axis to zoom only that axis.
 - Use **Reset Axes** in the graph's upper-right mode bar to restore the view.
 
-The spectrogram Y-axis is fixed. The NE Y-axis is adjustable by default; set
-`FIX_NE_Y_RANGE = True` in `app_src/config.py` if you want to lock it.
+The spectrogram Y-axis is fixed. To lock the NE Y-axis too, set
+`FIX_NE_Y_RANGE = True` in `app_src/config.py`.
 
-https://github.com/user-attachments/assets/d0daa3ff-18dc-43bb-beb3-742209ae5f60
-
-### Annotate Sleep Stages
+### Annotate Sleep Scores
 
 In annotation mode:
 
-- Click a region, then press <kbd>1</kbd> for Wake, <kbd>2</kbd> for NREM,
-  <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
-- Drag to select a wider region. Dragging beyond the visible edge auto-pans the
-  graph so you can continue the selection.
+- Click to select a thin strip, then press <kbd>1</kbd> for Wake,
+  <kbd>2</kbd> for NREM, <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
+- Drag a box to select a wider region. Dragging beyond the visible edge
+  auto-pans the graph so you can continue the selection.
 - Right-click inside a scored or unscored segment to select that entire
   contiguous segment.
-- Select an existing annotation and assign a new score to overwrite it.
 - Use **Undo Annotation** below the graph to undo the most recent annotation.
 
-https://github.com/user-attachments/assets/1c513a72-53be-440a-aaa8-c52e0ffc64d4
-
 ### Check Aligned Video
+
+https://github.com/user-attachments/assets/2a650d69-95f0-4b25-af85-3000641ae304
 
 In annotation mode, select a region shorter than 300 seconds and click
 **Check Video** above the graph.
 
-The first time you check video for a recording, the app may ask you to locate
-the matching `.avi` file. If the video was found during
-[preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data/tree/dev),
-the app displays that saved path to help you find it.
+The first time, the app may ask you to locate the matching `.avi`. If
+[preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data) already
+found it, the app shows that path.
 
 ### Generate Automatic Scores
 
-Choose the backend in `app_src/config.py`:
+https://github.com/user-attachments/assets/47ba95ca-c7aa-49fd-bf25-659e290bbdb4
+
+In annotation mode, click **Generate Predictions**. Scoring runs in the
+background; when it finishes, correct it manually or undo it.
+
+The statistical model is the default and needs no extra setup. To use
+[sDREAMER](#optional-sdreamer-model) instead, change the backend in
+`app_src/config.py`:
 
 ```python
 SLEEP_SCORING_MODEL = "stats_model"  # or "sdreamer"
 ```
 
-The statistical model works with the standard installation. Its user-facing
-settings are also in `app_src/config.py`:
-
-- `STATS_MODEL_WAKE_THRESHOLD`
-- `STATS_MODEL_MIN_WAKE_DURATION`
-- `STATS_MODEL_MIN_REM_DURATION`
-
-After [setting up sDREAMER](#optional-sdreamer-setup), switch to annotation
-mode and click **Generate Predictions**. Prediction runs in the background;
-when it finishes, you can correct the result manually or undo it.
+The statistical model is tuned by three more settings in the same file:
+`STATS_MODEL_WAKE_THRESHOLD`, `STATS_MODEL_MIN_WAKE_DURATION`, and
+`STATS_MODEL_MIN_REM_DURATION`.
 
 ### Save Sleep Scores
 
-Click **Save Annotations** below the graph. A native Save dialog opens with the
-current `.mat` filename suggested. The app writes to the destination you
-choose; it replaces the original recording only if you select that file and
-confirm the replacement.
+Click **Save Annotations** at the lower left of the graph, then choose where to
+write the `.mat` file.
 
-If any recording segment remains unscored, the app reports the first unscored
-range as `[start, end] (duration s)`, even if you cancel the save dialog. Once
-the recording is completely scored, the app also offers to export sleep bouts
-and summary statistics to an Excel file. Manually scored microarousals are
-retained in the `Sleep_bouts` sheet and included in the `Sleep_stats` summary.
-
-Automatic scoring may leave a few seconds unscored at the end because of the
-model's input sequence length. Score that remainder manually before exporting
-the Excel summary.
-
-https://github.com/user-attachments/assets/2c08644e-cd0e-4f37-8912-da17ab6c9456
+If anything is still unscored, the app reports the first gap as
+`[start, end] (duration s)`. Once the recording is fully scored, it also offers
+to export sleep bouts and summary statistics to Excel.
 
 ### Use Multiple Windows And Crash Recovery
 
 Launch the app again to open as many as three independent windows. The second
-and third windows show `(2)` and `(3)` in their title bars.
+and third show `(2)` and `(3)` in their title bars.
 
 - A recording already open in one window cannot be loaded in another.
 - Video clips and saved video associations are isolated by window.
 - Only the first window checks for app updates.
-- Unsaved crash recovery is also isolated by window position. Relaunch windows
-  in their original order and reopen the same recording in the matching
-  position before opening a different file. Opening a different file clears
-  that window's recovery state.
+- Crash recovery is tied to window position. Relaunch windows in their original
+  order and reopen the same recording in the matching position; opening a
+  different file first clears that window's recovery state.
+
+## App Updates
+
+The packaged Windows app keeps itself current. It checks GitHub about once a
+day and applies compatible updates before the window opens. If it cannot — no
+network, or a local edit in the way — it says so in the terminal and opens
+normally.
+
+Some releases replace the whole package and cannot be applied automatically.
+When the terminal reports one, download the new `_full.zip` and repeat the
+[installation steps](#packaged-windows-app).
+
+To check which version you are on, look at the startup terminal or the app
+window title. The installation folder keeps its original `vX.Y` name even after
+updates, so it is not a reliable indicator.
+
+## Optional sDREAMER Model
+
+sDREAMER is a bundled neural model, and is not needed for visualization,
+annotation, video, saving, or the default statistical model. Its checkpoints
+are not in this public repository; request them from Yue Zhao. See
+[NOTICE](NOTICE) for provenance and citation.
+
+1. Install PyTorch:
+   - **Packaged app:** download `torch.zip` from the same release, extract it,
+     and copy its contents into `_internal/` so that `_internal/torch/` exists.
+   - **Source:** install the [build for your
+     computer](https://pytorch.org/get-started/locally/), then run
+     `pip install timm==1.0.22 einops==0.8.1`.
+2. Put the checkpoint files in `models/sdreamer/checkpoints/`.
+3. Set `SLEEP_SCORING_MODEL = "sdreamer"` in `app_src/config.py` and restart.
 
 ## Input Files
 
@@ -288,11 +248,9 @@ Required fields:
 
 </details>
 
-Visualization supports variable EEG/EMG sampling rates through
-`eeg_frequency` and variable NE sampling rates through `ne_frequency` or
-`fp_frequency`; EMG is assumed to share `eeg_frequency`. The statistical model
-uses those frequencies directly. sDREAMER resamples EEG/EMG to 512 Hz for
-prediction, while NE-aware sDREAMER expects NE at 10 Hz.
+Sampling rates are read from the file, and EMG is assumed to match
+`eeg_frequency`. The statistical model uses those rates directly; sDREAMER
+resamples EEG/EMG to 512 Hz and expects NE at 10 Hz.
 
 ## Developer Documentation
 
@@ -304,24 +262,24 @@ prediction, while NE-aware sDREAMER expects NE at 10 Hz.
   implementation recipes
 - [packaging/windows/README.md](packaging/windows/README.md): Windows release
   packaging and update assets
+- [media/README.md](media/README.md): recording and rebuilding the demo clips
+  on this page
 
 ## Citation
 
-If you use this app in research, use GitHub's **Cite this repository** button
-or the repository's [CITATION.cff](CITATION.cff) file to obtain an APA or
-BibTeX entry.
+Use GitHub's **Cite this repository** button or
+[CITATION.cff](CITATION.cff) for an APA or BibTeX entry.
 
-Each release is archived on Zenodo. Cite the concept DOI
+Every release is archived on Zenodo. Cite the concept DOI
 [10.5281/zenodo.21748494](https://doi.org/10.5281/zenodo.21748494), which
-resolves to the newest release; use a release's own DOI only when you need to
-pin the exact version you ran.
+always resolves to the newest release; cite a release's own DOI only to pin the
+exact version you ran.
 
-A JOSS paper is in preparation in [paper/paper.md](paper/paper.md). Once it is
-published, please cite the paper instead.
+A JOSS paper is in preparation in [paper/paper.md](paper/paper.md); cite it
+instead once published.
 
-If you publish scores generated by sDREAMER, that model is separate work and
-needs its own citation. See [NOTICE](NOTICE) for the citation and the
-provenance of the bundled model code.
+Scores generated by sDREAMER need that model's own citation, in
+[NOTICE](NOTICE).
 
 ## Funding
 

@@ -15,6 +15,190 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-08-04
+
+### Restructure the README around what users need (Claude Opus 5)
+
+- Maintainer's directive: keep it minimal enough that someone actually reads
+  the section they need. Over-explanation is the defect to hunt, and secondary
+  material does not belong in Install. 1824 to 1411 words; Install from 117
+  lines to 53.
+- Moved "Automatic Packaged-App Updates" and "Optional sDREAMER Setup" out of
+  Install to their own top-level sections between "Use The App" and "Input
+  Files", and cut both hard. The update section keeps only what a user acts on
+  — it updates itself, and a full-package release means reinstalling — and
+  drops the 24-hour cadence, version-comparison mechanics, and the enumeration
+  of what forces a full release. sDREAMER became three numbered steps.
+- Accuracy fix in the extraction troubleshooting note, which was wrong twice
+  over. It blamed "some extraction tools" and claimed the wrapper shares the
+  app folder's name. Verified against `make_full_app_zip.ps1:91,95,291`:
+  `Compress-Archive -Path $DistPath` puts a `sleep_scoring_app_vX.Y` folder at
+  the archive root, while the archive itself is `sleep_scoring_app_vX.Y_full.zip`.
+  Windows' Extract All then makes a wrapper named for the ZIP, so the names
+  differ by the `_full` suffix. Reworded to describe the real mechanism.
+- Other trims: dropped the paragraph under the install table that restated the
+  table, the "walkthrough below covers..." preamble that the video already
+  shows, and the note that automatic scoring covers the whole recording, which
+  was itself an over-explanation added earlier the same day. Reframed
+  "Generate Automatic Scores" so clicking the button comes first and the model
+  choice second — the old text made sDREAMER setup read like a prerequisite.
+- Verification: all eleven internal anchors resolve against GitHub-style
+  heading slugs, all three `user-attachments` video URLs intact, no prose line
+  over 80 characters.
+
+### Retire the stale unscored-tail warning (Claude Opus 5)
+
+- The README claimed "automatic scoring may leave a few seconds unscored at the
+  end because of the model's input sequence length". Verified false for every
+  inference path and removed. Both model families pad the final partial window
+  and stitch only the remainder back: `make_dataset` re-runs the last
+  `n_sequences` seconds when `n_seconds % n_sequences != 0`, and `infer` keeps
+  `all_pred[-1][-n_sequences:][-n_to_crop:]`, so the prediction vector comes
+  back exactly `n_seconds` long. The behavior predates this session — it
+  arrived with `n_to_crop` in `c731e4d`.
+- Measured on recordings whose length is deliberately not a multiple of the
+  sequence length, using the local `user_test_files/` and sDREAMER checkpoints:
+
+  | path | n_sequences | floor duration | remainder | predictions | unscored |
+  | --- | --- | --- | --- | --- | --- |
+  | stats_model `35_app13` | — | 10299 | 59 | 10300 | none |
+  | stats_model `115_gs` | — | 21740 | 44 | 21741 | none |
+  | stats_model `830` | — | 15294 | 62 | 15295 | none |
+  | sdreamer+NE `35_app13` | 256 | 10299 | 59 | 10299 | none |
+  | sdreamer+NE `115_gs` | 256 | 21740 | 236 | 21740 | none |
+  | sdreamer `35_app13` | 64 | 10299 | 59 | 10299 | none |
+
+  `get_first_unscored_segment` returned `None` in all six. The stats model
+  returns one extra label because it covers the trailing partial second, which
+  `reshape_sleep_data` clips for the neural paths (`end_time =
+  floor(eeg.size / eeg_freq)`).
+- Confirmed a maintainer README edit rather than reverting it: dropping "or NE
+  plot" from the X-axis-only scroll bullet is correct, because
+  `make_figure.py:342` sets the NE Y-axis `fixedrange=FIX_NE_Y_RANGE` and
+  `config.py:22` defaults that to `False`. Only the spectrogram is X-only.
+- Added the missed arrow-key cue to the annotation demo at 10.1-12.6 s and
+  trimmed the box-selection cue to 9.9 s so they no longer overlap. This
+  exposed a regression from the `demos.toml` refactor: `segments` had become
+  shared across formats, so the 1.5x GIF lead-in would have leaked into the
+  mp4, which the maintainer had asked to keep at 1x. Added
+  `overrides.<kind>`; the annotation demo now pins `overrides.mp4.segments` to
+  a single 1x run. GIF 43.0 s, mp4 back to 45.0 s.
+- Media files consolidated under `media/` by the maintainer:
+  `sleep_scoring_demo.gif` became `annotation_demo.gif`, and the raw `.mov`
+  recordings now sit beside `demos.toml`. `demos.toml` paths are relative to
+  that directory, and `*.mov` joins `*.mp4` in `.gitignore` — the three
+  recordings total ~128 MB and must not enter history.
+- Verification: contact sheets across both rebuilt outputs confirm the new cue
+  reads correctly and the pan is visible under it; `black --check` clean; a
+  `--dry-run` build of another demo confirms the relative-path resolution.
+
+### Turn the demo builder into a reusable tool (Claude Opus 5)
+
+- Maintainer's call, made once all three players were embedded from
+  `user-attachments` URLs: stop tracking the mp4s. GitHub hosts them, so the
+  repository copies were pure weight (~9 MB). The GIF stays tracked because the
+  README references it by relative path. `*.mp4` is globally ignored again —
+  the `!media/*.mp4` exception is gone.
+- Restructured so re-recording does not mean editing Python. `media/demos.toml`
+  holds each demo's source, crop, kept segments, frozen tail, and caption cues;
+  `media/build_demo.py` holds no demo-specific data. `media/README.md` carries
+  the workflow.
+- Added `build_demo.py inspect RECORDING`, which probes a file, auto-detects
+  the app-window crop with `cropdetect`, and writes a timestamped contact
+  sheet. This was the ad-hoc step used to find every caption cue and to catch
+  every caption bug, so it is now part of the tool rather than a throwaway.
+  Verified it detects `2880:1806:112:76` on `check_video_demo.mov` unaided.
+- Recorded the cause of the "idle" stretch in the video demo, which the
+  maintainer diagnosed: the capture was scoped to the app window, so the macOS
+  file picker — a separate window — was never recorded. `media/README.md` tells
+  the next person to capture full-screen for any demo that opens a system
+  dialog, and to drop the cut if that demo is re-recorded.
+- Verification:
+  - Regression on both output paths through the rewritten tool: the annotation
+    GIF rebuilt to sha256
+    `62fe98077103413bf0ee590a41f4dabcc7df40930cc1e355269b5baa865a40f1` and the
+    auto-scoring mp4 to
+    `0e2c63a4808e2396b9fbf48ef776851eb910229ae41a9105b1aec3c342b6c3b7`, both
+    byte-identical to the files built before the refactor.
+  - `inspect` run end to end on a raw recording and its contact sheet read.
+  - `python -m black media/build_demo.py`, `git diff --check` clean.
+
+### Add the video and automatic-scoring demos (Claude Opus 5)
+
+- `build_demo.py` now declares each demo in a `DEMOS` table — source recording,
+  the source ranges to keep and at what speed, an optional frozen tail, and
+  caption cues in source time — instead of taking one recording's worth of
+  geometry on the command line. All three recordings share the same window
+  position, so `CROP` stays global.
+- Both new recordings needed pacing repair rather than plain captions.
+  `check_video_demo.mov` holds a frozen file-picker dialog from 4.3 s to 10.3 s
+  while the `.avi` is chosen in Finder, which the screen capture never shows;
+  that range is dropped, taking the clip from 23.0 s to 17.0 s. The cut is
+  invisible because the dialog is motionless across it.
+  `generate_automatic_scores.mov` stops 0.5 s after the scored trace appears,
+  so a 2.5 s `tpad=stop_mode=clone` tail holds the payoff frame long enough to
+  read the final caption.
+- Bug found by frame inspection, worth knowing if the table grows: `remap` used
+  to clamp any timestamp past the last kept segment to the total duration, so
+  the auto-scoring payoff caption collapsed from 2.7 s to 0.4 s and never
+  became visible through its fade. Time past the final segment now advances at
+  1x so captions can sit over a frozen tail.
+- The annotation GIF lead-in (0 s to the mode switch at 5.95 s) now plays at
+  1.5x, on the maintainer's call that the navigation-only opening risked losing
+  impatient readers. 45.0 s to 43.0 s, 4.5 MB to 4.2 MB. The mp4 was
+  deliberately left at 1x. Caption cues stay in source time and are remapped,
+  so the table still reads against the original recording.
+- Verification:
+  - Regression: rebuilding the annotation GIF through the refactored table
+    reproduced the installed file byte-for-byte (sha256
+    `62fe98077103413bf0ee590a41f4dabcc7df40930cc1e355269b5baa865a40f1`), before
+    and after the `remap` fix.
+  - Contact sheets from the rendered outputs — 13 frames across the sped-up
+    GIF, 6 across `check_video`, 4 across `auto_scores` — confirm every caption
+    matches what is on screen and that the dropped dialog range reads as
+    continuous.
+  - `ffprobe` durations: 43.0 s GIF (430 frames, infinite loop), 17.0 s
+    `check_video` (1.9 MB), 8.5 s `auto_scores` (0.97 MB).
+
+### Add the captioned annotation demo to the README (Claude Opus 5)
+
+- Source recording: `sleep_scoring_app_annotation_demo.mov`, 3104x2030, 45.0 s,
+  variable frame rate (~31.8 fps average despite a 60 fps nominal rate), no
+  audio track. `cropdetect` puts the app window at `crop=2880:1806:112:76`; the
+  rest is desktop background and window shadow.
+- Reusable environment fact: the Homebrew ffmpeg 8.0.1 on this Mac is built
+  without libfreetype, so **`drawtext` does not exist** and any filter graph
+  using it fails with `No such filter`. `media/build_demo.py` works around this
+  by rendering each caption as a transparent PNG strip with PIL and compositing
+  it with `overlay`. Do not reach for `drawtext` here without checking
+  `ffmpeg -filters` first.
+- Trap worth remembering: caption strips are fed in with `-loop 1`, which makes
+  them infinite inputs. `-shortest` does not bound a single-output-stream
+  encode, so the first render ran past 45 s and reached 88 MB before it was
+  killed. The fix is `shortest=1` on every `overlay` plus an explicit `-t`.
+- Captions sit in a padded band below the frame rather than over the plots, so
+  the app's own status bar ("You selected bout ...") stays readable. Eight cues
+  at the timings the maintainer supplied, each extended into the following idle
+  gap so no caption is on screen for less than ~1.5 s.
+- Decision on formats: GIF at 720 px / 10 fps / 64 colors (4.5 MB) for the
+  README hero, mp4 at 1920 px / CRF 23 (6.1 MB) for the walkthrough link. The
+  10 MB ceiling is GitHub's drag-and-drop upload limit. Measured alternatives:
+  800 px / 12 fps GIF was 7.7 MB, 640 px / 8 fps was 3.4 MB; the mp4 at 1280 px
+  / CRF 30 was only 2.0 MB, so there was ample headroom to raise resolution.
+- GitHub's markdown sanitizer strips `<video>`, so a repository-relative mp4
+  path cannot render an inline player. Only a `user-attachments` URL produced by
+  dragging the file into an issue or PR comment does — which is what the two
+  existing clips in "Use The App" already use. The README carries a link plus an
+  HTML comment describing the swap; the GIF needs no such step because `<img>`
+  with a relative path is allowed.
+- Verification:
+  - `ffprobe` on the source for the crop, duration, and frame-rate figures.
+  - Contact sheet of 13 frames sampled from the rendered mp4 at 1.5, 4.5, 6.7,
+    9, 11.5, 15, 19, 22, 24.5, 28, 33, 38, and 43 s: every caption matches the
+    gesture on screen, and the idle stretches are correctly uncaptioned.
+  - `python -m black media/build_demo.py` (reformatted), `--dry-run` smoke test
+    of the script, `git diff --check` clean.
+
 ## 2026-08-03
 
 ### Fix intermittent right-click bout selection (Claude Opus 5)

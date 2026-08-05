@@ -6,6 +6,15 @@ in `project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- Re-upload `media/annotation_demo.mp4` and swap the "Use The App" player URL:
+  the committed GIF and the local mp4 now carry the arrow-key caption, but the
+  published `user-attachments` copy still predates it.
+- Merge `readme-makeover` into `dev` once the demo clips read well; all three
+  players are embedded and the media tooling is documented in
+  [`media/README.md`](media/README.md).
+- Optionally re-record the "Check Aligned Video" demo full-screen so the macOS
+  file picker is visible instead of cut, then drop the `segments` cut for
+  `check_video` in `media/demos.toml`.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
