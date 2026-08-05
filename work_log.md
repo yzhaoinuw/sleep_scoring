@@ -42,9 +42,10 @@ search older entries by date anchor rather than reading every archive.
   was itself an over-explanation added earlier the same day. Reframed
   "Generate Automatic Scores" so clicking the button comes first and the model
   choice second — the old text made sDREAMER setup read like a prerequisite.
-- Verification: all eleven internal anchors resolve against GitHub-style
-  heading slugs, all three `user-attachments` video URLs intact, no prose line
-  over 80 characters.
+- Verification:
+  - All eleven internal anchors resolve against GitHub-style heading slugs.
+  - All three `user-attachments` video URLs remain intact.
+  - No prose line exceeds 80 characters.
 
 ### Retire the stale unscored-tail warning (Claude Opus 5)
 
@@ -88,9 +89,11 @@ search older entries by date anchor rather than reading every archive.
   recordings now sit beside `demos.toml`. `demos.toml` paths are relative to
   that directory, and `*.mov` joins `*.mp4` in `.gitignore` — the three
   recordings total ~128 MB and must not enter history.
-- Verification: contact sheets across both rebuilt outputs confirm the new cue
-  reads correctly and the pan is visible under it; `black --check` clean; a
-  `--dry-run` build of another demo confirms the relative-path resolution.
+- Verification:
+  - Contact sheets across both rebuilt outputs confirm the new cue reads
+    correctly and the pan is visible under it.
+  - `black --check` passed.
+  - A `--dry-run` build of another demo confirms relative-path resolution.
 
 ### Turn the demo builder into a reusable tool (Claude Opus 5)
 
