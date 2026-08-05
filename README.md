@@ -150,7 +150,7 @@ app.
 
 ## Use The App
 
-https://github.com/user-attachments/assets/45c5a132-65fc-4a74-9f94-5ffeadcf5799
+https://github.com/user-attachments/assets/48d4a954-ede9-4dcb-9299-9702263d2057
 
 The walkthrough below covers navigation and every annotation gesture described
 in this section, in one pass and at full resolution.
