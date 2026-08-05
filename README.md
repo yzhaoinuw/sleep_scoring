@@ -193,6 +193,10 @@ Some releases replace the whole package and cannot be applied automatically.
 When the terminal reports one, download the new `_full.zip` and repeat the
 [installation steps](#packaged-windows-app).
 
+To check which version you are on, look at the startup terminal or the app
+window title. The installation folder keeps its original `vX.Y` name even after
+updates, so it is not a reliable indicator.
+
 ## Optional sDREAMER Model
 
 sDREAMER is a bundled neural model, and is not needed for visualization,
