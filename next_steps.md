@@ -17,6 +17,14 @@ in `project_overview.md` and `dash_app_cookbook.md`.
   `check_video` in `media/demos.toml`.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
+- Bump `torch` 2.9.1 to 2.13.0 in the next full release, not before. It clears
+  both open Dependabot alerts (2.10.0 clears only one), but it is a runtime
+  dependency change, so it needs a full package and a rebuilt `torch.zip`.
+  Update `requirements.txt`, the `ml` extra in `pyproject.toml`, and the README
+  sDREAMER step together, then re-verify inference against the checkpoints.
+- Add `.github/dependabot.yml` so the repository gets automated fix PRs instead
+  of alerts alone. Cover pip (`pyproject.toml`) and npm (`tests/js`), and group
+  dev-dependency updates so they arrive as one reviewable PR.
 - Continue the REM-within-Wake statistical-model experiment.
 - Complete the remaining author and submission work for the JOSS paper.
 - Optionally add the NIH BRAIN award (U19NS128613) to Zenodo record 21748495
