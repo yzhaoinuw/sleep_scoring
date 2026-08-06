@@ -44,7 +44,7 @@ dev = [
     "pyyaml==6.0.3",
 ]
 test = [
-    "pytest==9.0.2",
+    "pytest==9.1.1",
     #"pytest-cov",
     "pyyaml==6.0.3",  # see the note in dev; the packaging tests import the release gates
 ]
