@@ -15,7 +15,6 @@ from app_src.make_figure import make_figure
 from app_src.resampling import clear_fig_resamplers, mat_x_bounds, store_fig_resampler
 from app_src.server import TEMP_PATH
 
-
 PEER_QUERY_TIMEOUT_SECONDS = 0.5
 
 # The file open in this window, reported by the peer current-file endpoint.

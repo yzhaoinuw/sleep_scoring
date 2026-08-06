@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import re
 
-
 VERSION_RE = re.compile(r"^v(?P<major>\d+)\.(?P<minor>\d+)(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?$")
 
 

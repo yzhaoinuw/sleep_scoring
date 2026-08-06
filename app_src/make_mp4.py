@@ -11,7 +11,6 @@ from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe, read_frames
 
-
 CLIP_TIME_TOLERANCE_SECONDS = 0.05
 
 

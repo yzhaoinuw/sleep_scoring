@@ -31,7 +31,6 @@ from app_src.resampling import (
 )
 from app_src.server import app
 
-
 RESAMPLER_PROFILE_UPDATE_ID = 0
 RESAMPLER_PROFILE_LAST_START = None
 RESAMPLER_PROFILE_LAST_FINISH = None

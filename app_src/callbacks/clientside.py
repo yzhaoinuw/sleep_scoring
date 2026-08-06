@@ -12,7 +12,6 @@ from dash.dependencies import Input, Output, State
 
 from app_src.server import app
 
-
 # ---- mode switching and navigation ----
 
 # switch_mode by pressing "m"

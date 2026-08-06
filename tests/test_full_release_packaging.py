@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "packaging" / "windows" / "full_release.py"
 SPEC = importlib.util.spec_from_file_location("full_release", MODULE_PATH)
 FULL_RELEASE = importlib.util.module_from_spec(SPEC)
