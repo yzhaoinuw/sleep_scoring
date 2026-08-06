@@ -17,7 +17,6 @@ from pathlib import Path, PurePosixPath
 
 import yaml
 
-
 APP_NAME = "sleep_scoring"
 RUNTIME_PATH = "app_src"
 VERSION_FILE = "app_src/__init__.py"

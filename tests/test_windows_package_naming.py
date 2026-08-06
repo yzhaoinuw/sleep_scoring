@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "packaging" / "windows" / "package_naming.py"
 SPEC = importlib.util.spec_from_file_location("package_naming", MODULE_PATH)
 PACKAGE_NAMING = importlib.util.module_from_spec(SPEC)

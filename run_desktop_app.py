@@ -15,7 +15,6 @@ from pathlib import Path
 
 import webview
 
-
 BASE_PORT = 8050
 MAX_SESSIONS = 3
 INSTANCE_SLOT_ENV = "SLEEP_SCORING_INSTANCE_SLOT"

@@ -16,7 +16,6 @@ from app_src import VERSION
 from app_src.components import Components
 from app_src.config import INSTANCE_SLOT
 
-
 try:
     from app_src.inference import run_inference
 

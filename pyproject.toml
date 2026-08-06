@@ -34,7 +34,7 @@ ml = [
     "einops==0.8.1",
 ]
 dev = [
-    "black==25.12.0",
+    "black==26.5.1",
     "pre-commit==4.5.1",
     # Release preflight parses CITATION.cff. Declared in dev and test rather
     # than in the runtime dependencies so it stays out of the packaged Windows
@@ -44,7 +44,7 @@ dev = [
     "pyyaml==6.0.3",
 ]
 test = [
-    "pytest==9.0.2",
+    "pytest==9.1.1",
     #"pytest-cov",
     "pyyaml==6.0.3",  # see the note in dev; the packaging tests import the release gates
 ]

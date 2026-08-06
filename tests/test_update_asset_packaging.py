@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT_PATH = (
     Path(__file__).parents[1] / "packaging" / "windows" / "align_update_asset_with_package.py"
 )

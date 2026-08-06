@@ -10,7 +10,6 @@ from pathlib import Path
 
 import yaml
 
-
 APP_VERSION_RE = re.compile(r"""VERSION\s*=\s*["']([^"']+)["']""")
 SETUP_VERSION_RE = re.compile(r"""(?m)^[ \t]*version[ \t]*=[ \t]*["']([^"']+)["'][ \t]*,[ \t]*$""")
 PINNED_UPDATER_RE = re.compile(
