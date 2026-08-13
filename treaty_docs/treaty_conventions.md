@@ -2,9 +2,9 @@
 
 The generic mechanics of the Agent Collab Treaty: what belongs in the work log, how dated entries are written and rotated, how branches are handed off, how releases are gated, and how `treaty update` behaves.
 
-**This file is maintained upstream.** `treaty update` keeps it current, which also makes it the file where local edits are most likely to collide. Project-specific answers — the runtime, the common tasks, the reminders, the documentation map — belong in [`AGENTS.md`](AGENTS.md), which upstream does not revise.
+**This file is maintained upstream.** `treaty update` keeps it current, which also makes it the file where local edits are most likely to collide. Project-specific answers — the runtime, the common tasks, the reminders, the documentation map — belong in [`../AGENTS.md`](../AGENTS.md), which upstream does not revise.
 
-Read this when you are about to *perform* one of these procedures. `AGENTS.md` is what you read at the start of a session.
+Read this when you are about to *perform* one of these procedures. `../AGENTS.md` is what you read at the start of a session.
 
 ## Work Log Discipline
 
@@ -91,8 +91,8 @@ Pulling upstream treaty refinements into this project is a maintainer's call —
 
 How much an edit will cost you at update time depends on *what* you edit, not how much:
 
-- **Bracket placeholders** (`[path/to/entrypoint]`) are conflict-free by construction. Upstream will never ship a revision to them, so replacing them costs nothing later. Most of `project_overview.md` is this.
-- **Maintained guidance** — the prose in this file — is actively revised upstream, so local edits here are the ones that turn into conflicts. Prefer adding to `AGENTS.md` over editing this file.
+- **Bracket placeholders** (`[path/to/entrypoint]`) are conflict-free by construction. Upstream will never ship a revision to them, so replacing them costs nothing later. Most of `../project_overview.md` is this.
+- **Maintained guidance** — the prose in this file — is actively revised upstream, so local edits here are the ones that turn into conflicts. Prefer adding to `../AGENTS.md` over editing this file.
 - **Renaming a heading is the worst single thing you can do.** A three-way merge reads it as a delete plus an unrelated add, so a later upstream edit to that section conflicts *and* cannot be auto-resolved. If you want different wording, change the body and leave the heading alone. `treaty diff` flags renamed headings specifically.
 - **Deleting a section** is the next-worst: upstream edits to it arrive with nothing local to merge into. Where the treaty offers a question for a section you don't want (`has_releases`, `uses_precommit`, `include_git_ownership_note`), answer it instead of deleting — the section then never renders and never conflicts.
-- **Adding a section** always merges cleanly. Domain-specific conventions belong in `AGENTS.md` as new sections.
+- **Adding a section** always merges cleanly. Domain-specific conventions belong in `../AGENTS.md` as new sections.

@@ -1,7 +1,8 @@
 # Changelog
 
 This file summarizes changes that affect people using the app. Maintainer-only
-implementation and release details are recorded in `work_log.md`.
+implementation and release details are recorded in
+`treaty_docs/work_log.md`.
 
 ## v0.17.1
 

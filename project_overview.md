@@ -251,6 +251,6 @@ and verification.
 
 ## Questions Worth Clarifying Later
 
-`next_steps.md` is the source of truth for open decisions. Current questions
-include confirmation of sDREAMER checkpoint redistribution terms and the
-remaining JOSS authorship, affiliation, acknowledgment, and funding details.
+`treaty_docs/next_steps.md` is the source of truth for open decisions. Current
+questions include confirmation of sDREAMER checkpoint redistribution terms and
+the remaining JOSS authorship, affiliation, acknowledgment, and funding details.

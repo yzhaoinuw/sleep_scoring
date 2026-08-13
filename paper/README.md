@@ -41,5 +41,6 @@ this draft is not.
   this may be acceptable as is, but it is the one entry Crossref cannot confirm.
 - Every claim in the paper still needs checking against the shipped app.
 
-See the "Citation And Publication" section of `next_steps.md` for the full
-checklist and the Zenodo steps that come first.
+See the "Citation And Publication" section of
+[`treaty_docs/next_steps.md`](../treaty_docs/next_steps.md) for the full checklist
+and the Zenodo steps that come first.

@@ -2,7 +2,7 @@
 
 Use this as the forward-looking checklist. Completed work, validation results,
 and deferred technical decisions belong in `work_log.md`; architecture belongs
-in `project_overview.md` and `dash_app_cookbook.md`.
+in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
@@ -11,7 +11,7 @@ in `project_overview.md` and `dash_app_cookbook.md`.
   published `user-attachments` copy still predates it.
 - Merge `readme-makeover` into `dev` once the demo clips read well; all three
   players are embedded and the media tooling is documented in
-  [`media/README.md`](media/README.md).
+  [`media/README.md`](../media/README.md).
 - Optionally re-record the "Check Aligned Video" demo full-screen so the macOS
   file picker is visible instead of cut, then drop the `segments` cut for
   `check_video` in `media/demos.toml`.
