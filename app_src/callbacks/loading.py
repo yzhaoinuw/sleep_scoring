@@ -18,6 +18,7 @@ from app_src.session import (
     initialize_cache,
     write_metadata,
 )
+from app_src.sleep_score_layers import normalize_sleep_scores
 
 
 @app.callback(
@@ -50,6 +51,7 @@ def choose_mat(n_clicks):
 @app.callback(
     Output("data-upload-message", "children", allow_duplicate=True),
     Output("mat-metadata-store", "data"),
+    Output("user-sleep-scores-store", "data"),
     Input("visualization-ready-store", "data"),
     prevent_initial_call=True,
 )
@@ -69,23 +71,41 @@ def create_visualization(ready):
         validated = False
         message = " ".join(["EEG data is missing.", message])
     if not validated:
-        return message, metadata
+        return message, metadata, dash.no_update
 
     metadata = write_metadata(mat)
 
-    # salvage unsaved annotations
+    # The full score history controls the display and standard one-step undo.
+    # A separate sparse layer remembers only labels supplied by the user, so a
+    # fresh model run can calibrate to and then preserve those labels.
     sleep_scores_history = cache.get("sleep_scores_history")
+    user_sleep_scores_history = cache.get("user_sleep_scores_history")
     if sleep_scores_history:
         mat["sleep_scores"] = sleep_scores_history[-1]
+        sleep_scores = get_padded_sleep_scores(mat)
+        if user_sleep_scores_history:
+            user_sleep_scores = normalize_sleep_scores(
+                user_sleep_scores_history[-1], sleep_scores.size
+            )
+        else:
+            # An upgrade can find a salvage cache created before the separate
+            # user layer existed. Preserve those edits conservatively.
+            user_sleep_scores = sleep_scores.copy()
+            user_sleep_scores_history = [user_sleep_scores.copy()]
+            cache.set("user_sleep_scores_history", user_sleep_scores_history)
     else:
         sleep_scores = get_padded_sleep_scores(mat)
         np.place(sleep_scores, sleep_scores == -1, [np.nan])
+        mat["sleep_scores"] = sleep_scores
+        user_sleep_scores = sleep_scores.copy()
         sleep_scores_history.append(sleep_scores)
+        user_sleep_scores_history.append(user_sleep_scores.copy())
         cache.set("sleep_scores_history", sleep_scores_history)
+        cache.set("user_sleep_scores_history", user_sleep_scores_history)
 
     fig = create_fig(mat, filename)
     components.graph.figure = fig
-    return components.visualization_div, metadata
+    return components.visualization_div, metadata, user_sleep_scores.tolist()
 
 
 @app.callback(

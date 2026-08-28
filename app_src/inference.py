@@ -23,12 +23,15 @@ def run_inference(
     postprocess=False,
     output_path=None,
     save_inference=False,
+    stats_model_config=None,
 ):
     # num_class = 3
     should_postprocess = postprocess and SLEEP_SCORING_MODEL == "sdreamer"
 
     if SLEEP_SCORING_MODEL == "stats_model":
-        predictions, confidence = run_inference_stats_model.infer(mat, model_path=None)
+        predictions, confidence = run_inference_stats_model.infer(
+            mat, model_path=None, config=stats_model_config
+        )
     elif SLEEP_SCORING_MODEL == "sdreamer":
         ne = mat.get("ne")
         if ne is not None and len(ne) != 0:

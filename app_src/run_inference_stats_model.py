@@ -7,7 +7,8 @@ pipeline, plus a developer diagnostic figure for direct console runs.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from itertools import product
 import math
 from pathlib import Path
 import sys
@@ -75,6 +76,19 @@ class StatsModelResult:
     normalization_range: tuple[float, float]
     rem_diagnostics: list[dict[str, float | bool]]
     rem_recovery_diagnostics: list[dict[str, float | bool]]
+
+
+@dataclass(frozen=True)
+class StatsModelFeatures:
+    """Recording features shared by the default and adaptive configurations."""
+
+    start_time: float
+    end_time: float
+    column_times: np.ndarray
+    low_band_means: np.ndarray
+    normalization_range: tuple[float, float]
+    ne_for_rem: np.ndarray | None
+    time_ne: np.ndarray | None
 
 
 def sleep_stage_values() -> tuple[int, int, int]:
@@ -163,6 +177,39 @@ def compute_spectrogram_feature(
         frequencies[band_mask],
         low_band_means,
         (normalization_min, normalization_max),
+    )
+
+
+def compute_stats_model_features(mat: dict, config: StatsModelConfig) -> StatsModelFeatures:
+    """Compute the recording features once for adaptive-config evaluation."""
+    start_time, end_time = eeg_time_range(mat)
+    (
+        _spectrogram,
+        _theta_delta_ratio,
+        column_times,
+        _band_frequencies,
+        low_band_means,
+        normalization_range,
+    ) = compute_spectrogram_feature(mat, config)
+
+    ne = mat.get("ne")
+    ne_frequency = get_ne_frequency(mat)
+    time_ne = None
+    ne_for_rem = None
+    if ne is not None and ne_frequency is not None and np.asarray(ne).size > 1:
+        ne = np.asarray(ne).flatten()
+        ne_frequency = _as_scalar(ne_frequency)
+        time_ne = ne_time_axis(ne, ne_frequency, start_time)
+        ne_for_rem = moving_average_ne(ne, ne_frequency, config.ne_smoothing_window)
+
+    return StatsModelFeatures(
+        start_time=start_time,
+        end_time=end_time,
+        column_times=column_times,
+        low_band_means=low_band_means,
+        normalization_range=normalization_range,
+        ne_for_rem=ne_for_rem,
+        time_ne=time_ne,
     )
 
 
@@ -442,23 +489,16 @@ def bouts_to_sleep_scores(
     return sleep_scores
 
 
-def predict_stats_model(
-    mat: dict,
-    config: StatsModelConfig | None = None,
+def predict_stats_model_from_features(
+    features: StatsModelFeatures,
+    config: StatsModelConfig,
 ) -> StatsModelResult:
-    """Run the statistical model and return sleep scores plus diagnostics."""
-    if config is None:
-        config = StatsModelConfig()
-
-    start_time, end_time = eeg_time_range(mat)
-    (
-        _spectrogram,
-        _theta_delta_ratio,
-        times,
-        _band_frequencies,
-        low_band_means,
-        normalization_range,
-    ) = compute_spectrogram_feature(mat, config)
+    """Run a configuration against precomputed recording features."""
+    start_time = features.start_time
+    end_time = features.end_time
+    times = features.column_times
+    low_band_means = features.low_band_means
+    normalization_range = features.normalization_range
 
     wake_columns = low_band_means <= config.wake_threshold
     edges = spectrogram_column_edges(times, start_time=start_time, end_time=end_time)
@@ -473,30 +513,20 @@ def predict_stats_model(
         min_wake_duration=config.min_wake_duration,
     )
 
-    ne = mat.get("ne")
-    ne_frequency = get_ne_frequency(mat)
-    time_ne = None
-    ne_for_rem = None
-    if ne is not None and ne_frequency is not None and np.asarray(ne).size > 1:
-        ne = np.asarray(ne).flatten()
-        ne_frequency = _as_scalar(ne_frequency)
-        time_ne = ne_time_axis(ne, ne_frequency, start_time)
-        ne_for_rem = moving_average_ne(ne, ne_frequency, config.ne_smoothing_window)
-
     rem_bouts: list[tuple[float, float]] = []
     rem_diagnostics: list[dict[str, float | bool]] = []
     rem_recovery_diagnostics: list[dict[str, float | bool]] = []
-    if ne_for_rem is not None and time_ne is not None:
+    if features.ne_for_rem is not None and features.time_ne is not None:
         wake_bouts, rem_bouts, rem_diagnostics = classify_rem_bouts_from_wake_bouts(
             wake_bouts,
-            ne=ne_for_rem,
-            time_ne=time_ne,
+            ne=features.ne_for_rem,
+            time_ne=features.time_ne,
             config=config,
         )
         rem_bouts, recovery_wake_bouts, rem_recovery_diagnostics = split_rem_bouts_at_ne_recovery(
             rem_bouts,
-            ne=ne_for_rem,
-            time_ne=time_ne,
+            ne=features.ne_for_rem,
+            time_ne=features.time_ne,
             config=config,
         )
         wake_bouts = sorted(wake_bouts + recovery_wake_bouts)
@@ -514,6 +544,155 @@ def predict_stats_model(
         rem_diagnostics=rem_diagnostics,
         rem_recovery_diagnostics=rem_recovery_diagnostics,
     )
+
+
+def predict_stats_model(
+    mat: dict,
+    config: StatsModelConfig | None = None,
+) -> StatsModelResult:
+    """Run the statistical model and return sleep scores plus diagnostics."""
+    if config is None:
+        config = StatsModelConfig()
+    features = compute_stats_model_features(mat, config)
+    return predict_stats_model_from_features(features, config)
+
+
+def _calibration_label_array(
+    user_sleep_scores: np.ndarray | list[float] | None,
+    length: int,
+) -> np.ndarray:
+    labels = np.full(length, np.nan, dtype=float)
+    if user_sleep_scores is None:
+        return labels
+
+    source = np.asarray(user_sleep_scores, dtype=float).reshape(-1)
+    count = min(labels.size, source.size)
+    labels[:count] = source[:count]
+    return labels
+
+
+def _configuration_distance(config: StatsModelConfig, base_config: StatsModelConfig) -> float:
+    """Prefer the least changed configuration when labels do not break a tie."""
+    return float(
+        abs(config.wake_threshold - base_config.wake_threshold) / 0.05
+        + abs(config.min_wake_duration - base_config.min_wake_duration) / 5.0
+        + abs(config.min_rem_duration - base_config.min_rem_duration) / 5.0
+        + abs(config.rem_threshold_percentile - base_config.rem_threshold_percentile) / 5.0
+        + abs(
+            config.rem_threshold_comparison_percentile
+            - base_config.rem_threshold_comparison_percentile
+        )
+        / 5.0
+    )
+
+
+def _configuration_mismatch_count(
+    features: StatsModelFeatures,
+    config: StatsModelConfig,
+    user_labels: np.ndarray,
+) -> int:
+    prediction = predict_stats_model_from_features(features, config).sleep_scores
+    count = min(prediction.size, user_labels.size)
+    labels = user_labels[:count]
+    label_mask = np.isfinite(labels) & np.isin(labels, [0, 1, 2])
+    return int(np.count_nonzero(prediction[:count][label_mask] != labels[label_mask]))
+
+
+def _best_calibration_config(
+    features: StatsModelFeatures,
+    base_config: StatsModelConfig,
+    user_labels: np.ndarray,
+    candidates: list[StatsModelConfig],
+) -> StatsModelConfig:
+    return min(
+        candidates,
+        key=lambda config: (
+            _configuration_mismatch_count(features, config, user_labels),
+            _configuration_distance(config, base_config),
+        ),
+    )
+
+
+def calibrate_stats_model_config(
+    mat: dict,
+    user_sleep_scores: np.ndarray | list[float] | None,
+    base_config: StatsModelConfig | None = None,
+) -> tuple[StatsModelConfig, int]:
+    """Fit the live Wake/REM knobs to any supplied manual Wake/NREM/REM labels.
+
+    The user may provide one segment or many.  Candidate configurations are
+    evaluated against their raw predictions, before manual labels are overlaid;
+    ties retain the behavior closest to the ordinary statistical-model config.
+    """
+    if base_config is None:
+        base_config = StatsModelConfig()
+
+    start_time, end_time = eeg_time_range(mat)
+    label_count = math.ceil(end_time - start_time)
+    user_labels = _calibration_label_array(user_sleep_scores, label_count)
+    calibratable_labels = np.isfinite(user_labels) & np.isin(user_labels, [0, 1, 2])
+    if not np.any(calibratable_labels):
+        return base_config, 0
+
+    features = compute_stats_model_features(mat, base_config)
+    current_config = base_config
+    wake_thresholds = sorted({*np.linspace(0.05, 0.95, 19), base_config.wake_threshold})
+    min_wake_durations = sorted({0.0, 2.5, 5.0, 10.0, 15.0, base_config.min_wake_duration})
+    min_rem_durations = sorted(
+        {0.0, 5.0, 10.0, 20.0, 30.0, 45.0, 60.0, base_config.min_rem_duration}
+    )
+    rem_percentiles = sorted(
+        {
+            0.0,
+            2.0,
+            5.0,
+            10.0,
+            15.0,
+            20.0,
+            30.0,
+            base_config.rem_threshold_percentile,
+            base_config.rem_threshold_comparison_percentile,
+        }
+    )
+
+    # Two short coordinate-descent passes keep calibration responsive while
+    # allowing Wake and REM choices to inform one another.
+    for _ in range(2):
+        current_config = _best_calibration_config(
+            features,
+            base_config,
+            user_labels,
+            [replace(current_config, wake_threshold=value) for value in wake_thresholds],
+        )
+        current_config = _best_calibration_config(
+            features,
+            base_config,
+            user_labels,
+            [replace(current_config, min_wake_duration=value) for value in min_wake_durations],
+        )
+        current_config = _best_calibration_config(
+            features,
+            base_config,
+            user_labels,
+            [replace(current_config, min_rem_duration=value) for value in min_rem_durations],
+        )
+        current_config = _best_calibration_config(
+            features,
+            base_config,
+            user_labels,
+            [
+                replace(
+                    current_config,
+                    rem_threshold_percentile=global_percentile,
+                    rem_threshold_comparison_percentile=comparison_percentile,
+                )
+                for global_percentile, comparison_percentile in product(
+                    rem_percentiles, rem_percentiles
+                )
+            ],
+        )
+
+    return current_config, int(np.count_nonzero(calibratable_labels))
 
 
 def infer(

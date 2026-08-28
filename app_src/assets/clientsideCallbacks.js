@@ -202,7 +202,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [final_start, final_end],
                 patched_figure.build(),
-                `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+                `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
                 final_video_button_style
             ];
         },
@@ -290,7 +290,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [start, end],
                 patched_figure.build(),
-                `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+                `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
                 final_video_button_style
             ];
         },
@@ -384,7 +384,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [final_start, final_end],
                 patched_figure.build(),
-                `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+                `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
                 final_video_button_style
             ];
         },
@@ -500,7 +500,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [final_start, final_end],
                 patched_figure.build(),
-                `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.`,
+                `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
                 final_video_button_style
             ];
         },
@@ -508,42 +508,53 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         // ---- annotation ----
 
         // make_annotation
-        make_annotation: function(keyboard_press, keyboard_event, box_select_range, figure) {
+        make_annotation: function(keyboard_press, keyboard_event, box_select_range, user_sleep_scores, figure) {
             const no_update = dash_clientside.no_update;
 
             // Only proceed if we have all required data
             if (!keyboard_event || !box_select_range || box_select_range.length === 0 || !figure) {
-                return [no_update, no_update, no_update];
+                return [no_update, no_update, no_update, no_update];
             }
 
             // Check if in select mode
             if (figure.layout.dragmode !== "select") {
-                return [no_update, no_update, no_update];
+                return [no_update, no_update, no_update, no_update];
             }
 
             const label = keyboard_event.key;
-            if (!["1", "2", "3", "4"].includes(label)) {
-                return [no_update, no_update, no_update];
+            if (!["0", "1", "2", "3", "4"].includes(label)) {
+                return [no_update, no_update, no_update, no_update];
             }
 
-            const label_int = parseInt(label) - 1;
+            const label_int = label === "0" ? null : parseInt(label) - 1;
             const [start, end] = box_select_range;
 
-            // Get current sleep scores from last trace
+            // The heatmap stores the current display, while the user layer
+            // records only explicit annotations for adaptive calibration.
             const last_trace = figure.data[figure.data.length - 1];
             const current_sleep_scores = last_trace.z[0];
+            if (!Array.isArray(current_sleep_scores)) {
+                return [no_update, no_update, no_update, no_update];
+            }
 
-            // Create a copy using spread operator
             const sleep_scores = [...current_sleep_scores];
+            const user_scores = Array(current_sleep_scores.length).fill(null);
+            if (Array.isArray(user_sleep_scores)) {
+                const shared_length = Math.min(user_sleep_scores.length, user_scores.length);
+                for (let i = 0; i < shared_length; i++) {
+                    user_scores[i] = user_sleep_scores[i];
+                }
+            }
 
-            // Update the range
             for (let i = start; i < end; i++) {
                 sleep_scores[i] = label_int;
+                user_scores[i] = label_int;
             }
 
             return [
                 {"visibility": "hidden"},
                 sleep_scores,
+                user_scores,
                 []  // Clear box selection after annotation
             ];
         },

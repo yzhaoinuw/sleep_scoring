@@ -69,6 +69,10 @@ Status: planning only; keep separate from the v0.17 updater/package work.
 
 ## Statistical Model
 
+- Validate the adaptive statistical model side by side on recordings with
+  difficult REM/NE valleys and shifted spectral distributions. Check one- and
+  few-example calibrations as well as user-label preservation after another
+  model run.
 - Improve REM detection when a long Wake bout contains a smaller likely REM
   subsection instead of relabeling the entire Wake bout.
 - Compare identifying a low-NE subsection before Wake-to-REM promotion with

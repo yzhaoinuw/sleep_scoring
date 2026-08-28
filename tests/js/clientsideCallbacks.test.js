@@ -9,7 +9,7 @@
 const fns = window.dash_clientside.sleep_scoring;
 const NO = dash_clientside.no_update;
 
-const ANNOTATION_HINT = "Press 1 for Wake, 2 for NREM, 3 for REM, or 4 for MA.";
+const ANNOTATION_HINT = "Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.";
 
 function lastOp(patch, ...path) {
   const key = path.join(".");
@@ -364,34 +364,49 @@ describe("make_annotation", () => {
   });
 
   test("pressing 2 labels the selected half-open range as NREM", () => {
-    const [videoStyle, scores, selection] = fns.make_annotation(
+    const [videoStyle, scores, userScores, selection] = fns.make_annotation(
       1,
       { key: "2" },
       [1, 3],
+      [null, null, null, null, null],
       figureWith([0, 0, 0, 0, 0])
     );
 
     expect(scores).toEqual([0, 1, 1, 0, 0]); // [start, end): index 3 untouched
+    expect(userScores).toEqual([null, 1, 1, null, null]);
     expect(selection).toEqual([]);
     expect(videoStyle).toEqual({ visibility: "hidden" });
   });
 
   test("does not mutate the figure's own score array", () => {
     const figure = figureWith([0, 0, 0]);
-    fns.make_annotation(1, { key: "4" }, [0, 3], figure);
+    fns.make_annotation(1, { key: "4" }, [0, 3], [null, null, null], figure);
 
     expect(figure.data[0].z[0]).toEqual([0, 0, 0]);
   });
 
-  test("ignores keys other than 1-4", () => {
-    expectAllNoUpdate(fns.make_annotation(1, { key: "5" }, [1, 3], figureWith([0, 0, 0])), 3);
-    expectAllNoUpdate(fns.make_annotation(1, { key: "a" }, [1, 3], figureWith([0, 0, 0])), 3);
+  test("pressing 0 clears the displayed and user scores", () => {
+    const [, scores, userScores] = fns.make_annotation(
+      1,
+      { key: "0" },
+      [1, 3],
+      [null, 2, 2, null],
+      figureWith([0, 2, 2, 1])
+    );
+
+    expect(scores).toEqual([0, null, null, 1]);
+    expect(userScores).toEqual([null, null, null, null]);
+  });
+
+  test("ignores keys other than 0-4", () => {
+    expectAllNoUpdate(fns.make_annotation(1, { key: "5" }, [1, 3], [], figureWith([0, 0, 0])), 4);
+    expectAllNoUpdate(fns.make_annotation(1, { key: "a" }, [1, 3], [], figureWith([0, 0, 0])), 4);
   });
 
   test("requires select mode and a selection", () => {
     const panFigure = { layout: { dragmode: "pan" }, data: [{ z: [[0]] }] };
-    expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [0, 1], panFigure), 3);
-    expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [], figureWith([0])), 3);
+    expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [0, 1], [], panFigure), 4);
+    expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [], [], figureWith([0])), 4);
   });
 });
 

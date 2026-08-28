@@ -15,6 +15,34 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-08-28
+
+### Begin the adaptive statistical-model branch
+
+- Created `feature/adaptive-stats-model` from the clean `dev` checkout.
+- Separated sparse, explicitly user-labelled scores from the ordinary displayed
+  score history. Existing MAT labels seed both layers; predictions update only
+  the displayed layer, while user labels are reapplied on top of later model
+  results.
+- Added keyboard `0` to clear a selected score back to unscored. Clear and
+  prediction operations remain ordinary score-history updates, so Undo restores
+  the immediately preceding displayed score state and its matching user layer.
+- Added live stats-model calibration from any finite user Wake/NREM/REM labels.
+  It evaluates raw predictions before the user overlay, retains the closest
+  default configuration on a tie, and reuses one recording feature extraction
+  across the candidate search.
+- Verification:
+  - Focused Python tests passed: `27 passed`.
+  - Full Python suite passed: `181 passed` (one Flask-Caching deprecation
+    warning).
+  - Client-side Jest tests passed: `39 passed`.
+  - The repository-pinned Black hook passed for every changed Python file.
+  - `python run_desktop_app.py --smoke` passed.
+  - Calibration of `35_app13_groundtruth.mat` used 10,300 labels and completed
+    in 2.11 seconds.
+  - Rendered the local app shell and confirmed the initial file-selection UI
+    loads cleanly.
+
 ## 2026-08-13
 
 ### Adopt the treaty docs-folder layout (Codex GPT-5; effort/tokens not reported)

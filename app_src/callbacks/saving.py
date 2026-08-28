@@ -6,7 +6,7 @@ import shutil
 import dash
 import numpy as np
 import pandas as pd
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from scipy.io import loadmat, savemat
 
@@ -18,34 +18,47 @@ from app_src.postprocessing import (
     standardize,
 )
 from app_src.server import TEMP_PATH, app, cache
+from app_src.sleep_score_layers import normalize_sleep_scores
 
 
 @app.callback(
     Output("undo-button", "style", allow_duplicate=True),
     Input("updated-sleep-scores-store", "data"),
+    State("user-sleep-scores-store", "data"),
     prevent_initial_call=True,
 )
-def update_sleep_scores_history(updated_sleep_scores):
-    """
-    always starts with at least one list when a mat file is read
-
-    """
+def update_sleep_scores_history(updated_sleep_scores, user_sleep_scores):
+    """Store the displayed score state and its sparse user-label layer together."""
     undo_button_style = {"visibility": "hidden"}
     if not updated_sleep_scores:
         return undo_button_style
 
     sleep_scores_history = cache.get("sleep_scores_history")
     updated_sleep_scores = np.array(updated_sleep_scores, dtype=float)
-    if np.array_equal(sleep_scores_history[-1], updated_sleep_scores, equal_nan=True):  # no change
+    user_sleep_scores_history = cache.get("user_sleep_scores_history")
+    if not user_sleep_scores_history:
+        user_sleep_scores_history = [sleep_scores_history[-1].copy()]
+
+    updated_user_sleep_scores = normalize_sleep_scores(user_sleep_scores, updated_sleep_scores.size)
+    display_unchanged = np.array_equal(
+        sleep_scores_history[-1], updated_sleep_scores, equal_nan=True
+    )
+    user_layer_unchanged = np.array_equal(
+        user_sleep_scores_history[-1], updated_user_sleep_scores, equal_nan=True
+    )
+    if display_unchanged and user_layer_unchanged:
         return undo_button_style
 
     sleep_scores_history.append(updated_sleep_scores)
+    user_sleep_scores_history.append(updated_user_sleep_scores)
     cache.set("sleep_scores_history", sleep_scores_history)
+    cache.set("user_sleep_scores_history", user_sleep_scores_history)
     return {"visibility": "visible"}
 
 
 @app.callback(
     Output("updated-sleep-scores-store", "data", allow_duplicate=True),
+    Output("user-sleep-scores-store", "data", allow_duplicate=True),
     Output("undo-button", "style"),
     Input("undo-button", "n_clicks"),
     prevent_initial_call=True,
@@ -55,10 +68,20 @@ def undo_annotation(n_clicks):
         raise PreventUpdate
 
     sleep_scores_history = cache.get("sleep_scores_history")
-    sleep_scores = sleep_scores_history[0]
     sleep_scores_history.pop()
+    sleep_scores = sleep_scores_history[-1]
+    user_sleep_scores_history = cache.get("user_sleep_scores_history")
+    if user_sleep_scores_history:
+        user_sleep_scores_history.pop()
+    else:
+        user_sleep_scores_history = [sleep_scores.copy()]
     cache.set("sleep_scores_history", sleep_scores_history)
-    return sleep_scores.tolist(), {"visibility": "hidden"}
+    cache.set("user_sleep_scores_history", user_sleep_scores_history)
+    return (
+        sleep_scores.tolist(),
+        user_sleep_scores_history[-1].tolist(),
+        {"visibility": "hidden"},
+    )
 
 
 @app.callback(

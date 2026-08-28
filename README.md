@@ -125,6 +125,7 @@ In annotation mode:
 
 - Click to select a thin strip, then press <kbd>1</kbd> for Wake,
   <kbd>2</kbd> for NREM, <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
+- Press <kbd>0</kbd> on a selected range to clear its score.
 - Drag a box to select a wider region. Dragging beyond the visible edge
   auto-pans the graph so you can continue the selection.
 - Right-click inside a scored or unscored segment to select that entire
@@ -147,7 +148,8 @@ found it, the app shows that path.
 https://github.com/user-attachments/assets/47ba95ca-c7aa-49fd-bf25-659e290bbdb4
 
 In annotation mode, click **Generate Predictions**. Scoring runs in the
-background; when it finishes, correct it manually or undo it.
+background; when it finishes, correct it manually or undo it. Manual labels
+remain in place when you generate scores again.
 
 The statistical model is the default and needs no extra setup. To use
 [sDREAMER](#optional-sdreamer-model) instead, change the backend in
@@ -160,6 +162,12 @@ SLEEP_SCORING_MODEL = "stats_model"  # or "sdreamer"
 The statistical model is tuned by three more settings in the same file:
 `STATS_MODEL_WAKE_THRESHOLD`, `STATS_MODEL_MIN_WAKE_DURATION`, and
 `STATS_MODEL_MIN_REM_DURATION`.
+
+For the statistical model, the labels you add in the current recording also
+adapt its Wake/REM configuration live for the next prediction. One or more
+Wake, NREM, or REM examples are enough; the app chooses the closest matching
+configuration for that recording without editing `config.py`. The model fills
+the remaining time, while your labels stay unchanged.
 
 ### Save Sleep Scores
 

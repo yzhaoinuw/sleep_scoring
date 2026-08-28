@@ -1,5 +1,6 @@
 """Tests for app helpers in app_src.session, app_src.resampling, and app_src.callbacks."""
 
+from collections import deque
 from unittest.mock import MagicMock, patch
 
 import dash
@@ -253,6 +254,106 @@ class TestSaveAnnotations:
         assert str(mat_save_path) in message
         assert str(excel_save_path) in message
         assert max_intervals == 5
+
+
+class TestUserSleepScoreHistory:
+    def test_manual_label_is_retained_when_it_matches_the_visible_prediction(self):
+        from app_src.callbacks.saving import update_sleep_scores_history
+
+        display_scores = np.array([0, 1, 2], dtype=float)
+        user_scores = np.array([np.nan, np.nan, np.nan])
+        cache_values = {
+            "sleep_scores_history": deque([display_scores.copy()], maxlen=2),
+            "user_sleep_scores_history": deque([user_scores.copy()], maxlen=2),
+        }
+
+        def cache_set(key, value):
+            cache_values[key] = value
+
+        with (
+            patch(
+                "app_src.callbacks.saving.cache.get",
+                side_effect=lambda key: cache_values.get(key),
+            ),
+            patch("app_src.callbacks.saving.cache.set", side_effect=cache_set),
+        ):
+            style = update_sleep_scores_history(display_scores.tolist(), [0, None, None])
+
+        assert style == {"visibility": "visible"}
+        assert len(cache_values["sleep_scores_history"]) == 2
+        np.testing.assert_array_equal(
+            cache_values["user_sleep_scores_history"][-1], [0, np.nan, np.nan]
+        )
+
+    def test_undo_restores_the_matching_user_layer(self):
+        from app_src.callbacks.saving import undo_annotation
+
+        previous_display = np.array([0, 1, 2], dtype=float)
+        latest_display = np.array([0, 2, 2], dtype=float)
+        previous_user = np.array([np.nan, np.nan, np.nan])
+        latest_user = np.array([np.nan, 2, np.nan])
+        cache_values = {
+            "sleep_scores_history": deque([previous_display, latest_display], maxlen=2),
+            "user_sleep_scores_history": deque([previous_user, latest_user], maxlen=2),
+        }
+
+        def cache_set(key, value):
+            cache_values[key] = value
+
+        with (
+            patch(
+                "app_src.callbacks.saving.cache.get",
+                side_effect=lambda key: cache_values.get(key),
+            ),
+            patch("app_src.callbacks.saving.cache.set", side_effect=cache_set),
+        ):
+            display, user, style = undo_annotation(1)
+
+        np.testing.assert_array_equal(display, previous_display)
+        np.testing.assert_array_equal(user, previous_user)
+        assert style == {"visibility": "hidden"}
+
+
+class TestAdaptivePrediction:
+    def test_stats_prediction_calibrates_and_overlays_user_scores(self):
+        from app_src.callbacks.prediction import generate_prediction
+        from app_src.config import POSTPROCESS
+
+        source_mat = {"eeg": np.array([0.0, 1.0]), "eeg_frequency": 1}
+        inferred_mat = {"sleep_scores": np.array([0, 1, 2])}
+        user_scores = [None, 2, None]
+        adaptive_config = MagicMock()
+
+        with (
+            patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
+            patch("app_src.callbacks.prediction.cache.get", return_value="recording.mat"),
+            patch("app_src.callbacks.prediction.loadmat", return_value=source_mat),
+            patch(
+                "app_src.callbacks.prediction.calibrate_stats_model_config",
+                return_value=(adaptive_config, 1),
+            ) as calibrate,
+            patch(
+                "app_src.callbacks.prediction.run_inference",
+                return_value=(inferred_mat, None),
+            ) as run_inference,
+            patch(
+                "app_src.callbacks.prediction.get_padded_sleep_scores",
+                return_value=np.array([0, 1, 2]),
+            ),
+        ):
+            message, scores = generate_prediction({"user_sleep_scores": user_scores})
+
+        calibrate.assert_called_once_with(source_mat, user_scores)
+        run_inference.assert_called_once_with(
+            source_mat,
+            postprocess=POSTPROCESS,
+            stats_model_config=adaptive_config,
+        )
+        assert scores == [0.0, 2.0, 2.0]
+        assert (
+            message
+            == "The adaptive statistical model was calibrated from 1 user-labelled second(s)."
+        )
 
     def test_cancelled_mat_save_still_reports_unscored_segment(self, tmp_path):
         from app_src.callbacks.saving import save_annotations

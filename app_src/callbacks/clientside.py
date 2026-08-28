@@ -118,10 +118,12 @@ app.clientside_callback(
     ClientsideFunction(namespace="sleep_scoring", function_name="make_annotation"),
     Output("video-button", "style", allow_duplicate=True),
     Output("updated-sleep-scores-store", "data", allow_duplicate=True),
+    Output("user-sleep-scores-store", "data", allow_duplicate=True),
     Output("box-select-store", "data", allow_duplicate=True),
     Input("keyboard", "n_events"),
     State("keyboard", "event"),
     State("box-select-store", "data"),
+    State("user-sleep-scores-store", "data"),
     State("graph", "figure"),
     prevent_initial_call=True,
 )

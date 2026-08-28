@@ -132,6 +132,7 @@ def initialize_cache(cache, filepath):
         is_same_file = False
     if not is_same_file:
         cache.set("sleep_scores_history", deque(maxlen=2))
+        cache.set("user_sleep_scores_history", deque(maxlen=2))
 
     clear_temp_dir(filename)
     cache.set("filename", filename)
