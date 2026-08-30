@@ -118,6 +118,13 @@ definitions and transformer layers. Its checkpoint directory is intentionally
 excluded from GitHub and supplied separately for installations that use
 sDREAMER. The statistical model does not need Torch or checkpoint files.
 
+The app keeps the displayed score history separate from a sparse layer of
+explicit user labels. Model runs remain ordinary score-history states for
+display and undo, while the sparse layer calibrates the statistical model for
+the current recording and is overlaid onto later predictions so user labels
+are preserved. A selected range can be cleared back to unscored with keyboard
+`0`.
+
 #### Saving and video
 
 [`app_src/postprocessing.py`](app_src/postprocessing.py) converts dense scores

@@ -48,6 +48,7 @@ backend_div = html.Div(
         dcc.Store(id="video-path-store"),
         dcc.Store(id="clip-name-store"),
         dcc.Store(id="clip-range-store"),
+        dcc.Store(id="user-sleep-scores-store"),
         dcc.Store(id="updated-sleep-scores-store"),
         dcc.Store(id="backup-sleep-scores-store"),
         dcc.Store(id="navigation-profile-store"),
