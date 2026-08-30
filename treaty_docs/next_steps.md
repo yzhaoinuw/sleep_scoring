@@ -6,22 +6,11 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Re-upload `media/annotation_demo.mp4` and swap the "Use The App" player URL:
-  the committed GIF and the local mp4 now carry the arrow-key caption, but the
-  published `user-attachments` copy still predates it.
-- Merge `readme-makeover` into `dev` once the demo clips read well; all three
-  players are embedded and the media tooling is documented in
-  [`media/README.md`](../media/README.md).
-- Optionally re-record the "Check Aligned Video" demo full-screen so the macOS
-  file picker is visible instead of cut, then drop the `segments` cut for
-  `check_video` in `media/demos.toml`.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
-- Complete the remaining author and submission work for the JOSS paper.
-- Optionally add the NIH BRAIN award (U19NS128613) to Zenodo record 21748495
-  through Zenodo's edit UI, and correct the v0.17.1 release notes, which claim
-  the acknowledgment reached `CITATION.cff` when CFF 1.2.0 has no funding field.
+- Correct the v0.17.1 release notes, which claim the NIH BRAIN acknowledgment
+  reached `CITATION.cff` when CFF 1.2.0 has no funding field.
 
 ## Lightweight Source Releases
 
@@ -41,10 +30,6 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Make the normalized full-path MAT-to-video association and collision-proof
   generated-clip identity the next lightweight patch, with regression tests
   for identical MAT and video basenames in different folders.
-- Include the right-click bout-selection fix (`fix/right-click-segment-selection`,
-  `app_src/assets/graphContextMenu.js` and `annotationAutoPan.js`) in that same
-  lightweight patch, and give it a CHANGELOG entry under the release that ships
-  it. The published v0.17.1 does not contain it.
 - While packaging is open, check whether the `_internal/assets` copy produced by
   `app.spec:26` is vestigial. Dash serves `<exe dir>/app_src/assets`, and
   nothing in the tree reads `sys._MEIPASS`, so the bundled copy appears to be
@@ -90,11 +75,8 @@ Done as of v0.17.1: the release is archived, concept DOI
 `10.5281/zenodo.21748494` is in the README badge and `CITATION.cff`, and the
 v0.17.1 version DOI is `10.5281/zenodo.21748495`. Later releases inherit this
 setup and need no repository DOI metadata changes, but each published release
-still requires Zenodo record verification. Remaining:
-
-- Confirm with the PI and UR Ventures that the adapted `models/sdreamer/` code
-  may be redistributed under MIT. `NOTICE` now carries the confirmed NIH grant
-  number; its redistribution statement is the remaining assertion to confirm.
+still requires Zenodo record verification. Zenodo record 21748495 also carries
+the NIH grant `U19NS128613`.
 
 ### JOSS Paper (under construction, deferred)
 
