@@ -53,6 +53,12 @@ STATS_MODEL_WAKE_THRESHOLD = (
 STATS_MODEL_MIN_WAKE_DURATION = 5.0  # minimum Wake duration in seconds
 STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 
+# %% Optional research-impact reporting
+# Set this to True only when this app copy's user has explicitly opted in.
+# Reports are sent at the next app launch, never from the visible interface.
+ENABLE_USAGE_REPORTING = False
+USAGE_REPORT_URL = "https://sleep-scoring-usage-reporting.brainflowzzz.workers.dev/v1/usage-events"
+
 # %% Multi-session
 # run_desktop_app.py claims a window slot (one port per app window) and
 # exports these env vars before app_src is imported. Direct imports (tests,

@@ -51,8 +51,9 @@ Settled decisions:
   totals, and queued reports. The fingerprints never leave that folder.
 - Reporting stays explicitly opt-in. A report contains only opaque app/event
   IDs, a completed-recording delta, scored-second delta, app version, and
-  timestamp. It is idempotent at the Worker by event ID, so retries do not
-  inflate totals.
+  timestamp. Users opt in by setting `ENABLE_USAGE_REPORTING = True` in
+  `app_src/config.py`; it is idempotent at the Worker by event ID, so retries
+  do not inflate totals.
 - "Scored" means a recording saved with every second annotated. It counts once,
   on the first such save, deduplicated by a truncated one-way digest of the EEG
   signal, so reopening, re-saving, or saving under a new name cannot inflate

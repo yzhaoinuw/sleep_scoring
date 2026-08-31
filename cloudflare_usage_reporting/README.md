@@ -11,11 +11,11 @@ identifiers, or local deduplication fingerprints.
 2. Run `npx wrangler d1 execute sleep-scoring-usage --remote --file=schema.sql`.
 3. Set an administrator secret: `npx wrangler secret put ADMIN_TOKEN`.
 4. Deploy with `npx wrangler deploy`.
-5. Set `DEFAULT_USAGE_REPORT_URL` in `app_src/usage_stats.py` to the deployed
-   `/v1/usage-events` URL, then distribute that app-src update. This changes
-   only `app_src/`, so a compatible source-only update is sufficient. The
-   `SLEEP_SCORING_USAGE_REPORT_URL` environment variable remains useful as a
-   development override.
+5. Set `USAGE_REPORT_URL` in `app_src/config.py` to the deployed
+   `/v1/usage-events` URL. Users opt in only by setting
+   `ENABLE_USAGE_REPORTING = True` in that same file, then restarting the app.
+   This changes only `app_src/`, so a compatible source-only update is
+   sufficient.
 
 The public write route is protected by two Cloudflare Worker rate-limit
 bindings: 600 requests per minute for the route and 20 requests per minute for

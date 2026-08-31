@@ -25,15 +25,12 @@ from urllib.request import Request, urlopen
 import numpy as np
 
 from app_src import VERSION
+from app_src import config
 
 
 SCHEMA_VERSION = 2
 USAGE_STATS_FILE_ENV = "SLEEP_SCORING_USAGE_STATS_FILE"
 APP_STATE_DIR_ENV = "SLEEP_SCORING_APP_STATE_DIR"
-USAGE_REPORT_URL_ENV = "SLEEP_SCORING_USAGE_REPORT_URL"
-DEFAULT_USAGE_REPORT_URL = (
-    "https://sleep-scoring-usage-reporting.brainflowzzz.workers.dev/v1/usage-events"
-)
 FINGERPRINT_LENGTH = 16
 SECONDS_PER_HOUR = 3600
 USAGE_STATS_LOCK_TIMEOUT_SECONDS = 5
@@ -66,8 +63,17 @@ def get_usage_stats_file():
 
 
 def get_usage_report_url():
-    """Return this build's public report endpoint, optionally overridden locally."""
-    return os.environ.get(USAGE_REPORT_URL_ENV, DEFAULT_USAGE_REPORT_URL).strip()
+    """Return the opt-in report endpoint configured in ``config.py``."""
+    if not config.ENABLE_USAGE_REPORTING:
+        return ""
+    return str(config.USAGE_REPORT_URL).strip()
+
+
+def configure_usage_reporting(stats_file=None):
+    """Register this app copy when its ``config.py`` opt-in is enabled."""
+    if not get_usage_report_url():
+        return False
+    return enable_usage_reporting(stats_file)
 
 
 def get_empty_usage_stats():
@@ -203,7 +209,7 @@ def _record_scored_recording(fingerprint, scored_seconds, stats_path):
     stats["counted_recordings"].append(fingerprint)
     stats["first_recorded_at"] = stats["first_recorded_at"] or now
     stats["last_recorded_at"] = now
-    if stats["reporting_enabled"]:
+    if stats["reporting_enabled"] and get_usage_report_url():
         if not stats["app_instance_id"]:
             stats["app_instance_id"] = str(uuid.uuid4())
         stats["pending_reports"].append(_new_usage_report(stats, 1, scored_seconds))

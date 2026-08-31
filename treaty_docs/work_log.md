@@ -34,6 +34,10 @@ search older entries by date anchor rather than reading every archive.
   requests per minute route-wide and 20 requests per minute per opaque app-copy
   ID. This is a free Worker-level guard; account-level WAF rules are an
   Enterprise-only dashboard feature for this account.
+- Restored the prior visible app interface: all usage-reporting controls are
+  removed from the home screen. The sole opt-in is now
+  `ENABLE_USAGE_REPORTING` in `app_src/config.py`; queued reports are sent
+  only at the next app launch, never while annotations are saved.
 - Verification:
   - Full test suite passed: 202 tests (one pre-existing Flask-Caching
     deprecation warning); source smoke check passed.
@@ -47,6 +51,10 @@ search older entries by date anchor rather than reading every archive.
     Worker version `8f18077c-47a0-46d0-89ec-b5a409829a7f`; an invalid app-like
     POST still returned HTTP 400, confirming the public route remains usable
     while the guard is active.
+  - After restoring the original UI, the full test suite passed: 203 tests
+    (one pre-existing Flask-Caching deprecation warning); the source smoke
+    check and repository-pinned Black hook passed. The locally rendered home
+    layout contains the original MAT-file selector and no usage controls.
 
 ## 2026-08-30
 

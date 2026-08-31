@@ -240,13 +240,17 @@ class SuccessfulResponse:
         return 201
 
 
-def test_opted_in_app_queues_anonymous_aggregate_reports(tmp_path):
+def test_config_opted_in_app_queues_anonymous_aggregate_reports(tmp_path, monkeypatch):
     stats_file = tmp_path / "usage-stats.json"
     first_mat = make_mat(eeg_seed=10, scored_seconds=3600)
     second_mat = make_mat(eeg_seed=11, scored_seconds=1800)
     assert usage_stats.record_scored_recording(first_mat, stats_file)
 
-    assert usage_stats.enable_usage_reporting(stats_file)
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", True)
+    monkeypatch.setattr(
+        usage_stats.config, "USAGE_REPORT_URL", "https://usage.example/v1/usage-events"
+    )
+    assert usage_stats.configure_usage_reporting(stats_file)
     assert usage_stats.record_scored_recording(second_mat, stats_file)
 
     stats = usage_stats.read_usage_stats(stats_file)
@@ -264,10 +268,25 @@ def test_opted_in_app_queues_anonymous_aggregate_reports(tmp_path):
         assert fingerprint not in serialized_reports
 
 
-def test_sync_sends_each_queued_event_once_and_then_clears_it(tmp_path):
+def test_disabled_config_never_activates_reporting(tmp_path, monkeypatch):
+    stats_file = tmp_path / "usage-stats.json"
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", False)
+    monkeypatch.setattr(
+        usage_stats.config, "USAGE_REPORT_URL", "https://usage.example/v1/usage-events"
+    )
+
+    assert usage_stats.configure_usage_reporting(stats_file) is False
+    assert not stats_file.exists()
+
+
+def test_configured_sync_sends_each_queued_event_once_and_then_clears_it(tmp_path, monkeypatch):
     stats_file = tmp_path / "usage-stats.json"
     usage_stats.record_scored_recording(make_mat(eeg_seed=12), stats_file)
-    usage_stats.enable_usage_reporting(stats_file)
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", True)
+    monkeypatch.setattr(
+        usage_stats.config, "USAGE_REPORT_URL", "https://usage.example/v1/usage-events"
+    )
+    usage_stats.configure_usage_reporting(stats_file)
     sent_payloads = []
 
     def opener(request, timeout):

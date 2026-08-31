@@ -54,7 +54,6 @@ backend_div = html.Div(
         dcc.Store(id="navigation-profile-store"),
         dcc.Store(id="graph-direct-restyle-payload-store"),
         dcc.Store(id="graph-direct-restyle-status-store"),
-        dcc.ConfirmDialog(id="usage-reporting-confirm"),
         EventListener(
             id="graph-contextmenu",
             events=[
@@ -131,38 +130,9 @@ backend_div = html.Div(
     ]
 )
 
-usage_summary_button = html.Button(
-    "Export impact summary",
-    id="usage-summary-button",
-    title=(
-        "Save a text summary of how much scoring has been done on this "
-        "computer. Counts only; nothing is sent anywhere."
-    ),
-    style={"marginLeft": "10px"},
-)
-
-usage_reporting_button = html.Button(
-    "Share anonymous usage data",
-    id="usage-reporting-button",
-    title="Opt in to send this app copy's completed-recording counts and hours.",
-    style={"marginLeft": "10px"},
-)
-
-usage_reporting_stop_button = html.Button(
-    "Stop sharing",
-    id="usage-reporting-stop-button",
-    title="Stop future usage-data uploads from this app copy.",
-    style={"marginLeft": "10px"},
-)
-
 home_div = html.Div(
     [
         mat_upload_button,
-        usage_summary_button,
-        usage_reporting_button,
-        usage_reporting_stop_button,
-        html.Div(id="usage-summary-message", style={"marginLeft": "10px"}),
-        html.Div(id="usage-reporting-message", style={"marginLeft": "10px"}),
         html.Div(id="data-upload-message", style={"marginLeft": "10px"}),
         html.Div(id="debug-message", style={"marginLeft": "10px"}),
         backend_div,

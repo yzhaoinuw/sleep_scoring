@@ -2,7 +2,6 @@
 """Serverside callbacks for annotation history, undo, and saving results."""
 
 import shutil
-import threading
 
 import dash
 import numpy as np
@@ -20,7 +19,7 @@ from app_src.postprocessing import (
 )
 from app_src.server import TEMP_PATH, app, cache
 from app_src.sleep_score_layers import normalize_sleep_scores
-from app_src.usage_stats import record_scored_recording, sync_usage_reports
+from app_src.usage_stats import record_scored_recording
 
 
 @app.callback(
@@ -149,8 +148,7 @@ def save_annotations(n_clicks):
         labels = mat["sleep_scores"]
         # A completely scored recording that reached disk is what "scored"
         # counts as. Re-saving or reopening it will not count it again.
-        if record_scored_recording(mat):
-            threading.Thread(target=sync_usage_reports, daemon=True).start()
+        record_scored_recording(mat)
 
     if labels is not None:
         labels = labels.astype(int)
