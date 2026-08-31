@@ -17,9 +17,12 @@ identifiers, or local deduplication fingerprints.
    `SLEEP_SCORING_USAGE_REPORT_URL` environment variable remains useful as a
    development override.
 
-Before making the public write endpoint available, configure an appropriate
-Cloudflare abuse-control rule for it. The app deliberately does not embed a
-shared secret: anything distributed with the app can be extracted.
+The public write route is protected by two Cloudflare Worker rate-limit
+bindings: 600 requests per minute for the route and 20 requests per minute for
+each opaque app-copy ID. The limits are local to each Cloudflare location and
+eventually consistent, so they reduce abuse rather than provide accounting.
+The app deliberately does not embed a shared secret: anything distributed with
+the app can be extracted.
 
 The Worker deliberately has no public read endpoint. To inspect usage, call
 the administrator endpoint with the secret token:

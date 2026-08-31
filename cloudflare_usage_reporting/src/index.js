@@ -51,6 +51,13 @@ export default {
     }
 
     if (request.method === "POST" && url.pathname === "/v1/usage-events") {
+      const routeLimit = await env.USAGE_EVENT_ROUTE_LIMITER.limit({
+        key: "v1/usage-events",
+      });
+      if (!routeLimit.success) {
+        return json({ error: "usage reporting is temporarily rate limited" }, 429);
+      }
+
       let event;
       try {
         event = await request.json();
@@ -59,6 +66,13 @@ export default {
       }
       if (!validEvent(event)) {
         return json({ error: "invalid usage event" }, 400);
+      }
+
+      const appLimit = await env.USAGE_EVENT_APP_LIMITER.limit({
+        key: event.app_instance_id,
+      });
+      if (!appLimit.success) {
+        return json({ error: "usage reporting is temporarily rate limited" }, 429);
       }
 
       await env.DB.prepare(

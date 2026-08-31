@@ -4,6 +4,22 @@ compatibility_date = "2026-08-31"
 workers_dev = true
 preview_urls = false
 
+[[ratelimits]]
+name = "USAGE_EVENT_ROUTE_LIMITER"
+namespace_id = "87013001"
+
+  [ratelimits.simple]
+  limit = 600
+  period = 60
+
+[[ratelimits]]
+name = "USAGE_EVENT_APP_LIMITER"
+namespace_id = "87013002"
+
+  [ratelimits.simple]
+  limit = 20
+  period = 60
+
 [[d1_databases]]
 binding = "DB"
 database_name = "sleep-scoring-usage"

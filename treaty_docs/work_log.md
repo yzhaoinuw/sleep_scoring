@@ -30,6 +30,10 @@ search older entries by date anchor rather than reading every archive.
   `https://sleep-scoring-usage-reporting.brainflowzzz.workers.dev`, with the
   reviewed schema and an administrator secret for authenticated daily or weekly
   aggregate queries. The default app endpoint now targets that service.
+- Added Cloudflare Worker rate-limit bindings on the public ingest route: 600
+  requests per minute route-wide and 20 requests per minute per opaque app-copy
+  ID. This is a free Worker-level guard; account-level WAF rules are an
+  Enterprise-only dashboard feature for this account.
 - Verification:
   - Full test suite passed: 202 tests (one pre-existing Flask-Caching
     deprecation warning); source smoke check passed.
@@ -39,6 +43,10 @@ search older entries by date anchor rather than reading every archive.
     `d071f327-2e83-4c3d-8247-cb0645589c96`; its health route returned
     `{"status":"ok"}` through the app's Python request path, and an invalid
     POST was rejected with HTTP 400 without creating a usage event.
+  - The rate-limit configuration passed Wrangler validation and was deployed in
+    Worker version `8f18077c-47a0-46d0-89ec-b5a409829a7f`; an invalid app-like
+    POST still returned HTTP 400, confirming the public route remains usable
+    while the guard is active.
 
 ## 2026-08-30
 

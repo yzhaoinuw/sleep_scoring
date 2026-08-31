@@ -63,9 +63,9 @@ Settled decisions:
 
 Remaining work:
 
-- Before a broad public rollout, configure an appropriate Cloudflare
-  abuse-control rule for the public ingest route. No app data is sent until a
-  user opts in.
+- No backend deployment step remains before a broad public rollout. The public
+  ingest route has route-wide and per-app-copy Cloudflare Worker rate limits;
+  no app data is sent until a user opts in.
 - Collect GitHub release-asset download counts when useful. These
   need no instrumentation (`assets[].download_count`), but record the caveats:
   they are not deduplicated, they include bots and mirrors, and they are
