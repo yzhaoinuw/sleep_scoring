@@ -36,8 +36,9 @@ search older entries by date anchor rather than reading every archive.
   - Rendered Dash check confirmed the export, sharing, and stop-sharing
     controls, and the sharing button opens its explicit confirmation prompt.
   - Cloudflare applied the D1 schema and deployed Worker version
-    `d071f327-2e83-4c3d-8247-cb0645589c96`; public hostname propagation was
-    still underway when checked from this Windows environment.
+    `d071f327-2e83-4c3d-8247-cb0645589c96`; its health route returned
+    `{"status":"ok"}` through the app's Python request path, and an invalid
+    POST was rejected with HTTP 400 without creating a usage event.
 
 ## 2026-08-30
 

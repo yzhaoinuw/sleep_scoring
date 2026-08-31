@@ -263,7 +263,10 @@ def _send_usage_report(endpoint, report, opener):
     request = Request(
         endpoint,
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": f"Sleep-Scoring/{VERSION}",
+        },
         method="POST",
     )
     try:
