@@ -161,6 +161,9 @@ def test_store_holds_no_paths_names_or_signal_values(tmp_path):
         "first_recorded_at",
         "last_recorded_at",
         "counted_recordings",
+        "reporting_enabled",
+        "app_instance_id",
+        "pending_reports",
     }
     # Fingerprints are one-way digests, never the signal itself.
     assert all(
@@ -212,11 +215,11 @@ def test_counting_never_raises_when_the_store_is_unwritable(tmp_path):
     assert usage_stats.record_scored_recording(make_mat(), unwritable / "stats.json") is False
 
 
-def test_stats_file_defaults_to_a_per_user_path_outside_the_app(monkeypatch, tmp_path):
+def test_stats_file_defaults_to_the_shared_app_folder(monkeypatch, tmp_path):
     monkeypatch.delenv(usage_stats.USAGE_STATS_FILE_ENV, raising=False)
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setenv(usage_stats.APP_STATE_DIR_ENV, str(tmp_path))
 
-    assert usage_stats.get_usage_stats_file() == tmp_path / "sleep_scoring" / "usage-stats.json"
+    assert usage_stats.get_usage_stats_file() == tmp_path / "usage-stats.json"
 
 
 def test_stats_file_can_be_overridden_for_testing(monkeypatch, tmp_path):
@@ -224,3 +227,80 @@ def test_stats_file_can_be_overridden_for_testing(monkeypatch, tmp_path):
     monkeypatch.setenv(usage_stats.USAGE_STATS_FILE_ENV, str(override))
 
     assert usage_stats.get_usage_stats_file() == override
+
+
+class SuccessfulResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def getcode(self):
+        return 201
+
+
+def test_opted_in_app_queues_anonymous_aggregate_reports(tmp_path):
+    stats_file = tmp_path / "usage-stats.json"
+    first_mat = make_mat(eeg_seed=10, scored_seconds=3600)
+    second_mat = make_mat(eeg_seed=11, scored_seconds=1800)
+    assert usage_stats.record_scored_recording(first_mat, stats_file)
+
+    assert usage_stats.enable_usage_reporting(stats_file)
+    assert usage_stats.record_scored_recording(second_mat, stats_file)
+
+    stats = usage_stats.read_usage_stats(stats_file)
+    assert stats["reporting_enabled"] is True
+    assert len(stats["app_instance_id"]) == 36
+    assert [report["event_kind"] for report in stats["pending_reports"]] == [
+        "enrollment",
+        "recording",
+    ]
+    assert stats["pending_reports"][0]["recordings_delta"] == 1
+    assert stats["pending_reports"][1]["seconds_delta"] == 1800
+    serialized_reports = json.dumps(stats["pending_reports"])
+    assert "mouse_42" not in serialized_reports
+    for fingerprint in stats["counted_recordings"]:
+        assert fingerprint not in serialized_reports
+
+
+def test_sync_sends_each_queued_event_once_and_then_clears_it(tmp_path):
+    stats_file = tmp_path / "usage-stats.json"
+    usage_stats.record_scored_recording(make_mat(eeg_seed=12), stats_file)
+    usage_stats.enable_usage_reporting(stats_file)
+    sent_payloads = []
+
+    def opener(request, timeout):
+        assert timeout == usage_stats.USAGE_REPORT_TIMEOUT_SECONDS
+        sent_payloads.append(json.loads(request.data.decode("utf-8")))
+        return SuccessfulResponse()
+
+    assert (
+        usage_stats.sync_usage_reports(
+            stats_file,
+            report_url="https://usage.example/v1/usage-events",
+            opener=opener,
+        )
+        == "sent"
+    )
+    assert usage_stats.read_usage_stats(stats_file)["pending_reports"] == []
+    assert len(sent_payloads) == 1
+    assert set(sent_payloads[0]) == {
+        "event_id",
+        "app_instance_id",
+        "event_kind",
+        "recordings_delta",
+        "seconds_delta",
+        "occurred_at",
+        "app_version",
+    }
+
+
+def test_disabled_reporting_never_creates_uploads(tmp_path):
+    stats_file = tmp_path / "usage-stats.json"
+    usage_stats.record_scored_recording(make_mat(eeg_seed=13), stats_file)
+
+    stats = usage_stats.read_usage_stats(stats_file)
+    assert stats["reporting_enabled"] is False
+    assert stats["app_instance_id"] == ""
+    assert stats["pending_reports"] == []

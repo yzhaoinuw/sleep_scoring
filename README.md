@@ -182,7 +182,7 @@ to export sleep bouts and summary statistics to Excel.
 ### Export An Impact Summary
 
 The app keeps a running count of how many recordings have been scored on this
-computer and how many hours they add up to. A recording counts once, the first
+copy of the app and how many hours they add up to. A recording counts once, the first
 time you save it with every second scored; reopening it, re-saving it, or
 saving it under a new name does not count it again.
 
@@ -191,11 +191,24 @@ as a text file. This is useful for reporting tool use in annual research
 reports, and you can share the file with the developer if you would like your
 lab's use reflected in the project's reported impact.
 
-These totals never leave your computer on their own. The app has no reporting
-endpoint and makes no network call for this; the only way the numbers travel is
-if you export the file and send it yourself. The stored totals and the exported
+The state belongs beside the app folder, so one shared app folder (including
+one used from an external drive) has one total. The stored totals and exported
 summary contain no recording names, file paths, signal data, annotations, or
 animal identifiers.
+
+### Share Anonymous Usage Data
+
+Some builds can offer **Share anonymous usage data**. It is off by default.
+After you explicitly enable it, the app sends an event for each newly completed
+recording and retries queued events after a network interruption. The event
+contains a random identifier for this app copy, a random event identifier,
+completed-recording count, scored seconds, app version, and timestamp. It does
+not contain any recording name, path, signal, annotation, animal identifier, or
+the local fingerprint used to avoid counting a recording twice.
+
+The project can group these opted-in events by day, week, or another date range
+to understand aggregate app use. If a build has no configured reporting server,
+the sharing control reports that it is unavailable and nothing is sent.
 
 ### Use Multiple Windows And Crash Recovery
 
@@ -242,16 +255,17 @@ are not in this public repository; request them from Yue Zhao. See
 
 ## Privacy
 
-The app makes exactly two kinds of network request, both to github.com, and
-neither one sends anything about your recordings:
+The app makes GitHub update requests and, only after explicit opt-in in a build
+configured with a reporting server, aggregate usage-report requests. Neither
+sends recording data:
 
 - **Update check.** The packaged Windows app asks GitHub for the latest release
   tag at most once every 24 hours, and downloads a code-only update asset when
   one applies. Set `SLEEP_SCORING_SKIP_UPDATE=1` to turn this off.
-- **Nothing else.** There is no analytics, telemetry, or usage-reporting
-  endpoint. The scoring totals behind
-  [Export An Impact Summary](#export-an-impact-summary) are stored only on your
-  computer and are shared only if you export the file and send it yourself.
+- **Optional usage reporting.** A configured build can send the minimal,
+  anonymous aggregate described in [Share Anonymous Usage Data](#share-anonymous-usage-data),
+  but only after you choose to enable it. You can stop future reports at any
+  time with **Stop sharing**; local totals remain available.
 
 Your recordings, file paths, annotations, and animal identifiers are never
 transmitted, and the source installation makes no update check at all.

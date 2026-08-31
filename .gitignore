@@ -27,6 +27,9 @@ model_infer_example.txt
 test-artifacts/
 .pytest_tmp/
 sleep_scoring_app_data/
+usage-stats.json
+.usage-stats.json.lock
+cloudflare_usage_reporting/.wrangler/
 
 # Generated or demo video assets
 *.mp4

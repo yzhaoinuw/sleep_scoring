@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Local, aggregate-only record of app use for research impact reporting.
+"""Per-app usage totals and opt-in, aggregate usage-report delivery.
 
-Nothing recorded here leaves the computer it runs on. There is no network
-call in this module and no reporting endpoint anywhere in the app; the totals
-exist so a user can export a summary and choose to share it.
-
-The store holds counts and a set of opaque recording fingerprints. It never
-holds file names, paths, signal values, annotations, or animal identifiers.
-The fingerprints exist only so that reopening or re-saving the same recording
-cannot inflate the totals. They are one-way digests of signal content, so they
-cannot be turned back into a name or a path, but they are still stable
-per-recording tokens: keep them local. Only the counts are meant to be shared.
-
-A recording counts once, the first time it is saved with every second scored.
+The state belongs beside the app rather than to a Windows account. One shared
+app folder, including one on an external drive, therefore has one anonymous
+app-instance ID and one set of totals. Reporting is off by default. When it is
+enabled, the only network payload is an idempotent aggregate event: an opaque
+app ID, an opaque event ID, the number of completed recordings, their scored
+seconds, and a timestamp. File names, paths, signal values, annotations,
+animal identifiers, and local recording fingerprints never leave the app.
 """
 
 import hashlib
@@ -21,19 +16,29 @@ import os
 import tempfile
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.request import Request, urlopen
 
 import numpy as np
 
+from app_src import VERSION
 
-SCHEMA_VERSION = 1
+
+SCHEMA_VERSION = 2
 USAGE_STATS_FILE_ENV = "SLEEP_SCORING_USAGE_STATS_FILE"
+APP_STATE_DIR_ENV = "SLEEP_SCORING_APP_STATE_DIR"
+USAGE_REPORT_URL_ENV = "SLEEP_SCORING_USAGE_REPORT_URL"
+DEFAULT_USAGE_REPORT_URL = (
+    "https://sleep-scoring-usage-reporting.brainflowzzz.workers.dev/v1/usage-events"
+)
 FINGERPRINT_LENGTH = 16
 SECONDS_PER_HOUR = 3600
 USAGE_STATS_LOCK_TIMEOUT_SECONDS = 5
 USAGE_STATS_LOCK_RETRY_SECONDS = 0.05
+USAGE_REPORT_TIMEOUT_SECONDS = 3
 
 try:
     import msvcrt
@@ -44,18 +49,25 @@ except ImportError:  # pragma: no cover - exercised on macOS/Linux
 _usage_stats_thread_lock = threading.Lock()
 
 
-def get_usage_stats_file():
-    """Return the per-user stats path, outside the app folder.
+def get_app_state_dir():
+    """Return the writable directory identifying this copy of the app."""
+    configured_dir = os.environ.get(APP_STATE_DIR_ENV)
+    if configured_dir:
+        return Path(configured_dir)
+    return Path(__file__).resolve().parent.parent
 
-    A packaged app can be installed somewhere the user cannot write, and its
-    folder is replaced wholesale by a full-package update, so the totals live
-    beside the updater's own state instead.
-    """
+
+def get_usage_stats_file():
+    """Return the per-app state file, unless an explicit test override exists."""
     configured_path = os.environ.get(USAGE_STATS_FILE_ENV)
     if configured_path:
         return Path(configured_path)
-    state_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".cache"))
-    return state_root / "sleep_scoring" / "usage-stats.json"
+    return get_app_state_dir() / "usage-stats.json"
+
+
+def get_usage_report_url():
+    """Return this build's public report endpoint, optionally overridden locally."""
+    return os.environ.get(USAGE_REPORT_URL_ENV, DEFAULT_USAGE_REPORT_URL).strip()
 
 
 def get_empty_usage_stats():
@@ -66,16 +78,14 @@ def get_empty_usage_stats():
         "first_recorded_at": "",
         "last_recorded_at": "",
         "counted_recordings": [],
+        "reporting_enabled": False,
+        "app_instance_id": "",
+        "pending_reports": [],
     }
 
 
 def get_recording_fingerprint(mat):
-    """Return a short one-way digest of a recording's EEG signal.
-
-    The EEG array is the recording's identity: annotating and saving does not
-    change it, so the same recording fingerprints identically no matter how
-    many times it is reopened, re-saved, or saved under a new name.
-    """
+    """Return a short one-way digest used only for local deduplication."""
     eeg = mat.get("eeg") if hasattr(mat, "get") else None
     if eeg is None:
         return ""
@@ -99,7 +109,7 @@ def get_scored_seconds(mat):
 
 
 def read_usage_stats(stats_file=None):
-    """Return the stored totals, or empty totals when unreadable."""
+    """Return usable state, upgrading the original local-only schema in memory."""
     stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
     stats = get_empty_usage_stats()
     try:
@@ -107,24 +117,67 @@ def read_usage_stats(stats_file=None):
     except (OSError, ValueError):
         return stats
 
-    if not isinstance(stored, dict) or stored.get("schema_version") != SCHEMA_VERSION:
+    if not isinstance(stored, dict) or stored.get("schema_version") not in (1, SCHEMA_VERSION):
         return stats
 
     for key, empty_value in stats.items():
         value = stored.get(key)
         if isinstance(value, type(empty_value)):
             stats[key] = value
+    stats["schema_version"] = SCHEMA_VERSION
     stats["counted_recordings"] = [str(fingerprint) for fingerprint in stats["counted_recordings"]]
+    stats["app_instance_id"] = str(stats["app_instance_id"])
+    stats["pending_reports"] = [
+        report for report in stats["pending_reports"] if _is_usage_report(report)
+    ]
     return stats
 
 
-def record_scored_recording(mat, stats_file=None):
-    """Count a fully scored recording once. Never raises.
+def enable_usage_reporting(stats_file=None):
+    """Opt this app copy into aggregate reporting and queue its current total."""
+    stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
+    try:
+        with _usage_stats_lock(stats_path):
+            stats = read_usage_stats(stats_path)
+            if not stats["app_instance_id"]:
+                stats["app_instance_id"] = str(uuid.uuid4())
+            if stats["reporting_enabled"]:
+                return True
 
-    Returns True when this call added a recording to the totals. Usage
-    accounting must not be able to break a save, so any failure here is
-    swallowed: an uncounted recording is an acceptable loss, a lost save
-    is not.
+            stats["reporting_enabled"] = True
+            if stats["recordings_scored"]:
+                stats["pending_reports"].append(
+                    _new_usage_report(
+                        stats,
+                        stats["recordings_scored"],
+                        stats["seconds_scored"],
+                        event_kind="enrollment",
+                    )
+                )
+            return write_usage_stats(stats, stats_path)
+    except Exception:  # noqa: BLE001 -- reporting must never break the app
+        return False
+
+
+def disable_usage_reporting(stats_file=None):
+    """Stop future delivery while preserving the app's local totals."""
+    stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
+    try:
+        with _usage_stats_lock(stats_path):
+            stats = read_usage_stats(stats_path)
+            stats["reporting_enabled"] = False
+            stats["pending_reports"] = []
+            return write_usage_stats(stats, stats_path)
+    except Exception:  # noqa: BLE001 -- reporting must never break the app
+        return False
+
+
+def record_scored_recording(mat, stats_file=None):
+    """Count a fully scored recording once and queue an opted-in report.
+
+    The function never raises: an uncounted recording is preferable to an
+    interrupted save. Uploading happens separately, so a slow or unavailable
+    network never delays saving annotations.
     """
     fingerprint = get_recording_fingerprint(mat)
     scored_seconds = get_scored_seconds(mat)
@@ -135,7 +188,7 @@ def record_scored_recording(mat, stats_file=None):
     try:
         with _usage_stats_lock(stats_path):
             return _record_scored_recording(fingerprint, scored_seconds, stats_path)
-    except Exception:  # noqa: BLE001 -- counting must never interrupt a save
+    except Exception:  # noqa: BLE001 -- accounting must never interrupt a save
         return False
 
 
@@ -144,25 +197,102 @@ def _record_scored_recording(fingerprint, scored_seconds, stats_path):
     if fingerprint in stats["counted_recordings"]:
         return False
 
-    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    now = _utc_now()
     stats["recordings_scored"] += 1
     stats["seconds_scored"] += scored_seconds
     stats["counted_recordings"].append(fingerprint)
     stats["first_recorded_at"] = stats["first_recorded_at"] or now
     stats["last_recorded_at"] = now
+    if stats["reporting_enabled"]:
+        if not stats["app_instance_id"]:
+            stats["app_instance_id"] = str(uuid.uuid4())
+        stats["pending_reports"].append(_new_usage_report(stats, 1, scored_seconds))
 
     return write_usage_stats(stats, stats_path)
 
 
+def sync_usage_reports(stats_file=None, report_url=None, opener=urlopen):
+    """Send queued, opt-in events once each; return a compact status string."""
+    stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
+    endpoint = report_url or get_usage_report_url()
+    if not endpoint:
+        return "not-configured"
+
+    stats = read_usage_stats(stats_path)
+    if not stats["reporting_enabled"]:
+        return "disabled"
+    reports = list(stats["pending_reports"])
+    if not reports:
+        return "up-to-date"
+
+    sent_count = 0
+    for report in reports:
+        if not _send_usage_report(endpoint, report, opener):
+            break
+        if _remove_pending_report(report["event_id"], stats_path):
+            sent_count += 1
+    return "sent" if sent_count == len(reports) else "pending"
+
+
+def _new_usage_report(stats, recordings_delta, seconds_delta, event_kind="recording"):
+    return {
+        "event_id": str(uuid.uuid4()),
+        "app_instance_id": stats["app_instance_id"],
+        "event_kind": event_kind,
+        "recordings_delta": int(recordings_delta),
+        "seconds_delta": int(seconds_delta),
+        "occurred_at": _utc_now(),
+        "app_version": VERSION,
+    }
+
+
+def _is_usage_report(report):
+    return isinstance(report, dict) and {
+        "event_id",
+        "app_instance_id",
+        "event_kind",
+        "recordings_delta",
+        "seconds_delta",
+        "occurred_at",
+        "app_version",
+    } <= set(report)
+
+
+def _send_usage_report(endpoint, report, opener):
+    payload = json.dumps(report).encode("utf-8")
+    request = Request(
+        endpoint,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with opener(request, timeout=USAGE_REPORT_TIMEOUT_SECONDS) as response:
+            return 200 <= response.getcode() < 300
+    except (OSError, ValueError):
+        return False
+
+
+def _remove_pending_report(event_id, stats_path):
+    try:
+        with _usage_stats_lock(stats_path):
+            stats = read_usage_stats(stats_path)
+            before = len(stats["pending_reports"])
+            stats["pending_reports"] = [
+                report for report in stats["pending_reports"] if report["event_id"] != event_id
+            ]
+            return before != len(stats["pending_reports"]) and write_usage_stats(stats, stats_path)
+    except Exception:  # noqa: BLE001 -- delivery failures stay queued
+        return False
+
+
+def _utc_now():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
 @contextmanager
 def _usage_stats_lock(stats_path):
-    """Serialize stats updates across the app's supported windows.
-
-    The persistent lock file is intentionally separate from the JSON store: a
-    process crash releases the operating-system lock, so it cannot block a
-    future save. The thread lock makes the same guarantee when tests or a
-    future runtime call this module from multiple threads in one process.
-    """
+    """Serialize state updates across the app's supported windows."""
     stats_path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = stats_path.with_name(f".{stats_path.name}.lock")
     with _usage_stats_thread_lock:
@@ -204,15 +334,7 @@ def _unlock(lock_fd):
 
 
 def write_usage_stats(stats, stats_file=None):
-    """Replace the stats file atomically. Returns whether it was stored.
-
-    The caller reports a recording as counted only when the totals actually
-    reached disk; an unwritable store must not look like a successful count.
-
-    A separate file lock serializes the surrounding read-modify-write update
-    across the app's supported windows. Atomic replacement still protects the
-    JSON file itself if a process exits while writing it.
-    """
+    """Replace state atomically. The surrounding lock prevents lost updates."""
     stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
     temp_path = None
     try:
@@ -242,7 +364,7 @@ def write_usage_stats(stats, stats_file=None):
 
 
 def format_usage_summary(stats, app_version=""):
-    """Return the shareable summary: counts only, no fingerprints."""
+    """Return the shareable local summary; opaque IDs and fingerprints stay out."""
     hours_scored = stats["seconds_scored"] / SECONDS_PER_HOUR
     lines = [
         "Sleep Scoring App -- research impact summary",
@@ -257,8 +379,7 @@ def format_usage_summary(stats, app_version=""):
     lines += [
         "",
         "A recording is counted once, the first time it is saved with every",
-        "second scored. These totals are stored only on this computer and are",
-        "never transmitted anywhere. This summary contains no recording names,",
+        "second scored. This summary contains no app identifier, recording names,",
         "paths, signal data, annotations, or animal identifiers.",
     ]
     return "\n".join(lines)

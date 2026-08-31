@@ -39,28 +39,34 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Research Impact Measurement
 
-Status: local-only v1 implemented on `feature/usage-tracker`; keep separate
-from the v0.17 updater/package work.
+Status: app-copy totals plus opt-in reporting are implemented on
+`feature/usage-tracker`. The Worker/D1 service is deployed at
+`sleep-scoring-usage-reporting.brainflowzzz.workers.dev`; keep the app source
+update separate from the v0.17 updater/package work.
 
 Settled decisions:
 
-- App-use totals stay **local**. There is no reporting endpoint and no network
-  call in `app_src/usage_stats.py`. This was chosen over opt-in telemetry
-  because it removes the hardest open question (where aggregates would be
-  received and retained), carries no compliance surface, and would give an N
-  too small to be defensible at the current user count anyway. Asking adopting
-  labs directly scales further than telemetry does for now.
+- A shared app folder is the reporting unit, not a person or Windows account.
+  Its state holds one opaque app-instance ID, local deduplication fingerprints,
+  totals, and queued reports. The fingerprints never leave that folder.
+- Reporting stays explicitly opt-in. A report contains only opaque app/event
+  IDs, a completed-recording delta, scored-second delta, app version, and
+  timestamp. It is idempotent at the Worker by event ID, so retries do not
+  inflate totals.
 - "Scored" means a recording saved with every second annotated. It counts once,
   on the first such save, deduplicated by a truncated one-way digest of the EEG
   signal, so reopening, re-saving, or saving under a new name cannot inflate
   the totals.
-- The store holds counts and fingerprints only: no recording names, paths,
-  signal values, annotations, or animal identifiers. Fingerprints never leave
-  the machine and never appear in the exported summary.
+- The store holds no recording names, paths, signal values, annotations, or
+  animal identifiers. Fingerprints never leave the app folder and opaque IDs
+  never appear in the exported summary.
 
 Remaining work:
 
-- Collect GitHub release-asset download counts for the annual report. These
+- Before a broad public rollout, configure an appropriate Cloudflare
+  abuse-control rule for the public ingest route. No app data is sent until a
+  user opts in.
+- Collect GitHub release-asset download counts when useful. These
   need no instrumentation (`assets[].download_count`), but record the caveats:
   they are not deduplicated, they include bots and mirrors, and they are
   per-asset, so the 2026-07-30 rename of the v0.17.0 full package reset that

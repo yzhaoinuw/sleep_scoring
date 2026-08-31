@@ -1,0 +1,10 @@
+name = "sleep-scoring-usage-reporting"
+main = "src/index.js"
+compatibility_date = "2026-08-31"
+workers_dev = true
+preview_urls = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sleep-scoring-usage"
+database_id = "30d5393f-c4af-4ad7-8574-a1ff96bf0ed1"

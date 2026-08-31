@@ -15,6 +15,30 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-08-31
+
+### Add opt-in per-app usage reporting (Codex GPT-5; effort/tokens not reported)
+
+- Corrected the reporting unit from a Windows account to an app copy: a shared
+  app folder, including one on an external drive, keeps one opaque ID, local
+  total, deduplication set, and upload queue.
+- Added disabled-by-default, idempotent aggregate reporting. The app queues an
+  enrollment total and later completed-recording deltas without transmitting
+  file names, paths, signal data, annotations, animal identifiers, or local
+  fingerprints. A missing endpoint keeps the feature inert.
+- Deployed the Cloudflare Worker/D1 service at
+  `https://sleep-scoring-usage-reporting.brainflowzzz.workers.dev`, with the
+  reviewed schema and an administrator secret for authenticated daily or weekly
+  aggregate queries. The default app endpoint now targets that service.
+- Verification:
+  - Full test suite passed: 202 tests (one pre-existing Flask-Caching
+    deprecation warning); source smoke check passed.
+  - Rendered Dash check confirmed the export, sharing, and stop-sharing
+    controls, and the sharing button opens its explicit confirmation prompt.
+  - Cloudflare applied the D1 schema and deployed Worker version
+    `d071f327-2e83-4c3d-8247-cb0645589c96`; public hostname propagation was
+    still underway when checked from this Windows environment.
+
 ## 2026-08-30
 
 ### Rebase and harden the local usage tracker (Codex GPT-5; effort/tokens not reported)
