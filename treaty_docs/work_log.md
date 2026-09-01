@@ -76,6 +76,25 @@ search older entries by date anchor rather than reading every archive.
   - Worker unit tests passed: 3 tests. Wrangler `deploy --dry-run` validated
     the Worker and its D1/rate-limit bindings.
 
+### Address usage-reporting follow-up review (Codex GPT-5; effort/tokens not reported)
+
+- Startup report sync now treats a temporarily unreadable state file as
+  unavailable rather than allowing its background thread to emit a traceback.
+- The bounded fingerprint cache retains the most recent fingerprints, avoiding
+  repeated saves of a recently scored recording inflating totals after the cap.
+- Worker summaries use an index-friendly `received_at` range predicate. The
+  schema now migrates the obsolete `occurred_at` index to `received_at` when
+  applied to the deployed D1 database.
+- A batch that drops a permanently invalid event now reports `rejected`, not
+  `sent`, while later valid events still proceed.
+- Verification:
+  - Focused usage-stat tests passed: 24 tests.
+  - Worker unit tests passed: 4 tests.
+  - Full Python test suite passed: 210 tests (one Flask-Caching deprecation
+    warning); the repository-pinned Black hook and source smoke check passed.
+  - Wrangler `deploy --dry-run` validated the Worker, D1 binding, and
+    rate-limit bindings without deploying the pending migration.
+
 ## 2026-08-30
 
 ### Rebase and harden the local usage tracker (Codex GPT-5; effort/tokens not reported)

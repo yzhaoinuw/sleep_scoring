@@ -217,8 +217,9 @@ def _record_scored_recording(fingerprint, scored_seconds, stats_path):
     now = _utc_now()
     stats["recordings_scored"] += 1
     stats["seconds_scored"] += scored_seconds
-    if len(stats["counted_recordings"]) < MAX_COUNTED_RECORDINGS:
-        stats["counted_recordings"].append(fingerprint)
+    stats["counted_recordings"].append(fingerprint)
+    if len(stats["counted_recordings"]) > MAX_COUNTED_RECORDINGS:
+        del stats["counted_recordings"][:-MAX_COUNTED_RECORDINGS]
     stats["first_recorded_at"] = stats["first_recorded_at"] or now
     stats["last_recorded_at"] = now
     if stats["reporting_enabled"] and get_usage_report_url():
@@ -240,22 +241,31 @@ def sync_usage_reports(stats_file=None, report_url=None, opener=urlopen):
     if not endpoint:
         return "not-configured"
 
-    stats = read_usage_stats(stats_path)
+    try:
+        stats = read_usage_stats(stats_path)
+    except OSError:
+        return "unavailable"
     if not stats["reporting_enabled"]:
         return "disabled"
     reports = list(stats["pending_reports"])
     if not reports:
         return "up-to-date"
 
-    handled_count = 0
+    sent_count = 0
+    dropped_count = 0
     for report in reports:
         outcome = _send_usage_report(endpoint, report, opener)
         if outcome == "retry":
             break
         if _remove_pending_report(report["event_id"], stats_path):
-            handled_count += 1
+            if outcome == "drop":
+                dropped_count += 1
+            else:
+                sent_count += 1
     _queue_deferred_report(stats_path)
-    return "sent" if handled_count == len(reports) else "pending"
+    if sent_count + dropped_count != len(reports):
+        return "pending"
+    return "rejected" if dropped_count else "sent"
 
 
 def _new_usage_report(stats, recordings_delta, seconds_delta, event_kind="recording"):

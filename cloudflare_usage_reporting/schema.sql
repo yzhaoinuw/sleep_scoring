@@ -9,5 +9,7 @@ CREATE TABLE IF NOT EXISTS usage_events (
   received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS usage_events_occurred_at
-  ON usage_events (occurred_at);
+DROP INDEX IF EXISTS usage_events_occurred_at;
+
+CREATE INDEX IF NOT EXISTS usage_events_received_at
+  ON usage_events (received_at);

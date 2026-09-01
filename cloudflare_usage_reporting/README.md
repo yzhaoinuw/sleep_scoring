@@ -9,6 +9,8 @@ identifiers, or local deduplication fingerprints.
 1. Create a Cloudflare D1 database named `sleep-scoring-usage` and copy its ID
    into `wrangler.toml`.
 2. Run `npx wrangler d1 execute sleep-scoring-usage --remote --file=schema.sql`.
+   Re-run this command when updating an existing deployment: the schema safely
+   replaces the obsolete `occurred_at` summary index with `received_at`.
 3. Set an administrator secret: `npx wrangler secret put ADMIN_TOKEN`.
 4. Deploy with `npx wrangler deploy`.
 5. Set `USAGE_REPORT_URL` in `app_src/config.py` to the deployed

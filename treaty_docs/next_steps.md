@@ -65,9 +65,10 @@ Settled decisions:
 Remaining work:
 
 - Deploy the checked-in Worker hardening before a broad public rollout. It adds
-  UUID and timestamp validation and groups summaries by Worker receipt time;
-  the existing public ingest route retains route-wide and per-app-copy
-  Cloudflare Worker rate limits, and no app data is sent until a user opts in.
+  UUID and timestamp validation, groups summaries by Worker receipt time, and
+  migrates the D1 summary index from `occurred_at` to `received_at`; the
+  existing public ingest route retains route-wide and per-app-copy Cloudflare
+  Worker rate limits, and no app data is sent until a user opts in.
 - Collect GitHub release-asset download counts when useful. These
   need no instrumentation (`assets[].download_count`), but record the caveats:
   they are not deduplicated, they include bots and mirrors, and they are

@@ -119,7 +119,7 @@ export default {
                 ROUND(SUM(seconds_delta) / 3600.0, 1) AS hours_scored,
                 COUNT(DISTINCT app_instance_id) AS reporting_app_copies
            FROM usage_events
-          WHERE datetime(received_at) >= datetime(?) AND datetime(received_at) < datetime(?)
+          WHERE received_at >= datetime(?) AND received_at < datetime(?)
           GROUP BY period
           ORDER BY period`,
       )

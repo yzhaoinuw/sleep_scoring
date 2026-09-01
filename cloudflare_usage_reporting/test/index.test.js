@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import worker from "../src/index.js";
@@ -81,5 +82,12 @@ test("groups administrator summaries by Worker receipt time", async () => {
 
   assert.equal(response.status, 200);
   assert.match(env.queryLog[0], /strftime\('%Y-%W', received_at\)/);
-  assert.match(env.queryLog[0], /datetime\(received_at\)/);
+  assert.match(env.queryLog[0], /received_at >= datetime\(\?\)/);
+});
+
+test("migrates the summary index to Worker receipt time", async () => {
+  const schema = await readFile(new URL("../schema.sql", import.meta.url), "utf8");
+
+  assert.match(schema, /DROP INDEX IF EXISTS usage_events_occurred_at/);
+  assert.match(schema, /CREATE INDEX IF NOT EXISTS usage_events_received_at/);
 });

@@ -202,6 +202,22 @@ def test_transient_store_read_error_does_not_overwrite_existing_totals(tmp_path,
     assert stats_file.read_text(encoding="utf-8") == before
 
 
+def test_sync_returns_unavailable_when_the_store_is_temporarily_unreadable(tmp_path, monkeypatch):
+    stats_file = tmp_path / "usage-stats.json"
+    assert usage_stats.record_scored_recording(make_mat(eeg_seed=6), stats_file)
+
+    def fail_read(*_args, **_kwargs):
+        raise PermissionError("temporarily locked")
+
+    monkeypatch.setattr(Path, "read_text", fail_read)
+    assert (
+        usage_stats.sync_usage_reports(
+            stats_file, report_url="https://usage.example/v1/usage-events"
+        )
+        == "unavailable"
+    )
+
+
 def test_schema_one_store_upgrades_without_losing_totals(tmp_path):
     stats_file = tmp_path / "usage-stats.json"
     stats_file.write_text(
@@ -230,6 +246,21 @@ def test_counting_never_raises_when_the_store_is_unwritable(tmp_path):
     unwritable.write_text("blocking file", encoding="utf-8")
 
     assert usage_stats.record_scored_recording(make_mat(), unwritable / "stats.json") is False
+
+
+def test_counted_recordings_keep_recent_fingerprints_when_their_cache_is_bounded(
+    tmp_path, monkeypatch
+):
+    stats_file = tmp_path / "usage-stats.json"
+    monkeypatch.setattr(usage_stats, "MAX_COUNTED_RECORDINGS", 3)
+
+    for seed in range(4):
+        assert usage_stats.record_scored_recording(make_mat(eeg_seed=seed), stats_file)
+
+    assert usage_stats.record_scored_recording(make_mat(eeg_seed=3), stats_file) is False
+    stats = usage_stats.read_usage_stats(stats_file)
+    assert stats["recordings_scored"] == 4
+    assert len(stats["counted_recordings"]) == 3
 
 
 def test_stats_file_defaults_to_the_shared_app_folder(monkeypatch, tmp_path):
@@ -351,7 +382,7 @@ def test_permanent_client_error_does_not_block_later_reports(tmp_path, monkeypat
         sent_payloads.append(json.loads(request.data.decode("utf-8")))
         return SuccessfulResponse()
 
-    assert usage_stats.sync_usage_reports(stats_file, opener=opener) == "sent"
+    assert usage_stats.sync_usage_reports(stats_file, opener=opener) == "rejected"
     assert usage_stats.read_usage_stats(stats_file)["pending_reports"] == []
     assert sent_payloads[1]["event_kind"] == "recording"
 
