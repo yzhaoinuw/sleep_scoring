@@ -11,7 +11,8 @@ implementation and release details are recorded in
   recordings scored and scoring duration; recordings, paths, signal data,
   annotations, and animal identifiers are never sent. Reports are queued and
   sent only when the app starts, so saving annotations never waits for a
-  network request; compatible app updates retain an existing opt-in choice.
+  network request; compatible app updates retain an existing opt-in choice. A
+  weekly refreshed README badge displays the rounded opted-in aggregate.
 - The built-in statistical model can now adapt its Wake/REM tuning to manual
   labels in the current recording when predictions are regenerated. Your
   labels remain in place, and this recording-specific adjustment does not edit

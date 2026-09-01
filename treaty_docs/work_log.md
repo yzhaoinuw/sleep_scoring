@@ -106,6 +106,17 @@ search older entries by date anchor rather than reading every archive.
   - `dev` fast-forwarded from `efb827a` through the validated feature head;
     the next-release changelog and delivery notes passed `git diff --check`.
 
+### Add the research-impact badge workflow (Codex GPT-5; effort/tokens not reported)
+
+- Added a weekly GitHub workflow, with a one-time `dev` bootstrap trigger,
+  that reads only the authenticated aggregate Worker summary and publishes
+  rounded hours and recordings to a public Shields-compatible JSON file on
+  `usage-metrics`.
+- Added the badge to the README and documented that it is an opted-in impact
+  total rather than a people, site, or installation count.
+- The workflow requires the repository secret `USAGE_REPORTING_ADMIN_TOKEN` to
+  match the deployed Worker's `ADMIN_TOKEN`; no desktop-app update is involved.
+
 ## 2026-08-30
 
 ### Rebase and harden the local usage tracker (Codex GPT-5; effort/tokens not reported)

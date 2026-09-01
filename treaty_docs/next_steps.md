@@ -69,6 +69,11 @@ Remaining work:
   migrates the D1 summary index from `occurred_at` to `received_at`; the
   existing public ingest route retains route-wide and per-app-copy Cloudflare
   Worker rate limits, and no app data is sent until a user opts in.
+- Set the `USAGE_REPORTING_ADMIN_TOKEN` GitHub repository secret to the
+  Worker `ADMIN_TOKEN`, then re-run the bootstrap workflow triggered on `dev`.
+  After the workflow reaches the default branch, its weekly schedule publishes
+  a rounded aggregate badge to `usage-metrics`; it never publishes app IDs or
+  event rows.
 - Collect GitHub release-asset download counts when useful. These
   need no instrumentation (`assets[].download_count`), but record the caveats:
   they are not deduplicated, they include bots and mirrors, and they are

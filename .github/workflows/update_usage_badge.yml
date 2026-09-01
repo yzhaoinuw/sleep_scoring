@@ -1,0 +1,62 @@
+name: Update research-impact badge
+
+on:
+  schedule:
+    # Run away from the top of the hour, when GitHub's scheduled queue is busiest.
+    - cron: "17 04 * * 1"
+  workflow_dispatch:
+  # Lets this branch exercise the workflow before it becomes the default branch.
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/update_usage_badge.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research-impact-badge
+  cancel-in-progress: false
+
+jobs:
+  publish-badge:
+    runs-on: ubuntu-latest
+    env:
+      USAGE_REPORT_URL: https://sleep-scoring-usage-reporting.brainflowzzz.workers.dev
+      USAGE_REPORTING_ADMIN_TOKEN: ${{ secrets.USAGE_REPORTING_ADMIN_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch opted-in aggregate usage
+        run: |
+          set -euo pipefail
+          test -n "$USAGE_REPORTING_ADMIN_TOKEN" || {
+            echo "Set the USAGE_REPORTING_ADMIN_TOKEN repository secret before running this workflow." >&2
+            exit 1
+          }
+          curl --fail --silent --show-error --retry 3 --connect-timeout 10 \
+            --header "Authorization: Bearer $USAGE_REPORTING_ADMIN_TOKEN" \
+            "$USAGE_REPORT_URL/admin/usage-summary?group=week" \
+            > "$RUNNER_TEMP/usage-summary.json"
+
+      - name: Build public badge data
+        run: |
+          set -euo pipefail
+          hours="$(jq -r '([.rows[]?.seconds_scored | tonumber] | add // 0) / 3600 | . * 10 | round / 10 | tostring' "$RUNNER_TEMP/usage-summary.json")"
+          recordings="$(jq -r '[.rows[]?.recordings_scored | tonumber] | add // 0' "$RUNNER_TEMP/usage-summary.json")"
+          jq -n \
+            --arg message "$hours h scored / $recordings recordings" \
+            '{schemaVersion: 1, label: "research impact", message: $message, color: "blue"}' \
+            > "$RUNNER_TEMP/research-impact.json"
+
+      - name: Publish badge data to the usage-metrics branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan usage-metrics
+          git rm -rf .
+          cp "$RUNNER_TEMP/research-impact.json" research-impact.json
+          git add research-impact.json
+          git commit -m "Update research-impact badge"
+          git push --force origin usage-metrics

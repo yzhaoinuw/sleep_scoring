@@ -2,6 +2,7 @@
 
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21748494-blue.svg)](https://doi.org/10.5281/zenodo.21748494)
+[![Research impact](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fyzhaoinuw%2Fsleep_scoring%2Fusage-metrics%2Fresearch-impact.json)](https://github.com/yzhaoinuw/sleep_scoring/tree/usage-metrics)
 
 <p align="center">
   <img src="media/annotation_demo.gif" width="720"
@@ -196,6 +197,10 @@ twice.
 The project can group these opted-in events by day, week, or another date range
 to understand aggregate app use. The reporting endpoint is maintained with the
 app; use `ENABLE_USAGE_REPORTING = False` to keep this app copy opted out.
+
+The badge at the top of this README shows a rounded aggregate of opted-in
+reports and refreshes weekly. It is an impact total, not a count of people,
+labs, or installations: copying an app folder creates a new reporting ID.
 
 ### Use Multiple Windows And Crash Recovery
 
