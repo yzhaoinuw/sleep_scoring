@@ -46,7 +46,7 @@ jobs:
           recordings="$(jq -r '[.rows[]?.recordings_scored | tonumber] | add // 0' "$RUNNER_TEMP/usage-summary.json")"
           jq -n \
             --arg message "$hours h scored / $recordings recordings" \
-            '{schemaVersion: 1, label: "research impact", message: $message, color: "blue"}' \
+            '{schemaVersion: 1, label: "research impact", message: $message, color: "teal"}' \
             > "$RUNNER_TEMP/research-impact.json"
 
       - name: Publish badge data to the usage-metrics branch

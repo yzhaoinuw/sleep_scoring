@@ -153,6 +153,7 @@ installed values:
 - `STATS_MODEL_WAKE_THRESHOLD`
 - `STATS_MODEL_MIN_WAKE_DURATION`
 - `STATS_MODEL_MIN_REM_DURATION`
+- `ENABLE_USAGE_REPORTING`
 
 For `WINDOW_CONFIG`, dictionary values merge recursively: existing keys keep the
 installed value, newly introduced keys use the downloaded default, and keys

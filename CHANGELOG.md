@@ -4,7 +4,7 @@ This file summarizes changes that affect people using the app. Maintainer-only
 implementation and release details are recorded in
 `treaty_docs/work_log.md`.
 
-## Next release
+## v0.17.2
 
 - Added an optional, disabled-by-default research-impact tracker. App copies
   that opt in with `ENABLE_USAGE_REPORTING = True` report only aggregate
