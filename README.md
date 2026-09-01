@@ -18,9 +18,7 @@ aligned video, and optionally generating automatic sleep scores.
 - [Install](#install)
 - [Before Your First Session](#before-your-first-session)
 - [Use The App](#use-the-app)
-- [App Updates](#app-updates)
-- [Optional sDREAMER Model](#optional-sdreamer-model)
-- [Privacy](#privacy)
+- [Additional Features](#additional-features)
 - [Input Files](#input-files)
 - [Developer Documentation](#developer-documentation)
 - [Citation](#citation)
@@ -180,28 +178,6 @@ If anything is still unscored, the app reports the first gap as
 `[start, end] (duration s)`. Once the recording is fully scored, it also offers
 to export sleep bouts and summary statistics to Excel.
 
-### Share Anonymous Usage Data
-
-Usage reporting has no visible controls and is off by default. To opt in for
-one app copy, set `ENABLE_USAGE_REPORTING = True` in `app_src/config.py` and
-restart the app. The app sends queued aggregate events in the background on the
-next launch; saving annotations never makes a network request. Set the flag
-back to `False` and restart to stop future uploads.
-
-The event contains a random identifier for this app copy, a random event
-identifier, completed-recording count, scored seconds, app version, and
-timestamp. It does not contain any recording name, path, signal, annotation,
-animal identifier, or the local fingerprint used to avoid counting a recording
-twice.
-
-The project can group these opted-in events by day, week, or another date range
-to understand aggregate app use. The reporting endpoint is maintained with the
-app; use `ENABLE_USAGE_REPORTING = False` to keep this app copy opted out.
-
-The badge at the top of this README shows a rounded aggregate of opted-in
-reports and refreshes weekly. It is an impact total, not a count of people,
-labs, or installations: copying an app folder creates a new reporting ID.
-
 ### Use Multiple Windows And Crash Recovery
 
 Launch the app again to open as many as three independent windows. The second
@@ -214,7 +190,9 @@ and third show `(2)` and `(3)` in their title bars.
   order and reopen the same recording in the matching position; opening a
   different file first clears that window's recovery state.
 
-## App Updates
+## Additional Features
+
+### App Updates
 
 The packaged Windows app keeps itself current. It checks GitHub about once a
 day and applies compatible updates before the window opens. If it cannot — no
@@ -229,7 +207,7 @@ To check which version you are on, look at the startup terminal or the app
 window title. The installation folder keeps its original `vX.Y` name even after
 updates, so it is not a reliable indicator.
 
-## Optional sDREAMER Model
+### Optional sDREAMER Model
 
 sDREAMER is a bundled neural model, and is not needed for visualization,
 annotation, video, saving, or the default statistical model. Its checkpoints
@@ -245,24 +223,16 @@ are not in this public repository; request them from Yue Zhao. See
 2. Put the checkpoint files in `models/sdreamer/checkpoints/`.
 3. Set `SLEEP_SCORING_MODEL = "sdreamer"` in `app_src/config.py` and restart.
 
-## Privacy
+### Sleep Scoring Hours Reporting
 
-The app makes GitHub update requests and, only after an explicit `config.py`
-opt-in, aggregate usage-report requests. Neither sends recording data:
+This optional, off-by-default reporting tracks aggregate completed-recording
+counts and scoring hours. When enabled with `ENABLE_USAGE_REPORTING = True` in
+`app_src/config.py`, queued totals are sent on the next app launch; the README
+badge shows a rounded aggregate and refreshes weekly.
 
-- **Update check.** The packaged Windows app asks GitHub for the latest release
-  tag at most once every 24 hours, and downloads a code-only update asset when
-  one applies. Set `SLEEP_SCORING_SKIP_UPDATE=1` to turn this off.
-- **Optional usage reporting.** A configured build can send the minimal,
-  anonymous aggregate described in [Share Anonymous Usage Data](#share-anonymous-usage-data),
-  but only after its user sets `ENABLE_USAGE_REPORTING = True` in
-  `app_src/config.py`. Set it back to `False` and restart to stop future
-  reports; local totals remain available.
-
-Your recordings, file paths, annotations, and animal identifiers are never
-transmitted, and the source installation makes no update check at all. A usage
-report is processed by Cloudflare, so Cloudflare necessarily receives the
-request's IP address in its service logs; the Worker does not store it in D1.
+Reports never include recordings, file paths, signals, annotations, animal
+identifiers, or the local fingerprint used to avoid counting a recording twice.
+Set `ENABLE_USAGE_REPORTING = False` and restart to stop future reports.
 
 ## Input Files
 
