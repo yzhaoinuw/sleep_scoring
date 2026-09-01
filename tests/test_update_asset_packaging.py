@@ -560,3 +560,21 @@ def test_usage_reporting_opt_in_is_preserved_by_the_schema2_fixture_merge(tmp_pa
         source=str(config_path),
     )
     assert values["ENABLE_USAGE_REPORTING"] is True
+
+
+def test_schema2_fixture_allows_a_new_editable_assignment(tmp_path):
+    config_path = tmp_path / "config.py"
+    source = (Path(__file__).parents[1] / "app_src" / "config.py").read_text(encoding="utf-8")
+    config_path.write_text(source.replace("ENABLE_USAGE_REPORTING = False\n", ""), encoding="utf-8")
+
+    LIGHTWEIGHT_MODULE._customize_fixture_config(config_path)
+
+    values = LIGHTWEIGHT_MODULE._literal_assignments(
+        config_path.read_bytes(),
+        ["FIX_NE_Y_RANGE", "SLEEP_SCORING_MODEL", "ENABLE_USAGE_REPORTING"],
+        source=str(config_path),
+        allow_missing=True,
+    )
+    assert values["FIX_NE_Y_RANGE"] is True
+    assert values["SLEEP_SCORING_MODEL"] == "sdreamer"
+    assert "ENABLE_USAGE_REPORTING" not in values

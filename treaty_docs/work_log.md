@@ -29,11 +29,19 @@ search older entries by date anchor rather than reading every archive.
 - Changed the weekly public research-impact badge from blue to teal. GitHub
   Actions run `33476527998` completed successfully and refreshed the isolated
   `usage-metrics` payload.
+- Kept the automatic source update deliberately compatible with the v0.17.1
+  full Windows base only. v0.17.0 crosses the frozen-package boundary and
+  continues to require its already-documented one-time full-package upgrade.
+- Fixed the installed-package fixture so a schema-2 update can introduce a new
+  editable config assignment at its downloaded default while preserving values
+  that exist in the older app. This covers the new opt-in reporting setting.
 - Verification:
   - `main` fast-forwarded from `228f93c` to release candidate `6e0c5ac` and
     was pushed to `origin/main`.
   - The remote D1 migration completed three statements successfully; the
     deployed Worker retained its D1 and route/per-app rate-limit bindings.
+  - The v0.17.1-to-v0.17.2 source-update asset passed candidate validation,
+    payload validation, and a fresh frozen v0.17.1 app update simulation.
 
 ## 2026-08-31
 

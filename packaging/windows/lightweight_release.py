@@ -688,6 +688,7 @@ def _literal_assignments(
     assignment_names: tuple[str, ...],
     *,
     source: str,
+    allow_missing: bool = False,
 ) -> dict[str, object]:
     try:
         source_text = source_bytes.decode("utf-8")
@@ -719,12 +720,16 @@ def _literal_assignments(
                 f"{source} has a nonliteral editable assignment: {name}"
             ) from exc
 
-    invalid = [name for name, matches in values.items() if len(matches) != 1]
+    invalid = [
+        name
+        for name, matches in values.items()
+        if len(matches) > 1 or (not allow_missing and len(matches) != 1)
+    ]
     if invalid:
         raise LightweightReleaseError(
             f"{source} must contain exactly one literal assignment for: " + ", ".join(invalid)
         )
-    return {name: matches[0] for name, matches in values.items()}
+    return {name: matches[0] for name, matches in values.items() if matches}
 
 
 def _merged_config_value(downloaded: object, installed: object) -> object:
@@ -768,8 +773,9 @@ def _customize_fixture_config(config_path: Path) -> None:
         node.value = ast.parse(repr(replacements[name](current_value)), mode="eval").body
         changed.add(name)
 
-    if changed != set(replacements):
-        missing = ", ".join(sorted(set(replacements) - changed))
+    required_replacements = {"FIX_NE_Y_RANGE", "SLEEP_SCORING_MODEL"}
+    if not required_replacements.issubset(changed):
+        missing = ", ".join(sorted(required_replacements - changed))
         raise LightweightReleaseError(
             f"could not customize installed config fixture; missing assignments: {missing}"
         )
@@ -831,6 +837,7 @@ def test_installed_update(
                     config_path.read_bytes(),
                     EDITABLE_CONFIG_ASSIGNMENTS,
                     source=str(config_path),
+                    allow_missing=True,
                 )
                 with zipfile.ZipFile(asset) as update:
                     downloaded_values = _literal_assignments(
@@ -839,7 +846,11 @@ def test_installed_update(
                         source=f"{asset}:{PYTHON_CONFIG_MERGE_PATH}",
                     )
                 expected_config_values = {
-                    name: _merged_config_value(downloaded_values[name], installed_values[name])
+                    name: (
+                        _merged_config_value(downloaded_values[name], installed_values[name])
+                        if name in installed_values
+                        else downloaded_values[name]
+                    )
                     for name in EDITABLE_CONFIG_ASSIGNMENTS
                 }
 
