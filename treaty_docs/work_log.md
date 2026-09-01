@@ -120,6 +120,9 @@ search older entries by date anchor rather than reading every archive.
   construction. It stopped only while bootstrapping the orphan metrics branch;
   the follow-up removes an unnecessary `git rm` that finds no tracked files on
   that branch.
+- The corrected live run created `usage-metrics` and published the badge JSON.
+  Added a cache-busting query to the README image URL after GitHub continued
+  showing its cached pre-branch error despite Shields returning the valid SVG.
 
 ## 2026-08-30
 
