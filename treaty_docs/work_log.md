@@ -116,6 +116,10 @@ search older entries by date anchor rather than reading every archive.
   total rather than a people, site, or installation count.
 - The workflow requires the repository secret `USAGE_REPORTING_ADMIN_TOKEN` to
   match the deployed Worker's `ADMIN_TOKEN`; no desktop-app update is involved.
+- The first live run confirmed authenticated summary retrieval and badge-data
+  construction. It stopped only while bootstrapping the orphan metrics branch;
+  the follow-up removes an unnecessary `git rm` that finds no tracked files on
+  that branch.
 
 ## 2026-08-30
 

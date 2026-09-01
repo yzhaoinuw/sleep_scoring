@@ -55,7 +55,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --orphan usage-metrics
-          git rm -rf .
           cp "$RUNNER_TEMP/research-impact.json" research-impact.json
           git add research-impact.json
           git commit -m "Update research-impact badge"
