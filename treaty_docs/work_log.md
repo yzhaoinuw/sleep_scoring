@@ -42,6 +42,9 @@ search older entries by date anchor rather than reading every archive.
     deployed Worker retained its D1 and route/per-app rate-limit bindings.
   - The v0.17.1-to-v0.17.2 source-update asset passed candidate validation,
     payload validation, and a fresh frozen v0.17.1 app update simulation.
+  - Final release-commit checks passed: 211 Python tests (one pre-existing
+    Flask-Caching deprecation warning), the repository-pinned Black hook,
+    compilation, 39 JavaScript tests, and the source smoke check.
 
 ## 2026-08-31
 
