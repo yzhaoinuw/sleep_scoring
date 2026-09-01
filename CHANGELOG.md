@@ -9,10 +9,13 @@ implementation and release details are recorded in
 - Added an optional, disabled-by-default research-impact tracker. App copies
   that opt in with `ENABLE_USAGE_REPORTING = True` report only aggregate
   recordings scored and scoring duration; recordings, paths, signal data,
-  annotations, and animal identifiers are never sent.
-- Opted-in reports are queued and sent only when the app starts, so saving
-  annotations never waits for a network request. Compatible app updates retain
-  an existing opt-in choice.
+  annotations, and animal identifiers are never sent. Reports are queued and
+  sent only when the app starts, so saving annotations never waits for a
+  network request; compatible app updates retain an existing opt-in choice.
+- The built-in statistical model can now adapt its Wake/REM tuning to manual
+  labels in the current recording when predictions are regenerated. Your
+  labels remain in place, and this recording-specific adjustment does not edit
+  `config.py`.
 
 ## v0.17.1
 

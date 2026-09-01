@@ -98,8 +98,8 @@ search older entries by date anchor rather than reading every archive.
 ### Merge usage reporting into dev and prepare release notes (Codex GPT-5; effort/tokens not reported)
 
 - Fast-forwarded the validated `feature/usage-tracker` branch into `dev`.
-- Added an unreleased changelog entry describing the disabled-by-default,
-  aggregate-only impact reporting and its no-network-on-save behavior.
+- Added unreleased changelog entries for the disabled-by-default,
+  aggregate-only impact reporting and adaptive statistical-model calibration.
 - Kept the pending Worker/D1 deployment explicit: the receipt-time index
   migration is checked in but has not yet been applied remotely.
 - Verification:
