@@ -39,8 +39,8 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Research Impact Measurement
 
-Status: app-copy totals plus opt-in reporting are implemented on
-`feature/usage-tracker`. The Worker/D1 service is deployed at
+Status: app-copy totals plus opt-in reporting are implemented on `dev`. The
+Worker/D1 service is deployed at
 `sleep-scoring-usage-reporting.brainflowzzz.workers.dev`; keep the app source
 update separate from the v0.17 updater/package work.
 

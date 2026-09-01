@@ -95,6 +95,17 @@ search older entries by date anchor rather than reading every archive.
   - Wrangler `deploy --dry-run` validated the Worker, D1 binding, and
     rate-limit bindings without deploying the pending migration.
 
+### Merge usage reporting into dev and prepare release notes (Codex GPT-5; effort/tokens not reported)
+
+- Fast-forwarded the validated `feature/usage-tracker` branch into `dev`.
+- Added an unreleased changelog entry describing the disabled-by-default,
+  aggregate-only impact reporting and its no-network-on-save behavior.
+- Kept the pending Worker/D1 deployment explicit: the receipt-time index
+  migration is checked in but has not yet been applied remotely.
+- Verification:
+  - `dev` fast-forwarded from `efb827a` through the validated feature head;
+    the next-release changelog and delivery notes passed `git diff --check`.
+
 ## 2026-08-30
 
 ### Rebase and harden the local usage tracker (Codex GPT-5; effort/tokens not reported)

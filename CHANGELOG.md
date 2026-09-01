@@ -4,6 +4,16 @@ This file summarizes changes that affect people using the app. Maintainer-only
 implementation and release details are recorded in
 `treaty_docs/work_log.md`.
 
+## Next release
+
+- Added an optional, disabled-by-default research-impact tracker. App copies
+  that opt in with `ENABLE_USAGE_REPORTING = True` report only aggregate
+  recordings scored and scoring duration; recordings, paths, signal data,
+  annotations, and animal identifiers are never sent.
+- Opted-in reports are queued and sent only when the app starts, so saving
+  annotations never waits for a network request. Compatible app updates retain
+  an existing opt-in choice.
+
 ## v0.17.1
 
 - Releases that require a new full package no longer appear as failed automatic
