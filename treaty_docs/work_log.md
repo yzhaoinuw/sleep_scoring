@@ -15,6 +15,26 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-09-01
+
+### Release v0.17.2 reporting service and source-update candidate (Codex GPT-5; effort/tokens not reported)
+
+- Published the reviewed `dev` release candidate to `main` for v0.17.2. Its
+  user-facing changes are recording-specific adaptive statistical-model
+  calibration plus disabled-by-default, aggregate-only usage reporting.
+- Applied the D1 migration that replaces the `occurred_at` summary index with
+  `received_at`, then deployed Worker version
+  `3876a000-dc46-417f-8ba0-8843788ec7f7`. The public health route returned
+  `{"status":"ok"}` after deployment.
+- Changed the weekly public research-impact badge from blue to teal. GitHub
+  Actions run `33476527998` completed successfully and refreshed the isolated
+  `usage-metrics` payload.
+- Verification:
+  - `main` fast-forwarded from `228f93c` to release candidate `6e0c5ac` and
+    was pushed to `origin/main`.
+  - The remote D1 migration completed three statements successfully; the
+    deployed Worker retained its D1 and route/per-app rate-limit bindings.
+
 ## 2026-08-31
 
 ### Add opt-in per-app usage reporting (Codex GPT-5; effort/tokens not reported)

@@ -39,10 +39,11 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Research Impact Measurement
 
-Status: app-copy totals plus opt-in reporting are implemented on `dev`. The
-Worker/D1 service is deployed at
-`sleep-scoring-usage-reporting.brainflowzzz.workers.dev`; keep the app source
-update separate from the v0.17 updater/package work.
+Status: app-copy totals plus opt-in reporting were released in v0.17.2 on
+`main`. The Worker/D1 service is live at
+`sleep-scoring-usage-reporting.brainflowzzz.workers.dev`, with receipt-time
+summaries and its matching D1 index. The v0.17.2 source-update asset remains
+separate from the v0.17.1 full Windows base.
 
 Settled decisions:
 
@@ -62,26 +63,19 @@ Settled decisions:
   animal identifiers. Fingerprints never leave the app folder and opaque IDs
   never appear in the exported summary.
 
-Remaining work:
+Ongoing work:
 
-- Deploy the checked-in Worker hardening before a broad public rollout. It adds
-  UUID and timestamp validation, groups summaries by Worker receipt time, and
-  migrates the D1 summary index from `occurred_at` to `received_at`; the
-  existing public ingest route retains route-wide and per-app-copy Cloudflare
-  Worker rate limits, and no app data is sent until a user opts in.
-- Set the `USAGE_REPORTING_ADMIN_TOKEN` GitHub repository secret to the
-  Worker `ADMIN_TOKEN`, then re-run the bootstrap workflow triggered on `dev`.
-  After the workflow reaches the default branch, its weekly schedule publishes
-  a rounded aggregate badge to `usage-metrics`; it never publishes app IDs or
-  event rows.
+- The GitHub workflow now has its administrator secret and publishes the
+  rounded weekly aggregate to `usage-metrics`. It never publishes app IDs or
+  event rows; the README's research-impact badge reads only that public JSON.
 - Collect GitHub release-asset download counts when useful. These
   need no instrumentation (`assets[].download_count`), but record the caveats:
   they are not deduplicated, they include bots and mirrors, and they are
   per-asset, so the 2026-07-30 rename of the v0.17.0 full package reset that
   asset's counter.
 - Add Zenodo record views and downloads to the metric set now that the
-  repository is enabled. For an annual research-impact report these are a
-  stronger number than GitHub's, and the DOI also accrues citations.
+  repository is enabled. These can complement GitHub counts in weekly, daily,
+  or other periodic research-impact reviews, and the DOI also accrues citations.
 - Decide whether to add distinct-sites and manual-correction-volume metrics.
   Correction volume is the most direct "this tool saved time" number and the
   best answer to the JOSS "who uses this outside your group?" question, but
