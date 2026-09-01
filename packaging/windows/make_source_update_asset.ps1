@@ -22,7 +22,8 @@ param(
         "SLEEP_SCORING_MODEL",
         "STATS_MODEL_WAKE_THRESHOLD",
         "STATS_MODEL_MIN_WAKE_DURATION",
-        "STATS_MODEL_MIN_REM_DURATION"
+        "STATS_MODEL_MIN_REM_DURATION",
+        "ENABLE_USAGE_REPORTING"
     ),
     [switch]$SkipTests,
     [switch]$AllowDirty

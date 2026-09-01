@@ -14,8 +14,10 @@ identifiers, or local deduplication fingerprints.
 5. Set `USAGE_REPORT_URL` in `app_src/config.py` to the deployed
    `/v1/usage-events` URL. Users opt in only by setting
    `ENABLE_USAGE_REPORTING = True` in that same file, then restarting the app.
-   This changes only `app_src/`, so a compatible source-only update is
-   sufficient.
+   The opt-in flag is preserved by compatible source-only updates; keep the
+   endpoint itself release-managed.
+
+Run the Worker checks with `node --test` from this directory.
 
 The public write route is protected by two Cloudflare Worker rate-limit
 bindings: 600 requests per minute for the route and 20 requests per minute for
@@ -32,10 +34,11 @@ GET /admin/usage-summary?from=2026-09-01T00:00:00+00:00&to=2026-10-01T00:00:00+0
 Authorization: Bearer <ADMIN_TOKEN>
 ```
 
-Use `group=week` for weekly totals. Events are idempotent by `event_id`, so an
-app may retry a failed upload safely. An enrollment event reports the local
-total already present when a user first opts in; it contributes to lifetime
-totals but does not reconstruct historical completion dates.
+Use `group=week` for weekly totals. Summary periods use the Worker receipt
+time, not a client clock. Events are idempotent by `event_id`, so an app may
+retry a failed upload safely. An enrollment event reports the local total
+already present when a user first opts in; it contributes to lifetime totals
+but does not reconstruct historical completion dates.
 
 `GET /healthz` is the only unauthenticated read route. It returns
 `{"status":"ok"}` and is safe for deployment monitoring.

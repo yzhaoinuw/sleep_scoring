@@ -6,6 +6,7 @@ import multiprocessing
 import threading
 import time
 from pathlib import Path
+from urllib.error import HTTPError
 
 import numpy as np
 import pytest
@@ -164,36 +165,14 @@ def test_store_holds_no_paths_names_or_signal_values(tmp_path):
         "reporting_enabled",
         "app_instance_id",
         "pending_reports",
+        "deferred_recordings_delta",
+        "deferred_seconds_delta",
     }
     # Fingerprints are one-way digests, never the signal itself.
     assert all(
         len(fingerprint) == usage_stats.FINGERPRINT_LENGTH
         for fingerprint in stored["counted_recordings"]
     )
-
-
-def test_exported_summary_carries_counts_but_no_fingerprints(tmp_path):
-    stats_file = tmp_path / "usage-stats.json"
-    usage_stats.record_scored_recording(make_mat(eeg_seed=4, scored_seconds=5400), stats_file)
-    stats = usage_stats.read_usage_stats(stats_file)
-
-    summary = usage_stats.format_usage_summary(stats, app_version="0.17.0")
-
-    assert "Recordings scored:    1" in summary
-    assert "Hours scored:         1.5" in summary
-    assert "0.17.0" in summary
-    for fingerprint in stats["counted_recordings"]:
-        assert fingerprint not in summary
-
-
-def test_summary_reads_cleanly_before_any_recording_is_scored(tmp_path):
-    summary = usage_stats.format_usage_summary(
-        usage_stats.read_usage_stats(tmp_path / "missing.json")
-    )
-
-    assert "Recordings scored:    0" in summary
-    assert "Hours scored:         0.0" in summary
-    assert "n/a" in summary
 
 
 @pytest.mark.parametrize("contents", ["{not json", "[]", '{"schema_version": 99}'])
@@ -206,6 +185,44 @@ def test_unreadable_or_foreign_store_is_ignored_safely(tmp_path, contents):
 
     # A damaged store must not block later counting.
     assert usage_stats.record_scored_recording(make_mat(eeg_seed=5), stats_file) is True
+
+
+def test_transient_store_read_error_does_not_overwrite_existing_totals(tmp_path, monkeypatch):
+    stats_file = tmp_path / "usage-stats.json"
+    assert usage_stats.record_scored_recording(make_mat(eeg_seed=5), stats_file)
+    before = stats_file.read_text(encoding="utf-8")
+
+    def fail_read(*_args, **_kwargs):
+        raise PermissionError("temporarily locked")
+
+    monkeypatch.setattr(Path, "read_text", fail_read)
+    assert usage_stats.record_scored_recording(make_mat(eeg_seed=6), stats_file) is False
+    monkeypatch.undo()
+
+    assert stats_file.read_text(encoding="utf-8") == before
+
+
+def test_schema_one_store_upgrades_without_losing_totals(tmp_path):
+    stats_file = tmp_path / "usage-stats.json"
+    stats_file.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "recordings_scored": 5,
+                "seconds_scored": 18_000,
+                "counted_recordings": ["abc"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    stats = usage_stats.read_usage_stats(stats_file)
+
+    assert stats["schema_version"] == usage_stats.SCHEMA_VERSION
+    assert stats["recordings_scored"] == 5
+    assert stats["seconds_scored"] == 18_000
+    assert stats["counted_recordings"] == ["abc"]
+    assert stats["deferred_recordings_delta"] == 0
 
 
 def test_counting_never_raises_when_the_store_is_unwritable(tmp_path):
@@ -313,6 +330,81 @@ def test_configured_sync_sends_each_queued_event_once_and_then_clears_it(tmp_pat
         "occurred_at",
         "app_version",
     }
+
+
+def test_permanent_client_error_does_not_block_later_reports(tmp_path, monkeypatch):
+    stats_file = tmp_path / "usage-stats.json"
+    usage_stats.record_scored_recording(make_mat(eeg_seed=14), stats_file)
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", True)
+    monkeypatch.setattr(
+        usage_stats.config, "USAGE_REPORT_URL", "https://usage.example/v1/usage-events"
+    )
+    assert usage_stats.configure_usage_reporting(stats_file)
+    assert usage_stats.record_scored_recording(make_mat(eeg_seed=15), stats_file)
+    sent_payloads = []
+
+    def opener(request, timeout):
+        assert timeout == usage_stats.USAGE_REPORT_TIMEOUT_SECONDS
+        if not sent_payloads:
+            sent_payloads.append("rejected")
+            raise HTTPError(request.full_url, 400, "bad request", None, None)
+        sent_payloads.append(json.loads(request.data.decode("utf-8")))
+        return SuccessfulResponse()
+
+    assert usage_stats.sync_usage_reports(stats_file, opener=opener) == "sent"
+    assert usage_stats.read_usage_stats(stats_file)["pending_reports"] == []
+    assert sent_payloads[1]["event_kind"] == "recording"
+
+
+def test_pending_reports_are_bounded_and_deferred_totals_are_preserved(tmp_path, monkeypatch):
+    stats_file = tmp_path / "usage-stats.json"
+    monkeypatch.setattr(usage_stats, "MAX_PENDING_REPORTS", 1)
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", True)
+    monkeypatch.setattr(
+        usage_stats.config, "USAGE_REPORT_URL", "https://usage.example/v1/usage-events"
+    )
+    assert usage_stats.configure_usage_reporting(stats_file)
+
+    for seed in range(20, 23):
+        assert usage_stats.record_scored_recording(make_mat(eeg_seed=seed), stats_file)
+
+    stats = usage_stats.read_usage_stats(stats_file)
+    assert len(stats["pending_reports"]) == 1
+    assert stats["deferred_recordings_delta"] == 2
+    assert stats["deferred_seconds_delta"] == 7200
+
+    assert (
+        usage_stats.sync_usage_reports(
+            stats_file, opener=lambda _request, timeout: SuccessfulResponse()
+        )
+        == "sent"
+    )
+    stats = usage_stats.read_usage_stats(stats_file)
+    assert len(stats["pending_reports"]) == 1
+    assert stats["pending_reports"][0]["recordings_delta"] == 2
+    assert stats["deferred_recordings_delta"] == 0
+
+
+def test_disabled_config_mirrors_state_without_dropping_pending_reports(tmp_path, monkeypatch):
+    stats_file = tmp_path / "usage-stats.json"
+    usage_stats.record_scored_recording(make_mat(eeg_seed=16), stats_file)
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", True)
+    monkeypatch.setattr(
+        usage_stats.config, "USAGE_REPORT_URL", "https://usage.example/v1/usage-events"
+    )
+    assert usage_stats.configure_usage_reporting(stats_file)
+    pending_reports = list(usage_stats.read_usage_stats(stats_file)["pending_reports"])
+
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", False)
+    assert usage_stats.configure_usage_reporting(stats_file) is False
+
+    stats = usage_stats.read_usage_stats(stats_file)
+    assert stats["reporting_enabled"] is False
+    assert stats["pending_reports"] == pending_reports
+
+    monkeypatch.setattr(usage_stats.config, "ENABLE_USAGE_REPORTING", True)
+    assert usage_stats.configure_usage_reporting(stats_file) is True
+    assert usage_stats.read_usage_stats(stats_file)["pending_reports"] == pending_reports
 
 
 def test_disabled_reporting_never_creates_uploads(tmp_path):

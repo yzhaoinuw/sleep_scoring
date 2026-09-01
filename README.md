@@ -194,8 +194,8 @@ animal identifier, or the local fingerprint used to avoid counting a recording
 twice.
 
 The project can group these opted-in events by day, week, or another date range
-to understand aggregate app use. Set `USAGE_REPORT_URL = ""` in `config.py` to
-keep reporting unavailable even when the opt-in flag is enabled.
+to understand aggregate app use. The reporting endpoint is maintained with the
+app; use `ENABLE_USAGE_REPORTING = False` to keep this app copy opted out.
 
 ### Use Multiple Windows And Crash Recovery
 
@@ -255,7 +255,9 @@ opt-in, aggregate usage-report requests. Neither sends recording data:
   reports; local totals remain available.
 
 Your recordings, file paths, annotations, and animal identifiers are never
-transmitted, and the source installation makes no update check at all.
+transmitted, and the source installation makes no update check at all. A usage
+report is processed by Cloudflare, so Cloudflare necessarily receives the
+request's IP address in its service logs; the Worker does not store it in D1.
 
 ## Input Files
 

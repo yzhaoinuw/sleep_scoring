@@ -7,6 +7,9 @@ const EVENT_FIELDS = [
   "occurred_at",
   "app_version",
 ];
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
+const MAX_APP_VERSION_LENGTH = 64;
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -25,14 +28,19 @@ function validEvent(event) {
   }
   return (
     typeof event.event_id === "string" &&
+    UUID_V4_RE.test(event.event_id) &&
     typeof event.app_instance_id === "string" &&
+    UUID_V4_RE.test(event.app_instance_id) &&
     ["enrollment", "recording"].includes(event.event_kind) &&
     Number.isInteger(event.recordings_delta) &&
     event.recordings_delta >= 0 &&
     Number.isInteger(event.seconds_delta) &&
     event.seconds_delta >= 0 &&
     typeof event.occurred_at === "string" &&
-    typeof event.app_version === "string"
+    ISO_8601_RE.test(event.occurred_at) &&
+    !Number.isNaN(Date.parse(event.occurred_at)) &&
+    typeof event.app_version === "string" &&
+    event.app_version.length <= MAX_APP_VERSION_LENGTH
   );
 }
 
@@ -99,7 +107,7 @@ export default {
       }
       const { from, to } = dateRange(url);
       const group = url.searchParams.get("group") || "day";
-      const bucket = group === "week" ? "strftime('%Y-%W', occurred_at)" : "substr(occurred_at, 1, 10)";
+      const bucket = group === "week" ? "strftime('%Y-%W', received_at)" : "substr(received_at, 1, 10)";
       if (!new Set(["day", "week"]).has(group)) {
         return json({ error: "group must be day or week" }, 400);
       }
@@ -111,7 +119,7 @@ export default {
                 ROUND(SUM(seconds_delta) / 3600.0, 1) AS hours_scored,
                 COUNT(DISTINCT app_instance_id) AS reporting_app_copies
            FROM usage_events
-          WHERE occurred_at >= ? AND occurred_at < ?
+          WHERE datetime(received_at) >= datetime(?) AND datetime(received_at) < datetime(?)
           GROUP BY period
           ORDER BY period`,
       )

@@ -543,3 +543,20 @@ def test_source_asset_builder_wires_the_approved_schema2_config_contract():
     assert "$PreserveRuntimePath" not in script
     for assignment in LIGHTWEIGHT_MODULE.EDITABLE_CONFIG_ASSIGNMENTS:
         assert f'"{assignment}"' in script
+
+
+def test_usage_reporting_opt_in_is_preserved_by_the_schema2_fixture_merge(tmp_path):
+    config_path = tmp_path / "config.py"
+    config_path.write_text(
+        (Path(__file__).parents[1] / "app_src" / "config.py").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    LIGHTWEIGHT_MODULE._customize_fixture_config(config_path)
+
+    values = LIGHTWEIGHT_MODULE._literal_assignments(
+        config_path.read_bytes(),
+        ["ENABLE_USAGE_REPORTING"],
+        source=str(config_path),
+    )
+    assert values["ENABLE_USAGE_REPORTING"] is True

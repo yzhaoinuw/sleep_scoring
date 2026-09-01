@@ -64,9 +64,10 @@ Settled decisions:
 
 Remaining work:
 
-- No backend deployment step remains before a broad public rollout. The public
-  ingest route has route-wide and per-app-copy Cloudflare Worker rate limits;
-  no app data is sent until a user opts in.
+- Deploy the checked-in Worker hardening before a broad public rollout. It adds
+  UUID and timestamp validation and groups summaries by Worker receipt time;
+  the existing public ingest route retains route-wide and per-app-copy
+  Cloudflare Worker rate limits, and no app data is sent until a user opts in.
 - Collect GitHub release-asset download counts when useful. These
   need no instrumentation (`assets[].download_count`), but record the caveats:
   they are not deduplicated, they include bots and mirrors, and they are
@@ -79,6 +80,8 @@ Remaining work:
   Correction volume is the most direct "this tool saved time" number and the
   best answer to the JOSS "who uses this outside your group?" question, but
   every added metric is added surface; keep v1 to what the report prints.
+  In particular, `reporting_app_copies` is not a distinct-sites metric: a new
+  app folder receives a new opaque ID, even when it belongs to the same lab.
 - Revisit shared reporting only if the adopter base outgrows asking directly.
   If that happens, the startup update check is the natural carrier, since it is
   already a once-per-24-hour request with tested throttle and backoff. Note

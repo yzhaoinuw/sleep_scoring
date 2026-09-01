@@ -55,7 +55,7 @@ def save_file_dialog(file_type, filename):
     Parameters
     ----------
     file_type : str
-        Example: "mat", "xlsx", or "txt"
+        Example: "mat" or "xlsx"
     filename : str
         Default filename to suggest to the user
 
@@ -73,10 +73,8 @@ def save_file_dialog(file_type, filename):
         file_types = ("MAT files (*.mat)",)
     elif file_type == "xlsx":
         file_types = ("Excel files (*.xlsx)",)
-    elif file_type == "txt":
-        file_types = ("Text files (*.txt)",)
     else:
-        raise ValueError(f"Unsupported file type: {file_type}. Use 'mat', 'xlsx', or 'txt'.")
+        raise ValueError(f"Unsupported file type: {file_type}. Use 'mat' or 'xlsx'.")
 
     result = window.create_file_dialog(
         webview.FileDialog.SAVE,

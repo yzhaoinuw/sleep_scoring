@@ -36,6 +36,7 @@ EDITABLE_CONFIG_ASSIGNMENTS = (
     "STATS_MODEL_WAKE_THRESHOLD",
     "STATS_MODEL_MIN_WAKE_DURATION",
     "STATS_MODEL_MIN_REM_DURATION",
+    "ENABLE_USAGE_REPORTING",
 )
 UPDATE_ZIP_URL_ENV = "SLEEP_SCORING_UPDATE_ZIP_URL"
 SKIP_UPDATE_ENV = "SLEEP_SCORING_SKIP_UPDATE"
@@ -745,6 +746,7 @@ def _customize_fixture_config(config_path: Path) -> None:
     replacements = {
         "FIX_NE_Y_RANGE": lambda value: not value,
         "SLEEP_SCORING_MODEL": lambda value: ("sdreamer" if value != "sdreamer" else "stats_model"),
+        "ENABLE_USAGE_REPORTING": lambda value: not value,
     }
     changed = set()
     for node in tree.body:

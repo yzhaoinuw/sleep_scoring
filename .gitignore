@@ -26,9 +26,10 @@ gold_standard_demo.png
 model_infer_example.txt
 test-artifacts/
 .pytest_tmp/
+.pre-commit-codex/
 sleep_scoring_app_data/
 usage-stats.json
-.usage-stats.json.lock
+.usage-stats.json.*
 cloudflare_usage_reporting/.wrangler/
 
 # Generated or demo video assets

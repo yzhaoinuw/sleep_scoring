@@ -56,6 +56,26 @@ search older entries by date anchor rather than reading every archive.
     check and repository-pinned Black hook passed. The locally rendered home
     layout contains the original MAT-file selector and no usage controls.
 
+### Address usage-reporting review findings (Codex GPT-5; effort/tokens not reported)
+
+- Source-only update assets now preserve a user's `ENABLE_USAGE_REPORTING`
+  choice, while the reporting endpoint remains release-managed.
+- Usage state is no longer replaced after a transient local read failure.
+  Pending reports are bounded, permanent client rejections are discarded, and
+  overflow totals are coalesced into a later report so one bad event cannot
+  block future accounting.
+- The checked-in Worker now validates opaque IDs, timestamps, and app-version
+  length before D1 writes. Administrative daily and weekly summaries use
+  Worker receipt time rather than an app-provided clock. Deployment remains a
+  separate post-merge step.
+- Removed stale UI/export remnants, clarified Cloudflare request-IP handling,
+  and documented that each copied app folder is a separate reporting site.
+- Verification:
+  - Full Python test suite passed: 208 tests (one Flask-Caching deprecation
+    warning).
+  - Worker unit tests passed: 3 tests. Wrangler `deploy --dry-run` validated
+    the Worker and its D1/rate-limit bindings.
+
 ## 2026-08-30
 
 ### Rebase and harden the local usage tracker (Codex GPT-5; effort/tokens not reported)

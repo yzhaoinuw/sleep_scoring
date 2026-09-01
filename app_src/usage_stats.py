@@ -20,6 +20,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import numpy as np
@@ -32,10 +33,11 @@ SCHEMA_VERSION = 2
 USAGE_STATS_FILE_ENV = "SLEEP_SCORING_USAGE_STATS_FILE"
 APP_STATE_DIR_ENV = "SLEEP_SCORING_APP_STATE_DIR"
 FINGERPRINT_LENGTH = 16
-SECONDS_PER_HOUR = 3600
 USAGE_STATS_LOCK_TIMEOUT_SECONDS = 5
 USAGE_STATS_LOCK_RETRY_SECONDS = 0.05
 USAGE_REPORT_TIMEOUT_SECONDS = 3
+MAX_COUNTED_RECORDINGS = 100_000
+MAX_PENDING_REPORTS = 1_000
 
 try:
     import msvcrt
@@ -72,6 +74,7 @@ def get_usage_report_url():
 def configure_usage_reporting(stats_file=None):
     """Register this app copy when its ``config.py`` opt-in is enabled."""
     if not get_usage_report_url():
+        _set_usage_reporting_enabled(False, stats_file)
         return False
     return enable_usage_reporting(stats_file)
 
@@ -87,6 +90,8 @@ def get_empty_usage_stats():
         "reporting_enabled": False,
         "app_instance_id": "",
         "pending_reports": [],
+        "deferred_recordings_delta": 0,
+        "deferred_seconds_delta": 0,
     }
 
 
@@ -102,7 +107,7 @@ def get_recording_fingerprint(mat):
 
     digest = hashlib.sha256()
     digest.update(str(eeg_array.dtype).encode("utf-8"))
-    digest.update(eeg_array.tobytes())
+    digest.update(eeg_array)
     return digest.hexdigest()[:FINGERPRINT_LENGTH]
 
 
@@ -120,7 +125,9 @@ def read_usage_stats(stats_file=None):
     stats = get_empty_usage_stats()
     try:
         stored = json.loads(stats_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except FileNotFoundError:
+        return stats
+    except ValueError:
         return stats
 
     if not isinstance(stored, dict) or stored.get("schema_version") not in (1, SCHEMA_VERSION):
@@ -145,13 +152,14 @@ def enable_usage_reporting(stats_file=None):
     try:
         with _usage_stats_lock(stats_path):
             stats = read_usage_stats(stats_path)
-            if not stats["app_instance_id"]:
+            first_enrollment = not stats["app_instance_id"]
+            if first_enrollment:
                 stats["app_instance_id"] = str(uuid.uuid4())
             if stats["reporting_enabled"]:
                 return True
 
             stats["reporting_enabled"] = True
-            if stats["recordings_scored"]:
+            if first_enrollment and stats["recordings_scored"]:
                 stats["pending_reports"].append(
                     _new_usage_report(
                         stats,
@@ -165,14 +173,17 @@ def enable_usage_reporting(stats_file=None):
         return False
 
 
-def disable_usage_reporting(stats_file=None):
-    """Stop future delivery while preserving the app's local totals."""
+def _set_usage_reporting_enabled(enabled, stats_file=None):
+    """Mirror the config opt-in in existing state without dropping queued events."""
     stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
+    if not stats_path.exists():
+        return False
     try:
         with _usage_stats_lock(stats_path):
             stats = read_usage_stats(stats_path)
-            stats["reporting_enabled"] = False
-            stats["pending_reports"] = []
+            if stats["reporting_enabled"] == enabled:
+                return True
+            stats["reporting_enabled"] = enabled
             return write_usage_stats(stats, stats_path)
     except Exception:  # noqa: BLE001 -- reporting must never break the app
         return False
@@ -206,13 +217,18 @@ def _record_scored_recording(fingerprint, scored_seconds, stats_path):
     now = _utc_now()
     stats["recordings_scored"] += 1
     stats["seconds_scored"] += scored_seconds
-    stats["counted_recordings"].append(fingerprint)
+    if len(stats["counted_recordings"]) < MAX_COUNTED_RECORDINGS:
+        stats["counted_recordings"].append(fingerprint)
     stats["first_recorded_at"] = stats["first_recorded_at"] or now
     stats["last_recorded_at"] = now
     if stats["reporting_enabled"] and get_usage_report_url():
         if not stats["app_instance_id"]:
             stats["app_instance_id"] = str(uuid.uuid4())
-        stats["pending_reports"].append(_new_usage_report(stats, 1, scored_seconds))
+        if len(stats["pending_reports"]) < MAX_PENDING_REPORTS:
+            stats["pending_reports"].append(_new_usage_report(stats, 1, scored_seconds))
+        else:
+            stats["deferred_recordings_delta"] += 1
+            stats["deferred_seconds_delta"] += scored_seconds
 
     return write_usage_stats(stats, stats_path)
 
@@ -231,13 +247,15 @@ def sync_usage_reports(stats_file=None, report_url=None, opener=urlopen):
     if not reports:
         return "up-to-date"
 
-    sent_count = 0
+    handled_count = 0
     for report in reports:
-        if not _send_usage_report(endpoint, report, opener):
+        outcome = _send_usage_report(endpoint, report, opener)
+        if outcome == "retry":
             break
         if _remove_pending_report(report["event_id"], stats_path):
-            sent_count += 1
-    return "sent" if sent_count == len(reports) else "pending"
+            handled_count += 1
+    _queue_deferred_report(stats_path)
+    return "sent" if handled_count == len(reports) else "pending"
 
 
 def _new_usage_report(stats, recordings_delta, seconds_delta, event_kind="recording"):
@@ -277,9 +295,13 @@ def _send_usage_report(endpoint, report, opener):
     )
     try:
         with opener(request, timeout=USAGE_REPORT_TIMEOUT_SECONDS) as response:
-            return 200 <= response.getcode() < 300
+            return "sent" if 200 <= response.getcode() < 300 else "retry"
+    except HTTPError as error:
+        if 400 <= error.code < 500 and error.code != 429:
+            return "drop"
+        return "retry"
     except (OSError, ValueError):
-        return False
+        return "retry"
 
 
 def _remove_pending_report(event_id, stats_path):
@@ -291,6 +313,32 @@ def _remove_pending_report(event_id, stats_path):
                 report for report in stats["pending_reports"] if report["event_id"] != event_id
             ]
             return before != len(stats["pending_reports"]) and write_usage_stats(stats, stats_path)
+    except Exception:  # noqa: BLE001 -- delivery failures stay queued
+        return False
+
+
+def _queue_deferred_report(stats_file=None):
+    """Move deferred totals into one bounded queue slot after delivery makes room."""
+    stats_path = Path(stats_file) if stats_file is not None else get_usage_stats_file()
+    try:
+        with _usage_stats_lock(stats_path):
+            stats = read_usage_stats(stats_path)
+            if (
+                not stats["reporting_enabled"]
+                or len(stats["pending_reports"]) >= MAX_PENDING_REPORTS
+                or not stats["deferred_recordings_delta"]
+            ):
+                return False
+            stats["pending_reports"].append(
+                _new_usage_report(
+                    stats,
+                    stats["deferred_recordings_delta"],
+                    stats["deferred_seconds_delta"],
+                )
+            )
+            stats["deferred_recordings_delta"] = 0
+            stats["deferred_seconds_delta"] = 0
+            return write_usage_stats(stats, stats_path)
     except Exception:  # noqa: BLE001 -- delivery failures stay queued
         return False
 
@@ -370,25 +418,3 @@ def write_usage_stats(stats, stats_file=None):
             except OSError:
                 pass
         return False
-
-
-def format_usage_summary(stats, app_version=""):
-    """Return the shareable local summary; opaque IDs and fingerprints stay out."""
-    hours_scored = stats["seconds_scored"] / SECONDS_PER_HOUR
-    lines = [
-        "Sleep Scoring App -- research impact summary",
-        "",
-        f"Recordings scored:    {stats['recordings_scored']}",
-        f"Hours scored:         {hours_scored:.1f}",
-        f"First scored on:      {stats['first_recorded_at'] or 'n/a'}",
-        f"Most recently scored: {stats['last_recorded_at'] or 'n/a'}",
-    ]
-    if app_version:
-        lines.append(f"App version:          {app_version}")
-    lines += [
-        "",
-        "A recording is counted once, the first time it is saved with every",
-        "second scored. This summary contains no app identifier, recording names,",
-        "paths, signal data, annotations, or animal identifiers.",
-    ]
-    return "\n".join(lines)
