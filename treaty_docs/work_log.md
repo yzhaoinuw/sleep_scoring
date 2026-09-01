@@ -45,6 +45,9 @@ search older entries by date anchor rather than reading every archive.
   - Final release-commit checks passed: 211 Python tests (one pre-existing
     Flask-Caching deprecation warning), the repository-pinned Black hook,
     compilation, 39 JavaScript tests, and the source smoke check.
+  - GitHub published v0.17.2 with the automatic-update ZIP and SHA-256 file.
+    Zenodo then minted version DOI `10.5281/zenodo.22225514` under concept DOI
+    `10.5281/zenodo.21748494`.
 
 ## 2026-08-31
 

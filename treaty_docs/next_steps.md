@@ -108,9 +108,9 @@ Ongoing work:
 
 ### Zenodo Archive DOI
 
-Done as of v0.17.1: the release is archived, concept DOI
+Done as of v0.17.2: the release is archived, concept DOI
 `10.5281/zenodo.21748494` is in the README badge and `CITATION.cff`, and the
-v0.17.1 version DOI is `10.5281/zenodo.21748495`. Later releases inherit this
+v0.17.2 version DOI is `10.5281/zenodo.22225514`. Later releases inherit this
 setup and need no repository DOI metadata changes, but each published release
 still requires Zenodo record verification. Zenodo record 21748495 also carries
 the NIH grant `U19NS128613`.
