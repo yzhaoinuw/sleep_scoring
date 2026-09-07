@@ -161,6 +161,22 @@ Runtime data stays local to the user's computer:
 - each desktop-window slot isolates its cache, recovery state, and generated
   clips.
 
+### Opt-in research-impact reporting
+
+[`app_src/usage_stats.py`](app_src/usage_stats.py) stores an independent
+`usage-stats.json` beside each app copy—not in Temp or a Windows profile. It
+counts completed recordings once locally, using a digest that never leaves the
+app folder. Reporting is off by default; an opt-in queues aggregate deltas for
+the next startup, with no paths, filenames, signals, annotations, animal IDs,
+or digests sent.
+
+[`cloudflare_usage_reporting/`](cloudflare_usage_reporting) is the deployed
+Worker/D1 service, and
+[`.github/workflows/update_usage_badge.yml`](.github/workflows/update_usage_badge.yml)
+publishes its rounded weekly aggregate to the README badge. Compatible updates
+preserve `ENABLE_USAGE_REPORTING`; see [Recipe 20](dash_app_cookbook.md#recipe-20--opt-in-aggregate-usage-reporting)
+for the implementation contract.
+
 ## Repo Structure Map
 
 This map intentionally lists tracked, maintained content rather than every
@@ -181,7 +197,10 @@ sleep_scoring/
 |  |- preprocessing.py             # model input preparation
 |  |- postprocessing.py            # prediction cleanup and exports
 |  |- make_mp4.py                  # aligned video extraction
+|  |- usage_stats.py               # local totals and queued opt-in reporting
 |- models/sdreamer/                # model definitions; checkpoints excluded
+|- cloudflare_usage_reporting/     # Worker/D1 ingest and aggregate-summary service
+|- .github/workflows/              # CI and weekly research-impact badge publication
 |- tests/                          # Python and clientside JavaScript tests
 |- packaging/windows/              # full-package and source-update builders
 |- paper/                          # JOSS manuscript sources

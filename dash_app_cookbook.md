@@ -111,6 +111,10 @@ The three layers, top to bottom:
 
 19. [Multi-session desktop instances](#recipe-19--multi-session-desktop-instances)
 
+**Optional research impact:**
+
+20. [Opt-in aggregate usage reporting](#recipe-20--opt-in-aggregate-usage-reporting)
+
 **Reference:**
 
 - [Cross-cutting patterns & conventions](#cross-cutting-patterns)
@@ -1020,6 +1024,62 @@ same-file detection.
 
 ---
 
+## Recipe 20 — Opt-in aggregate usage reporting
+
+**Goal.** Measure completed scoring activity across voluntarily opted-in app
+copies without collecting recordings, user identities, or scientific data.
+
+**Depends on.** Recipe 16 (the completed-save boundary), Recipe 19 only for
+multiple windows in one app copy.
+
+**Source.** `app_src/usage_stats.py`; `app_src/app.py` (startup sync);
+`app_src/callbacks/saving.py` (count after a completed save);
+`cloudflare_usage_reporting/` (Worker/D1); `.github/workflows/update_usage_badge.yml`.
+
+**Mechanism.**
+
+1. **Keep state with the app copy.** `usage-stats.json` lives beside the app
+   folder, rather than in `AppData` or the shared Temp cache. Each copied,
+   network, external-drive, or source app folder has independent totals and,
+   when opted in, an opaque UUID.
+2. **Count only completed recordings.** After a save reaches disk with every
+   second scored, `record_scored_recording` increments recordings and seconds.
+   A truncated one-way digest of the EEG is retained locally to prevent the
+   same content being counted again after a rename or re-save. The digest is
+   never sent.
+3. **Make reporting explicit and asynchronous.** The default is
+   `ENABLE_USAGE_REPORTING = False`. Opt-in queues an enrollment event and
+   later deltas; a background task sends them only at the next app startup.
+4. **Send idempotent aggregates.** Each event contains opaque app/event IDs,
+   event type, recording and seconds deltas, app version, and timestamp. The
+   Worker deduplicates by event ID, validates input, and applies route-wide
+   and per-app-copy rate limits before writing D1. No filename, path, signal,
+   annotation, animal identifier, or local fingerprint crosses the boundary.
+5. **Publish only rounded public totals.** The administrator-only Worker
+   summary groups by Worker receipt time. The weekly GitHub Action authenticates
+   with its repository secret and writes just rounded hours and recordings to
+   `usage-metrics/research-impact.json`; Shields renders the README badge from
+   that file. It never exposes event rows or app IDs.
+
+**Adapt.**
+
+- Store the state beside the distributable app when the unit is an app copy;
+  use a profile-level path only when the product genuinely measures accounts.
+- Preserve explicit opt-in settings in compatible updates, and keep the ingest
+  service and administrator token out of the desktop payload.
+
+**Gotchas.**
+
+- Two separate app folders that score the same recording can each count it
+  once. That is intentional for a per-app-copy metric; leave development or
+  demo copies opted out if their activity should not affect the aggregate.
+- `sleep_scoring_app_data` under the OS Temp directory is Dash cache, recovery,
+  exports, and clips—not usage reporting state.
+- A compatible update preserves the opt-in; a manually replaced `config.py`
+  can change it.
+
+---
+
 # Cross-cutting patterns
 
 These show up across many recipes; internalize them.
@@ -1128,6 +1188,7 @@ A quick-reference of the traps, collected:
 | Resampler figure store & patch helpers | `app_src/resampling.py` |
 | Per-recording setup (cache init, metadata, peer-file state) | `app_src/session.py` |
 | Multi-session coordination | `run_desktop_app.py`, `app_src/config.py`, `app_src/server.py`, `app_src/session.py`, `app_src/routes.py` |
+| Opt-in aggregate usage reporting | `app_src/usage_stats.py`, `app_src/app.py`, `app_src/callbacks/saving.py`, `cloudflare_usage_reporting/` |
 | Dash callbacks, one module per concern | `app_src/callbacks/` |
 | Clientside callback JS implementations | `app_src/assets/clientsideCallbacks.js` |
 | Layout, stores, EventListeners, modals | `app_src/components.py` |
