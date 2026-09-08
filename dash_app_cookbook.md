@@ -115,6 +115,10 @@ The three layers, top to bottom:
 
 20. [Opt-in aggregate usage reporting](#recipe-20--opt-in-aggregate-usage-reporting)
 
+**Adaptive scoring:**
+
+21. [Adaptive statistical-model calibration](#recipe-21--adaptive-statistical-model-calibration)
+
 **Reference:**
 
 - [Cross-cutting patterns & conventions](#cross-cutting-patterns)
@@ -785,27 +789,28 @@ the single most latency-sensitive loop in the app: it runs every frame of a drag
 
 ## Recipe 14 — Keypress annotation & heatmap overlays
 
-**Goal.** With a region selected, press `1/2/3/4` to label it; the overlay updates instantly
-and the change is pushed to undo history.
+**Goal.** With a region selected, press `1/2/3/4` to label it or `0` to clear it; the overlay
+updates instantly and the change is pushed to undo history.
 
 **Depends on.** Recipe 5 (heatmap overlay), Recipe 12/13 (`box-select-store`), the `keyboard`
-EventListener, Recipe 15 (history).
+EventListener, Recipe 15 (history), and Recipe 21 when automatic scoring must learn from edits.
 
 **Source.** clientside `make_annotation` and `update_sleep_scores` (JS in
 `app_src/assets/clientsideCallbacks.js`, registered in `app_src/callbacks/clientside.py`);
-serverside `update_sleep_scores_history` in `app_src/callbacks/saving.py`.
+serverside `update_sleep_scores_history` in `app_src/callbacks/saving.py`; the sparse
+`user-sleep-scores-store` in `app_src/components.py`.
 
 **Mechanism.** Two-step, all clientside for the visual part:
-1. `make_annotation` fires on a `1–4` keypress (only in select mode, only with a selection):
-   it copies the current label array (`figure.data[last].z[0]`), writes `label` into
-   `[start, end)`, and puts the new array in `updated-sleep-scores-store`. Then it clears the
-   selection.
+1. `make_annotation` fires on a `0–4` keypress (only in select mode, only with a selection).
+   It copies the visible label array, writes the selected label — or `NaN` for `0` — into
+   `[start, end)`, and puts the result in `updated-sleep-scores-store`. It updates the sparse
+   user-label array only in that selected interval, then clears the selection.
 2. `update_sleep_scores` fires on that store: it patches the `z` of **all three** heatmap
    traces (`num_traces - 1/-2/-3`) to the new array and clears selection shapes.
 
-Separately, the serverside `update_sleep_scores_history` also fires on
-`updated-sleep-scores-store`, appends the new array to `sleep_scores_history` if it actually
-changed (`np.array_equal(..., equal_nan=True)`), and reveals the Undo button.
+Separately, the serverside `update_sleep_scores_history` records both the displayed array and
+the sparse user-label array in lockstep if either changed (`np.array_equal(..., equal_nan=True)`),
+then reveals the Undo button.
 
 **Why it's built this way.** The label array *is* the annotation state; rendering it as a
 heatmap means "apply a label" is just "edit an array and repaint three traces" — no server
@@ -837,13 +842,14 @@ restarts on the same file.
 `app_src/callbacks/saving.py`: `update_sleep_scores_history`, `undo_annotation`; the salvage
 branch in `create_visualization` (`app_src/callbacks/loading.py`).
 
-**Mechanism.** `sleep_scores_history` is a `collections.deque(maxlen=2)` in the filesystem
-cache — it holds at most the previous and current label arrays. Every real change appends
-(dropping the oldest). `undo_annotation` restores `history[0]` and pops, then repaints via
+**Mechanism.** `sleep_scores_history` and `user_sleep_scores_history` are paired
+`collections.deque(maxlen=2)` values in the filesystem cache. The first holds the displayed
+array; the second holds only manual labels for adaptive calibration. Every real change appends
+both (dropping the oldest). `undo_annotation` restores and pops both together, then repaints via
 `updated-sleep-scores-store`. Because the cache is filesystem-backed with a ~20-day timeout,
-reopening the **same** file finds the last history entry and loads it instead of the file's
-on-disk scores (the salvage branch in `create_visualization`); opening a **different** file
-resets the deque.
+reopening the **same** normalized file path finds the last history entry and loads it instead of
+the file's on-disk scores (the salvage branch in `create_visualization`); opening a different
+file resets both deques.
 
 **Why it's built this way.** `maxlen=2` is a deliberate scope choice: one-step undo covers the
 "oops, wrong label" case cheaply without unbounded memory or a full history stack. Filesystem
@@ -1077,6 +1083,79 @@ multiple windows in one app copy.
   exports, and clips—not usage reporting state.
 - A compatible update preserves the opt-in; a manually replaced `config.py`
   can change it.
+
+---
+
+## Recipe 21 — Adaptive statistical-model calibration
+
+**Goal.** Let a few user-labelled Wake, NREM, or REM examples adapt the
+statistical model for the current recording, while preserving those examples
+exactly when the new prediction is shown.
+
+**Depends on.** Recipes 14 and 15 (manual labels, clear, and undo), plus the
+prediction handoff pattern.
+
+**Source.** `app_src/run_inference_stats_model.py` (`StatsModelConfig`,
+`calibrate_stats_model_config`); `app_src/callbacks/prediction.py`;
+`app_src/sleep_score_layers.py`; and `user-sleep-scores-store` in
+`app_src/components.py`.
+
+**Mechanism.**
+
+1. **Keep user evidence separate.** The sparse `user-sleep-scores-store`
+   contains only labels supplied by the user. A newly loaded MAT file seeds it
+   from its existing scores; a model run never writes predictions into it.
+   Pressing `0` clears both the visible score and the user label to `NaN` for
+   the selected interval.
+2. **Calibrate from the snapshot.** When the user confirms Generate
+   Predictions, the app snapshots that sparse layer. Finite Wake (`0`), NREM
+   (`1`), and REM (`2`) seconds are calibration targets; MA (`3`) is retained
+   as a manual override but is not used to fit the Wake/REM rules. One example
+   is enough to run calibration.
+3. **Search a small, deterministic configuration space.** Features are
+   extracted once, then two coordinate-descent passes choose the configuration
+   with the fewest mismatches on the supplied examples. Equal fits prefer the
+   configuration closest to the ordinary defaults, avoiding arbitrary changes
+   when the examples do not distinguish candidates.
+4. **Predict, then overlay.** The chosen configuration applies only to that
+   prediction run. The app overlays every finite user label on the model output
+   afterwards, so examples and MA annotations stay untouched. It does not edit
+   `app_src/config.py` or perform persistent model training.
+
+**Automatically tuned knobs.**
+
+| Knob | Candidate values | Effect |
+| --- | --- | --- |
+| Wake threshold | 0.05–0.95 in 0.05 steps | How readily the normalized 1–7 Hz spectral feature becomes Wake. |
+| Minimum Wake duration | 0, 2.5, 5, 10, 15 s | Removes short Wake bouts. |
+| Minimum REM duration | 0, 5, 10, 20, 30, 45, 60 s | Requires enough duration before a candidate becomes REM. |
+| Global low-NE percentile | 0, 2, 5, 10, 15, 20, 30 | Defines the recording-wide low-NE threshold for REM. |
+| Within-bout low-NE percentile | 0, 2, 5, 10, 15, 20, 30 | Tests whether a candidate bout reaches that low-NE state. |
+
+The current baseline is included in every candidate set. The spectral band and
+normalization range, Wake-gap merging rule, NE smoothing window, and REM
+recovery rule remain fixed baseline behavior; adaptivity changes only the five
+knobs above.
+
+**Why it's built this way.** This is a fast per-recording calibration, not a
+new trained classifier. It gives the model a concrete interpretation of the
+user's difficult REM/Wake examples without turning every existing prediction
+into a permanent label or changing the next recording's defaults.
+
+**Adapt.** For another rule-based model, preserve a sparse human-evidence
+layer, cache expensive features once, search a deliberately small candidate
+set, and use a default-distance tie-breaker. Tune only controls with a clear
+user-visible effect.
+
+**Gotchas.**
+
+- Do not initialize the user layer from the visible prediction during an edit:
+  that would silently convert all model output into locked manual labels.
+- A clear is an explicit `NaN`, not a fourth calibration class. A later model
+  run may fill that cleared interval again unless the user labels it.
+- Calibration evaluates the raw candidate prediction before the user overlay;
+  otherwise every supplied example would appear correct regardless of the
+  candidate configuration.
 
 ---
 
