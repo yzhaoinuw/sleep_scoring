@@ -1,6 +1,6 @@
 param(
     [string[]]$FromRef = @(),
-    [string]$MinimumCompatibleVersion = "v0.17.0",
+    [string]$MinimumCompatibleVersion = "v0.17.1",
     [string]$ToRef = "HEAD",
     [string]$TestEnv = "sleep_scoring_dash3.0",
     [string]$CondaExe = "",
@@ -229,7 +229,6 @@ if (-not $SkipQualityChecks) {
 }
 
 $InstalledBaselines = @(
-    (Join-Path $BaselineDir "v0.17.0-windows.json"),
     (Join-Path $BaselineDir "v0.17.1-windows.json")
 )
 foreach ($Baseline in $InstalledBaselines) {
@@ -256,12 +255,6 @@ if ($UpdaterRepo) {
 
 if (-not $SkipInstalledAppTests) {
     $InstalledPackageFixtures = @(
-        [pscustomobject]@{
-            Version = "v0.17.0"
-            PackageZip = Join-Path (
-                Join-Path $FixtureArtifactDir "v0.17.0"
-            ) "sleep_scoring_app_v0.17_full.zip"
-        },
         [pscustomobject]@{
             Version = "v0.17.1"
             PackageZip = Join-Path (

@@ -18,8 +18,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   `app_src`-only changes, tag the tested commit and publish only the automatic
   source-update ZIP, its SHA-256 file, and release notes.
 - Use `packaging/windows/release_lightweight.ps1` as the standard candidate
-  gate. Keep the tracked v0.17.0 and v0.17.1 installed baselines and retained
-  full-package ZIPs available for their frozen-app fixtures.
+  gate. Its supported source-update fixture is v0.17.1; retain the v0.17.0
+  package only for historic full-package verification because its frozen
+  launcher/runtime boundary cannot accept source-only updates.
 - Let the builder use schema 1 when `app_src/config.py` is unchanged and schema
   2 when it changes. Keep the approved editable-assignment allowlist aligned
   with the documented user-facing settings.
