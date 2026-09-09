@@ -37,3 +37,24 @@ search older entries by date anchor rather than reading every archive.
   - The repository-pinned Black hook and `python run_desktop_app.py --smoke`
     passed.
   - `git diff --check` passed.
+
+### v0.17.3 lightweight source-update candidate (Codex GPT-5; effort/tokens not reported)
+
+- Prepared the v0.17.3 lightweight update for the exposed REM low-NE
+  configuration settings and the briefly displayed adaptive tuning results.
+  Those new settings are included in the schema-2 editable allowlist, so later
+  source updates retain user-selected values.
+- Corrected the lightweight gate's stale v0.17.0 fixture policy. v0.17.0
+  crosses the frozen launcher/runtime boundary and cannot receive a source-only
+  update; the gate now validates the supported v0.17.1 full base and v0.17.2
+  patched state instead.
+- Verification:
+  - The full Python suite passed: 214 tests (one Flask-Caching deprecation
+    warning). A one-time port-allocation retry passed after a neighboring
+    ephemeral port was occupied.
+  - Black, compilation, 40 client-side Jest tests, and the v0.17.3 source
+    smoke check passed.
+  - The schema-2 asset validated against v0.17.1 and v0.17.2. The fresh
+    v0.17.1 frozen-app update and smoke check passed.
+  - Candidate asset SHA-256:
+    `0F8C337484375E855704F82C79CA6BE88566DB649ABA6039B13429F64655DBC0`.
