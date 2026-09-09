@@ -159,9 +159,10 @@ The statistical model is the default and needs no extra setup. To use
 SLEEP_SCORING_MODEL = "stats_model"  # or "sdreamer"
 ```
 
-The statistical model is tuned by three more settings in the same file:
+The statistical model is tuned by five more settings in the same file:
 `STATS_MODEL_WAKE_THRESHOLD`, `STATS_MODEL_MIN_WAKE_DURATION`, and
-`STATS_MODEL_MIN_REM_DURATION`.
+`STATS_MODEL_MIN_REM_DURATION`, `STATS_MODEL_REM_THRESHOLD_PERCENTILE`, and
+`STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE`.
 
 For the statistical model, the labels you add in the current recording also
 adapt its Wake/REM configuration live for the next prediction. One or more

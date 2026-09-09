@@ -69,6 +69,12 @@ class TestAppImport:
         # Should be able to instantiate without inference
         components = Components(pred_disabled=True)
         assert components is not None
+        message_ids = {
+            child.id
+            for child in components.visualization_div.children
+            if getattr(child, "id", None) is not None
+        }
+        assert {"annotation-message", "prediction-message"} <= message_ids
 
     def test_import_make_figure(self):
         """Test make_figure module imports."""

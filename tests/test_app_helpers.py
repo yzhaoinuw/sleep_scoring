@@ -318,11 +318,18 @@ class TestAdaptivePrediction:
     def test_stats_prediction_calibrates_and_overlays_user_scores(self):
         from app_src.callbacks.prediction import generate_prediction
         from app_src.config import POSTPROCESS
+        from app_src.run_inference_stats_model import StatsModelConfig
 
         source_mat = {"eeg": np.array([0.0, 1.0]), "eeg_frequency": 1}
         inferred_mat = {"sleep_scores": np.array([0, 1, 2])}
         user_scores = [None, 2, None]
-        adaptive_config = MagicMock()
+        adaptive_config = StatsModelConfig(
+            wake_threshold=0.8,
+            min_wake_duration=5,
+            min_rem_duration=45,
+            rem_threshold_percentile=10,
+            rem_threshold_comparison_percentile=5,
+        )
 
         with (
             patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
@@ -341,7 +348,9 @@ class TestAdaptivePrediction:
                 return_value=np.array([0, 1, 2]),
             ),
         ):
-            message, scores = generate_prediction({"user_sleep_scores": user_scores})
+            message, scores, timeout_ms, interval_count, max_intervals = generate_prediction(
+                {"user_sleep_scores": user_scores}
+            )
 
         calibrate.assert_called_once_with(source_mat, user_scores)
         run_inference.assert_called_once_with(
@@ -350,10 +359,44 @@ class TestAdaptivePrediction:
             stats_model_config=adaptive_config,
         )
         assert scores == [0.0, 2.0, 2.0]
+        assert (timeout_ms, interval_count, max_intervals) == (60_000, 0, 1)
         assert (
             message
-            == "The adaptive statistical model was calibrated from 1 user-labelled second(s)."
+            == "The adaptive statistical model was calibrated from 1 user-labelled second(s). "
+            "Tuned: Wake threshold 0.80; min Wake 5 s; min REM 45 s; "
+            "global low-NE 10th percentile; within-bout low-NE 5th percentile."
         )
+
+    def test_standard_prediction_message_uses_short_timeout(self):
+        from app_src.callbacks.prediction import generate_prediction
+
+        source_mat = {"eeg": np.array([0.0, 1.0]), "eeg_frequency": 1}
+        inferred_mat = {"sleep_scores": np.array([0, 1, 2])}
+
+        with (
+            patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
+            patch("app_src.callbacks.prediction.cache.get", return_value="recording.mat"),
+            patch("app_src.callbacks.prediction.loadmat", return_value=source_mat),
+            patch(
+                "app_src.callbacks.prediction.calibrate_stats_model_config",
+                return_value=(None, 0),
+            ),
+            patch(
+                "app_src.callbacks.prediction.run_inference",
+                return_value=(inferred_mat, None),
+            ),
+            patch(
+                "app_src.callbacks.prediction.get_padded_sleep_scores",
+                return_value=np.array([0, 1, 2]),
+            ),
+        ):
+            message, scores, timeout_ms, interval_count, max_intervals = generate_prediction(
+                {"user_sleep_scores": None}
+            )
+
+        assert message == "The prediction will be displayed shortly."
+        assert scores == [0, 1, 2]
+        assert (timeout_ms, interval_count, max_intervals) == (5_000, 0, 1)
 
     def test_cancelled_mat_save_still_reports_unscored_segment(self, tmp_path):
         from app_src.callbacks.saving import save_annotations

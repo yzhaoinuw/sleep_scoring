@@ -66,3 +66,25 @@ def test_calibration_with_no_user_labels_keeps_defaults_without_feature_work():
     assert config == StatsModelConfig()
     assert label_count == 0
     features.assert_not_called()
+
+
+def test_stats_model_config_uses_all_user_facing_defaults():
+    from app_src.config import (
+        STATS_MODEL_MIN_REM_DURATION,
+        STATS_MODEL_MIN_WAKE_DURATION,
+        STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE,
+        STATS_MODEL_REM_THRESHOLD_PERCENTILE,
+        STATS_MODEL_WAKE_THRESHOLD,
+    )
+    from app_src.run_inference_stats_model import StatsModelConfig
+
+    config = StatsModelConfig()
+
+    assert config.wake_threshold == STATS_MODEL_WAKE_THRESHOLD
+    assert config.min_wake_duration == STATS_MODEL_MIN_WAKE_DURATION
+    assert config.min_rem_duration == STATS_MODEL_MIN_REM_DURATION
+    assert config.rem_threshold_percentile == STATS_MODEL_REM_THRESHOLD_PERCENTILE
+    assert (
+        config.rem_threshold_comparison_percentile
+        == STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE
+    )

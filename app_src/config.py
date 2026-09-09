@@ -52,6 +52,8 @@ STATS_MODEL_WAKE_THRESHOLD = (
 )
 STATS_MODEL_MIN_WAKE_DURATION = 5.0  # minimum Wake duration in seconds
 STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
+STATS_MODEL_REM_THRESHOLD_PERCENTILE = 10.0  # global low-NE percentile for REM
+STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE = 5.0  # within-bout low-NE percentile for REM
 
 # %% Optional research-impact reporting
 # Set this to True only when this app copy's user has explicitly opted in.

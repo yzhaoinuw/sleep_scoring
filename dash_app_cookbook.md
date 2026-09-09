@@ -1098,7 +1098,8 @@ prediction handoff pattern.
 **Source.** `app_src/run_inference_stats_model.py` (`StatsModelConfig`,
 `calibrate_stats_model_config`); `app_src/callbacks/prediction.py`;
 `app_src/sleep_score_layers.py`; and `user-sleep-scores-store` in
-`app_src/components.py`.
+`app_src/components.py`. Prediction progress and tuned-setting results render
+through the dedicated `prediction-message` component.
 
 **Mechanism.**
 
@@ -1120,7 +1121,10 @@ prediction handoff pattern.
 4. **Predict, then overlay.** The chosen configuration applies only to that
    prediction run. The app overlays every finite user label on the model output
    afterwards, so examples and MA annotations stay untouched. It does not edit
-   `app_src/config.py` or perform persistent model training.
+   `app_src/config.py` or perform persistent model training. Progress and the
+   selected settings appear in `prediction-message`, separately from temporary
+   annotation and save messages. The ordinary completion note clears after five
+   seconds; calibrated settings remain for sixty seconds.
 
 **Automatically tuned knobs.**
 
@@ -1156,6 +1160,9 @@ user-visible effect.
 - Calibration evaluates the raw candidate prediction before the user overlay;
   otherwise every supplied example would appear correct regardless of the
   candidate configuration.
+- Do not share the prediction result component with the score-refresh callback:
+  painting the new heatmap is asynchronous and would otherwise erase the
+  tuned-settings message in a last-writer-wins race.
 
 ---
 

@@ -27,8 +27,10 @@ def show_confirm_pred_modal(n_clicks, is_open):
 
 @app.callback(
     Output("pred-modal-confirm", "is_open", allow_duplicate=True),
-    Output("annotation-message", "children", allow_duplicate=True),
+    Output("prediction-message", "children", allow_duplicate=True),
     Output("prediction-ready-store", "data"),
+    Output("prediction-message-interval", "n_intervals", allow_duplicate=True),
+    Output("prediction-message-interval", "max_intervals", allow_duplicate=True),
     Input("pred-confirm-button", "n_clicks"),
     State("pred-modal-confirm", "is_open"),
     State("user-sleep-scores-store", "data"),
@@ -58,12 +60,17 @@ def read_mat_pred(n_clicks, is_open, user_sleep_scores):
         (not is_open),
         message,
         {"user_sleep_scores": user_sleep_scores},
+        0,
+        0,
     )
 
 
 @app.callback(
-    Output("annotation-message", "children", allow_duplicate=True),
+    Output("prediction-message", "children", allow_duplicate=True),
     Output("updated-sleep-scores-store", "data"),
+    Output("prediction-message-interval", "interval", allow_duplicate=True),
+    Output("prediction-message-interval", "n_intervals", allow_duplicate=True),
+    Output("prediction-message-interval", "max_intervals", allow_duplicate=True),
     Input("prediction-ready-store", "data"),
     prevent_initial_call=True,
 )
@@ -94,8 +101,16 @@ def generate_prediction(prediction_request):
     if calibrated_label_count:
         message = (
             "The adaptive statistical model was calibrated from "
-            f"{calibrated_label_count} user-labelled second(s)."
+            f"{calibrated_label_count} user-labelled second(s). "
+            f"Tuned: Wake threshold {stats_model_config.wake_threshold:.2f}; "
+            f"min Wake {stats_model_config.min_wake_duration:g} s; "
+            f"min REM {stats_model_config.min_rem_duration:g} s; "
+            f"global low-NE {stats_model_config.rem_threshold_percentile:g}th percentile; "
+            "within-bout low-NE "
+            f"{stats_model_config.rem_threshold_comparison_percentile:g}th percentile."
         )
+        message_timeout_ms = 60 * 1000
     else:
         message = "The prediction will be displayed shortly."
-    return message, sleep_scores.tolist()
+        message_timeout_ms = 5 * 1000
+    return message, sleep_scores.tolist(), message_timeout_ms, 0, 1

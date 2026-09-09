@@ -594,6 +594,11 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         // clear_display
         clear_display: function(n_intervals) {
             return n_intervals === 5 ? "" : dash_clientside.no_update;
+        },
+
+        // clear_prediction_message
+        clear_prediction_message: function(n_intervals) {
+            return n_intervals === 1 ? "" : dash_clientside.no_update;
         }
     }
 });

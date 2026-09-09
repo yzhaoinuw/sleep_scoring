@@ -127,6 +127,11 @@ backend_div = html.Div(
             interval=1 * 1000,  # in milliseconds
             max_intervals=0,  # stop after the first interval
         ),
+        dcc.Interval(
+            id="prediction-message-interval",
+            interval=5 * 1000,
+            max_intervals=0,  # armed only after a prediction completes
+        ),
     ]
 )
 
@@ -304,6 +309,13 @@ def make_visualization_div(pred_disabled=True):
                 },
             ),
             # backend_div,
+            html.Div(
+                id="prediction-message",
+                style={
+                    "marginLeft": "10px",
+                    "minHeight": "18px",
+                },
+            ),
             html.Div(
                 id="annotation-message",
                 style={

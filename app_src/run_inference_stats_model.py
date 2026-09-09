@@ -29,6 +29,8 @@ from app_src.config import (  # noqa: E402
     SPECTROGRAM_COLORSCALE,
     STATS_MODEL_MIN_REM_DURATION,
     STATS_MODEL_MIN_WAKE_DURATION,
+    STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE,
+    STATS_MODEL_REM_THRESHOLD_PERCENTILE,
     STATS_MODEL_WAKE_THRESHOLD,
 )
 from app_src.get_fft_plots import get_fft_plots  # noqa: E402
@@ -48,9 +50,9 @@ from app_src.make_figure import (  # noqa: E402
 class StatsModelConfig:
     """Configuration for the statistical Wake/REM model.
 
-    The first three user-facing controls are exposed in ``app_src.config``:
-    ``wake_threshold``, ``min_wake_duration``, and ``min_rem_duration``.
-    The remaining values stay internal for now.
+    Five user-facing controls are exposed in ``app_src.config``: the Wake
+    threshold, minimum Wake and REM durations, and the two REM low-NE
+    percentiles. The remaining values stay internal.
     """
 
     wake_threshold: float = STATS_MODEL_WAKE_THRESHOLD
@@ -59,8 +61,8 @@ class StatsModelConfig:
     min_wake_duration: float = STATS_MODEL_MIN_WAKE_DURATION
     wake_merge_coefficient: float = 0.5
     min_rem_duration: float = STATS_MODEL_MIN_REM_DURATION
-    rem_threshold_percentile: float = 10.0
-    rem_threshold_comparison_percentile: float = 5.0
+    rem_threshold_percentile: float = STATS_MODEL_REM_THRESHOLD_PERCENTILE
+    rem_threshold_comparison_percentile: float = STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE
     ne_smoothing_window: float = 10.0
     rem_recovery_epsilon_fraction: float = 0.02
 

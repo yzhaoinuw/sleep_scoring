@@ -151,6 +151,15 @@ app.clientside_callback(
 )
 
 
+# clear_prediction_message
+app.clientside_callback(
+    ClientsideFunction(namespace="sleep_scoring", function_name="clear_prediction_message"),
+    Output("prediction-message", "children", allow_duplicate=True),
+    Input("prediction-message-interval", "n_intervals"),
+    prevent_initial_call=True,
+)
+
+
 # ---- debug ----
 
 """

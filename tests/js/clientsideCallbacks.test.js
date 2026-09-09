@@ -439,3 +439,11 @@ describe("clear_display", () => {
     expect(fns.clear_display(6)).toBe(NO);
   });
 });
+
+describe("clear_prediction_message", () => {
+  test("clears the message on its one-shot interval tick", () => {
+    expect(fns.clear_prediction_message(1)).toBe("");
+    expect(fns.clear_prediction_message(0)).toBe(NO);
+    expect(fns.clear_prediction_message(2)).toBe(NO);
+  });
+});
