@@ -4,6 +4,13 @@ This file summarizes changes that affect people using the app. Maintainer-only
 implementation and release details are recorded in
 `treaty_docs/work_log.md`.
 
+## v0.17.3
+
+- Exposed the statistical model's global and within-bout low-NE REM threshold
+  percentiles in `app_src/config.py`.
+- After adaptive statistical-model calibration, the app briefly displays the
+  tuned parameter values used for that prediction.
+
 ## v0.17.2
 
 - Added an optional, disabled-by-default research-impact tracker. App copies

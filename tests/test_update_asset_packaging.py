@@ -578,3 +578,11 @@ def test_schema2_fixture_allows_a_new_editable_assignment(tmp_path):
     assert values["FIX_NE_Y_RANGE"] is True
     assert values["SLEEP_SCORING_MODEL"] == "sdreamer"
     assert "ENABLE_USAGE_REPORTING" not in values
+
+
+def test_adaptive_rem_settings_are_user_editable_in_source_updates():
+    assert "STATS_MODEL_REM_THRESHOLD_PERCENTILE" in LIGHTWEIGHT_MODULE.EDITABLE_CONFIG_ASSIGNMENTS
+    assert (
+        "STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE"
+        in LIGHTWEIGHT_MODULE.EDITABLE_CONFIG_ASSIGNMENTS
+    )
