@@ -6,6 +6,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
+  annotations (keys 5/6) and optional EMG detection after stats-model scoring.
+  Keep the experiment separate from the official branches.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.

@@ -160,6 +160,7 @@ def make_figure(
         dy=HEATMAP_WIDTH,
         z=sleep_scores,
         name="Sleep Scores",
+        meta={"role": "sleep_scores"},
         hoverinfo="none",
         colorscale=COLORSCALE[num_class],
         showscale=False,
@@ -254,7 +255,7 @@ def make_figure(
 
     ne_range = max(abs(ne_lower_range), abs(ne_upper_range))
 
-    # add the heatmap last so that their indices can be accessed using last indices
+    # Keep the current draw order; callbacks identify score overlays by meta.role.
     fig.add_trace(spectrogram, secondary_y=False, row=1, col=1)
     fig.add_trace(
         theta_delta_ratio,

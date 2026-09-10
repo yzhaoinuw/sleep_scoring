@@ -15,6 +15,30 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-09-10
+
+### Stable score-trace identification (Codex GPT-6; effort/tokens not reported)
+
+- Score selection, annotation, and repainting now identify heatmaps through
+  `meta.role = "sleep_scores"`. Visible names and draw order remain unchanged;
+  additional traces can be inserted without redirecting edits to another signal.
+- Missing score roles cause no update rather than a positional fallback. Real
+  figure serialization with and without NE retains the roles on all three overlays.
+- Kept this prerequisite separate from active/quiet Wake work. The user confirmed
+  the interactive check passed and authorized commit/push, with delivery to both
+  `dev` and `main` before starting the experiment.
+- Verification:
+  - `conda run -n sleep_scoring_dash3.0 npm.cmd test -- --runInBand` in
+    `tests/js`: 51 passed, including reordered/appended traces and renamed overlays.
+  - `conda run -n sleep_scoring_dash3.0 python -m pytest tests/test_smoke.py
+    tests/test_app_helpers.py --basetemp .pytest_tmp\codex-trace-roles
+    -p no:cacheprovider -q`: 35 passed, one Flask-Caching deprecation warning.
+  - `conda run -n sleep_scoring_dash3.0 python run_desktop_app.py --smoke`: passed.
+  - Repository Black hook passed for the two touched Python files using ignored
+    repository-local pre-commit, virtualenv, and Black caches. The direct Conda
+    Black invocation hit an environment grammar assertion; the pinned hook worked.
+  - `git diff --check`: passed. The user also confirmed the app works interactively.
+
 ## 2026-09-09
 
 ### Adaptive settings and prediction-message lifecycle (Codex GPT-5; effort/tokens not reported)

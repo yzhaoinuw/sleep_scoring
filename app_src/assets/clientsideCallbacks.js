@@ -4,6 +4,19 @@
 // ClientsideFunction(namespace="sleep_scoring", function_name=...); the
 // sections and names mirror that module.
 
+// Score overlays share a stable role, independent of their display names or order.
+function sleepScoringScoreTraceIndices(figure) {
+    if (!figure || !Array.isArray(figure.data)) {
+        return [];
+    }
+    return figure.data.reduce((indices, trace, index) => {
+        if (trace && trace.type === "heatmap" && trace.meta && trace.meta.role === "sleep_scores") {
+            indices.push(index);
+        }
+        return indices;
+    }, []);
+}
+
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
     sleep_scoring: {
         // ---- mode switching and navigation ----
@@ -312,8 +325,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 return [no_update, no_update, no_update, no_update];
             }
 
-            const last_trace = figure.data[figure.data.length - 1];
-            const current_sleep_scores = last_trace.z && last_trace.z[0];
+            const score_trace_index = sleepScoringScoreTraceIndices(figure)[0];
+            const score_trace = figure.data && figure.data[score_trace_index];
+            const current_sleep_scores = score_trace && score_trace.z && score_trace.z[0];
             if (!Array.isArray(current_sleep_scores) || current_sleep_scores.length === 0) {
                 return [no_update, no_update, no_update, no_update];
             }
@@ -531,8 +545,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
             // The heatmap stores the current display, while the user layer
             // records only explicit annotations for adaptive calibration.
-            const last_trace = figure.data[figure.data.length - 1];
-            const current_sleep_scores = last_trace.z[0];
+            const score_trace_index = sleepScoringScoreTraceIndices(figure)[0];
+            const score_trace = figure.data && figure.data[score_trace_index];
+            const current_sleep_scores = score_trace && score_trace.z && score_trace.z[0];
             if (!Array.isArray(current_sleep_scores)) {
                 return [no_update, no_update, no_update, no_update];
             }
@@ -567,17 +582,18 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 return [no_update, no_update];
             }
 
+            const indices = sleepScoringScoreTraceIndices(figure);
+            if (indices.length === 0) {
+                return [no_update, no_update];
+            }
+
             // Use Patch for efficient update
             var patched_figure = new dash_clientside.Patch;
 
             // Wrap in array for heatmap z-data format
             const sleep_scores_wrapped = [sleep_scores];
 
-            // Calculate actual indices (last 3 traces)
-            const num_traces = figure.data.length;
-            const indices = [num_traces - 3, num_traces - 2, num_traces - 1];
-
-            // Update all 3 heatmaps
+            // Update only score overlays, wherever they occur in the figure.
             for (const idx of indices) {
                 patched_figure.assign(['data', idx, 'z'], sleep_scores_wrapped);
             }

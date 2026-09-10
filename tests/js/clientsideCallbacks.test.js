@@ -11,6 +11,10 @@ const NO = dash_clientside.no_update;
 
 const ANNOTATION_HINT = "Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.";
 
+function scoreTrace(scores) {
+  return { type: "heatmap", meta: { role: "sleep_scores" }, z: [scores] };
+}
+
 function lastOp(patch, ...path) {
   const key = path.join(".");
   const hits = patch.ops.filter((op) => op.path.join(".") === key);
@@ -252,7 +256,7 @@ describe("read_bout_context_select", () => {
   const metadata = { start_time: 0, end_time: 6 };
   const figureWith = (scores) => ({
     layout: { dragmode: "select" },
-    data: [{}, { z: [scores] }],
+    data: [{}, scoreTrace(scores)],
   });
 
   test("right-click selects the whole contiguous same-label bout", () => {
@@ -283,6 +287,19 @@ describe("read_bout_context_select", () => {
     );
 
     expect(range).toEqual([1, 3]);
+  });
+
+  test.each([0, 1, 2])("finds the bout when the score trace is at index %i", (index) => {
+    const figure = figureWith([]);
+    figure.data = [
+      { type: "heatmap", name: "Sleep Scores", z: [[2, 2, 2, 2, 2, 2]] },
+      { type: "scatter", y: [10, 20] },
+    ];
+    figure.data.splice(index, 0, {
+      ...scoreTrace([0, 0, 1, 1, 1, 2]), name: "Renamed scores",
+    });
+    const [range] = fns.read_bout_context_select(1, { "detail.x": 3 }, figure, metadata);
+    expect(range).toEqual([2, 5]);
   });
 
   test("does nothing outside select mode", () => {
@@ -360,7 +377,7 @@ describe("read_annotation_auto_pan_select", () => {
 describe("make_annotation", () => {
   const figureWith = (scores) => ({
     layout: { dragmode: "select" },
-    data: [{ z: [scores] }],
+    data: [scoreTrace(scores)],
   });
 
   test("pressing 2 labels the selected half-open range as NREM", () => {
@@ -398,6 +415,22 @@ describe("make_annotation", () => {
     expect(userScores).toEqual([null, null, null, null]);
   });
 
+  test.each([0, 1, 2])("annotates the score trace at index %i without copying predictions into manual labels", (index) => {
+    const figure = figureWith([]);
+    figure.data = [
+      { type: "heatmap", name: "Sleep Scores", z: [[9, 9, 9, 9]] },
+      { type: "scatter", y: [10, 20] },
+    ];
+    figure.data.splice(index, 0, { ...scoreTrace([0, 0, 2, 2]), name: "Renamed scores" });
+    const original = JSON.stringify(figure);
+    const [, scores, userScores] = fns.make_annotation(
+      1, { key: "2" }, [1, 3], [null, null, null, 2], figure
+    );
+    expect(scores).toEqual([0, 1, 1, 2]);
+    expect(userScores).toEqual([null, 1, 1, 2]);
+    expect(JSON.stringify(figure)).toBe(original);
+  });
+
   test("ignores keys other than 0-4", () => {
     expectAllNoUpdate(fns.make_annotation(1, { key: "5" }, [1, 3], [], figureWith([0, 0, 0])), 4);
     expectAllNoUpdate(fns.make_annotation(1, { key: "a" }, [1, 3], [], figureWith([0, 0, 0])), 4);
@@ -411,14 +444,23 @@ describe("make_annotation", () => {
 });
 
 describe("update_sleep_scores", () => {
-  test("repaints the z of the last three (heatmap) traces and clears selections", () => {
-    const figure = { data: [{}, {}, {}, {}, {}, {}, {}] };
+  test("repaints only tagged score overlays among reordered and appended traces", () => {
+    const figure = { data: [
+      scoreTrace([0, 0, 0]),
+      { type: "heatmap", name: "Sleep Scores", z: [[9, 9, 9]] },
+      { ...scoreTrace([0, 0, 0]), name: "Renamed scores" },
+      { type: "heatmap", meta: { role: "other_overlay" }, z: [[8, 8, 8]] },
+      {},
+      scoreTrace([0, 0, 0]),
+      { type: "scatter", name: "Extra signal", y: [1, 2, 3] },
+    ] };
     const scores = [1, 2, 0];
     const [patch, message] = fns.update_sleep_scores(scores, figure);
 
-    [4, 5, 6].forEach((idx) => {
+    [0, 2, 5].forEach((idx) => {
       expect(lastOp(patch, "data", idx, "z").value).toEqual([scores]);
     });
+    expect(patch.ops.filter((op) => op.path[0] === "data")).toHaveLength(3);
     expect(lastOp(patch, "layout", "selections").value).toBeNull();
     expect(lastOp(patch, "layout", "shapes").value).toBeNull();
     expect(message).toBe("");
@@ -428,6 +470,21 @@ describe("update_sleep_scores", () => {
     expectAllNoUpdate(fns.update_sleep_scores(null, { data: [] }), 2);
     expectAllNoUpdate(fns.update_sleep_scores("nope", { data: [] }), 2);
   });
+});
+
+test.each([
+  {},
+  { data: [] },
+  { data: [null, { type: "heatmap", name: "Sleep Scores", z: [[0, 1]] }] },
+  { data: [{ type: "heatmap", meta: { role: "other_overlay" }, z: [[0, 1]] }] },
+  { data: [{ type: "scatter", meta: { role: "sleep_scores" }, z: [[0, 1]] }] },
+])("score callbacks leave figures without score overlays unchanged: %j", (data) => {
+  const figure = { ...data, layout: { dragmode: "select" } };
+  expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [0, 1], [], figure), 4);
+  expectAllNoUpdate(fns.read_bout_context_select(
+    1, { "detail.x": 0 }, figure, { start_time: 0, end_time: 2 }
+  ), 4);
+  expectAllNoUpdate(fns.update_sleep_scores([1, 2], figure), 2);
 });
 
 // ---- message cleanup ----

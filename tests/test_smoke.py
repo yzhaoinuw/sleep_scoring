@@ -1,6 +1,9 @@
 """Smoke tests to verify basic imports and module loading."""
 
+import json
 from types import SimpleNamespace
+
+import pytest
 
 
 class TestImports:
@@ -82,3 +85,19 @@ class TestAppImport:
 
         assert hasattr(make_figure, "make_figure")
         assert hasattr(make_figure, "get_padded_sleep_scores")
+
+    @pytest.mark.parametrize("fixture_name", ["mock_mat_data", "mock_mat_data_with_ne"])
+    def test_figure_serializes_score_roles_for_clientside_callbacks(self, request, fixture_name):
+        """Real figures expose all three score overlays even with optional NE."""
+        from app_src.make_figure import make_figure
+
+        mat = request.getfixturevalue(fixture_name)
+        figure = json.loads(make_figure(mat).to_json())
+        overlays = [
+            trace for trace in figure["data"] if trace.get("meta", {}).get("role") == "sleep_scores"
+        ]
+        assert len(overlays) == 3
+        assert {trace["yaxis"] for trace in overlays} == {"y3", "y4", "y5"}
+        for trace in overlays:
+            assert trace["type"] == "heatmap"
+            assert trace["z"] == [mat["sleep_scores"].tolist()]
