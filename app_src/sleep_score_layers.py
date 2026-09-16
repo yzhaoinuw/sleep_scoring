@@ -4,6 +4,28 @@ from __future__ import annotations
 
 import numpy as np
 
+WAKE = 0
+ACTIVE_WAKE = 4
+QUIET_WAKE = 5
+WAKE_STAGES = (WAKE, ACTIVE_WAKE, QUIET_WAKE)
+
+
+def coarse_sleep_scores(values) -> np.ndarray:
+    """Collapse Wake subtypes for sleep scoring without modifying the source."""
+    scores = np.asarray(values, dtype=float).reshape(-1).copy()
+    scores[np.isin(scores, WAKE_STAGES)] = WAKE
+    return scores
+
+
+def saved_user_sleep_scores(mat, length: int) -> np.ndarray:
+    """New files preserve sparse annotations; legacy files treat scores as manual."""
+    source = mat.get("user_sleep_scores")
+    if source is None or np.asarray(source).size == 0:
+        source = mat.get("sleep_scores")
+    scores = normalize_sleep_scores(source, length)
+    scores[scores == -1] = np.nan
+    return scores
+
 
 def normalize_sleep_scores(values, length: int) -> np.ndarray:
     """Return a one-second score layer of exactly ``length`` values.

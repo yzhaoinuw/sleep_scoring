@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import dash
 import numpy as np
 import pandas as pd
+import pytest
 
 
 class TestWriteMetadata:
@@ -255,6 +256,54 @@ class TestSaveAnnotations:
         assert str(excel_save_path) in message
         assert max_intervals == 5
 
+    def test_fine_labels_round_trip_without_teaching_automatic_scores(self, tmp_path):
+        from scipy.io import loadmat
+        from app_src.callbacks.saving import save_annotations
+        from app_src.sleep_score_layers import saved_user_sleep_scores
+
+        labels = np.array([4] * 10 + [5] * 10 + [1] * 20, dtype=float)
+        users = np.full(40, np.nan)
+        users[2], users[12] = 4, 5
+        values = {
+            "filepath": "input.mat",
+            "filename": "fine",
+            "sleep_scores_history": [labels],
+            "user_sleep_scores_history": [users],
+            "wake_activity_last_run": {"threshold_used": 2.5},
+        }
+        destination = tmp_path / "saved.mat"
+        spreadsheet = tmp_path / "saved.xlsx"
+        with (
+            patch("app_src.callbacks.saving.TEMP_PATH", tmp_path),
+            patch("app_src.callbacks.saving.cache.get", side_effect=values.get),
+            patch("app_src.callbacks.saving.loadmat", return_value={}),
+            patch("app_src.callbacks.saving.record_scored_recording"),
+            patch(
+                "app_src.callbacks.saving.save_file_dialog",
+                side_effect=[str(destination), str(spreadsheet)],
+            ),
+        ):
+            save_annotations(1)
+        loaded = loadmat(destination, squeeze_me=True)
+        np.testing.assert_array_equal(loaded["sleep_scores"], labels)
+        np.testing.assert_array_equal(saved_user_sleep_scores(loaded, 40), users)
+        np.testing.assert_array_equal(loaded["sleep_scores_coarse"], [0] * 20 + [1] * 20)
+        stats = pd.read_excel(spreadsheet, sheet_name="Sleep_stats", index_col=0)
+        assert stats.loc["Count", "Wake"] == 1  # Subtype boundary isn't a new Wake bout.
+        assert stats.loc["Time (s)", "Wake"] == 20
+        assert stats.loc["SWS Transition Count", "Wake"] == 1
+        detailed = pd.read_excel(spreadsheet, sheet_name="Sleep_bouts", index_col=0)
+        assert detailed.sleep_scores.tolist() == [4, 5, 1]
+        activity = pd.read_excel(spreadsheet, sheet_name="Wake_activity")
+        assert activity["Time (s)"].tolist() == [0, 10, 10]
+
+    def test_legacy_scores_still_seed_manual_labels(self):
+        from app_src.sleep_score_layers import saved_user_sleep_scores
+
+        np.testing.assert_array_equal(
+            saved_user_sleep_scores({"sleep_scores": [0, 4, 5, -1]}, 4), [0, 4, 5, np.nan]
+        )
+
 
 class TestUserSleepScoreHistory:
     def test_manual_label_is_retained_when_it_matches_the_visible_prediction(self):
@@ -285,13 +334,14 @@ class TestUserSleepScoreHistory:
             cache_values["user_sleep_scores_history"][-1], [0, np.nan, np.nan]
         )
 
-    def test_undo_restores_the_matching_user_layer(self):
+    @pytest.mark.parametrize("stage", [2, 4, 5])
+    def test_undo_restores_the_matching_user_layer(self, stage):
         from app_src.callbacks.saving import undo_annotation
 
         previous_display = np.array([0, 1, 2], dtype=float)
-        latest_display = np.array([0, 2, 2], dtype=float)
+        latest_display = np.array([0, stage, 2], dtype=float)
         previous_user = np.array([np.nan, np.nan, np.nan])
-        latest_user = np.array([np.nan, 2, np.nan])
+        latest_user = np.array([np.nan, stage, np.nan])
         cache_values = {
             "sleep_scores_history": deque([previous_display, latest_display], maxlen=2),
             "user_sleep_scores_history": deque([previous_user, latest_user], maxlen=2),
@@ -315,14 +365,68 @@ class TestUserSleepScoreHistory:
 
 
 class TestAdaptivePrediction:
-    def test_stats_prediction_calibrates_and_overlays_user_scores(self):
+    def test_two_stage_prediction_splits_generic_wake_and_preserves_fine_examples(self):
+        from app_src.callbacks.prediction import generate_prediction
+        from app_src.run_inference_stats_model import StatsModelConfig
+
+        mat = {"eeg_frequency": 512, "emg": np.zeros(512 * 12)}
+        users = [5] + [None] * 4 + [4] + [None] * 4 + [0, 1]
+        request = {"user_sleep_scores": users}
+        with (
+            patch("app_src.config.STATS_MODEL_DETECT_WAKE_ACTIVITY", True),
+            patch("app_src.config.WAKE_ACTIVITY_THRESHOLD", 100),
+            patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
+            patch("app_src.callbacks.prediction.cache.get", return_value="input.mat"),
+            patch("app_src.callbacks.prediction.cache.set"),
+            patch("app_src.callbacks.prediction.loadmat", return_value=mat),
+            patch(
+                "app_src.callbacks.prediction.calibrate_stats_model_config",
+                return_value=(StatsModelConfig(), 4),
+            ),
+            patch("app_src.callbacks.prediction.run_inference", return_value=(mat, None)),
+            patch(
+                "app_src.callbacks.prediction.get_padded_sleep_scores",
+                return_value=np.array([1] + [0] * 4 + [2] + [0] * 6),
+            ),
+            patch(
+                "app_src.wake_activity.emg_envelope",
+                return_value=np.r_[np.ones(100), np.full(120, 6.0), np.ones(20)],
+            ),
+        ):
+            message, scores, *_ = generate_prediction(request)
+        assert scores == [5] * 5 + [4] * 6 + [1]
+        assert "2 fine-labelled" in message
+
+    def test_bad_emg_keeps_current_scores_unchanged(self):
+        from app_src.callbacks.prediction import generate_prediction
+        from app_src.run_inference_stats_model import StatsModelConfig
+
+        mat = {"eeg_frequency": 512, "emg": np.zeros(512 * 6)}
+        with (
+            patch("app_src.config.STATS_MODEL_DETECT_WAKE_ACTIVITY", True),
+            patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
+            patch("app_src.callbacks.prediction.cache.get", return_value="input.mat"),
+            patch("app_src.callbacks.prediction.loadmat", return_value=mat),
+            patch(
+                "app_src.callbacks.prediction.calibrate_stats_model_config",
+                return_value=(StatsModelConfig(), 0),
+            ),
+            patch("app_src.callbacks.prediction.run_inference", return_value=(mat, None)),
+            patch("app_src.callbacks.prediction.get_padded_sleep_scores", return_value=np.zeros(6)),
+        ):
+            message, scores, *_ = generate_prediction({"user_sleep_scores": None})
+        assert scores is dash.no_update
+        assert "flatlined" in message
+
+    @pytest.mark.parametrize("stage", [2, 4, 5])
+    def test_stats_prediction_calibrates_and_overlays_user_scores(self, stage):
         from app_src.callbacks.prediction import generate_prediction
         from app_src.config import POSTPROCESS
         from app_src.run_inference_stats_model import StatsModelConfig
 
         source_mat = {"eeg": np.array([0.0, 1.0]), "eeg_frequency": 1}
         inferred_mat = {"sleep_scores": np.array([0, 1, 2])}
-        user_scores = [None, 2, None]
+        user_scores = [None, stage, None]
         adaptive_config = StatsModelConfig(
             wake_threshold=0.8,
             min_wake_duration=5,
@@ -332,6 +436,7 @@ class TestAdaptivePrediction:
         )
 
         with (
+            patch("app_src.config.STATS_MODEL_DETECT_WAKE_ACTIVITY", False),
             patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
             patch("app_src.callbacks.prediction.cache.get", return_value="recording.mat"),
             patch("app_src.callbacks.prediction.loadmat", return_value=source_mat),
@@ -358,7 +463,7 @@ class TestAdaptivePrediction:
             postprocess=POSTPROCESS,
             stats_model_config=adaptive_config,
         )
-        assert scores == [0.0, 2.0, 2.0]
+        assert scores == [0.0, stage, 2.0]
         assert (timeout_ms, interval_count, max_intervals) == (60_000, 0, 1)
         assert (
             message
@@ -374,6 +479,7 @@ class TestAdaptivePrediction:
         inferred_mat = {"sleep_scores": np.array([0, 1, 2])}
 
         with (
+            patch("app_src.config.STATS_MODEL_DETECT_WAKE_ACTIVITY", False),
             patch("app_src.callbacks.prediction.SLEEP_SCORING_MODEL", "stats_model"),
             patch("app_src.callbacks.prediction.cache.get", return_value="recording.mat"),
             patch("app_src.callbacks.prediction.loadmat", return_value=source_mat),

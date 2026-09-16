@@ -15,7 +15,108 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-09-15
+
+### Experimental branch delivery (Codex GPT-6; effort/tokens not reported)
+
+- User authorized committing and pushing `active-quiet-wake` only; keep the
+  experiment separate from `dev`/`main`, with no release, tag, or PR.
+- Preserved the working-copy setting `STATS_MODEL_DETECT_WAKE_ACTIVITY = True`.
+  Fine annotations alone do not enable subdivision; the config flag controls it
+  and changing the flag requires restarting the app.
+- Pre-delivery checks exposed four coarse-only test cases that depended on the
+  local flag being off. Those tests now explicitly disable subdivision; existing
+  enabled-pipeline tests still exercise complete Wake coverage and repeatability.
+- Verification:
+  - Conda pytest: `python -m pytest --basetemp
+    .pytest_tmp\codex-wake-push-0915-fixed -p no:cacheprovider -q`: 250 passed,
+    one existing Flask-Caching deprecation warning.
+  - JavaScript: `npm.cmd test -- --runInBand` in `tests/js`: 57 passed.
+  - `python run_desktop_app.py --smoke`: passed.
+  - Pinned Black hook passed for tracked files and the three new Python files;
+    `git diff --check` passed.
+
+## 2026-09-13
+
+### Config-only wake activity and repeatability (Codex GPT-6; effort/tokens not reported)
+
+- Removed the experimental settings panel and EMG preview at the user's request.
+  The existing prediction action reads wake settings solely from `config.py`;
+  permanent manual keys 5/6 and stage colors remain available.
+- Existing coarse-scored MAT files are the pilot entry point: absent or empty
+  annotation fields fall back to saved scores. Explicit all-unscored annotation
+  arrays remain empty, preserving Clear and preventing automatic-only outputs
+  from becoming training examples after reload.
+- All Wake, including coarse manual annotations, is subdivided on a successful
+  enabled run. Coarse labels never become Quiet training examples. Repeated runs
+  use the same configured baselines rather than previously fitted thresholds.
+- Real signal-processing tests exercise independent coarse and EMG repeatability,
+  reapplying subdivision to its own output with unchanged annotations, and full
+  legacy-MAT load/predict/save/reload flows with and without fine labels. Both
+  stages return identical results for unchanged inputs. Collect reviewed fine-label
+  MAT files for the future NE pipeline; NE analysis itself remains out of scope.
+- Work remains uncommitted on local `active-quiet-wake`, pending user testing.
+- Verification:
+  - Focused Conda pytest run covering pipeline, annotation layers, and app helpers:
+    48 passed, one existing Flask-Caching deprecation warning.
+  - Full `python -m pytest --basetemp .pytest_tmp\codex-wake-config-final
+    -p no:cacheprovider -q`: 250 passed, the same deprecation warning.
+  - `npm.cmd test -- --runInBand` in `tests/js`: 57 passed.
+  - `python run_desktop_app.py --smoke`: passed.
+  - Pinned repository Black hook and `git diff --check`: passed.
+
 ## 2026-09-10
+
+### Wake activity pilot validation (Codex GPT-6; effort/tokens not reported)
+
+- The two calibrations remain sequential and separate. Explicit subtype labels
+  force Wake eligibility, calibrate the EMG threshold before manual overrides,
+  and remain authoritative even when shorter than the configured minimum.
+- Keep the five-second duration fixed during adaptation. The pilot bridges
+  at most 0.5-second gaps and measures bouts on a 20 Hz RMS envelope before
+  assigning one-second scores. These settings require real-recording/video
+  feedback; synthetic checks establish software behavior, not behavioral accuracy.
+- Save sparse annotations independently from predictions to prevent accidental
+  self-calibration after reload. Legacy files retain existing annotation semantics.
+  Last-run detector metadata records provenance and is not a claim that the current
+  manually edited or undone labels are identical to that automatic run.
+- Coarse summaries merge the Wake family before existing short-Wake-to-MA rules;
+  subtype bout exports preserve the experimental labels. Invalid Wake EMG aborts
+  subdivision without replacing the current scores, rather than declaring it quiet.
+- Local `active-quiet-wake` is ready for user pilot testing, with changes uncommitted
+  and unpushed. Official `dev` and `main` remain at the trace-identification commit.
+- Verification:
+  - Conda `sleep_scoring_dash3.0`: full `python -m pytest --basetemp
+    .pytest_tmp\codex-wake-final2 -p no:cacheprovider -q`: 241 passed, one existing
+    Flask-Caching deprecation warning. Includes fine-label undo, feature-off
+    preservation, MAT/Excel round trips, and two-stage prediction/error paths.
+  - `npm.cmd test -- --runInBand` in `tests/js`: 57 passed.
+  - `python run_desktop_app.py --smoke`: passed.
+  - Pinned repository Black hook and `git diff --check`: passed.
+  - Browser QA with an isolated synthetic recording: both calibrations reported
+    ten manual seconds; automatic subdivision and RMS overlay rendered; key 6
+    applied a one-second correction with detection off, and Undo restored it.
+
+### Active/quiet Wake calibration design (Codex GPT-6; effort/tokens not reported)
+
+- Created and switched to local `active-quiet-wake` from `9ebcad2`, the verified
+  trace-identification commit on both `dev` and `main`. Feature code is not yet
+  implemented; this branch is not pushed.
+- Keep two sequential calibration steps: manual Wake, Active Wake, and Quiet
+  Wake all supply Wake targets to the stats model; only explicit Active/Quiet
+  annotations supply subtype targets to the EMG detector. Generic Wake must
+  not be treated as a Quiet Wake example.
+- Apply coarse manual corrections before constructing the detector's Wake mask,
+  so fine-grained manual examples remain inside Wake even if the raw model
+  disagrees. Evaluate each detector candidate before applying fine-grained
+  overrides, and never turn automatic subtype predictions into manual targets.
+- For the pilot, propose adapting the EMG amplitude threshold while keeping
+  the user-selected minimum duration (default five seconds) fixed. Explicit
+  fine-grained manual labels remain authoritative after prediction.
+- Verification:
+  - Inspected current calibration masks and manual-overlay helpers.
+  - `git status --short --branch` and `git rev-parse HEAD dev main` confirmed the
+    new branch started clean at the same commit as both official branches.
 
 ### Stable score-trace identification (Codex GPT-6; effort/tokens not reported)
 

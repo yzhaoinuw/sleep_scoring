@@ -120,7 +120,19 @@ backend_div = html.Div(
         ),
         EventListener(
             id="keyboard",
-            events=[{"event": "keydown", "props": ["key"]}],
+            events=[
+                {
+                    "event": "keydown",
+                    "props": [
+                        "key",
+                        "target.tagName",
+                        "target.isContentEditable",
+                        "ctrlKey",
+                        "altKey",
+                        "metaKey",
+                    ],
+                }
+            ],
         ),
         dcc.Interval(
             id="interval-component",

@@ -2,6 +2,24 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
+import pytest
+
+
+@pytest.mark.parametrize("missing_layer", [None, []])
+def test_absent_annotation_layer_uses_saved_scores(missing_layer):
+    from app_src.sleep_score_layers import saved_user_sleep_scores
+
+    mat = {"sleep_scores": [0, 1, 2, 3, 4, 5, -1], "user_sleep_scores": missing_layer}
+    np.testing.assert_array_equal(
+        saved_user_sleep_scores(mat, 8), [0, 1, 2, 3, 4, 5, np.nan, np.nan]
+    )
+
+
+def test_explicit_empty_annotations_do_not_adopt_predictions_on_reload():
+    from app_src.sleep_score_layers import saved_user_sleep_scores
+
+    mat = {"sleep_scores": [4, 5, 1], "user_sleep_scores": [np.nan] * 3}
+    assert np.isnan(saved_user_sleep_scores(mat, 3)).all()
 
 
 def test_overlay_user_sleep_scores_preserves_only_finite_manual_labels():
@@ -14,7 +32,8 @@ def test_overlay_user_sleep_scores_preserves_only_finite_manual_labels():
     np.testing.assert_array_equal(model_scores, [0, 1, 2, 1])
 
 
-def test_calibration_uses_one_user_label_before_any_overlay():
+@pytest.mark.parametrize("label", [0, 4, 5])
+def test_calibration_uses_one_user_label_before_any_overlay(label):
     from app_src.run_inference_stats_model import (
         StatsModelFeatures,
         calibrate_stats_model_config,
@@ -46,7 +65,7 @@ def test_calibration_uses_one_user_label_before_any_overlay():
             side_effect=prediction_for_threshold,
         ),
     ):
-        config, label_count = calibrate_stats_model_config({}, [0])
+        config, label_count = calibrate_stats_model_config({}, [label])
 
     assert label_count == 1
     assert config.wake_threshold <= 0.4

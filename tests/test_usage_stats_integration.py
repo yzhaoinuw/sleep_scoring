@@ -29,7 +29,7 @@ def saved_recording(tmp_path, monkeypatch):
             "filepath": str(tmp_path / "recording.mat"),
             "filename": "recording",
             "sleep_scores_history": [np.asarray(sleep_scores, dtype=float)],
-        }[key]
+        }.get(key)
 
         with (
             patch.object(saving, "cache", cache),

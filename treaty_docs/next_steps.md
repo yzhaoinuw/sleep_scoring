@@ -6,8 +6,14 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
-  annotations (keys 5/6) and optional EMG detection after stats-model scoring.
+- Current branch is `active-quiet-wake`: permanent Active/Quiet annotations
+  (keys 5/6), optional EMG subdivision controlled solely by `config.py`, and
+  separate repeatable calibrations are implemented, pending user pilot testing.
+  Commit/push approved for this experimental branch only; detection is currently
+  enabled in `config.py`. Existing coarse-scored MAT files seed annotations; collect
+  reviewed Active/Quiet MAT files for the subsequent NE analysis pipeline.
+  Compare duration/threshold choices with real recordings and available videos;
+  five seconds is a pilot default, not a validated behavioral boundary.
   Keep the experiment separate from the official branches.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.

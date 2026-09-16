@@ -133,6 +133,7 @@ def initialize_cache(cache, filepath):
     if not is_same_file:
         cache.set("sleep_scores_history", deque(maxlen=2))
         cache.set("user_sleep_scores_history", deque(maxlen=2))
+        cache.set("wake_activity_last_run", None)
 
     clear_temp_dir(filename)
     cache.set("filename", filename)

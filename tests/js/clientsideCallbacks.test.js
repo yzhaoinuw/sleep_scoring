@@ -9,7 +9,7 @@
 const fns = window.dash_clientside.sleep_scoring;
 const NO = dash_clientside.no_update;
 
-const ANNOTATION_HINT = "Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.";
+const ANNOTATION_HINT = "Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, 5 for Active Wake, 6 for Quiet Wake, or 0 to clear.";
 
 function scoreTrace(scores) {
   return { type: "heatmap", meta: { role: "sleep_scores" }, z: [scores] };
@@ -431,8 +431,8 @@ describe("make_annotation", () => {
     expect(JSON.stringify(figure)).toBe(original);
   });
 
-  test("ignores keys other than 0-4", () => {
-    expectAllNoUpdate(fns.make_annotation(1, { key: "5" }, [1, 3], [], figureWith([0, 0, 0])), 4);
+  test("ignores keys other than 0-6", () => {
+    expectAllNoUpdate(fns.make_annotation(1, { key: "7" }, [1, 3], [], figureWith([0, 0, 0])), 4);
     expectAllNoUpdate(fns.make_annotation(1, { key: "a" }, [1, 3], [], figureWith([0, 0, 0])), 4);
   });
 
@@ -440,6 +440,18 @@ describe("make_annotation", () => {
     const panFigure = { layout: { dragmode: "pan" }, data: [{ z: [[0]] }] };
     expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [0, 1], [], panFigure), 4);
     expectAllNoUpdate(fns.make_annotation(1, { key: "1" }, [], [], figureWith([0])), 4);
+  });
+
+  test.each([["5", 4], ["6", 5]])("key %s assigns a fine label regardless of the old stage", (key, label) => {
+    const [, scores, users] = fns.make_annotation(1, { key }, [0, 2], [], figureWith([1, 2, 0]));
+    expect(scores).toEqual([label, label, 0]);
+    expect(users).toEqual([label, label, null]);
+  });
+
+  test.each([{"target.tagName": "INPUT"}, {"target.tagName": "TEXTAREA"}, {"target.isContentEditable": true}, {ctrlKey: true}])("typing in a control does not annotate: %j", (target) => {
+    expectAllNoUpdate(fns.make_annotation(1, {key: "5", ...target}, [0, 1], [], figureWith([1])), 4);
+    expectAllNoUpdate(fns.switch_mode(1, {key: "m", ...target}, figureWith([1])), 4);
+    expectAllNoUpdate(fns.pan_figure(1, {key: "ArrowLeft", ...target}, null, figureWith([1])), 2);
   });
 });
 

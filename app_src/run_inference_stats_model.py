@@ -35,6 +35,7 @@ from app_src.config import (  # noqa: E402
 )
 from app_src.get_fft_plots import get_fft_plots  # noqa: E402
 from app_src.mat_utils import get_ne_frequency  # noqa: E402
+from app_src.sleep_score_layers import coarse_sleep_scores  # noqa: E402
 from app_src.make_figure import (  # noqa: E402
     COLORSCALE,
     HEATMAP_WIDTH,
@@ -567,7 +568,7 @@ def _calibration_label_array(
     if user_sleep_scores is None:
         return labels
 
-    source = np.asarray(user_sleep_scores, dtype=float).reshape(-1)
+    source = coarse_sleep_scores(user_sleep_scores)
     count = min(labels.size, source.size)
     labels[:count] = source[:count]
     return labels

@@ -38,7 +38,7 @@ class TestImports:
 
         assert hasattr(config, "INSTANCE_SLOT")
         assert hasattr(config, "PEER_PORTS")
-        assert len(config.STAGE_COLORS) == 4
+        assert len(config.STAGE_COLORS) == 6
 
     def test_stage_colors_support_updated_and_preserved_configs(self):
         """New configs customize colors while pre-v0.16.7 configs use defaults."""
@@ -47,12 +47,11 @@ class TestImports:
         custom_colors = ["red", "blue", "green", "yellow"]
 
         assert make_figure.get_stage_colors(SimpleNamespace()) == (make_figure.DEFAULT_STAGE_COLORS)
-        assert (
-            make_figure.get_stage_colors(SimpleNamespace(STAGE_COLORS=custom_colors))
-            is custom_colors
+        assert make_figure.get_stage_colors(SimpleNamespace(STAGE_COLORS=custom_colors)) == (
+            custom_colors + make_figure.DEFAULT_STAGE_COLORS[4:]
         )
         assert make_figure.STAGE_COLORS == make_figure.get_stage_colors()
-        assert [color for _, color in make_figure.COLORSCALE[4]] == (make_figure.STAGE_COLORS)
+        assert [color for _, color in make_figure.COLORSCALE[6]] == (make_figure.STAGE_COLORS)
 
     def test_import_version(self):
         """Test version is accessible."""

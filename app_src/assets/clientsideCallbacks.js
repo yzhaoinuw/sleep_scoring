@@ -17,13 +17,21 @@ function sleepScoringScoreTraceIndices(figure) {
     }, []);
 }
 
+const sleepScoringLabelKeys = { "0": null, "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5 };
+const sleepScoringAnnotationHint = "Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, 5 for Active Wake, 6 for Quiet Wake, or 0 to clear.";
+
+function sleepScoringIsTyping(event) {
+    return event && (["INPUT", "TEXTAREA", "SELECT"].includes(event["target.tagName"])
+        || event["target.isContentEditable"] || event.ctrlKey || event.altKey || event.metaKey);
+}
+
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
     sleep_scoring: {
         // ---- mode switching and navigation ----
 
         // switch_mode by pressing "m"
         switch_mode: function(keyboard_nevents, keyboard_event, figure) {
-            if (!keyboard_event || !figure) {
+            if (!keyboard_event || !figure || sleepScoringIsTyping(keyboard_event)) {
                 return [dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update, dash_clientside.no_update];
             }
 
@@ -53,7 +61,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
         // pan_figure
         pan_figure: function(keyboard_nevents, keyboard_event, relayoutdata, figure) {
-            if (!keyboard_event || !figure) {
+            if (!keyboard_event || !figure || sleepScoringIsTyping(keyboard_event)) {
                 return [dash_clientside.no_update, dash_clientside.no_update];
             }
 
@@ -215,7 +223,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [final_start, final_end],
                 patched_figure.build(),
-                `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
+                `You selected [${final_start}, ${final_end}] (${duration} s). ${sleepScoringAnnotationHint}`,
                 final_video_button_style
             ];
         },
@@ -303,7 +311,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [start, end],
                 patched_figure.build(),
-                `You selected [${start}, ${end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
+                `You selected [${start}, ${end}] (${duration} s). ${sleepScoringAnnotationHint}`,
                 final_video_button_style
             ];
         },
@@ -398,7 +406,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [final_start, final_end],
                 patched_figure.build(),
-                `You selected bout [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
+                `You selected bout [${final_start}, ${final_end}] (${duration} s). ${sleepScoringAnnotationHint}`,
                 final_video_button_style
             ];
         },
@@ -514,7 +522,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return [
                 [final_start, final_end],
                 patched_figure.build(),
-                `You selected [${final_start}, ${final_end}] (${duration} s). Press 1 for Wake, 2 for NREM, 3 for REM, 4 for MA, or 0 to clear.`,
+                `You selected [${final_start}, ${final_end}] (${duration} s). ${sleepScoringAnnotationHint}`,
                 final_video_button_style
             ];
         },
@@ -526,7 +534,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             const no_update = dash_clientside.no_update;
 
             // Only proceed if we have all required data
-            if (!keyboard_event || !box_select_range || box_select_range.length === 0 || !figure) {
+            if (!keyboard_event || !box_select_range || box_select_range.length === 0 || !figure || sleepScoringIsTyping(keyboard_event)) {
                 return [no_update, no_update, no_update, no_update];
             }
 
@@ -536,11 +544,11 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             }
 
             const label = keyboard_event.key;
-            if (!["0", "1", "2", "3", "4"].includes(label)) {
+            if (!Object.prototype.hasOwnProperty.call(sleepScoringLabelKeys, label)) {
                 return [no_update, no_update, no_update, no_update];
             }
 
-            const label_int = label === "0" ? null : parseInt(label) - 1;
+            const label_int = sleepScoringLabelKeys[label];
             const [start, end] = box_select_range;
 
             // The heatmap stores the current display, while the user layer

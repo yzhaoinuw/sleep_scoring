@@ -125,6 +125,17 @@ the current recording and is overlaid onto later predictions so user labels
 are preserved. A selected range can be cleared back to unscored with keyboard
 `0`.
 
+The experimental [`app_src/wake_activity.py`](app_src/wake_activity.py) module
+optionally subdivides the statistical model's Wake output using raw EMG.
+Active/Quiet annotations supply Wake targets to coarse calibration and subtype
+targets to a separate EMG threshold calibration. Manual keys 5/6 stay available
+when detection is disabled. Settings live only in `config.py`; the existing
+prediction callback runs the optional second stage without adding UI controls.
+Saved files retain the sparse manual layer so automatic labels do not become
+calibration examples on reload. Missing/empty annotation fields fall back to saved
+scores; explicit all-unscored layers remain empty. Each stage starts from its
+configured baseline, making unchanged inputs repeatable across runs and reloads.
+
 #### Saving and video
 
 [`app_src/postprocessing.py`](app_src/postprocessing.py) converts dense scores

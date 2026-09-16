@@ -23,7 +23,7 @@ FIX_NE_Y_RANGE = False  # True or False
 
 # Colors for each sleep stage, used for both the sleep-score heatmap and its
 # legend. Order matters and must match the stage order below:
-#   index 0 -> Wake, 1 -> NREM, 2 -> REM, 3 -> MA.
+#   index 0 -> Wake, 1 -> NREM, 2 -> REM, 3 -> MA, 4 -> Active Wake, 5 -> Quiet Wake.
 # Any Plotly-accepted color string works, e.g. "rgb(124, 124, 251)",
 # "#7c7cfb", or a named color like "royalblue".
 STAGE_COLORS = [
@@ -31,6 +31,8 @@ STAGE_COLORS = [
     "rgb(251, 124, 124)",  # NREM
     "rgb(123, 251, 123)",  # REM
     "rgb(255, 255, 0)",  # MA (yellow)
+    "#E69F00",  # Active Wake (orange)
+    "#56B4E9",  # Quiet Wake (light blue)
 ]
 
 # see https://plotly.com/python/builtin-colorscales/, under Section Built-In Sequential Color scales
@@ -54,6 +56,14 @@ STATS_MODEL_MIN_WAKE_DURATION = 5.0  # minimum Wake duration in seconds
 STATS_MODEL_MIN_REM_DURATION = 30.0  # minimum REM duration in seconds
 STATS_MODEL_REM_THRESHOLD_PERCENTILE = 10.0  # global low-NE percentile for REM
 STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE = 5.0  # within-bout low-NE percentile for REM
+
+# %% Optional EMG Wake subtyping (stats model only; manual keys 5/6 always work)
+# Enable here, restart the app, then use the existing Generate Predictions button.
+# Every Wake second (including saved/manual coarse Wake) is split into Active/Quiet.
+# Calibration starts from these settings on every run; fitted values are not reused.
+STATS_MODEL_DETECT_WAKE_ACTIVITY = True
+WAKE_ACTIVITY_MIN_DURATION = 5.0  # seconds; held fixed during amplitude calibration
+WAKE_ACTIVITY_THRESHOLD = None  # RMS units; None estimates an initial threshold
 
 # %% Optional research-impact reporting
 # Set this to True only when this app copy's user has explicitly opted in.

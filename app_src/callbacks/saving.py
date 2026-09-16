@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Serverside callbacks for annotation history, undo, and saving results."""
 
+import json
 import shutil
 
 import dash
@@ -15,10 +16,15 @@ from app_src.postprocessing import (
     get_first_unscored_segment,
     get_pred_label_stats,
     get_sleep_segments,
+    get_wake_activity_stats,
     standardize,
 )
 from app_src.server import TEMP_PATH, app, cache
-from app_src.sleep_score_layers import normalize_sleep_scores
+from app_src.sleep_score_layers import (
+    normalize_sleep_scores,
+    coarse_sleep_scores,
+    saved_user_sleep_scores,
+)
 from app_src.usage_stats import record_scored_recording
 
 
@@ -109,6 +115,19 @@ def save_annotations(n_clicks):
         sleep_scores = np.nan_to_num(sleep_scores, nan=-1)
         mat["sleep_scores"] = sleep_scores
 
+        user_history = cache.get("user_sleep_scores_history")
+        mat["user_sleep_scores"] = (
+            normalize_sleep_scores(user_history[-1], len(sleep_scores))
+            if user_history
+            else saved_user_sleep_scores(mat, len(sleep_scores))
+        )
+        mat["sleep_scores_coarse"] = coarse_sleep_scores(sleep_scores)
+        mat["sleep_score_schema_version"] = 2
+        mat["num_class"] = 6
+    last_run = cache.get("wake_activity_last_run")
+    if isinstance(last_run, dict) and last_run:
+        mat["wake_activity_last_run_json"] = json.dumps(last_run)
+
     ne = mat.get("ne")
     if ne is not None and ne.size > 1:
         ne_standardized = standardize(ne)
@@ -159,6 +178,10 @@ def save_annotations(n_clicks):
         with pd.ExcelWriter(temp_excel_path) as writer:
             df.to_excel(writer, sheet_name="Sleep_bouts")
             df_stats.to_excel(writer, sheet_name="Sleep_stats")
+            if np.isin(labels, [4, 5]).any():
+                get_wake_activity_stats(labels).to_excel(
+                    writer, sheet_name="Wake_activity", index=False
+                )
             worksheet = writer.sheets["Sleep_stats"]
             worksheet.set_column(0, 0, 20)
 

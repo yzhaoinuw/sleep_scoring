@@ -18,7 +18,7 @@ from app_src.session import (
     initialize_cache,
     write_metadata,
 )
-from app_src.sleep_score_layers import normalize_sleep_scores
+from app_src.sleep_score_layers import normalize_sleep_scores, saved_user_sleep_scores
 
 
 @app.callback(
@@ -97,7 +97,7 @@ def create_visualization(ready):
         sleep_scores = get_padded_sleep_scores(mat)
         np.place(sleep_scores, sleep_scores == -1, [np.nan])
         mat["sleep_scores"] = sleep_scores
-        user_sleep_scores = sleep_scores.copy()
+        user_sleep_scores = saved_user_sleep_scores(mat, sleep_scores.size)
         sleep_scores_history.append(sleep_scores)
         user_sleep_scores_history.append(user_sleep_scores.copy())
         cache.set("sleep_scores_history", sleep_scores_history)

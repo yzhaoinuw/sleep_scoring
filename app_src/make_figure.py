@@ -30,19 +30,22 @@ DEFAULT_STAGE_COLORS = [
     "rgb(251, 124, 124)",  # NREM
     "rgb(123, 251, 123)",  # REM
     "rgb(255, 255, 0)",  # MA (yellow)
+    "#E69F00",  # Active Wake
+    "#56B4E9",  # Quiet Wake
 ]
 
 
 def get_stage_colors(config_module=config):
     """Return configured stage colors, or defaults for older config files."""
-    return getattr(config_module, "STAGE_COLORS", DEFAULT_STAGE_COLORS)
+    colors = list(getattr(config_module, "STAGE_COLORS", DEFAULT_STAGE_COLORS))
+    return colors[:6] + DEFAULT_STAGE_COLORS[len(colors) :]
 
 
 # set up color config. STAGE_COLORS is user-customizable in app_src/config.py.
 FIX_NE_Y_RANGE = config.FIX_NE_Y_RANGE
 STAGE_COLORS = get_stage_colors()
 SLEEP_SCORE_OPACITY = 1
-STAGE_NAMES = ["Wake: 1", "NREM: 2", "REM: 3", "MA: 4"]
+STAGE_NAMES = ["Wake: 1", "NREM: 2", "REM: 3", "MA: 4", "Active Wake: 5", "Quiet Wake: 6"]
 COLORSCALE = {
     3: [[0, STAGE_COLORS[0]], [0.5, STAGE_COLORS[1]], [1, STAGE_COLORS[2]]],
     4: [
@@ -52,6 +55,7 @@ COLORSCALE = {
         [1, STAGE_COLORS[3]],
     ],
 }
+COLORSCALE[6] = [[i / 5, color] for i, color in enumerate(STAGE_COLORS)]
 RANGE_QUANTILE = 0.9999
 HEATMAP_WIDTH = 2000
 RANGE_PADDING_PERCENT = 0.2
@@ -82,17 +86,15 @@ def make_figure(
     mat,
     plot_name="",
     default_n_shown_samples=2048,
-    num_class=4,
+    num_class=6,
     ne_n_shown_samples=1024,
 ):
     # Time span and frequencies
     eeg, emg, ne = mat.get("eeg"), mat.get("emg"), mat.get("ne")
     eeg_freq, ne_freq = mat.get("eeg_frequency"), get_ne_frequency(mat)
     start_time = mat.get("start_time")
-    if mat.get("num_class") is not None:
-        num_class = int(np.asarray(mat["num_class"]).item())
-    if num_class not in COLORSCALE or num_class < 4:
-        num_class = 4
+    # Manual labels 0-5 must remain available regardless of the inference backend.
+    num_class = 6
     if start_time is None:
         start_time = 0
 

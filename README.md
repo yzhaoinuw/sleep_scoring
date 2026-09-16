@@ -124,7 +124,8 @@ The spectrogram Y-axis is fixed. To lock the NE Y-axis too, set
 In annotation mode:
 
 - Click to select a thin strip, then press <kbd>1</kbd> for Wake,
-  <kbd>2</kbd> for NREM, <kbd>3</kbd> for REM, or <kbd>4</kbd> for MA.
+  <kbd>2</kbd> for NREM, <kbd>3</kbd> for REM, <kbd>4</kbd> for MA,
+  <kbd>5</kbd> for Active Wake (orange), or <kbd>6</kbd> for Quiet Wake (light blue).
 - Press <kbd>0</kbd> on a selected range to clear its score.
 - Drag a box to select a wider region. Dragging beyond the visible edge
   auto-pans the graph so you can continue the selection.
@@ -170,6 +171,55 @@ Wake, NREM, or REM examples are enough; the app chooses the closest matching
 configuration for that recording without editing `config.py`. The model fills
 the remaining time, while your labels stay unchanged.
 
+### Active / Quiet Wake Pilot
+
+Keys **5** and **6** are always available. To automatically subdivide Wake, set
+`STATS_MODEL_DETECT_WAKE_ACTIVITY = True` in `app_src/config.py`, keep
+`SLEEP_SCORING_MODEL = "stats_model"`, restart the app, and use the existing
+**Generate Predictions** button. There are no additional interface controls.
+
+Existing scored MAT files can be used directly: when a file has no separate
+annotation layer, its saved `sleep_scores` become the starting user annotations.
+All Wake seconds, including those saved coarse Wake annotations, become either
+Active or Quiet; NREM, REM, and MA annotations are preserved.
+
+The detector finds sustained EMG activity above a threshold, joins interruptions
+of up to 0.5 seconds within Wake, and labels episodes lasting at least **5 seconds**
+as Active Wake. Other Wake is Quiet Wake under this rule, including brief movements.
+This is an EMG-based pilot definition, not a verified movement type or intensity.
+Adjust `WAKE_ACTIVITY_MIN_DURATION` in `config.py` to change the duration criterion.
+
+Leave `WAKE_ACTIVITY_THRESHOLD = None` for an estimate, or set an RMS amplitude.
+Manual Active/Quiet examples tune this threshold on the next prediction; the
+minimum duration stays fixed. Wake, Active Wake, and Quiet Wake examples all count
+as Wake for the first (sleep-scoring) calibration step. Only explicit Active/Quiet
+examples guide the second (EMG) step. Generic Wake is never a Quiet training example.
+Your explicit fine labels are retained, even for episodes shorter than the minimum.
+
+Turning detection off affects future model runs; manual Active/Quiet annotations
+remain available. With the same signals, annotations, and configuration, each
+calibration and prediction stage returns the same result on repeat runs. Both
+start from their configured defaults each time, without reusing fitted thresholds
+or treating previous automatic predictions as new annotations. Saving and reopening
+files from this version preserves that separation, including deliberately cleared
+annotations. New manual corrections can change the next prediction.
+
+For this pilot, EMG uses `eeg_frequency` and is assumed to be a raw waveform. A copy
+is linearly detrended, filtered with a zero-phase fourth-order Butterworth bandpass
+from 20 Hz to the lower of 200 Hz or 45% of the sampling rate, and converted to a
+0.5-second moving RMS envelope sampled at 20 Hz. Raw sampling must exceed 50 Hz.
+The automatic threshold starts at the median plus three robust standard deviations
+(1.4826 times the median absolute deviation) of manual Quiet examples, or the lowest
+quartile of Wake RMS values when none are supplied. Calibration searches amplitude
+thresholds and minimizes class-balanced errors before manual corrections. One-second
+labels use majority coverage of detected episodes (ties count as Active).
+
+Missing samples and flatlines lasting at least one second are excluded from signal
+processing. If they invalidate a Wake interval, detection reports an error and leaves
+the current labels unchanged. The pilot does not automatically reject every movement
+or electrical artifact; users should review suspect episodes against EMG and video
+when available. Five seconds is a starting setting, not a universal biological cutoff.
+
 ### Save Sleep Scores
 
 Click **Save Annotations** at the lower left of the graph, then choose where to
@@ -178,6 +228,20 @@ write the `.mat` file.
 If anything is still unscored, the app reports the first gap as
 `[start, end] (duration s)`. Once the recording is fully scored, it also offers
 to export sleep bouts and summary statistics to Excel.
+
+This branch saves label values `4`/`5` for Active/Quiet Wake in `sleep_scores`, plus
+`sleep_scores_coarse` with both collapsed to Wake (`0`). Consumers that only support
+the original stages should use the coarse field. `user_sleep_scores` preserves sparse
+manual annotations, so reopening a newly saved file does not turn predictions into
+training examples. Older files without that field retain the previous behavior of
+treating their saved scores as annotations.
+
+When subtypes are present, **Sleep_bouts** retains them and **Wake_activity** reports
+their durations and counts. **Sleep_stats** merges the Wake family before applying
+the existing short-Wake-to-MA summary rule; subtype transitions do not add Wake bouts.
+The MAT field `wake_activity_last_run_json` records the last automatic detector's
+settings and episodes, before subsequent manual edits or undo; it is provenance,
+not a replacement for the current saved labels.
 
 ### Use Multiple Windows And Crash Recovery
 

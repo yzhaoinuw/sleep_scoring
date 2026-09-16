@@ -13,6 +13,7 @@ from scipy import stats
 from scipy.io import loadmat
 
 from app_src.mat_utils import get_ne_frequency
+from app_src.sleep_score_layers import coarse_sleep_scores
 
 
 def standardize(x):
@@ -279,6 +280,12 @@ def postprocess_sleep_scores(mat, return_table=False):
 
 
 def get_pred_label_stats(df_sleep_segments: pd.DataFrame):
+    if df_sleep_segments["sleep_scores"].isin([4, 5]).any():
+        # Merge the Wake family before applying the existing short-Wake/MA rule.
+        # Subtype changes do not count as extra Wake bouts or sleep transitions.
+        df_sleep_segments = df_sleep_segments.copy()
+        df_sleep_segments["sleep_scores"] = coarse_sleep_scores(df_sleep_segments["sleep_scores"])
+        df_sleep_segments = merge_consecutive_sleep_scores(df_sleep_segments)
     MA_indices = np.flatnonzero(
         (df_sleep_segments["sleep_scores"] == 0) & (df_sleep_segments["duration"] < 15)
     )
@@ -374,6 +381,25 @@ def get_pred_label_stats(df_sleep_segments: pd.DataFrame):
         "MA Transition Count",
     ]
     return df_stats
+
+
+def get_wake_activity_stats(scores):
+    """Subtype totals before the legacy short-Wake-to-MA summary rule."""
+    labels = np.asarray(scores).reshape(-1)
+    wake_count = int(np.isin(labels, [0, 4, 5]).sum())
+    bouts = get_sleep_segments(labels)
+    rows = []
+    for label, name in [(0, "Wake (unspecified)"), (4, "Active Wake"), (5, "Quiet Wake")]:
+        seconds = int((labels == label).sum())
+        rows.append(
+            {
+                "Label": name,
+                "Time (s)": seconds,
+                "Wake time (%)": 100 * seconds / wake_count if wake_count else 0,
+                "Count": int((bouts["sleep_scores"] == label).sum()),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 # %%
