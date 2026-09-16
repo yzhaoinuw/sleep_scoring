@@ -11,10 +11,17 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   separate repeatable calibrations are implemented, pending user pilot testing.
   Commit/push approved for this experimental branch only; detection is currently
   enabled in `config.py`. Existing coarse-scored MAT files seed annotations; collect
-  reviewed Active/Quiet MAT files for the subsequent NE analysis pipeline.
-  Compare duration/threshold choices with real recordings and available videos;
-  five seconds is a pilot default, not a validated behavioral boundary.
+  reviewed Active/Quiet MAT files for the subsequent NE analysis pipeline. Automatic
+  activity now uses valid-NREM RMS: its 75th percentile plus two MAD-derived robust
+  SDs, with a one-second minimum bout. Compare that multiplier and duration with
+  real recordings and available videos; neither is a validated behavioral boundary.
+  A numeric `WAKE_ACTIVITY_THRESHOLD` remains the explicit fallback when no valid
+  NREM reference is available.
   Keep the experiment separate from the official branches.
+- Soft-lock the present 20 Hz intermediate RMS envelope, 0.5-second RMS/gap windows,
+  and one-second final score labels for this pilot. After reviewed EMG/video examples
+  are available, compare its one-second output with a direct one-RMS-value-per-second
+  alternative before exposing envelope rate as a configurable experimental parameter.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.

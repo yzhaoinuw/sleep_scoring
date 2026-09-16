@@ -60,10 +60,13 @@ STATS_MODEL_REM_THRESHOLD_COMPARISON_PERCENTILE = 5.0  # within-bout low-NE perc
 # %% Optional EMG Wake subtyping (stats model only; manual keys 5/6 always work)
 # Enable here, restart the app, then use the existing Generate Predictions button.
 # Every Wake second (including saved/manual coarse Wake) is split into Active/Quiet.
-# Calibration starts from these settings on every run; fitted values are not reused.
+# Auto mode anchors the threshold to valid NREM EMG, not the Wake distribution.
+# Fitted values are not reused between runs.
 STATS_MODEL_DETECT_WAKE_ACTIVITY = True
-WAKE_ACTIVITY_MIN_DURATION = 5.0  # seconds; held fixed during amplitude calibration
-WAKE_ACTIVITY_THRESHOLD = None  # RMS units; None estimates an initial threshold
+WAKE_ACTIVITY_MIN_DURATION = 1.0  # seconds; held fixed during amplitude calibration
+WAKE_ACTIVITY_THRESHOLD = None  # RMS units; None uses the NREM baseline below
+WAKE_ACTIVITY_NREM_BASELINE_PERCENTILE = 75.0
+WAKE_ACTIVITY_NREM_DEVIATION_MULTIPLIER = 2.0  # MAD-derived robust SDs above that percentile
 
 # %% Optional research-impact reporting
 # Set this to True only when this app copy's user has explicitly opted in.

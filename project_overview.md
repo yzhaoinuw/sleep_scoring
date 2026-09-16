@@ -128,9 +128,12 @@ are preserved. A selected range can be cleared back to unscored with keyboard
 The experimental [`app_src/wake_activity.py`](app_src/wake_activity.py) module
 optionally subdivides the statistical model's Wake output using raw EMG.
 Active/Quiet annotations supply Wake targets to coarse calibration and subtype
-targets to a separate EMG threshold calibration. Manual keys 5/6 stay available
-when detection is disabled. Settings live only in `config.py`; the existing
-prediction callback runs the optional second stage without adding UI controls.
+targets to a separate EMG threshold calibration. Automatic detection uses a
+valid-NREM RMS reference (75th percentile plus two MAD-derived robust standard
+deviations) and assigns its final labels per one-second score, after a 20 Hz
+intermediate RMS envelope. Manual keys 5/6 stay available when detection is disabled.
+Settings live only in `config.py`; the existing prediction callback runs the optional
+second stage without adding UI controls.
 Saved files retain the sparse manual layer so automatic labels do not become
 calibration examples on reload. Missing/empty annotation fields fall back to saved
 scores; explicit all-unscored layers remain empty. Each stage starts from its

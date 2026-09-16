@@ -12,6 +12,7 @@ from scipy.signal import butter, detrend, sosfiltfilt
 
 from app_src.sleep_score_layers import (
     ACTIVE_WAKE,
+    NREM,
     QUIET_WAKE,
     WAKE,
     coarse_sleep_scores,
@@ -23,10 +24,12 @@ from app_src.sleep_score_layers import (
 @dataclass(frozen=True)
 class WakeActivityConfig:
     threshold: float | None = None
-    min_duration: float = 5.0
+    min_duration: float = 1.0
     gap_tolerance: float = 0.5
     rms_window: float = 0.5
     envelope_rate: int = 20
+    nrem_baseline_percentile: float = 75.0
+    nrem_deviation_multiplier: float = 2.0
 
     def __post_init__(self):
         if self.threshold is not None and (not np.isfinite(self.threshold) or self.threshold < 0):
@@ -39,6 +42,13 @@ class WakeActivityConfig:
             raise ValueError("EMG smoothing window must be greater than zero.")
         if self.envelope_rate != 20:
             raise ValueError("The pilot uses a 20 Hz EMG envelope.")
+        if (
+            not np.isfinite(self.nrem_baseline_percentile)
+            or not 0 <= self.nrem_baseline_percentile <= 100
+        ):
+            raise ValueError("NREM baseline percentile must be between 0 and 100.")
+        if not np.isfinite(self.nrem_deviation_multiplier) or self.nrem_deviation_multiplier < 0:
+            raise ValueError("NREM deviation multiplier must be non-negative.")
 
 
 @dataclass
@@ -58,11 +68,21 @@ def runs(mask):
 
 
 def emg_envelope(emg, frequency, config=None):
-    """Linear detrend, zero-phase 20-min(200, .45*fs) Hz filter, moving RMS.
+    """Return the centered moving-RMS EMG envelope at 20 Hz.
 
-    Filter finite stretches independently. Flatlines of at least one second and
-    smoothing windows touching invalid samples remain invalid, not Quiet Wake.
-    Return RMS at 20 Hz bin centres, without changing the original EMG.
+    A value centered at ``t`` is ``sqrt(mean(filtered_emg**2))`` over the
+    approximately 0.5-second window from ``t - 0.25`` to ``t + 0.25``. Squaring
+    prevents the positive and negative raw waveform from cancelling, and the square
+    root preserves EMG units. The zero-phase filter and centered window avoid a
+    directional delay, but smooth an activity boundary by roughly 0.25 seconds on
+    either side.
+
+    Envelope centers are 50 ms apart, so adjacent 0.5-second RMS windows overlap by
+    about 0.45 seconds. This is a deliberately smooth intermediate measurement for
+    the 0.5-second gap and one-second occupancy rules, not a 50 ms behavior label or
+    a biologically validated temporal resolution. Filter finite stretches
+    independently. Flatlines of at least one second and RMS windows touching invalid
+    samples remain invalid, not Quiet Wake. The original EMG is not changed.
     """
     config = config or WakeActivityConfig()
     fs = float(frequency)
@@ -95,7 +115,13 @@ def emg_envelope(emg, frequency, config=None):
 
 
 def active_mask(envelope, wake_mask, threshold, config):
-    """Bridge short dips within Wake, then retain sustained active episodes."""
+    """Threshold the 20 Hz envelope, bridge short Wake dips, and retain bouts.
+
+    Only valid Wake envelope bins may be active. Interior dips up to
+    ``gap_tolerance`` are joined, then bouts shorter than ``min_duration`` are
+    removed. Durations are measured on the intermediate envelope, before the result
+    is collapsed to the app's one-second labels by :func:`second_activity`.
+    """
     eligible = np.repeat(wake_mask, config.envelope_rate)[: len(envelope)]
     eligible &= np.isfinite(envelope)
     active = (envelope > threshold) & eligible
@@ -117,19 +143,47 @@ def active_mask(envelope, wake_mask, threshold, config):
 
 
 def second_activity(active, length, rate=20):
-    """Map subsecond episodes to the app's one-second labels by majority time."""
+    """Map intermediate activity to one-second labels by time occupancy.
+
+    A second is Active when at least half of its ``rate`` bins are active; at the
+    default 20 Hz this is ten of twenty 50 ms envelope bins. This preserves one saved
+    score per second while avoiding dependence on the exact second-boundary placement
+    of a sustained activity bout.
+    """
     bins = np.arange(len(active)) // rate
     counts = np.bincount(bins, minlength=length)[:length]
     active_counts = np.bincount(bins, weights=active, minlength=length)[:length]
     return (counts > 0) & (active_counts >= 0.5 * counts)
 
 
+def nrem_baseline_threshold(envelope, nrem_mask, config):
+    """Return a conservative threshold: NREM percentile + multiplier * robust SD.
+
+    The automatic reference comes from finite NREM envelope values, using the
+    configured percentile plus ``nrem_deviation_multiplier * 1.4826 * MAD`` around
+    the NREM median. This prevents the Wake distribution, which may have been
+    influenced by EMG during scoring, from defining its own activity baseline.
+    """
+    nrem_bins = np.repeat(nrem_mask, config.envelope_rate)[: len(envelope)]
+    reference = envelope[nrem_bins & np.isfinite(envelope)]
+    if reference.size == 0:
+        raise ValueError(
+            "Wake activity detection requires valid NREM EMG for its automatic baseline. "
+            "Set WAKE_ACTIVITY_THRESHOLD to use an explicit RMS threshold instead."
+        )
+    median = float(np.median(reference))
+    robust_sd = float(1.4826 * np.median(np.abs(reference - median)))
+    percentile = float(np.percentile(reference, config.nrem_baseline_percentile))
+    threshold = percentile + config.nrem_deviation_multiplier * robust_sd
+    return threshold, percentile, robust_sd, int(reference.size)
+
+
 def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=None):
-    """Fit only explicit subtype examples, then preserve them in the output.
+    """Anchor automatic activity to NREM EMG, then preserve explicit subtypes.
 
     Generic Wake is a coarse label, never an example of Quiet. Candidate errors
     are measured before manual overrides; class-balanced error gives each supplied
-    subtype equal weight. Ties keep the threshold nearest its starting value.
+    subtype equal weight. Ties keep the threshold nearest its NREM-derived value.
     """
     config = config or WakeActivityConfig()
     coarse = coarse_sleep_scores(sleep_scores)
@@ -149,14 +203,16 @@ def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=
     wake_values = envelope[np.repeat(wake, config.envelope_rate)[: envelope.size]]
     labelled = wake & np.isin(users, [ACTIVE_WAKE, QUIET_WAKE])
     if config.threshold is None:
-        quiet_bins = np.repeat(wake & (users == QUIET_WAKE), config.envelope_rate)[: envelope.size]
-        reference = envelope[quiet_bins]
-        if reference.size == 0:
-            reference = wake_values[wake_values <= np.percentile(wake_values, 25)]
-        median = np.median(reference)
-        initial = float(median + 3 * 1.4826 * np.median(np.abs(reference - median)))
+        initial, baseline_percentile, baseline_robust_sd, baseline_samples = (
+            nrem_baseline_threshold(envelope, coarse == NREM, config)
+        )
+        baseline_source = "NREM"
     else:
         initial = float(config.threshold)
+        baseline_percentile = None
+        baseline_robust_sd = None
+        baseline_samples = 0
+        baseline_source = "configured_threshold"
 
     def classify(threshold):
         activity = active_mask(envelope, wake, threshold, config)
@@ -187,10 +243,15 @@ def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=
     result[labelled] = users[labelled]
     bouts = [(s / config.envelope_rate, e / config.envelope_rate) for s, e in runs(activity)]
     metadata = {
-        "schema_version": 1,
-        "algorithm": "emg_rms_sustained_v1",
+        "schema_version": 2,
+        "algorithm": "emg_rms_nrem_baseline_sustained_v2",
         "config": asdict(config),
         "threshold_used": threshold,
+        "threshold_initial": initial,
+        "threshold_baseline_source": baseline_source,
+        "nrem_baseline_percentile_rms": baseline_percentile,
+        "nrem_baseline_robust_sd_rms": baseline_robust_sd,
+        "nrem_baseline_samples": baseline_samples,
         "calibrated_seconds": int(labelled.sum()),
         "sampling_rate": float(frequency),
         "bandpass_hz": [20, min(200, 0.45 * float(frequency))],

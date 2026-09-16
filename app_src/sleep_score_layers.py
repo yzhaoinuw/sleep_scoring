@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 WAKE = 0
+NREM = 1
 ACTIVE_WAKE = 4
 QUIET_WAKE = 5
 WAKE_STAGES = (WAKE, ACTIVE_WAKE, QUIET_WAKE)

@@ -17,6 +17,33 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-09-15
 
+### NREM-anchored Active/Quiet Wake threshold (Codex GPT-5; effort/tokens not reported)
+
+- Replaced the circular Wake-distribution reference with a valid-NREM EMG reference:
+  the automatic initial cutoff is the NREM RMS 75th percentile plus two MAD-derived
+  robust standard deviations. A missing automatic baseline now fails transparently;
+  a configured numeric threshold remains the explicit fallback.
+- Adopted a one-second automatic Active Wake minimum at the user's request. Manual
+  Active/Quiet labels remain authoritative and can refine the NREM-derived initial
+  cutoff without becoming future-run annotations.
+- Wake-activity metadata now records the initial cutoff, NREM baseline statistics,
+  and versioned algorithm provenance. The NE-analysis methods document the upstream
+  scoring contract and its pilot-validation boundary.
+- Soft-locked the current 20 Hz intermediate RMS envelope, 0.5-second RMS/gap
+  settings, and one-second labels. The detector docstrings, rather than the README,
+  hold the detailed signal-processing explanation; compare future reviewed labels
+  with a direct one-RMS-value-per-second alternative before making envelope rate a
+  user-facing experimental parameter.
+- Verification:
+  - Focused detector/persistence/callback pytest run: 58 passed, one existing
+    Flask-Caching deprecation warning.
+  - Full pytest run: 254 passed, one existing Flask-Caching deprecation warning.
+  - Pinned Black pre-commit hook passed for the changed Python files using
+    repository-local caches; `python run_desktop_app.py --smoke` passed.
+  - `git diff --check` passed.
+  - After the documentation relocation, focused wake-activity/pipeline pytest:
+    25 passed, one existing Flask-Caching deprecation warning.
+
 ### Experimental branch delivery (Codex GPT-6; effort/tokens not reported)
 
 - User authorized committing and pushing `active-quiet-wake` only; keep the

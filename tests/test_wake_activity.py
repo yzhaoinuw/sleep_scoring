@@ -7,13 +7,14 @@ from app_src.wake_activity import (
     WakeActivityConfig,
     active_mask,
     emg_envelope,
+    nrem_baseline_threshold,
     second_activity,
     subdivide_wake,
 )
 
 
 def test_duration_boundary_and_interior_gap():
-    config = WakeActivityConfig(threshold=2)
+    config = WakeActivityConfig(threshold=2, min_duration=5)
     envelope = np.r_[np.ones(20), np.full(100, 5), np.ones(20)]
     active = active_mask(envelope, np.ones(7, bool), 2, config)
     assert active.sum() == 100  # Exactly five seconds qualifies.
@@ -65,9 +66,29 @@ def test_fine_examples_calibrate_before_override_and_force_coarse_wake():
     np.testing.assert_array_equal(result.sleep_scores, [5] * 5 + [4] * 5)
 
 
+def test_automatic_threshold_uses_upper_nrem_rms_distribution():
+    config = WakeActivityConfig(nrem_baseline_percentile=75, nrem_deviation_multiplier=2)
+    envelope = np.r_[np.full(20, 1.0), np.full(20, 2.0), np.full(20, 3.0), np.full(20, 4.0)]
+    threshold, percentile, robust_sd, samples = nrem_baseline_threshold(
+        envelope, np.ones(4, bool), config
+    )
+    assert percentile == pytest.approx(3.25)
+    assert robust_sd == pytest.approx(1.4826)
+    assert threshold == pytest.approx(3.25 + 2 * 1.4826)
+    assert samples == 80
+
+
+def test_automatic_threshold_requires_valid_nrem_emg():
+    with patch("app_src.wake_activity.emg_envelope", return_value=np.full(40, 2.0)):
+        with pytest.raises(ValueError, match="valid NREM EMG"):
+            subdivide_wake([], 512, [0, 0])
+
+
 def test_manual_subtype_shorter_than_minimum_remains_authoritative():
     with patch("app_src.wake_activity.emg_envelope", return_value=np.ones(40)):
-        result = subdivide_wake([], 512, [0, 0], [4, None])
+        result = subdivide_wake(
+            [], 512, [0, 0], [4, 5], WakeActivityConfig(threshold=2, min_duration=2)
+        )
     np.testing.assert_array_equal(result.sleep_scores, [4, 5])
     assert result.active_bouts == []
 
@@ -117,7 +138,14 @@ def test_noninteger_sampling_rate_keeps_timing():
 
 @pytest.mark.parametrize(
     "kwargs",
-    [{"threshold": -1}, {"threshold": np.inf}, {"min_duration": 0}, {"min_duration": np.nan}],
+    [
+        {"threshold": -1},
+        {"threshold": np.inf},
+        {"min_duration": 0},
+        {"min_duration": np.nan},
+        {"nrem_baseline_percentile": 101},
+        {"nrem_deviation_multiplier": -1},
+    ],
 )
 def test_invalid_config_is_rejected(kwargs):
     with pytest.raises(ValueError):

@@ -184,17 +184,21 @@ All Wake seconds, including those saved coarse Wake annotations, become either
 Active or Quiet; NREM, REM, and MA annotations are preserved.
 
 The detector finds sustained EMG activity above a threshold, joins interruptions
-of up to 0.5 seconds within Wake, and labels episodes lasting at least **5 seconds**
+of up to 0.5 seconds within Wake, and labels episodes lasting at least **1 second**
 as Active Wake. Other Wake is Quiet Wake under this rule, including brief movements.
 This is an EMG-based pilot definition, not a verified movement type or intensity.
 Adjust `WAKE_ACTIVITY_MIN_DURATION` in `config.py` to change the duration criterion.
 
-Leave `WAKE_ACTIVITY_THRESHOLD = None` for an estimate, or set an RMS amplitude.
-Manual Active/Quiet examples tune this threshold on the next prediction; the
-minimum duration stays fixed. Wake, Active Wake, and Quiet Wake examples all count
-as Wake for the first (sleep-scoring) calibration step. Only explicit Active/Quiet
-examples guide the second (EMG) step. Generic Wake is never a Quiet training example.
-Your explicit fine labels are retained, even for episodes shorter than the minimum.
+Leave `WAKE_ACTIVITY_THRESHOLD = None` for automatic mode. It starts from a valid
+NREM EMG reference: the 75th percentile of NREM RMS plus two MAD-derived robust
+standard deviations. This avoids using the Wake distribution to define its own
+baseline. Set a numeric RMS amplitude if a recording has no usable NREM reference
+or a deliberate initial value is wanted. Manual Active/Quiet examples can refine the
+initial cutoff on the next prediction; the minimum duration stays fixed. Wake,
+Active Wake, and Quiet Wake examples all count as Wake for the first (sleep-scoring)
+calibration step. Only explicit Active/Quiet examples guide the second (EMG) step.
+Generic Wake is never a Quiet training example. Your explicit fine labels are
+retained, even for episodes shorter than the minimum.
 
 Turning detection off affects future model runs; manual Active/Quiet annotations
 remain available. With the same signals, annotations, and configuration, each
@@ -204,21 +208,17 @@ or treating previous automatic predictions as new annotations. Saving and reopen
 files from this version preserves that separation, including deliberately cleared
 annotations. New manual corrections can change the next prediction.
 
-For this pilot, EMG uses `eeg_frequency` and is assumed to be a raw waveform. A copy
-is linearly detrended, filtered with a zero-phase fourth-order Butterworth bandpass
-from 20 Hz to the lower of 200 Hz or 45% of the sampling rate, and converted to a
-0.5-second moving RMS envelope sampled at 20 Hz. Raw sampling must exceed 50 Hz.
-The automatic threshold starts at the median plus three robust standard deviations
-(1.4826 times the median absolute deviation) of manual Quiet examples, or the lowest
-quartile of Wake RMS values when none are supplied. Calibration searches amplitude
-thresholds and minimizes class-balanced errors before manual corrections. One-second
-labels use majority coverage of detected episodes (ties count as Active).
+For implementation details—including the centered RMS envelope, the NREM baseline,
+and the conversion back to one-second labels—see the docstrings in
+[`app_src/wake_activity.py`](app_src/wake_activity.py), especially
+`emg_envelope`, `nrem_baseline_threshold`, `active_mask`, and `second_activity`.
 
 Missing samples and flatlines lasting at least one second are excluded from signal
 processing. If they invalidate a Wake interval, detection reports an error and leaves
 the current labels unchanged. The pilot does not automatically reject every movement
 or electrical artifact; users should review suspect episodes against EMG and video
-when available. Five seconds is a starting setting, not a universal biological cutoff.
+when available. One second and the NREM multiplier are starting settings, not universal
+biological cutoffs.
 
 ### Save Sleep Scores
 

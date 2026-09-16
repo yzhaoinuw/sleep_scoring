@@ -112,7 +112,13 @@ def generate_prediction(prediction_request):
         try:
             activity_config = WakeActivityConfig(
                 threshold=getattr(config, "WAKE_ACTIVITY_THRESHOLD", None),
-                min_duration=float(getattr(config, "WAKE_ACTIVITY_MIN_DURATION", 5.0)),
+                min_duration=float(getattr(config, "WAKE_ACTIVITY_MIN_DURATION", 1.0)),
+                nrem_baseline_percentile=float(
+                    getattr(config, "WAKE_ACTIVITY_NREM_BASELINE_PERCENTILE", 75.0)
+                ),
+                nrem_deviation_multiplier=float(
+                    getattr(config, "WAKE_ACTIVITY_NREM_DEVIATION_MULTIPLIER", 2.0)
+                ),
             )
             activity_result = subdivide_wake(
                 mat.get("emg"),
