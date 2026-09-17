@@ -11,17 +11,17 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   separate repeatable calibrations are implemented, pending user pilot testing.
   Commit/push approved for this experimental branch only; detection is currently
   enabled in `config.py`. Existing coarse-scored MAT files seed annotations; collect
-  reviewed Active/Quiet MAT files for the subsequent NE analysis pipeline. Automatic
-  activity now uses valid-NREM RMS: its 75th percentile plus two MAD-derived robust
-  SDs, with a one-second minimum bout. Compare that multiplier and duration with
-  real recordings and available videos; neither is a validated behavioral boundary.
-  A numeric `WAKE_ACTIVITY_THRESHOLD` remains the explicit fallback when no valid
-  NREM reference is available.
+  reviewed Active/Quiet MAT files for the subsequent NE analysis pipeline. Default
+  automatic activity ranks direct one-second filtered-EMG RMS within each recording's
+  Wake seconds and targets 80% Active Wake / 20% Quiet Wake. Explicit manual subtypes
+  remain authoritative; the existing confirmation reports the achieved ratio and warns
+  only if those labels constrain the target.
   Keep the experiment separate from the official branches.
-- Soft-lock the present 20 Hz intermediate RMS envelope, 0.5-second RMS/gap windows,
-  and one-second final score labels for this pilot. After reviewed EMG/video examples
-  are available, compare its one-second output with a direct one-RMS-value-per-second
-  alternative before exposing envelope rate as a configurable experimental parameter.
+- Retain `nrem_envelope` as a parked, NREM-anchored 20 Hz comparison method with its
+  existing metadata. Compare it against the new direct one-second RMS rank method on
+  reviewed EMG/video recordings; do not remove it or claim that either rule is a
+  validated behavioral boundary. A raw-EMG mean remains unsuitable because its signs
+  cancel.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.

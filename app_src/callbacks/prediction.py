@@ -111,6 +111,8 @@ def generate_prediction(prediction_request):
     ):
         try:
             activity_config = WakeActivityConfig(
+                method=getattr(config, "WAKE_ACTIVITY_METHOD", "wake_rank_per_second"),
+                active_fraction=float(getattr(config, "WAKE_ACTIVITY_ACTIVE_FRACTION", 0.8)),
                 threshold=getattr(config, "WAKE_ACTIVITY_THRESHOLD", None),
                 min_duration=float(getattr(config, "WAKE_ACTIVITY_MIN_DURATION", 1.0)),
                 nrem_baseline_percentile=float(
@@ -148,10 +150,24 @@ def generate_prediction(prediction_request):
         message = "The prediction will be displayed shortly."
         message_timeout_ms = 5 * 1000
     if activity_result is not None:
-        message += (
-            f" EMG threshold {activity_result.threshold:.6g}; "
-            f"min activity {activity_config.min_duration:g} s; "
-            f"{activity_result.calibrated_seconds} fine-labelled second(s)."
-        )
+        if activity_result.metadata.get("method") == "wake_rank_per_second":
+            active_seconds = activity_result.metadata["active_seconds"]
+            wake_seconds = activity_result.metadata["wake_seconds"]
+            achieved = activity_result.metadata["achieved_active_fraction"]
+            target = activity_result.metadata["target_active_fraction"]
+            constrained = activity_result.metadata["target_constrained_by_manual_labels"]
+            qualifier = "; manual labels preserved" if constrained else ""
+            warning = " Warning:" if constrained else ""
+            message += (
+                f"{warning} Active Wake {achieved:.1%} ({active_seconds}/{wake_seconds} Wake s; "
+                f"target {target:.0%}{qualifier}). "
+                f"{activity_result.calibrated_seconds} fine-labelled second(s)."
+            )
+        else:
+            message += (
+                f" EMG threshold {activity_result.threshold:.6g}; "
+                f"min activity {activity_config.min_duration:g} s; "
+                f"{activity_result.calibrated_seconds} fine-labelled second(s)."
+            )
         message_timeout_ms = 60_000
     return message, sleep_scores.tolist(), message_timeout_ms, 0, 1

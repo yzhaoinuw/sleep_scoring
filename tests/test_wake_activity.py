@@ -7,6 +7,7 @@ from app_src.wake_activity import (
     WakeActivityConfig,
     active_mask,
     emg_envelope,
+    emg_second_rms,
     nrem_baseline_threshold,
     second_activity,
     subdivide_wake,
@@ -48,7 +49,9 @@ def test_generic_wake_is_not_a_quiet_example_and_coarse_labels_are_preserved():
     users = [0] + [None] * 8
     envelope = np.full(180, 4.0)
     with patch("app_src.wake_activity.emg_envelope", return_value=envelope):
-        result = subdivide_wake([], 512, coarse, users, WakeActivityConfig(threshold=2))
+        result = subdivide_wake(
+            [], 512, coarse, users, WakeActivityConfig(method="nrem_envelope", threshold=2)
+        )
     np.testing.assert_array_equal(result.sleep_scores, [4] * 6 + [1, 2, 3])
     assert result.calibrated_seconds == 0
     np.testing.assert_array_equal(coarse, [0] * 6 + [1, 2, 3])
@@ -59,7 +62,11 @@ def test_fine_examples_calibrate_before_override_and_force_coarse_wake():
     envelope = np.r_[np.ones(100), np.full(100, 6.0)]
     with patch("app_src.wake_activity.emg_envelope", return_value=envelope):
         result = subdivide_wake(
-            [], 512, [1] + [0] * 4 + [2] + [0] * 4, users, WakeActivityConfig(threshold=100)
+            [],
+            512,
+            [1] + [0] * 4 + [2] + [0] * 4,
+            users,
+            WakeActivityConfig(method="nrem_envelope", threshold=100),
         )
     assert 1 <= result.threshold < 6  # Cannot pass by merely overlaying the examples.
     assert result.calibrated_seconds == 2
@@ -81,13 +88,17 @@ def test_automatic_threshold_uses_upper_nrem_rms_distribution():
 def test_automatic_threshold_requires_valid_nrem_emg():
     with patch("app_src.wake_activity.emg_envelope", return_value=np.full(40, 2.0)):
         with pytest.raises(ValueError, match="valid NREM EMG"):
-            subdivide_wake([], 512, [0, 0])
+            subdivide_wake([], 512, [0, 0], config=WakeActivityConfig(method="nrem_envelope"))
 
 
 def test_manual_subtype_shorter_than_minimum_remains_authoritative():
     with patch("app_src.wake_activity.emg_envelope", return_value=np.ones(40)):
         result = subdivide_wake(
-            [], 512, [0, 0], [4, 5], WakeActivityConfig(threshold=2, min_duration=2)
+            [],
+            512,
+            [0, 0],
+            [4, 5],
+            WakeActivityConfig(method="nrem_envelope", threshold=2, min_duration=2),
         )
     np.testing.assert_array_equal(result.sleep_scores, [4, 5])
     assert result.active_bouts == []
@@ -96,14 +107,16 @@ def test_manual_subtype_shorter_than_minimum_remains_authoritative():
 def test_missing_emg_fails_in_wake_instead_of_becoming_quiet():
     with patch("app_src.wake_activity.emg_envelope", return_value=np.r_[np.ones(20), np.nan]):
         with pytest.raises(ValueError, match="invalid EMG"):
-            subdivide_wake([], 512, [0, 0])
+            subdivide_wake([], 512, [0, 0], config=WakeActivityConfig(method="nrem_envelope"))
 
 
 def test_invalid_emg_during_sleep_does_not_block_valid_wake():
     with patch(
         "app_src.wake_activity.emg_envelope", return_value=np.r_[np.ones(120), [np.nan] * 20]
     ):
-        result = subdivide_wake([], 512, [0] * 6 + [1], config=WakeActivityConfig(threshold=2))
+        result = subdivide_wake(
+            [], 512, [0] * 6 + [1], config=WakeActivityConfig(method="nrem_envelope", threshold=2)
+        )
     np.testing.assert_array_equal(result.sleep_scores, [5] * 6 + [1])
 
 
@@ -119,6 +132,17 @@ def test_rms_removes_offset_and_linear_drift_without_mutating_emg():
     np.testing.assert_array_equal(raw, original)
 
 
+def test_per_second_rms_removes_offset_and_linear_drift_without_mutating_emg():
+    fs = 512
+    times = np.arange(fs * 10) / fs
+    clean = 2 * np.sin(2 * np.pi * 80 * times)
+    raw = clean + 20 + 0.2 * times
+    original = raw.copy()
+    rms = emg_second_rms(raw, fs, 10)
+    np.testing.assert_allclose(rms[1:-1], np.sqrt(2), atol=0.015)
+    np.testing.assert_array_equal(raw, original)
+
+
 def test_flatline_and_low_sampling_rate_are_not_silent_quiet_predictions():
     with pytest.raises(ValueError, match="flatlined"):
         subdivide_wake(np.zeros(512 * 6), 512, [0] * 6)
@@ -130,10 +154,32 @@ def test_noninteger_sampling_rate_keeps_timing():
     fs = 244.140625
     times = np.arange(round(fs * 8)) / fs
     result = subdivide_wake(
-        np.sin(2 * np.pi * 60 * times), fs, [0] * 8, config=WakeActivityConfig(threshold=0.1)
+        np.sin(2 * np.pi * 60 * times),
+        fs,
+        [0] * 8,
+        config=WakeActivityConfig(method="nrem_envelope", threshold=0.1),
     )
     assert result.sleep_scores.shape == (8,)
     assert np.all(result.sleep_scores == 4)
+
+
+def test_per_second_rms_rank_targets_eighty_percent_active():
+    values = np.arange(1.0, 11.0)
+    with patch("app_src.wake_activity.emg_second_rms", return_value=values):
+        result = subdivide_wake([], 512, [0] * 10)
+    np.testing.assert_array_equal(result.sleep_scores, [5, 5] + [4] * 8)
+    assert result.metadata["active_seconds"] == 8
+    assert result.metadata["achieved_active_fraction"] == pytest.approx(0.8)
+    assert not result.metadata["target_constrained_by_manual_labels"]
+
+
+def test_per_second_rms_rank_preserves_manual_labels_and_reports_constraint():
+    values = np.arange(1.0, 6.0)
+    with patch("app_src.wake_activity.emg_second_rms", return_value=values):
+        result = subdivide_wake([], 512, [0] * 5, [5, 5, None, None, None])
+    np.testing.assert_array_equal(result.sleep_scores, [5, 5, 4, 4, 4])
+    assert result.metadata["active_seconds"] == 3
+    assert result.metadata["target_constrained_by_manual_labels"]
 
 
 @pytest.mark.parametrize(
@@ -145,6 +191,8 @@ def test_noninteger_sampling_rate_keeps_timing():
         {"min_duration": np.nan},
         {"nrem_baseline_percentile": 101},
         {"nrem_deviation_multiplier": -1},
+        {"method": "unknown"},
+        {"active_fraction": 1},
     ],
 )
 def test_invalid_config_is_rejected(kwargs):

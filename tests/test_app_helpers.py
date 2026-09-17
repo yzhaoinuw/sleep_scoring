@@ -389,13 +389,14 @@ class TestAdaptivePrediction:
                 return_value=np.array([1] + [0] * 4 + [2] + [0] * 6),
             ),
             patch(
-                "app_src.wake_activity.emg_envelope",
-                return_value=np.r_[np.ones(100), np.full(120, 6.0), np.ones(20)],
+                "app_src.wake_activity.emg_second_rms",
+                return_value=np.arange(1.0, 13.0),
             ),
         ):
             message, scores, *_ = generate_prediction(request)
-        assert scores == [5] * 5 + [4] * 6 + [1]
+        assert scores == [5] * 2 + [4] * 9 + [1]
         assert "2 fine-labelled" in message
+        assert "Active Wake 81.8% (9/11 Wake s; target 80%)" in message
 
     def test_bad_emg_keeps_current_scores_unchanged(self):
         from app_src.callbacks.prediction import generate_prediction

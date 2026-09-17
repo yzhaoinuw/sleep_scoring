@@ -15,6 +15,40 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-09-16
+
+### Park NREM anchoring while defining an 80/20 output rule (Codex GPT-5; effort/tokens not reported)
+
+- Boss users requested approximately 80% Active Wake and 20% Quiet Wake. This is an
+  output-composition requirement, not the same scientific question as the current
+  NREM-anchored amplitude cutoff. Keep the NREM method and provenance as a robust
+  alternative/sensitivity rather than deleting it before a comparative decision.
+- Before implementation, compare the present 20 Hz centered RMS-occupancy pipeline
+  with direct one-second filtered RMS, and specify whether the target ratio is per
+  recording, per mouse, or cohort-wide and whether manual overrides count toward it.
+  Raw-EMG means are unsuitable because the waveform's signs cancel.
+- Verification:
+  - Documentation decision only; no detector setting, score, or output was changed.
+
+### Per-recording 80/20 direct-RMS pilot (Codex GPT-5; effort/tokens not reported)
+
+- Implemented the agreed default: rank direct one-second filtered-EMG RMS among each
+  recording's unlabelled Wake seconds and assign the top values Active until the
+  recording reaches the nearest achievable 80% Active target. This is explicitly a
+  relative within-recording activity convention, not an NREM-relative threshold.
+- Fine manual labels remain fixed. The existing prediction confirmation now reports
+  Active-Wake seconds, achieved percentage, and target; it adds a warning only when
+  manual labels make the target unattainable. Metadata stores target, counts, achieved
+  fraction, RMS cutoff, and deterministic tie-breaking provenance.
+- The prior NREM-anchored 20 Hz envelope method remains selectable as the parked
+  `nrem_envelope` comparison path; it was not deleted or silently redefined.
+- Verification:
+  - Focused wake-activity/persistence/callback pytest: 63 passed, one existing
+    Flask-Caching deprecation warning.
+  - Full pytest: 259 passed, one existing Flask-Caching deprecation warning.
+  - Pinned Black hook passed for changed Python files.
+  - `python run_desktop_app.py --smoke` passed; `git diff --check` passed.
+
 ## 2026-09-15
 
 ### NREM-anchored Active/Quiet Wake threshold (Codex GPT-5; effort/tokens not reported)

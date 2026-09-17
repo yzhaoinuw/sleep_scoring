@@ -23,6 +23,8 @@ from app_src.sleep_score_layers import (
 
 @dataclass(frozen=True)
 class WakeActivityConfig:
+    method: str = "wake_rank_per_second"
+    active_fraction: float = 0.8
     threshold: float | None = None
     min_duration: float = 1.0
     gap_tolerance: float = 0.5
@@ -32,6 +34,10 @@ class WakeActivityConfig:
     nrem_deviation_multiplier: float = 2.0
 
     def __post_init__(self):
+        if self.method not in {"wake_rank_per_second", "nrem_envelope"}:
+            raise ValueError("Wake activity method must be wake_rank_per_second or nrem_envelope.")
+        if not np.isfinite(self.active_fraction) or not 0 < self.active_fraction < 1:
+            raise ValueError("Active Wake fraction must be between zero and one.")
         if self.threshold is not None and (not np.isfinite(self.threshold) or self.threshold < 0):
             raise ValueError("EMG threshold must be a finite non-negative number or Auto.")
         if not np.isfinite(self.min_duration) or self.min_duration <= 0:
@@ -114,6 +120,41 @@ def emg_envelope(emg, frequency, config=None):
     return power[sample_indices]
 
 
+def emg_second_rms(emg, frequency, length):
+    """Return one filtered-EMG RMS value for each one-second score epoch.
+
+    This is the default feature for the per-recording Active/Quiet rank split. Each
+    value is ``sqrt(mean(filtered_emg**2))`` over that score's own one-second raw-EMG
+    interval. It is not the ordinary EMG mean, whose positive and negative waveform
+    values cancel, and it does not reuse the 20 Hz envelope. Invalid samples and
+    flatlines of at least one second leave their affected score seconds invalid.
+    """
+    fs = float(frequency)
+    if not np.isfinite(fs) or fs <= 50:
+        raise ValueError("Raw EMG detection requires EEG/EMG sampling above 50 Hz.")
+    raw = np.asarray(emg, dtype=float).reshape(-1)
+    if raw.size < math.ceil(fs):
+        raise ValueError("At least one second of raw EMG is required.")
+    valid = np.isfinite(raw)
+    for start, end in runs(np.r_[False, np.diff(raw) == 0]):
+        if end - start + 1 >= fs:
+            valid[max(0, start - 1) : end] = False
+    sos = butter(4, [20, min(200, 0.45 * fs)], btype="bandpass", fs=fs, output="sos")
+    filtered = np.full(raw.size, np.nan)
+    for start, end in runs(valid):
+        if end - start > 30:
+            filtered[start:end] = sosfiltfilt(sos, detrend(raw[start:end], type="linear"))
+    values = np.full(length, np.nan)
+    edges = np.rint(np.arange(length + 1) * fs).astype(int)
+    for second, (start, end) in enumerate(zip(edges[:-1], edges[1:])):
+        if start < 0 or end > filtered.size or end <= start:
+            continue
+        segment = filtered[start:end]
+        if np.all(np.isfinite(segment)):
+            values[second] = np.sqrt(np.mean(segment**2))
+    return values
+
+
 def active_mask(envelope, wake_mask, threshold, config):
     """Threshold the 20 Hz envelope, bridge short Wake dips, and retain bouts.
 
@@ -178,7 +219,9 @@ def nrem_baseline_threshold(envelope, nrem_mask, config):
     return threshold, percentile, robust_sd, int(reference.size)
 
 
-def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=None):
+def _subdivide_wake_nrem_envelope(
+    emg, frequency, sleep_scores, user_sleep_scores=None, config=None
+):
     """Anchor automatic activity to NREM EMG, then preserve explicit subtypes.
 
     Generic Wake is a coarse label, never an example of Quiet. Candidate errors
@@ -245,6 +288,7 @@ def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=
     metadata = {
         "schema_version": 2,
         "algorithm": "emg_rms_nrem_baseline_sustained_v2",
+        "method": "nrem_envelope",
         "config": asdict(config),
         "threshold_used": threshold,
         "threshold_initial": initial,
@@ -259,3 +303,75 @@ def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=
         "label_mapping": {"Wake": 0, "Active Wake": 4, "Quiet Wake": 5},
     }
     return WakeActivityResult(result, envelope, threshold, int(labelled.sum()), bouts, metadata)
+
+
+def _subdivide_wake_ranked_per_second(emg, frequency, sleep_scores, user_sleep_scores, config):
+    """Split each recording's Wake seconds by direct RMS rank, preserving fine labels."""
+    coarse = coarse_sleep_scores(sleep_scores)
+    users = normalize_sleep_scores(user_sleep_scores, len(coarse))
+    coarse = overlay_user_sleep_scores(coarse, coarse_sleep_scores(users))
+    wake = coarse == WAKE
+    if not np.any(wake):
+        return WakeActivityResult(coarse, np.array([]), 0.0, 0, [], {})
+    rms = emg_second_rms(emg, frequency, len(coarse))
+    if np.any(wake & ~np.isfinite(rms)):
+        raise ValueError(
+            "Wake contains missing, flatlined, or invalid EMG. Scores were not changed."
+        )
+    labelled = wake & np.isin(users, [ACTIVE_WAKE, QUIET_WAKE])
+    manual_active = labelled & (users == ACTIVE_WAKE)
+    unlabelled = wake & ~labelled
+    wake_count = int(wake.sum())
+    target_active = int(math.floor(config.active_fraction * wake_count + 0.5))
+    needed = int(np.clip(target_active - manual_active.sum(), 0, unlabelled.sum()))
+    candidates = np.flatnonzero(unlabelled)
+    # Exact RMS ties are resolved by earlier recording second to keep reruns deterministic.
+    ranked = candidates[np.lexsort((candidates, -rms[candidates]))]
+    active = manual_active.copy()
+    active[ranked[:needed]] = True
+    result = coarse.copy()
+    result[wake] = QUIET_WAKE
+    result[active] = ACTIVE_WAKE
+    result[labelled] = users[labelled]
+    active_count = int((result == ACTIVE_WAKE).sum())
+    cutoff = float(rms[ranked[needed - 1]]) if needed else float("nan")
+    bouts = [(float(start), float(end)) for start, end in runs(active)]
+    metadata = {
+        "schema_version": 3,
+        "algorithm": "filtered_emg_rms_wake_rank_v3",
+        "method": "wake_rank_per_second",
+        "config": asdict(config),
+        "activity_feature": "one_second_filtered_emg_rms",
+        "threshold_used": cutoff,
+        "target_active_fraction": float(config.active_fraction),
+        "target_active_seconds": target_active,
+        "wake_seconds": wake_count,
+        "active_seconds": active_count,
+        "achieved_active_fraction": active_count / wake_count,
+        "manual_active_seconds": int(manual_active.sum()),
+        "manual_quiet_seconds": int((labelled & (users == QUIET_WAKE)).sum()),
+        "target_constrained_by_manual_labels": active_count != target_active,
+        "tie_breaker": "earlier_recording_second",
+        "calibrated_seconds": int(labelled.sum()),
+        "sampling_rate": float(frequency),
+        "bandpass_hz": [20, min(200, 0.45 * float(frequency))],
+        "automatic_active_bouts_relative_seconds": bouts,
+        "label_mapping": {"Wake": 0, "Active Wake": 4, "Quiet Wake": 5},
+    }
+    return WakeActivityResult(result, rms, cutoff, int(labelled.sum()), bouts, metadata)
+
+
+def subdivide_wake(emg, frequency, sleep_scores, user_sleep_scores=None, config=None):
+    """Apply the configured per-recording Wake subdivision method.
+
+    ``wake_rank_per_second`` is the default: direct one-second filtered EMG RMS is
+    ranked within the recording's Wake seconds to target the configured Active-Wake
+    fraction, while explicit manual subtypes remain fixed. ``nrem_envelope`` retains
+    the prior NREM-anchored 20 Hz method as a parked comparison alternative.
+    """
+    config = config or WakeActivityConfig()
+    if config.method == "wake_rank_per_second":
+        return _subdivide_wake_ranked_per_second(
+            emg, frequency, sleep_scores, user_sleep_scores, config
+        )
+    return _subdivide_wake_nrem_envelope(emg, frequency, sleep_scores, user_sleep_scores, config)
