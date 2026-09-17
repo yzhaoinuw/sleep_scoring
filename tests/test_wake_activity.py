@@ -143,6 +143,23 @@ def test_per_second_rms_removes_offset_and_linear_drift_without_mutating_emg():
     np.testing.assert_array_equal(raw, original)
 
 
+def test_per_second_rms_allows_a_partial_final_score_epoch():
+    fs = 512.001
+    raw = np.sin(2 * np.pi * 60 * np.arange(round(2.2 * fs)) / fs)
+    rms = emg_second_rms(raw, fs, 3)
+    assert np.all(np.isfinite(rms))
+
+    result = subdivide_wake(raw, fs, [0, 0, 0])
+    assert np.all(np.isin(result.sleep_scores, [4, 5]))
+
+
+def test_per_second_rms_still_rejects_a_wholly_missing_score_epoch():
+    fs = 512.001
+    raw = np.sin(2 * np.pi * 60 * np.arange(round(2.2 * fs)) / fs)
+    with pytest.raises(ValueError, match="invalid EMG"):
+        subdivide_wake(raw, fs, [0, 0, 0, 0])
+
+
 def test_flatline_and_low_sampling_rate_are_not_silent_quiet_predictions():
     with pytest.raises(ValueError, match="flatlined"):
         subdivide_wake(np.zeros(512 * 6), 512, [0] * 6)

@@ -126,8 +126,10 @@ def emg_second_rms(emg, frequency, length):
     This is the default feature for the per-recording Active/Quiet rank split. Each
     value is ``sqrt(mean(filtered_emg**2))`` over that score's own one-second raw-EMG
     interval. It is not the ordinary EMG mean, whose positive and negative waveform
-    values cancel, and it does not reuse the 20 Hz envelope. Invalid samples and
-    flatlines of at least one second leave their affected score seconds invalid.
+    values cancel, and it does not reuse the 20 Hz envelope. A final, partial score
+    epoch uses its available EMG samples, matching the app's EEG-derived recording
+    duration. Invalid samples and flatlines of at least one second leave their
+    affected score seconds invalid.
     """
     fs = float(frequency)
     if not np.isfinite(fs) or fs <= 50:
@@ -147,9 +149,12 @@ def emg_second_rms(emg, frequency, length):
     values = np.full(length, np.nan)
     edges = np.rint(np.arange(length + 1) * fs).astype(int)
     for second, (start, end) in enumerate(zip(edges[:-1], edges[1:])):
-        if start < 0 or end > filtered.size or end <= start:
+        if start < 0 or start >= filtered.size or end <= start:
             continue
-        segment = filtered[start:end]
+        # EEG defines the score duration. An equally long EMG vector can therefore
+        # end within the final, ceiling-rounded score second; use that finite tail
+        # rather than turning an otherwise valid final Wake label into an error.
+        segment = filtered[start : min(end, filtered.size)]
         if np.all(np.isfinite(segment)):
             values[second] = np.sqrt(np.mean(segment**2))
     return values
