@@ -6,6 +6,10 @@ re-assessment of the cookbook against source, followed by revision of this
 plan (see [Second-pass changes](#second-pass-changes-2026-10-07)). This is a
 planning document; `paper.md` still needs revision.
 
+**Review attribution:** The visible blockquotes labeled **Codex feedback
+(2026-10-07)** below are Codex's comments on Claude's second-pass revision.
+They record agreement and proposed refinements separately from that revision.
+
 ## Recommended argument
 
 Lead with a practical research problem: a scorer must inspect several kinds
@@ -46,6 +50,32 @@ precise boundary against the dependency it builds on:
    (candidate: NE dynamics across sleep states from the BrainFlowZZZ
    group; authors to confirm the reference), not an assertion.
 
+> **Codex feedback (2026-10-07) — contribution assessment:** I agree with
+> promoting Recipes 7–8 to Core (design). My first pass underweighted the
+> application-owned interaction/update pipeline. The code confirms that the
+> app coordinates gestures, refresh timing, stale-update rejection, delivery,
+> and live auto-pan around Plotly Resampler's patch computation. Keep this
+> as a focused explanation of how the correction workflow works, with credit
+> to the library for both decimation and patch computation. I also agree with
+> foregrounding NE-informed scoring and requiring a primary biology citation;
+> that citation supports the rationale, not the scorer's measured accuracy.
+
+> **Codex feedback (2026-10-07) — refresh wording:** "One settled refresh per
+> gesture" is too absolute. Ordinary navigation coalesces updates after an
+> idle interval or gesture release; annotation auto-pan deliberately fetches
+> and merges signals repeatedly while dragging. Suggested wording:
+> "Navigation refreshes are coalesced, while annotation auto-pan refreshes
+> newly revealed signals during the drag." This distinction also applies to
+> Recipe 7's assessment and the Software design outline below.
+
+> **Codex feedback (2026-10-07) — label-preservation wording:** Replace
+> "Predictions that never overwrite human decisions" with "Regenerated
+> predictions preserve labels supplied to that prediction run." The
+> [prediction callbacks](../app_src/callbacks/prediction.py) snapshot the user
+> layer at confirmation and overlay that snapshot after inference. This
+> does not establish a blanket guarantee about edits made during an ongoing
+> run. Retain the existing qualification about saved-score provenance.
+
 Selection-linked video belongs in the workflow narrative as the ambiguity
 check. Synchronized views, undo/recovery, native file access, side-by-side
 windows, complete exports, and compatible updates support the argument by
@@ -71,6 +101,11 @@ Suggested title (either works; the second foregrounds correction):
 
 Both drop the old title's emphasis on optional deep learning and leave room
 for manual scoring and the default statistical backend.
+
+> **Codex feedback (2026-10-07) — title preference:** I prefer the first title.
+> It describes the complete review/correction workflow and accommodates
+> recordings without NE. The second title places more weight on the NE and
+> prediction paths than the manual workflow needs.
 
 ## Assessment of every cookbook recipe
 
@@ -233,6 +268,17 @@ scoring agreement before/after calibration. Without such results, describe
 implemented capabilities and concrete current use; omit quantified speed,
 accuracy, and time-saving claims.
 
+> **Codex feedback (2026-10-07) — benchmark scope:** Keep this optional for the
+> next manuscript pass. A reproducible latency table would support the design
+> and responsiveness claims; it would not demonstrate external adoption,
+> scorer time savings, or scoring accuracy. Direct restyle has an existing
+> configuration switch, but coalescing has no equivalent switch, so a
+> with/without-coalescing comparison requires additional baseline or harness
+> work. Start with a well-defined gesture, current-path measurements, or a
+> controlled direct-restyle comparison. Report distributions over repeated
+> trials, recording size/rates, hardware, and settings. Keep actual research
+> use and integrations as separate evidence in the impact statement.
+
 ### AI usage disclosure — about 70 words
 
 Disclose the actual assistance and verification: AI coding agents (Codex and
@@ -318,6 +364,12 @@ remaining gaps, none manuscript-blocking:
 - The v0.11.0 selection EEG spectral-density plot is no longer in the app;
   its `update-fft-store` is unused, as is `backup-sleep-scores-store`. Do not
   claim the feature; the stores are cleanup candidates.
+
+> **Codex feedback (2026-10-07) — confirmed gaps:** Both observations check out:
+> `change_sampling_level` reloads the MAT and rebuilds the figure while copying
+> current displayed scores, and the two named stores have no active consumers
+> in `app_src`. The selection PSD plot should remain outside the manuscript.
+> These findings do not require runtime changes to proceed with the rewrite.
 
 ## Corrections needed in the existing paper
 

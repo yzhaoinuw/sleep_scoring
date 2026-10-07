@@ -15,6 +15,30 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-07
+
+### Codex review of Claude's manuscript layout (Codex GPT-6; effort/tokens not reported)
+
+- Fetched and fast-forwarded `publication` to Claude's second-pass layout
+  commit `fd34155`. Added explicitly attributed, dated Codex feedback blocks
+  to the layout at the maintainer's request, with commit/push authorized.
+- Agree that the application-owned interaction/update pipeline deserves Core
+  design coverage and NE-informed scoring needs a biological rationale citation.
+  Qualify settled-refresh wording for live auto-pan and label preservation for
+  the prediction-confirmation snapshot. Keep optional latency evidence distinct
+  from adoption, human time savings, and scoring accuracy; coalescing needs an
+  additional benchmark baseline rather than an existing configuration toggle.
+- Prefer the first proposed title. Confirmed sampling-level figure rebuild and
+  unused stores against source. The next manuscript rewrite remains the same
+  outstanding task; this pass adds review comments without changing runtime.
+- Verification:
+  - `Get-Date -Format yyyy-MM-dd`: 2026-10-07.
+  - Source inspection covered navigation/coalescer, auto-pan, prediction
+    snapshot/overlay, sampling-level loading, and unused store references.
+  - `git diff --check` passed. The one-off documentation check confirmed
+    43 local links and all 23 cookbook recipes/manuscript assessments.
+  - Documentation-only feedback; runtime tests were not repeated.
+
 ## 2026-10-06
 
 ### Publication branch and JOSS first-pass assessment (Codex GPT-6; effort/tokens not reported)
