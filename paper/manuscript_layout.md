@@ -4,11 +4,13 @@ First-pass editorial plan, 2026-10-06, reviewed against shipped v0.17.4 and
 `main` commit `4353b76`. Second-pass review, 2026-10-07: independent
 re-assessment of the cookbook against source, followed by revision of this
 plan (see [Second-pass changes](#second-pass-changes-2026-10-07)). This is a
-planning document; `paper.md` still needs revision.
+planning document; `paper.md` was rewritten to it on 2026-10-07.
 
 **Review attribution:** The visible blockquotes labeled **Codex feedback
 (2026-10-07)** below are Codex's comments on Claude's second-pass revision.
 They record agreement and proposed refinements separately from that revision.
+Claude applied them on 2026-10-07 (see [Second-pass changes](#second-pass-changes-2026-10-07));
+the blocks are kept as the review record.
 
 ## Recommended argument
 
@@ -30,17 +32,19 @@ precise boundary against the dependency it builds on:
    recordings.** Plotly Resampler supplies the decimation (what to draw for a
    given range). The app does *not* use the library's stock Dash update
    callback; it owns *when and how* updates flow: browser-side gesture
-   handling and labeling, coalescing of per-frame relayouts into one settled
-   request, dropping stale in-flight refreshes, applying patches by direct
-   restyle, and a raw endpoint that feeds live auto-pan without the Dash
+   handling and labeling, coalescing of navigation relayouts into a refresh
+   after an idle interval or gesture release, dropping stale in-flight refreshes, applying patches by direct
+   restyle, and a raw endpoint through which annotation auto-pan refreshes
+   newly revealed signal repeatedly during the drag, outside the Dash
    callback graph. This is the honest answer to "isn't the big-data viewing
    just plotly-resampler?": that library makes long-signal display possible;
    this layer makes *annotating* it interactive. Describe it as design, and
    make no latency claim without measurements (see Research impact).
-3. **Predictions that never overwrite human decisions.** A sparse
-   user-evidence layer is kept separate from displayed scores; every backend's
-   output is overlaid beneath it, so regenerating predictions keeps explicit
-   labels.
+3. **Regenerated predictions preserve labels supplied to that run.** A
+   sparse user-evidence layer is kept separate from displayed scores. When a
+   run is confirmed, the app snapshots that layer and overlays it on the
+   backend's output, so explicit labels present at confirmation are kept.
+   This is not a guarantee for edits made while a run is in progress.
 4. **An inspectable, per-recording adaptive scorer that uses NE.** The
    default backend is a small rule set (EEG low-band Wake rule plus low-NE
    REM rules) whose five controls are calibrated from a handful of the user's
@@ -121,7 +125,7 @@ mention tied to the workflow; **Credit** identifies a dependency;
 | 4. File loading/dialogs/validation | Support | Open large local MAT recordings without browser upload; state the fixed input contract and need for adapters. |
 | 5. Resampler figure | Support + Credit | Synchronized spectrogram/theta–delta, EEG, EMG, optional NE, and score overlays on one time axis are central context; credit Plotly Resampler for decimation. |
 | 6. EventListener bridge | Docs | Implementation mechanism behind contribution 2; not named in the paper. |
-| 7. Relayout coalescer | **Core (design)** | Part of contribution 2: one settled refresh per gesture instead of per-frame server work, with stale requests dropped. App-owned; the stock resampler callback is not used. No latency claim without measurements. |
+| 7. Relayout coalescer | **Core (design)** | Part of contribution 2: navigation refreshes are coalesced instead of driving per-frame server work, and stale requests are dropped; annotation auto-pan deliberately refreshes repeatedly during a drag. App-owned; the stock resampler callback is not used. No latency claim without measurements. |
 | 8. Patch/direct-restyle pipeline | **Core (design)** | Part of contribution 2: navigation and label edits patch traces instead of rebuilding the figure. Credit the resampler's patch computation; the delivery path is the app's. |
 | 9. Keyboard panning | Support | A small part of efficient keyboard-led review. |
 | 10. Custom pointer pan | Support | Navigation tailored to synchronized signals (x plus per-row y); omit low-level pointer/axis details. |
@@ -215,8 +219,9 @@ Organize this around three user tasks, with tradeoffs woven into each:
    signals. Narrow, box, and whole-bout selections share one labeling step;
    edge auto-pan retains local detail during long selections. Then the key
    architectural tradeoff (contribution 2): interaction state lives in the
-   browser and data work on the local server; per-frame gestures are
-   coalesced into one settled refresh, stale refreshes are discarded, and
+   browser and data work on the local server; navigation refreshes are
+   coalesced, while auto-pan refreshes newly revealed signal during the
+   drag; stale refreshes are discarded, and
    updates are applied as patches rather than figure rebuilds. Credit Plotly
    Resampler for decimation in one sentence, and state that the app replaces
    its stock update path. If a benchmark exists, cite one or two numbers here.
@@ -259,10 +264,17 @@ near-term significance. Candidates to collect from the authors:
 The repository has releases, documentation, tests, demo clips, and an
 archived software version; these are readiness signals, not evidence of use.
 
-Cheapest new evidence: a small, reproducible navigation/annotation latency
-table from the existing profiler (Recipe 18), e.g. settled-refresh time and
-payload size on a long recording with and without coalescing/direct restyle.
-Record hardware, recording length/rates, and settings. Stronger but costlier:
+Existing evidence: `ui_response_time_optimization_progress.txt` records manual
+before/after-optimization timings (Windows i9 and Apple M4, one 4.25-hour
+recording); the shipped navigation path matches the measured one. The draft
+reports these as local manual measurements. Optional stronger version: rerun
+on the current release with the existing profiler (Recipe 18), using a
+well-defined gesture, repeated trials reported as distributions, and a
+controlled direct-restyle on/off comparison (`ENABLE_DIRECT_PLOTLY_RESTYLE`).
+Coalescing has no switch, so a with/without-coalescing comparison needs a
+separate baseline harness. Latency supports the design claim only, not
+adoption, scorer time savings, or accuracy. Record hardware, recording
+length/rates, and settings. Stronger but costlier:
 correction-task time and boundary error on reviewed intervals, and held-out
 scoring agreement before/after calibration. Without such results, describe
 implemented capabilities and concrete current use; omit quantified speed,
@@ -279,15 +291,18 @@ accuracy, and time-saving claims.
 > trials, recording size/rates, hardware, and settings. Keep actual research
 > use and integrations as separate evidence in the impact statement.
 
-### AI usage disclosure — about 70 words
+### AI usage disclosure — about 110 words
 
-Disclose the actual assistance and verification: AI coding agents (Codex and
-Claude Code) were used for development, documentation, the release/cookbook
-audits, and manuscript planning, as recorded in the repository work log.
-Authors should confirm the full scope before writing the final disclosure.
-Describe code review and tests where performed, and author review of
-manuscript claims. Do not claim AI sessions validated scientific performance
-or substituted for human author review.
+JOSS requires the tools and versions, where each was applied (code,
+documentation, manuscript), the nature of assistance, and an affirmation that
+humans reviewed, modified, and validated all AI output and made the primary
+design decisions. Audit (2026-10-07, all work logs and git trailers):
+maintainer used web ChatGPT and Claude 2023–2025 (versions unrecorded);
+first agent co-authored commit 2026-01-29 (Claude Opus 4.5); Codex GPT-5
+from 2026-04 and GPT-6 from 2026-09; Claude Opus 4.8, Fable 5, Opus 5, and
+Opus 5.5 from 2026-06. No Grok. Work-log "ChatGPT" mentions in 2026-04 are an
+unmerged experimental ChatGPT scoring backend, not development assistance.
+Manuscript: Claude Code and Codex drafted and reviewed.
 
 ### Acknowledgments — about 60 words; References
 
@@ -419,12 +434,19 @@ remaining gaps, none manuscript-blocking:
   disclosure to cover both agents used.
 - **Recorded** cookbook gaps (sampling-level rebuild) and changelog drift
   (removed selection PSD plot, unused stores).
+- **Applied Codex feedback:** qualified refresh wording so navigation is
+  coalesced while auto-pan refreshes during the drag; restated label
+  preservation as the confirmation snapshot; replaced the
+  with/without-coalescing benchmark with the existing before/after log plus
+  an optional direct-restyle comparison; title option 1 adopted. The
+  contribution-assessment and confirmed-gaps blocks needed no change.
 
 ## Next revision pass
 
-Rewrite `paper.md` around this layout; verify a short related-tool comparison
-from primary sources and write the build-vs-contribute paragraph; collect
-concrete use/impact evidence and decide whether to run the latency table;
+`paper.md` now follows this layout. Remaining: verify the related-tool
+comparison from primary sources and confirm the build-vs-contribute
+paragraph; collect concrete use/impact evidence and decide whether to rerun
+the latency measurements;
 supply the NE/sleep biology citation; provide a public example and current
 workflow figure; complete author metadata and AI disclosure; then render and
 review the JOSS PDF. The first pass should stand without usage-tracking

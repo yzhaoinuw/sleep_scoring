@@ -138,8 +138,8 @@ author confirmation. See `paper/README.md` for its status. Open items:
 
 - Resolve the inline `TODO`s: software name, Kjaerby/Hauglund framing and
   whether those studies used the app, users' total-hours estimate, the build-vs-contribute
-  rationale, competitor characterizations, and the AI-disclosure scope (no AI before
-  2026? Grok never used?).
+  rationale, competitor characterizations, and final author review for the AI
+  disclosure.
 - Decide whether to rerun the latency measurements in
   `ui_response_time_optimization_progress.txt` on the current release.
 - Add the workflow figure and a public example recording; render the JOSS PDF.

@@ -41,6 +41,15 @@ search older entries by date anchor rather than reading every archive.
   assistance. Paper drafts: unlabeled 2026-06-02 draft, then Claude
   2026-06 to 2026-08 and 2026-10-07, Codex layout 2026-10-06, ChatGPT outline
   review 2026-10-07.
+- Rebased onto Codex's layout feedback (`47a480b`) and applied it: navigation
+  refreshes are coalesced while auto-pan refreshes during the drag; label
+  preservation is the confirmation-time snapshot (verified in
+  `callbacks/prediction.py`), not a guarantee for edits during a run; the
+  benchmark plan uses the existing before/after log, since coalescing has no
+  toggle. The "ChatGPT review" of the layout was in fact Codex GPT-6.
+- AI disclosure rewritten to JOSS's policy (tools/versions, where applied,
+  scope, human verification). The maintainer confirmed web ChatGPT and Claude
+  use from 2023 to 2025 (versions unrecorded) and no Grok.
 - `paper.md` rewritten to the current JOSS sections (~1,285 words before
   Acknowledgments). Latency figures come from
   `ui_response_time_optimization_progress.txt`; the measured pipeline matches

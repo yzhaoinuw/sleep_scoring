@@ -95,8 +95,8 @@ not mention photometry or video. -->
 These tools center on electrophysiology and, for most, on classification.
 Our need was the inverse emphasis: a correction workspace in which NE
 photometry is scoring evidence rather than an extra trace, video checks are
-tied to the selected interval, and automatic proposals never override
-explicit decisions. Extending an existing tool would have meant changing its
+tied to the selected interval, and automatic proposals preserve explicit
+labels. Extending an existing tool would have meant changing its
 central data model (a single label stream over EEG/EMG inputs) as well as
 its interaction layer. A focused application was the smaller change, and its
 interaction design is documented for reuse.
@@ -126,17 +126,19 @@ Long signals are decimated on demand by Plotly Resampler
 to compute what to draw for a range, and owns how updates flow. The main
 tradeoff is to keep interaction state in the browser and full-resolution
 data on the local server. Gestures, panning, and labeling run in the
-browser; per-frame navigation events are coalesced into one refresh after
-the view settles; refreshes overtaken by newer navigation are discarded;
-updates are applied as trace patches rather than figure rebuilds; and
-auto-pan fetches data through a dedicated endpoint outside the Dash callback
-graph. Applying a label repaints the overlay in the browser without a server
+browser. Navigation events are coalesced, so the server refreshes traces
+after a gesture is released or pauses rather than on every frame, and
+refreshes overtaken by newer navigation are discarded. Updates are applied as
+trace patches rather than figure rebuilds. During a selection drag, auto-pan
+instead refreshes newly revealed signal repeatedly through a dedicated
+endpoint outside the Dash callback graph. Applying a label repaints the overlay in the browser without a server
 round trip.
 
 **Using predictions while retaining human decisions.** The application keeps
 a sparse layer of explicit user labels separate from the displayed scores.
-Any backend's output is placed beneath that layer, so regenerating
-predictions preserves the user's labels. The tradeoff is provenance: labels
+When a prediction run is confirmed, the app snapshots that layer and overlays
+it on the backend's output, so regenerating predictions preserves the labels
+supplied to that run. The tradeoff is provenance: labels
 already stored in an opened file seed the layer and are protected too, and
 users clear intervals they want regenerated.
 
@@ -193,19 +195,18 @@ was reverted). Consider rerunning on the current release before submission. -->
 
 # AI usage disclosure
 
-The application was developed without generative AI from 2023 through 2025.
-Since early 2026, AI coding agents have assisted with development, tests,
-documentation, and release work: Anthropic's Claude (Claude Code; Opus and
-Fable models) and OpenAI's GPT-5 and GPT-6 models (through Codex and
-ChatGPT). Agent sessions are recorded in the repository's work log, and
-changes were reviewed and tested by the maintainer before release. Claude and
-Codex also helped plan and draft this manuscript, and ChatGPT reviewed its
-outline. The authors verified every claim against the software and cited
-sources.
-<!-- TODO(authors): confirm no AI assistance before 2026 (the first
-AI co-authored commit is 2026-01-29, and work-log agent records begin
-2026-04); confirm Grok was never used (no trace in the work logs or git
-history); confirm author review is complete before submission. -->
+From 2023 through 2025, the maintainer used the web versions of ChatGPT
+(OpenAI) and Claude (Anthropic) for coding questions and suggestions while
+developing the software; specific model versions were not recorded. Since
+2026, AI coding agents working in the repository have assisted with code
+generation, refactoring, tests, documentation, and release checks: Claude
+Code (Claude Opus 4.5–5.5 and Fable 5) and OpenAI Codex (GPT-5 and GPT-6),
+with sessions recorded in the repository's work log. Claude Code and Codex
+also helped plan, draft, and review this manuscript. The authors made the
+architectural and design decisions, reviewed and tested all AI-assisted code
+before release, and reviewed, revised, and verified the manuscript against
+the software and cited sources.
+<!-- TODO(authors): confirm author review is complete before submission. -->
 
 # Acknowledgments
 
