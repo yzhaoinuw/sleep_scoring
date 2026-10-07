@@ -6,10 +6,10 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Prepare the v0.17.4 partial release on `dev`. The maintainer verified video
-  playback across several MAT/AVI pairs and varied snippets, including switching
-  before playback ends. The original frozen-frame report remains unconfirmed;
-  describe the change as cleanup improvement, not a confirmed freeze fix.
+- Video cleanup shipped in v0.17.4 after automated and maintainer playback
+  checks. The original frozen-frame report remains unconfirmed; if it recurs,
+  collect the app version, selected time range, and playback/extraction errors
+  before attributing it to the corrected cleanup defects.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
@@ -115,6 +115,9 @@ Ongoing work:
 ## Citation And Publication
 
 ### Zenodo Archive DOI
+
+Latest verified archive: v0.17.4, DOI `10.5281/zenodo.23200121`, confirmed
+through the Zenodo records API on 2026-10-06.
 
 Done as of v0.17.2: the release is archived, concept DOI
 `10.5281/zenodo.21748494` is in the README badge and `CITATION.cff`, and the

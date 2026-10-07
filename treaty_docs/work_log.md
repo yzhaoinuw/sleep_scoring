@@ -17,21 +17,27 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-06
 
-### v0.17.4 partial-release candidate (Codex GPT-6; effort/tokens not reported)
+### v0.17.4 partial-release delivery (Codex GPT-6; effort/tokens not reported)
 
 - The maintainer tested multiple MAT/AVI pairs, varied snippet timing and
   duration, and switching before playback finished; all worked normally.
-  Proceed with a partial release of the cleanup improvement. The original
+  Released the cleanup improvement as a partial update. The original
   reporter's frozen-frame failure remains unconfirmed.
 - Candidate v0.17.4 includes native video playback, nonfatal cleanup of locked
   clips, and the already-integrated score-overlay identification change since
   v0.17.3. Experimental Active/Quiet Wake work stays on its separate branch.
-- Align app/setup/CFF versions and the verified 2026-10-06 release date. No
-  dependency, launcher, or frozen runtime changes are needed. Correct the
+- Aligned app/setup/CFF versions and the verified 2026-10-06 release date. No
+  dependency, launcher, or frozen runtime changes were needed. Corrected the
   packaging README's stale v0.17.0 fixture description to match the existing
   v0.17.1 release gate; no packaging code changes.
-- Supported update baselines are v0.17.1, v0.17.2, and v0.17.3. Commit the
-  candidate, then run the full lightweight gate before any tag or publication.
+- Supported update baselines are v0.17.1, v0.17.2, and v0.17.3. Candidate
+  `a34d748` passed the full lightweight gate before tagging and publication.
+- Published the latest stable GitHub release v0.17.4 with only the automatic
+  source-update ZIP and checksum. The uploaded ZIP digest matches the locally
+  validated artifact. The release tag stays on `a34d748`; the delivery-log
+  follow-up changes only documentation and does not change the tested payload.
+- Zenodo API confirmed version v0.17.4, its matching GitHub tag URL, and version
+  DOI `10.5281/zenodo.23200121`. No webhook repair was necessary.
 - Verification:
   - `Get-Date -Format yyyy-MM-dd`: 2026-10-06.
   - Fetched `origin/dev`, `origin/main`, and tags; local and remote dev/main
@@ -39,7 +45,22 @@ search older entries by date anchor rather than reading every archive.
   - Prior focused validation: 55 tests, Black, source smoke, and ten browser
     player replacement cycles passed; see 2026-10-02. The maintainer's normal
     desktop playback checks above add interactive coverage.
-  - Release gate and publication are pending for this candidate.
+  - `release_lightweight.ps1 -FromRef @('v0.17.1','v0.17.2','v0.17.3')`
+    passed on candidate `a34d748`: 217 Python tests, 51 JavaScript tests,
+    Black, compilation, source smoke, schema-2 asset validation (19 payload
+    files), and the fresh v0.17.1 frozen-app update/smoke check with customized
+    config preserved. The first attempt hit the known adjacent-port test
+    collision; the unchanged candidate passed the complete gate on retry.
+  - GitHub CI run `37552699657` passed all three jobs for `a34d748`.
+  - Update ZIP SHA-256:
+    `C780AAF0A6A058459860769BA42421F22DED91EC68C3D569733DC3696AD75EF5`.
+  - `dev` and `main` were pushed at `a34d748`; remote tag `v0.17.4^{}` also
+    resolves to `a34d748`. `gh release view` confirms v0.17.4 is the latest
+    published stable release, with both assets uploaded.
+  - `https://zenodo.org/api/records?q=sleep_scoring&all_versions=true`
+    (with bounded page size/sort) returned the v0.17.4 record and DOI above.
+  - Final documentation follow-up: `git diff --check` and `treaty validate .`
+    passed. Runtime checks were not repeated for documentation-only edits.
 
 ## 2026-10-02
 
