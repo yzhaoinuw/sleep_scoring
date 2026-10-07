@@ -1,8 +1,10 @@
 # JOSS manuscript layout and feature assessment
 
-First-pass editorial plan, 2026-10-06. Reviewed against shipped v0.17.4 and
-`main` commit `4353b76`, after fast-forwarding the local `publication` branch
-from `d336ff7`. This is a planning document; `paper.md` still needs revision.
+First-pass editorial plan, 2026-10-06, reviewed against shipped v0.17.4 and
+`main` commit `4353b76`. Second-pass review, 2026-10-07: independent
+re-assessment of the cookbook against source, followed by revision of this
+plan (see [Second-pass changes](#second-pass-changes-2026-10-07)). This is a
+planning document; `paper.md` still needs revision.
 
 ## Recommended argument
 
@@ -10,38 +12,65 @@ Lead with a practical research problem: a scorer must inspect several kinds
 of evidence, correct brief sleep-state boundaries, and retain those decisions
 while reviewing a long recording. The application's contribution is the
 integrated **inspect → select → label → predict → check → correct → export**
-workflow at one-second resolution, including optional NE photometry and
-selection-linked behavior video.
+workflow at one-second resolution, with NE photometry treated as first-class
+evidence and selection-linked behavior video.
 
-The most distinctive application-owned work is the interaction design:
-whole-bout selection, drag selection that continues across viewport edges
-while traces refresh, and explicit user labels that survive regenerated
-predictions. The adaptive statistical scorer is another contribution worth
-describing, particularly its recording-specific, inspectable tuning. These
-are defensible design contributions; claiming they are unprecedented or
-improve scientific accuracy requires comparison and validation evidence.
+The application-owned contributions fall into four groups. Each needs a
+precise boundary against the dependency it builds on:
 
-Synchronized views, undo/recovery, native file access, side-by-side windows,
-and complete exports support this argument by reducing interruptions and
-protecting work. They deserve space in proportion to their practical value,
-without presenting each as a separate innovation.
+1. **Correction-oriented selection and labeling.** Whole-bout right-click
+   selection, drag selection that continues across viewport edges while the
+   newly revealed signal streams in, zoom-adaptive click selection, and
+   one-key labels/clears, all converging on one selection model.
+2. **An interaction/update pipeline that keeps that work fluid on long
+   recordings.** Plotly Resampler supplies the decimation (what to draw for a
+   given range). The app does *not* use the library's stock Dash update
+   callback; it owns *when and how* updates flow: browser-side gesture
+   handling and labeling, coalescing of per-frame relayouts into one settled
+   request, dropping stale in-flight refreshes, applying patches by direct
+   restyle, and a raw endpoint that feeds live auto-pan without the Dash
+   callback graph. This is the honest answer to "isn't the big-data viewing
+   just plotly-resampler?": that library makes long-signal display possible;
+   this layer makes *annotating* it interactive. Describe it as design, and
+   make no latency claim without measurements (see Research impact).
+3. **Predictions that never overwrite human decisions.** A sparse
+   user-evidence layer is kept separate from displayed scores; every backend's
+   output is overlaid beneath it, so regenerating predictions keeps explicit
+   labels.
+4. **An inspectable, per-recording adaptive scorer that uses NE.** The
+   default backend is a small rule set (EEG low-band Wake rule plus low-NE
+   REM rules) whose five controls are calibrated from a handful of the user's
+   labels on the current recording. It runs without a GPU, Torch, or
+   checkpoints. Using NE photometry as REM evidence ties the scorer to the
+   motivating science; the biological rationale needs a primary citation
+   (candidate: NE dynamics across sleep states from the BrainFlowZZZ
+   group; authors to confirm the reference), not an assertion.
 
-Credit Plotly Resampler once for on-demand display of long signals. The app
-adds gesture coordination, selection, and correction behavior around that
-dependency; resampling algorithms and generic large-data plotting are not
-the central contribution. Likewise, credit sDREAMER as an upstream model
-integration, ffmpeg for encoding, and Dash/Plotly/pywebview for the framework.
-Keep opt-in usage tracking out of the first-pass feature narrative. It is a
-possible source of later impact evidence, not an experimenter-facing reason
-to choose the application.
+Selection-linked video belongs in the workflow narrative as the ambiguity
+check. Synchronized views, undo/recovery, native file access, side-by-side
+windows, complete exports, and compatible updates support the argument by
+reducing interruptions and protecting work. Give them space in proportion to
+their practical value, not as separate innovations.
 
-Suggested title:
+Credit Plotly Resampler once for on-demand decimation of long signals (and
+its MinMaxLTTB downsampler), sDREAMER as an upstream model integration,
+ffmpeg for clip extraction, and Dash/Plotly/pywebview for the framework.
+Resampling algorithms and generic large-data plotting are not the
+contribution. Defensible design contributions are not "first/only" claims;
+claiming they are unprecedented or improve scientific accuracy requires
+comparison and validation evidence. Keep opt-in usage tracking out of the
+feature narrative.
+
+Suggested title (either works; the second foregrounds correction):
 
 > sleep_scoring: Interactive review and correction of rodent sleep annotations
 > with synchronized electrophysiology, photometry, and behavior video
 
-This removes the old title's emphasis on optional deep learning and leaves
-room for manual scoring and the default statistical backend.
+> sleep_scoring: Second-resolution correction of rodent sleep scores with
+> norepinephrine photometry, behavior video, and adaptive prediction
+
+Both drop the old title's emphasis on optional deep learning and leave room
+for manual scoring and the default statistical backend.
 
 ## Assessment of every cookbook recipe
 
@@ -55,35 +84,36 @@ mention tied to the workflow; **Credit** identifies a dependency;
 | 2. Layout/component model | Docs | Ordinary UI plumbing; describe mode-appropriate controls only where useful. |
 | 3. Server-side cache | Support | Explain recovery and local data briefly, not cache keys or serialization. |
 | 4. File loading/dialogs/validation | Support | Open large local MAT recordings without browser upload; state the fixed input contract and need for adapters. |
-| 5. Resampler figure | Support + Credit | Synchronized EEG/spectrogram/EMG/optional NE and scores are central context; credit Plotly Resampler for signal downsampling. |
-| 6. EventListener bridge | Docs | Implementation mechanism, useful only as part of a short design explanation. |
-| 7. Relayout coalescer | Support | An application design choice that avoids redundant/stale refreshes during navigation; no latency claim without measurements. |
-| 8. Patch/direct-restyle pipeline | Support | Explain why navigation and label edits avoid rebuilding the whole figure; do not sell the upstream resampler as ours. |
+| 5. Resampler figure | Support + Credit | Synchronized spectrogram/theta–delta, EEG, EMG, optional NE, and score overlays on one time axis are central context; credit Plotly Resampler for decimation. |
+| 6. EventListener bridge | Docs | Implementation mechanism behind contribution 2; not named in the paper. |
+| 7. Relayout coalescer | **Core (design)** | Part of contribution 2: one settled refresh per gesture instead of per-frame server work, with stale requests dropped. App-owned; the stock resampler callback is not used. No latency claim without measurements. |
+| 8. Patch/direct-restyle pipeline | **Core (design)** | Part of contribution 2: navigation and label edits patch traces instead of rebuilding the figure. Credit the resampler's patch computation; the delivery path is the app's. |
 | 9. Keyboard panning | Support | A small part of efficient keyboard-led review. |
-| 10. Custom pointer pan | Support | Navigation tailored to synchronized signals; omit low-level pointer/axis details. |
+| 10. Custom pointer pan | Support | Navigation tailored to synchronized signals (x plus per-row y); omit low-level pointer/axis details. |
 | 11. Mode switching | Support | One-key navigation/annotation switching keeps review and correction in the same workspace. |
-| 12. Box/click/whole-bout selection | Core | Select a narrow interval or a complete scored/unscored bout without drawing every boundary by hand. Click width depends on zoom; it is not always exactly one epoch. |
-| 13. Auto-pan selection/live refresh | Core | Extend a selection beyond the viewport without zooming away from boundary detail; this is application-owned interaction work. |
-| 14. Keypress annotation/overlays | Core | Immediate shared score display, one-second labels, manual MA, and clearing selected ranges. Explain behavior, not trace patch syntax. |
+| 12. Box/click/whole-bout selection | Core | Select a narrow interval or a complete scored/unscored bout without drawing every boundary by hand. Click width is 0.5% of the visible window, so it is not always exactly one epoch. |
+| 13. Auto-pan selection/live refresh | Core | Extend a selection beyond the viewport without zooming away from boundary detail; revealed signal is fetched and merged during the drag. App-owned interaction work. |
+| 14. Keypress annotation/overlays | Core | Immediate shared score display, one-second labels, manual MA, and clearing selected ranges, applied in the browser without a server round trip. Explain behavior, not trace patch syntax. |
 | 15. Undo/crash recovery | Support | One-step undo and same-file, same-slot recovery protect decisions. Do not call it an unlimited undo stack or a backup system. |
 | 16. Saving/export | Support | Partial MAT saves identify remaining gaps; complete saves offer bout, stage, and transition statistics, including MA. |
-| 17. Selection-linked video | Core | Inspect behavior for the selected ambiguous interval without leaving the scoring workflow; credit ffmpeg and native playback. |
-| 18. Performance instrumentation | Docs | A way to produce future evidence, not a first-pass feature. Existing instrumentation alone is not a benchmark. |
+| 17. Selection-linked video | Core | Inspect behavior for the selected ambiguous interval without leaving the scoring workflow; offsets validated against video bounds. Credit ffmpeg and native playback. |
+| 18. Performance instrumentation | **Support (evidence source)** | Not a feature, but the cheapest route to evidence for contribution 2: the existing browser/server profiler can produce a small, reproducible latency table. Existing instrumentation alone is not a benchmark. |
 | 19. Multiple desktop instances | Support | Up to three isolated windows for comparing different recordings; the same MAT path is refused in a peer window. This is not simultaneous collaborative scoring. |
-| 20. Opt-in aggregate reporting | Optional | Omit from the first pass. If used later, app-copy totals cannot establish distinct users/labs, accuracy, or time saved. |
-| 21. Adaptive statistical calibration | Core | Explicit examples tune a small rule set for this recording and remain protected in predictions. Not persistent training or established accuracy improvement. |
-| 22. Prediction backends/correction | Core | One correction workflow supports manual work, the default statistical scorer, and optional upstream sDREAMER. Attribute the model correctly. |
+| 20. Opt-in aggregate reporting | Optional | Omit from the feature narrative. If used as impact evidence later, app-copy totals cannot establish distinct users/labs, accuracy, or time saved. |
+| 21. Adaptive statistical calibration | Core | Explicit examples tune five controls for this recording by a small deterministic search with a default-distance tie-break; examples remain protected in predictions. Not persistent training or established accuracy improvement. |
+| 22. Prediction backends/correction | Core | One correction workflow supports manual work, the default statistical scorer (NE-dependent REM), and optional upstream sDREAMER. Attribute the model correctly. |
 | 23. Compatible startup updates | Support | One sentence on maintaining packaged installations and supported settings; updater mechanics stay in the cookbook. |
 
 ## Proposed JOSS structure
 
 Use the current [JOSS paper guidance](https://joss.readthedocs.io/en/latest/paper.html)
 and [review checklist](https://joss.readthedocs.io/en/latest/review_checklist.html),
-checked on 2026-10-06. The current guidance gives a 750–1750-word range and
-requires Summary, Statement of need, State of the field, Software design,
-Research impact statement, and AI usage disclosure, plus acknowledgments and
-references. Aim for roughly 1,400–1,600 words of prose; the planning tables
-here belong in documentation, not the submitted paper.
+rechecked on 2026-10-07. The guidance gives a 750–1750-word range and
+requires Summary, Statement of need, State of the field (including a
+"build vs. contribute" justification), Software design, Research impact
+statement, and AI usage disclosure, plus author affiliations, acknowledgment
+of financial support, and references. Aim for roughly 1,450–1,650 words of
+prose; the planning tables here belong in documentation, not the paper.
 
 ### Summary — about 150 words
 
@@ -103,14 +133,15 @@ Possible opening:
 > revise individual intervals or whole bouts, and export completed scores
 > for subsequent analysis.
 
-### Statement of need — about 180 words
+### Statement of need — about 170 words
 
 Explain why short events and boundaries matter to the intended NE/sleep
-research workflow, and why switching among signal, prediction, and video
-tools makes review cumbersome. Identify experimenters doing rodent EEG/EMG
-scoring, especially those with aligned NE photometry and video. Describe
-BrainFlowZZZ as the motivating application, with comparable laboratories as
-the intended audience; do not assert external adoption without evidence.
+research workflow (for example, microarousals and brief state transitions),
+and why switching among signal, prediction, and video tools makes review
+cumbersome. Identify experimenters doing rodent EEG/EMG scoring, especially
+those with aligned NE photometry and video. Describe BrainFlowZZZ as the
+motivating application, with comparable laboratories as the intended
+audience; do not assert external adoption without evidence.
 
 State the constraint explicitly: MAT recordings follow the documented field
 contract; EEG and EMG share a sampling rate; optional photometry carries its
@@ -118,76 +149,99 @@ own rate. This is not yet a general-purpose EDF/acquisition-format importer.
 One-second annotation resolution is a design requirement, not proof that
 physiological boundaries or model estimates are accurate to one second.
 
-### State of the field — about 180 words
+### State of the field — about 200 words
 
 Compare a small number of directly relevant tools using their primary papers
-and current documentation. Reuse verified bibliography entries where
-appropriate. Compare actual annotation granularity, manual correction,
-photometry/video integration, and installation/data contracts. Build a
-source-backed comparison before claiming an unmet gap or explaining why a
-new application was preferable to extending an existing tool.
+and current documentation (AccuSleep, Visbrain Sleep, somnotate, SPINDLE are
+already in the bibliography; check whether any commercial package should be
+named, and only with a citable source). Compare actual annotation
+granularity, manual correction tools, photometry/video integration,
+prediction/correction coupling, and installation/data contracts. Build the
+source-backed comparison before claiming an unmet gap.
 
-The current assertions that commercial tools are vendor-locked, most tools
-assume 4–10-second epochs, alternatives rarely combine viewing and scoring,
-and none accept NE are too broad to carry forward without checking. Remove
+JOSS now requires an explicit **build vs. contribute** paragraph: why a new
+application rather than extending an existing tool. The honest candidates
+are the one-second correction workflow and NE-as-evidence requirement, and
+the need for a responsive large-signal *annotation* layer, but each must be
+checked against what the compared tools actually support.
+
+The old draft's assertions that commercial tools are vendor-locked, most
+tools assume 4–10-second epochs, alternatives rarely combine viewing and
+scoring, and none accept NE are too broad to carry forward unchecked. Remove
 uncited SleepEEGpy unless a relevant source and fair comparison are supplied.
-Do not make a first/only claim from this cookbook audit.
+Do not make a first/only claim.
 
-### Software design — about 580 words
+### Software design — about 600 words
 
 Organize this around three user tasks, with tradeoffs woven into each:
 
-1. **Inspect and correct at the needed scale** (about 230 words). Shared time
+1. **Inspect and correct at the needed scale** (about 260 words). Shared time
    axes and score overlays let users read the same interval against multiple
-   signals. Narrow, box, and whole-bout selections share a labeling step;
-   edge auto-pan retains local detail during long selections. Explain why
-   browser-side interaction and incremental updates avoid waiting for a
-   full figure redraw. Credit Plotly Resampler here in one sentence.
+   signals. Narrow, box, and whole-bout selections share one labeling step;
+   edge auto-pan retains local detail during long selections. Then the key
+   architectural tradeoff (contribution 2): interaction state lives in the
+   browser and data work on the local server; per-frame gestures are
+   coalesced into one settled refresh, stale refreshes are discarded, and
+   updates are applied as patches rather than figure rebuilds. Credit Plotly
+   Resampler for decimation in one sentence, and state that the app replaces
+   its stock update path. If a benchmark exists, cite one or two numbers here.
 2. **Use predictions while retaining human decisions** (about 230 words).
    Separate displayed predictions from explicit user evidence. Describe the
-   lightweight statistical backend, its five configurable controls,
-   recording-specific calibration, and protected manual overrides. Note
-   that existing MAT scores seed the evidence layer and their provenance is
-   not distinguished. Credit optional sDREAMER separately. Generated scores
-   remain reviewable; avoid promising quality gains from sparse examples.
-3. **Check evidence and complete a recording** (about 120 words). Show
+   lightweight statistical backend (EEG low-band Wake rule; low-NE REM rules),
+   its five configurable controls, recording-specific calibration by a small
+   deterministic search, and protected manual overrides. State that without
+   usable NE this backend does not identify REM. Note that existing MAT scores
+   seed the evidence layer and their provenance is not distinguished. Credit
+   optional sDREAMER separately. Avoid promising quality gains from sparse
+   examples.
+3. **Check evidence and complete a recording** (about 110 words). Show
    selection-linked video as an ambiguity check. Briefly mention one-step
    undo, recovery, isolated comparison windows, partial saves with gap
    feedback, and complete exports. Put distribution/settings preservation
    into one sentence if space permits.
 
 Key tradeoffs: one-second labels versus continuous-time signal display;
+browser-side interaction versus server-held full-resolution data;
 local files/native dialogs versus a fixed MAT contract; sparse protected
 evidence versus undifferentiated saved-score provenance; small deterministic
 calibration versus persistent training; process-isolated windows versus
-collaborative editing. These explain research-relevant decisions better
-than listing modules and libraries.
+session-aware state and collaborative editing. These explain decisions
+better than listing modules and libraries.
 
 ### Research impact statement — about 180 words
 
-Supply specific evidence: an identifiable research workflow using the app,
-publications or integrations if documented, and ideally a public example or
-repeatable task demonstration. The repository has releases, documentation,
-tests, demo clips, and an archived software version; these are readiness
-signals, not evidence of external users or measured scientific benefit.
+JOSS asks for evidence that is "compelling and specific, not aspirational":
+realized impact (publications, external use, integrations) or credible
+near-term significance. Candidates to collect from the authors:
 
-Useful next measurements are correction-task completion time and error rate
-on reviewed boundaries, and held-out scoring performance before/after
-calibration. Record hardware, recording length/rates, task, and backend.
-Without such results, describe implemented capabilities and concrete
-current use; omit quantified speed, accuracy, and time-saving claims.
-External adoption strengthens this section but the current criteria also
-allow credible near-term significance backed by concrete evidence.
+- BrainFlowZZZ studies, preprints, or datasets whose scores were produced or
+  corrected in the app, with approximate numbers of recordings/hours scored.
+- Integration with the companion
+  [preprocess_sleep_data](https://github.com/yzhaoinuw/preprocess_sleep_data)
+  pipeline that produces the MAT contract.
+- Any user outside the core group, even at pilot scale.
+
+The repository has releases, documentation, tests, demo clips, and an
+archived software version; these are readiness signals, not evidence of use.
+
+Cheapest new evidence: a small, reproducible navigation/annotation latency
+table from the existing profiler (Recipe 18), e.g. settled-refresh time and
+payload size on a long recording with and without coalescing/direct restyle.
+Record hardware, recording length/rates, and settings. Stronger but costlier:
+correction-task time and boundary error on reviewed intervals, and held-out
+scoring agreement before/after calibration. Without such results, describe
+implemented capabilities and concrete current use; omit quantified speed,
+accuracy, and time-saving claims.
 
 ### AI usage disclosure — about 70 words
 
-Disclose the actual assistance and verification, including this first-pass
-Codex release/code audit, cookbook revision, and manuscript planning. The
-repository work log also records AI-assisted development; authors should
-confirm its full scope before writing the final disclosure. Describe code
-review and tests where performed, and author review of manuscript claims.
-Do not claim this session validated scientific performance or completed
-human author review.
+Disclose the actual assistance and verification: AI coding agents (Codex and
+Claude Code) were used for development, documentation, the release/cookbook
+audits, and manuscript planning, as recorded in the repository work log.
+Authors should confirm the full scope before writing the final disclosure.
+Describe code review and tests where performed, and author review of
+manuscript claims. Do not claim AI sessions validated scientific performance
+or substituted for human author review.
 
 ### Acknowledgments — about 60 words; References
 
@@ -198,7 +252,8 @@ Keep the existing approved funding sentence verbatim:
 
 Confirm authors, affiliations, ORCIDs, and contributor acknowledgments with
 the maintainer. Cite directly relevant alternatives, Plotly Resampler,
-sDREAMER, and the software archive. Recheck any revised bibliographic claims.
+sDREAMER, the NE/sleep biology reference, and the software archive. Recheck
+any revised bibliographic claims.
 
 ## Recommended figure
 
@@ -227,9 +282,9 @@ Evidence entry points: [interaction callbacks](../app_src/assets/clientsideCallb
 [saving](../app_src/callbacks/saving.py),
 [video](../app_src/callbacks/video.py), and
 [startup/update boundaries](../run_desktop_app.py).
-Focused verification in this session passed 116 Python tests covering helpers,
-spectral timing, exports, score layers, metadata aliases, windows, and startup,
-plus all 51 clientside JavaScript tests. These checks establish implemented
+First-pass verification passed 116 Python tests covering helpers, spectral
+timing, exports, score layers, metadata aliases, windows, and startup, plus
+all 51 clientside JavaScript tests. These checks establish implemented
 behavior within their test scope, not scientific accuracy or human task speed.
 
 | Change | Cookbook action |
@@ -250,6 +305,20 @@ behavior within their test scope, not scientific accuracy or human task speed.
 | v0.17.4 semantic overlay identity | Updated Recipes 5, 12, 14 and the gotcha catalog to use role/type lookup instead of last-three-trace assumptions. |
 | v0.17.4 native video/nonfatal cleanup | Updated Recipe 17 to the shipped player and cleanup behavior, with remaining collision/freeze limits explicit. |
 
+Second-pass spot checks (2026-10-07) confirmed against source: role-tagged
+overlay lookup, native `html.Video` playback, `deque(maxlen=2)` paired
+histories, auto-pan constants (`EDGE_PX`, `CLICK_PX`, `TRACE_REFRESH_MS`),
+0.5% click width, 30% keyboard pan step, and that navigation calls only the
+resampler's `construct_update_data_patch` (no stock update callback). Small
+remaining gaps, none manuscript-blocking:
+
+- The "Sampling Level" dropdown is referenced by Recipe 5 as covered in
+  Recipe 8, but no recipe says it reloads the MAT and rebuilds the whole
+  figure (`change_sampling_level` in `callbacks/loading.py`).
+- The v0.11.0 selection EEG spectral-density plot is no longer in the app;
+  its `update-fft-store` is unused, as is `backup-sleep-scores-store`. Do not
+  claim the feature; the stores are cleanup candidates.
+
 ## Corrections needed in the existing paper
 
 - Replace SWS with NREM and document Wake/NREM/REM/MA accurately. Keyboard
@@ -265,6 +334,9 @@ behavior within their test scope, not scientific accuracy or human task speed.
 - Replace the ShortTimeFFT implementation claim with the current anchored
   FFT-based spectrogram, or simply say spectral analysis without naming the
   former implementation.
+- Replace "plotly-resampler keeps interaction responsive" with the split
+  described in contribution 2: the library decimates; the app's update
+  pipeline keeps navigation and annotation responsive.
 - Remove the claim that the public repository ships representative MAT
   recordings: private/local test data and checkpoints are excluded. Add a
   public reproducible example before claiming one is supplied.
@@ -272,16 +344,36 @@ behavior within their test scope, not scientific accuracy or human task speed.
   original; Excel export is offered separately only for complete scores.
 - Replace blanket competitor and physiological-validity claims with
   attributed, verified statements. Rule-based cleanup is a heuristic.
-- Do not include experimental Active/Quiet Wake or the pending full-path
-  video-association/clip-identity fix as stable-release features. The
-  original frozen-frame report is not established as resolved.
+- Do not include experimental Active/Quiet Wake, the removed selection PSD
+  plot, or the pending full-path video-association/clip-identity fix as
+  stable-release features. The original frozen-frame report is not
+  established as resolved.
 - Update the manuscript date when its revision is prepared; verify all
   author metadata. Preserve attribution and the approved funding text.
+
+## Second-pass changes (2026-10-07)
+
+- **Promoted** the relayout coalescer and patch/direct-restyle pipeline
+  (Recipes 7–8) from Support to Core (design). The first pass correctly
+  refused to sell plotly-resampler as ours but then under-credited the layer
+  the app built in its place; source confirms the stock update path is not
+  used.
+- **Added** NE as first-class evidence in the scorer, not only a display
+  channel and a limitation, with a required biology citation.
+- **Added** the JOSS build-vs-contribute requirement to State of the field.
+- **Reframed** Recipe 18 as the cheapest route to research-impact evidence
+  and proposed a concrete latency table.
+- **Expanded** Research impact with specific evidence to collect, and the AI
+  disclosure to cover both agents used.
+- **Recorded** cookbook gaps (sampling-level rebuild) and changelog drift
+  (removed selection PSD plot, unused stores).
 
 ## Next revision pass
 
 Rewrite `paper.md` around this layout; verify a short related-tool comparison
-from primary sources; select concrete use/impact evidence; provide a public
-example and current workflow figure; complete author metadata and AI
-disclosure; then render and review the JOSS PDF. The first pass should stand
-without usage-tracking material or unmeasured performance claims.
+from primary sources and write the build-vs-contribute paragraph; collect
+concrete use/impact evidence and decide whether to run the latency table;
+supply the NE/sleep biology citation; provide a public example and current
+workflow figure; complete author metadata and AI disclosure; then render and
+review the JOSS PDF. The first pass should stand without usage-tracking
+material or unmeasured performance claims.
