@@ -38,17 +38,20 @@ for reviewing and correcting these annotations at one-second resolution. It
 brings EEG, EMG, an EEG spectrogram, an optional fiber-photometry
 norepinephrine (NE) signal, and behavior-video clips of a selected interval
 into one shared scoring workflow. Users can label intervals manually or
-generate automatic proposals, then revise individual seconds or whole bouts
-while their explicit labels stay protected from later predictions. The
-default automatic scorer is a small, interpretable rule set that adapts to
-the user's labels on the current recording. Completed scores are saved back
+generate automatic scores, then revise individual seconds or whole bouts;
+labels a user has supplied are kept as-is in every automatic result. The
+default automatic scorer is a rule-based algorithm that adapts to
+expert-labeled examples: it treats the user's labels on the current
+recording as ground truth and adjusts its parameters to best match them.
+Completed scores are saved back
 to the recording and exported as bout tables with stage and transition
 statistics.
 
 # Statement of need
 
 `sleep_scoring` was developed for researchers studying how brain state
-regulates cerebrospinal-fluid transport during sleep, in Project 2 of the
+regulates cerebrospinal-fluid transport during sleep, in
+[Project 2](https://www.urmc.rochester.edu/research/u19/project-2) of the
 NIH BRAIN Initiative U19 program at the University of Rochester. That work
 relates sleep states to cortical NE dynamics, which oscillate during NREM
 sleep and shape sleep architecture [@kjaerby2022norepinephrine] and drive
@@ -58,7 +61,8 @@ two citations frame the program fairly, and whether either study's scoring
 used this application. -->
 Questions at this level depend on brief events, such as microarousals and
 state transitions, that span a few seconds. Scoring them requires reading
-the same short interval against several kinds of evidence, and correcting
+the same short interval against several physiological signals and the
+animal's behavior, and correcting
 boundaries, often across multi-hour recordings.
 
 Without an integrated tool, this review means moving among a signal viewer,
@@ -68,7 +72,8 @@ intended for experimenters scoring rodent EEG/EMG, particularly those with
 aligned NE photometry and behavior video.
 
 Its input contract is deliberately narrow. Recordings are MATLAB files with
-a documented field layout, produced by a companion preprocessing pipeline;
+a documented field layout, produced by a companion preprocessing pipeline,
+[`preprocess_sleep_data`](https://github.com/yzhaoinuw/preprocess_sleep_data);
 EEG and EMG share a sampling rate and the optional photometry signal carries
 its own. Other laboratories need a thin adapter to that layout; the
 application is not a general acquisition-format importer. One-second
@@ -78,7 +83,8 @@ that physiological boundaries or model estimates are accurate to one second.
 # State of the field
 
 Several open tools support rodent sleep scoring. AccuSleep and its Python
-successor AccuSleePy [@barger2019accusleep] combine a manual-labeling
+successor [AccuSleePy](https://github.com/zekebarger/AccuSleePy)
+[@barger2019accusleep] combine a manual-labeling
 interface with a neural-network classifier for EEG/EMG and configurable
 brain states. SPINDLE [@miladinovic2019spindle] provides end-to-end learned
 scoring across laboratories and species. Somnotate
@@ -94,9 +100,9 @@ not mention photometry or video. -->
 
 These tools center on electrophysiology and, for most, on classification.
 Our need was the inverse emphasis: a correction workspace in which NE
-photometry is scoring evidence rather than an extra trace, video checks are
-tied to the selected interval, and automatic proposals preserve explicit
-labels. Extending an existing tool would have meant changing its
+photometry informs scoring rather than being an extra trace, video checks
+are tied to the selected interval, and automatic scoring keeps user-supplied
+labels as-is. Extending an existing tool would have meant changing its
 central data model (a single label stream over EEG/EMG inputs) as well as
 its interaction layer. A focused application was the smaller change, and its
 interaction design is documented for reuse.
@@ -107,14 +113,21 @@ reasons a new application was built in 2023. -->
 
 # Software design
 
-The application is a Dash/Plotly interface [@plotly] hosted locally in a
-native `pywebview` window, so recordings open through native file dialogs by
-path, without browser uploads. Its design is organized around three tasks.
+The application is built with Dash and Plotly [@plotly], web technologies,
+but runs as a desktop program. Its interface is a web page rendered inside a
+native window (via `pywebview`) by the operating system's embedded web
+engine, WebView2 on Windows or WebKit on macOS, and talks to a server
+running on the same computer. No internet connection is needed: recordings
+open by path through native file dialogs and never leave the machine. The
+only network use is an optional update check and opt-in usage reporting. In
+what follows, "interface" means this embedded web page and its JavaScript,
+and "server" the local Python process. The design is organized around three
+tasks.
 
 **Inspecting and correcting at the needed scale.** EEG spectrogram with a
 theta/delta ratio, EEG, EMG, and NE share one time axis, and the score is
 drawn as an overlay on every signal row, so a boundary can be read against
-each kind of evidence. Users switch between navigation and annotation with
+each physiological signal. Users switch between navigation and annotation with
 one key. Selections can be a zoom-adaptive click, a dragged box, or a
 right-click that selects the whole contiguous bout under the cursor; when a
 drag reaches the viewport edge, the view pans automatically and newly
@@ -124,40 +137,51 @@ All selection forms feed one labeling step, keys `1`–`4` and `0` for clear.
 Long signals are decimated on demand by Plotly Resampler
 [@vanderdonckt2022plotlyresampler]. The application uses that library only
 to compute what to draw for a range, and owns how updates flow. The main
-tradeoff is to keep interaction state in the browser and full-resolution
-data on the local server. Gestures, panning, and labeling run in the
-browser. Navigation events are coalesced, so the server refreshes traces
+tradeoff is to keep interaction state in the interface and full-resolution
+data on the server. Gestures, panning, and labeling run as JavaScript in the
+interface. Navigation events are coalesced, so the server refreshes traces
 after a gesture is released or pauses rather than on every frame, and
 refreshes overtaken by newer navigation are discarded. Updates are applied as
 trace patches rather than figure rebuilds. During a selection drag, auto-pan
 instead refreshes newly revealed signal repeatedly through a dedicated
-endpoint outside the Dash callback graph. Applying a label repaints the overlay in the browser without a server
-round trip.
+endpoint outside the Dash callback graph. Applying a label repaints the
+overlay in the interface without a server round trip.
 
-**Using predictions while retaining human decisions.** The application keeps
-a sparse layer of explicit user labels separate from the displayed scores.
-When a prediction run is confirmed, the app snapshots that layer and overlays
-it on the backend's output, so regenerating predictions preserves the labels
-supplied to that run. The tradeoff is provenance: labels
-already stored in an opened file seed the layer and are protected too, and
-users clear intervals they want regenerated.
+This interaction layer does not depend on the sleep domain. We extracted it
+into a separate, runnable template [@timeseries_app_cookbook] that applies
+the same navigation, selection, and labeling design to synthetic
+multichannel data; adapting it to a new signal type centers on one
+data-loading function and one label configuration.
 
-The default backend is a deliberately small rule set that needs no GPU or
-deep-learning runtime. A normalized 1–7 Hz EEG spectral feature identifies
-Wake, with rules for minimum bout length, and candidate bouts become REM
-when NE falls below recording-wide and within-bout percentile thresholds.
-Without usable NE, it identifies only Wake and NREM. When the user has
-labeled a few Wake, NREM, or REM seconds, the app calibrates the five
-exposed controls for this recording by a small deterministic search that
-minimizes disagreement with those examples and breaks ties toward the
-defaults; the tuned values are displayed. We chose recording-specific,
-inspectable calibration over persistent training: it is fast and does not
-change the next recording's defaults, and agreement on supplied examples is
-not a claim of held-out accuracy. The externally developed sDREAMER model
+**Automatic scoring that keeps and learns from expert labels.** The
+application keeps the labels a user has supplied in a sparse layer, separate
+from the displayed scores. When an automatic scoring run is confirmed, the
+app snapshots this layer and places it over the backend's output, so labels
+supplied to that run are kept as-is, whichever backend is used. The tradeoff
+is provenance: scores already saved in an opened file also enter the layer
+and are treated as user labels, even if they were earlier automatic results;
+users clear intervals they want rescored.
+
+The default backend is a rule-based algorithm that adapts to expert-labeled
+examples, and needs no GPU or deep-learning runtime. Its rules identify
+Wake from a normalized 1–7 Hz EEG spectral feature with minimum bout
+lengths, and relabel candidate bouts as REM when NE falls below
+recording-wide and within-bout percentile thresholds; without usable NE, it
+identifies only Wake and NREM. Before each run, the algorithm treats the
+user's Wake, NREM, and REM labels on the current recording, however few
+(one is enough), as ground truth and automatically adjusts its five
+parameters, searching a fixed set of candidate values, to best match those
+examples; ties favor the
+defaults, and the chosen values are displayed. MA labels are kept but not
+used for fitting. We chose this recording-specific, inspectable adaptation
+over persistent model training: it is fast, does not change the defaults for
+the next recording, and matching the supplied examples is not a claim of
+held-out accuracy. The externally developed sDREAMER model
 [@chen2023sdreamer] can be selected instead, with optional PyTorch
-[@paszke2019pytorch] dependencies.
+[@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
+user labels in the same way.
 
-**Checking evidence and completing a recording.** For a selected interval of
+**Checking behavior and completing a recording.** For a selected interval of
 up to five minutes, the application cuts the matching clip from the behavior
 video with ffmpeg, validates the recording-to-video offset, and plays it in
 the same window. One-step undo and filesystem-backed recovery protect
@@ -185,7 +209,7 @@ Manual timing tests on a 4.25-hour recording show the interaction design is
 practical on long data. On a Windows laptop, optimizing the update pipeline
 reduced the time from the end of a navigation gesture to the refreshed traces
 from about 935 ms to about 300–370 ms; server work was 14–17 ms of that, and
-the remainder is browser redraw. On an Apple M4 laptop, refreshes after drag
+the remainder is plot redrawing in the interface. On an Apple M4 laptop, refreshes after drag
 panning took about 190–300 ms, and live auto-pan updates during a selection
 about 260–310 ms. These are local manual measurements rather than a
 controlled benchmark.

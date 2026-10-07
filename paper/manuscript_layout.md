@@ -318,14 +318,28 @@ any revised bibliographic claims.
 
 ## Recommended figure
 
-One compact, annotated workflow figure is more useful than a feature gallery:
-show synchronized signals and score overlays; mark a whole-bout or
-cross-viewport selection; show its aligned video check; and indicate manual
-labels retained after prediction. Use a redistributable recording or an
-explicitly identified synthetic example. Capture a current application
-session before finalizing the caption. A still image cannot demonstrate
-latency or prove accuracy; link the existing demos as supplementary usage
-material where appropriate.
+The maintainer will capture the screenshot. A still image cannot show
+navigation speed, so it should show what persists on screen; one annotated
+screenshot, at a zoom of roughly 2–5 minutes so one-second detail and bout
+structure are both visible:
+
+- **All four rows:** spectrogram with theta/delta, EEG, EMG, and NE, with the
+  score overlay across every row in all four stage colors and the legend.
+- **A mix of label origins:** a predicted stretch plus a few manually
+  corrected bouts, ideally including an MA and a REM bout whose NE dip is
+  visible, illustrating NE-informed scoring.
+- **An active selection:** preferably a right-click whole-bout selection,
+  with its highlighted box and the selection message showing the range.
+- **Video check:** the clip window open for that selection, either as an
+  inset or as a second panel (b).
+- **Optional:** the tuned-parameter message after an adaptive prediction run,
+  which makes the adaptive scorer visible.
+
+Callouts (letters or numbered arrows) should map to the caption: shared time
+axis, score overlay, selection, video, tuned values. Use a recording the lab
+is willing to publish, export at print resolution, and keep the window size
+modest so the labels are legible at JOSS column width. Link the demo videos
+in the README for the dynamic behavior.
 
 ## Release-to-cookbook audit
 
@@ -434,6 +448,14 @@ remaining gaps, none manuscript-blocking:
   disclosure to cover both agents used.
 - **Recorded** cookbook gaps (sampling-level rebuild) and changelog drift
   (removed selection PSD plot, unused stores).
+- **Applied maintainer review (2026-10-07):** desktop/web bridge paragraph
+  (embedded web engine, local server, no internet needed); "evidence" replaced
+  with physiological signals or user labels; one consistent definition of the
+  adaptive scorer (rule-based, treats user labels as ground truth, adjusts
+  parameters to match) kept separate from label preservation across backends;
+  hyperlinks for the Project 2 page, preprocessing pipeline, and AccuSleePy;
+  and a short paragraph citing the domain-neutral template as evidence that
+  the interaction layer generalizes. The maintainer will supply the figure.
 - **Applied Codex feedback:** qualified refresh wording so navigation is
   coalesced while auto-pan refreshes during the drag; restated label
   preservation as the confirmation snapshot; replaced the

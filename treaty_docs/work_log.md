@@ -50,6 +50,12 @@ search older entries by date anchor rather than reading every archive.
 - AI disclosure rewritten to JOSS's policy (tools/versions, where applied,
   scope, human verification). The maintainer confirmed web ChatGPT and Claude
   use from 2023 to 2025 (versions unrecorded) and no Grok.
+- Maintainer review applied to `paper.md` (~1,594 words): desktop/web bridge,
+  "evidence" terminology, one consistent adaptive-scorer definition, links,
+  and generalizability framed as the extracted `timeseries_app_cookbook`
+  template (Zenodo concept DOI 10.5281/zenodo.21763327), not as a claim that
+  `sleep_scoring` itself accepts arbitrary time series. The maintainer will
+  capture the figure; its content checklist is in the layout.
 - `paper.md` rewritten to the current JOSS sections (~1,285 words before
   Acknowledgments). Latency figures come from
   `ui_response_time_optimization_progress.txt`; the measured pipeline matches
