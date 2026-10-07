@@ -13,6 +13,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
+- JOSS revision is active on `publication`, synchronized locally with main
+  through v0.17.4. Review `paper/manuscript_layout.md`, then rewrite `paper.md`
+  around user-facing inspection/correction and the app's own contributions.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
@@ -126,11 +129,19 @@ setup and need no repository DOI metadata changes, but each published release
 still requires Zenodo record verification. Zenodo record 21748495 also carries
 the NIH grant `U19NS128613`.
 
-### JOSS Paper (under construction, deferred)
+### JOSS Paper (active revision)
 
-The draft in `paper/` is not submission-ready and is not being actively worked.
-See `paper/README.md` for its status. Open items:
+The draft in `paper/` is not submission-ready. The first-pass cookbook/release
+audit and feature assessment are in `paper/manuscript_layout.md`; the paper
+body still awaits revision. See `paper/README.md` for its status. Open items:
 
+- Apply the proposed current JOSS structure: Summary, Statement of need,
+  State of the field, Software design, Research impact statement, AI usage
+  disclosure, Acknowledgments, and References. Prioritize selection, aligned
+  video, adaptive scoring, and preservation of user labels; credit upstream
+  resampling/models and omit usage reporting from the first feature pass.
+- Correct stale stage/shortcut, undo, video-player, spectral implementation,
+  backend, and public-example claims identified in the layout assessment.
 - Fill the remaining `paper.md` TODOs: co-authors, affiliations (with their
   ORCIDs), and the Acknowledgments (PI, data/model contributors, funding/grant
   numbers).

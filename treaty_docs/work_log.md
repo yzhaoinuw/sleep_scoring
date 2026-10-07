@@ -17,6 +17,44 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-06
 
+### Publication branch and JOSS first-pass assessment (Codex GPT-6; effort/tokens not reported)
+
+- With a clean checkout, fetched origin, created the local tracking
+  `publication` branch from `origin/publication` (`d336ff7`), and fast-forwarded
+  it to current `origin/main` (`4353b76`). Local main already matched that ref.
+  Initially kept the synchronization local. The maintainer subsequently
+  requested committing and pushing the assessment on `publication`; no PR.
+- The manuscript will lead with precise review/correction, whole-bout and
+  cross-viewport selection, selection-linked video, and adaptive predictions
+  that preserve user evidence. Credit Plotly Resampler and upstream sDREAMER;
+  defer optional usage tracking from the first feature narrative.
+- The cookbook audit found stale positional overlay lookup, DashPlayer playback,
+  basename recovery advice, and spectral implementation descriptions. Recent
+  backend and update behavior also needed explicit recipes. Preserve remaining
+  limits: NE is needed for statistical REM detection, saved-score provenance
+  is not distinguished, video basename collisions remain pending, and the
+  original frozen-frame report is not established as fixed.
+- Current JOSS guidance requires State of the field, Software design, Research
+  impact statement, and AI usage disclosure in addition to the older draft's
+  sections. `paper/manuscript_layout.md` records priorities for every recipe,
+  release coverage, claim corrections, and the proposed next rewrite.
+  `paper.md` itself remains the unrevised draft; authorship, impact evidence,
+  comparisons, public example/figure, and final author review remain open.
+- Verification:
+  - `Get-Date -Format yyyy-MM-dd`: 2026-10-06.
+  - `git fetch origin`, `git switch --track origin/publication`, and
+    `git merge --ff-only origin/main` succeeded; targeted local/remote ref
+    inspection confirmed local publication/main and origin/main at `4353b76`.
+  - Conda `sleep_scoring_dash3.0`: focused pytest across app helpers, FFT,
+    postprocessing, score layers, MAT utilities, multi-session, and launcher
+    tests passed (116 tests; one existing Flask-Caching deprecation warning).
+  - `npm.cmd test -- --runInBand` in `tests/js`: all 51 tests passed.
+  - One-off documentation check: 41 local links resolve; cookbook recipes
+    are sequential 1–23 and the manuscript assessment includes all 23.
+    `git diff --check` passed.
+  - Documentation-only edits; no new package gate, accuracy benchmark,
+    manuscript render, or interactive desktop reproduction was performed.
+
 ### v0.17.4 partial-release delivery (Codex GPT-6; effort/tokens not reported)
 
 - The maintainer tested multiple MAT/AVI pairs, varied snippet timing and

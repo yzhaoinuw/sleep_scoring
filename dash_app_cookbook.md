@@ -119,6 +119,11 @@ The three layers, top to bottom:
 
 21. [Adaptive statistical-model calibration](#recipe-21--adaptive-statistical-model-calibration)
 
+**Prediction and distribution:**
+
+22. [Prediction backends and correction workflow](#recipe-22--prediction-backends-and-correction-workflow)
+23. [Compatible startup updates and preserved settings](#recipe-23--compatible-startup-updates-and-preserved-settings)
+
 **Reference:**
 
 - [Cross-cutting patterns & conventions](#cross-cutting-patterns)
@@ -255,7 +260,8 @@ history, the resampler figure) that survives across callbacks and even across an
        "CACHE_DEFAULT_TIMEOUT": 20*24*3600,    # ~20 days, so state persists between runs
    })
    ```
-   Keys used: `filepath`, `filename`, `sleep_scores_history` (a `deque(maxlen=2)`; Recipe 15),
+   Keys used: `filepath`, `filename`, `sleep_scores_history` and `user_sleep_scores_history`
+   (paired `deque(maxlen=2)` values; Recipe 15),
    `recent_files_with_video`, `file_video_record`. `initialize_cache` resets these when a new
    file is opened and clears stale temp `.mat`/`.xlsx` files. The file *currently open in this
    process* is tracked separately in `_current_filepath`; a persistent cache value is recovery
@@ -342,6 +348,11 @@ clientside selection math doesn't need the whole file.
   `result[0]` on the macOS case grabs the first **character**, not the first path. Both
   helpers handle this explicitly — copy that normalization, don't simplify it.
 - Guard the button callbacks against the initial `n_clicks is None` fire.
+- The reference MAT contract requires `eeg`, `emg`, and `eeg_frequency`; EEG and EMG share
+  that rate. Optional NE uses `ne_frequency` or its `fp_frequency` alias through
+  `app_src/mat_utils.py::get_ne_frequency`. Saving retains the original metadata field
+  names rather than rewriting the alias. The load callback checks signal presence, not
+  every shape/rate constraint; adapters must follow the [README input contract](README.md#input-files).
 
 ---
 
@@ -365,12 +376,19 @@ fast on millions of samples, and carries overlay(s) you can annotate.
   what gives a single crosshair and synchronized pan/zoom across every row
   (`hovermode="x unified"`). Every clientside script keys off `xaxis4`.
 - The **annotation layer is a heatmap**. `sleep_scores` (one integer class per second) is
-  rendered as a `go.Heatmap` and added as the **last three traces** (once per signal row).
-  Because it's added last, JS can always find it at `figure.data.length - 1/-2/-3`
-  (Recipe 14). Class→color mapping is a discrete `colorscale`.
+  rendered as a `go.Heatmap` once per signal row, tagged with
+  `meta={"role": "sleep_scores"}`. Clientside `sleepScoringScoreTraceIndices` finds these
+  overlays by role and trace type, independently of trace order or display name
+  (Recipe 14). The spectrogram is also a heatmap and must not be mistaken for scores.
+  `STAGE_COLORS` sets both the discrete overlay colorscale and matching legend colors in
+  Wake, NREM, REM, MA order; older configs without it use `DEFAULT_STAGE_COLORS`.
 - The spectrogram + theta/delta ratio (a dual-y-axis top row) come from `get_fft_plots.py`
-  (`scipy` STFT, Gaussian-smoothed, clipped to 0–30 Hz). This is domain-specific; treat it as
-  "an example of a derived analytic panel."
+  (centered Hamming-window FFT power spectra, Gaussian-smoothed, restricted to 0–30 Hz).
+  Spectrogram centers are anchored to exact time intervals and independently mapped to
+  the nearest EEG sample; fractional sampling rates therefore do not accumulate timing
+  drift. Raw EEG/EMG times use `start_time + np.arange(size) / eeg_frequency`.
+  `SPECTROGRAM_COLORSCALE`, `THETA_DELTA_RATIO_LINE_COLOR`, and
+  `THETA_DELTA_RATIO_LINE_OPACITY` customize this analytic panel.
 - `dragmode="pan"` is the default (navigate); `"select"` is annotate (Recipe 11).
   `modebar_remove=["lasso2d","zoom","autoScale"]` strips modes that would conflict with the
   custom interactions.
@@ -388,7 +406,7 @@ three traces, which is cheap.
   `update_traces(xaxis="x<last>")` so navigation stays synchronized; note which axis id ends
   up shared and update the JS references if it isn't `x4`.
 - Replace the heatmap overlay's class set/colors for your labels (2 classes? 6 classes?). Keep
-  it as the **last N traces** so the index math stays trivial, or centralize the index lookup.
+  its semantic role tag and use the centralized lookup when reading or patching labels.
 - Drop the spectrogram row if your domain has no analog; add your own derived panel the same
   way.
 - Set `default_n_shown_samples` for your latency/detail tradeoff; expose it via a dropdown
@@ -719,14 +737,19 @@ one `[start, end]` store means the labeling step doesn't care how the region was
 
 **Adapt.**
 - Keep the convergence on one selection store. Add/remove selection methods freely.
-- The bout-walk logic assumes the label array is the last heatmap trace's `z[0]`; keep that
-  invariant or centralize the lookup.
+- The bout-walk reads `z[0]` from the first role-tagged score overlay using
+  `sleepScoringScoreTraceIndices`; every score overlay must carry the same label array.
 
 **Gotchas.**
 - Rounding to integer seconds has edge cases when `start_round === end_round`; the code expands
   to a full second deliberately — preserve that or you get zero-width selections.
 - All three are gated on `dragmode === "select"` (or clear on pan) so they don't fire during
   navigation.
+- Secondary-button `mousedown` is intercepted in capture phase before Plotly can emit a
+  competing `plotly_click` and overwrite the whole-bout selection with a narrow strip.
+  Handle macOS Ctrl-click too. Use `stopPropagation`, not `preventDefault`, on that press:
+  cancelling it can suppress WebKit's later `contextmenu` event. The context-menu handler
+  itself prevents the native menu. This fixes the intermittent selection overwrite.
 
 ---
 
@@ -806,7 +829,9 @@ serverside `update_sleep_scores_history` in `app_src/callbacks/saving.py`; the s
    `[start, end)`, and puts the result in `updated-sleep-scores-store`. It updates the sparse
    user-label array only in that selected interval, then clears the selection.
 2. `update_sleep_scores` fires on that store: it patches the `z` of **all three** heatmap
-   traces (`num_traces - 1/-2/-3`) to the new array and clears selection shapes.
+   score overlays found by `sleepScoringScoreTraceIndices` to the new array and clears
+   selection shapes. Keys `1/2/3/4` map to stored Wake/NREM/REM/MA codes `0/1/2/3`;
+   key `0` clears rather than assigning Wake.
 
 Separately, the serverside `update_sleep_scores_history` records both the displayed array and
 the sparse user-label array in lockstep if either changed (`np.array_equal(..., equal_nan=True)`),
@@ -820,14 +845,13 @@ undo automatic.
 
 **Adapt.**
 - Map your keys → class integers. Keep the label array as the heatmap `z`.
-- If you have one overlay row instead of three, patch one trace; if N, patch N. Consider a
-  helper that returns the overlay trace indices instead of hardcoding offsets.
+- If you have one overlay row instead of three, tag and patch one trace; if N, tag and patch N.
 
 **Gotchas.**
 - `[start, end)` is half-open; the loop writes `i` from `start` to `end-1`. Match your
   selection math to this or you'll be off by one second.
-- The overlay index math (`length - 1/-2/-3`) depends on the heatmaps being the last traces
-  (Recipe 5). If you add traces after them, this breaks silently.
+- Preserve `meta.role="sleep_scores"` on every score overlay (Recipe 5). Missing tags return
+  no update; unrelated heatmaps must stay untouched even when traces are renamed/reordered.
 
 ---
 
@@ -858,8 +882,9 @@ persistence turns the same structure into crash recovery for free.
 **Adapt.**
 - Want multi-level undo? Raise `maxlen` and make `undo` walk back one step at a time. Weigh
   memory (each entry is a full label array).
-- The salvage-on-reopen behavior is keyed on filename equality; keep that check if you adopt
-  it.
+- Salvage-on-reopen uses the normalized absolute MAT path, not its basename. Files named
+  alike in different folders must not share annotations. Recovery also requires reopening
+  in the same window slot with its cache still available; it is not a permanent backup.
 
 **Gotchas.**
 - NaN handling again: history arrays round-trip through the cache, so comparisons use
@@ -885,6 +910,13 @@ copies it to the user's chosen path. If scoring is complete (no unscored segment
 builds a bout table + stats and offers a second Save dialog for an `.xlsx`. A one-shot
 `dcc.Interval` clears the status message after a few seconds.
 
+Incomplete saves remain allowed. `get_first_unscored_segment` reports the first gap's
+start, end, and duration and explains why the spreadsheet is withheld; that message is
+returned even if the MAT dialog is cancelled. Complete exports contain `Sleep_bouts`
+and `Sleep_stats`, including manually labelled MA in bout durations, counts, time
+percentages, and transitions. The v0.16.8 fix made all four stages explicit so MA is
+not dropped; existing scores can be reopened and saved to regenerate a corrected workbook.
+
 **Adapt.** Swap the format writer and the derived-export logic. Keep the "temp file then copy
 to dialog path" pattern (it decouples computation from the user's save location and survives a
 cancelled dialog).
@@ -903,20 +935,33 @@ Recipe 3 (remember media per file).
 
 **Source.** `app_src/callbacks/video.py`: `prepare_video`, `choose_video`, `make_clip`,
 `show_clip`;
-`app_src/make_mp4.py`; a `dbc.Modal` with `dash_player`.
+`app_src/make_mp4.py`; a `dbc.Modal` with native Dash `html.Video`.
 
-**Mechanism.** The selection range + a `video_start_time` offset define a clip; `make_mp4.py`
-cuts it with the bundled ffmpeg into a per-window slot subfolder of `assets/videos/`, and
-`dash_player.DashPlayer` plays it in a modal. The app remembers recently used video paths per
-file in the cache (`recent_files_with_video`, `file_video_record`) so it doesn't re-ask.
+**Mechanism.** A selected interval of 1–300 seconds enables Check Video. The selection
+indices + a `video_start_time` offset define video time; `coerce_video_start_time` defaults
+invalid offsets to zero. `get_video_duration` and `validate_clip_range` reject ranges
+before/after the video with actionable messages, clamping only boundary errors within
+0.05 s. `make_mp4.py` cuts an AVI/MP4 source with bundled ffmpeg into a per-window slot
+subfolder of `assets/videos/`. `html.Video(controls=True, preload="auto")` plays it in a
+modal with native seek controls and no DashPlayer progress-polling intervals.
+The app remembers recently used video paths in the cache
+(`recent_files_with_video`, `file_video_record`) so it doesn't re-ask.
 Recipe 19 explains why both the cache and clip directory are namespaced by window slot.
+
+Before producing a new clip, cleanup tries to unlink older MP4s. An `OSError` (for example,
+a file still being served or played on Windows) leaves that clip for a later cleanup and
+does not block extraction of the new one. v0.17.4 replaces the polling player and makes
+cleanup nonfatal; the original reporter's frozen-frame symptom remains unconfirmed.
 
 **Adapt.** Any "selected region → derived artifact in a side panel" (a zoom-in figure, an audio
 snippet, a detail table) follows this shape: read `box-select-store`, produce the artifact into
 `assets/`, show it in a modal/panel.
 
 **Gotchas.** Serve derived media from the Dash `assets/` folder (it's auto-served at
-`/assets/...`). Clean up old clips to avoid unbounded disk use (the app unlinks prior `.mp4`s).
+`/assets/...`). Retry cleanup on later selections rather than making playback locks fatal.
+Video associations still use the MAT basename and clip names use video basename + range;
+identical names in different folders can collide. Full-path association and collision-proof
+clip identity are pending work, not shipped guarantees.
 
 ---
 
@@ -1155,6 +1200,9 @@ user-visible effect.
 
 - Do not initialize the user layer from the visible prediction during an edit:
   that would silently convert all model output into locked manual labels.
+- Existing MAT scores seed the evidence layer without provenance tracking. After reopening
+  a saved prediction, its finite scores are protected too; clear ranges that should be
+  regenerated (Recipe 22).
 - A clear is an explicit `NaN`, not a fourth calibration class. A later model
   run may fill that cleared interval again unless the user labels it.
 - Calibration evaluates the raw candidate prediction before the user overlay;
@@ -1163,6 +1211,94 @@ user-visible effect.
 - Do not share the prediction result component with the score-refresh callback:
   painting the new heatmap is asynchronous and would otherwise erase the
   tuned-settings message in a last-writer-wins race.
+
+---
+
+## Recipe 22 — Prediction backends and correction workflow
+
+**Goal.** Offer automatic scoring in the same view used for manual review, without requiring
+the user to install a deep-learning runtime for the default scoring path.
+
+**Depends on.** Recipes 4, 5, 14, 15, and 21 for recording-specific calibration.
+
+**Source.** `app_src/inference.py`; `app_src/callbacks/prediction.py`;
+`app_src/run_inference_stats_model.py`, `run_inference_sdreamer.py`, `run_inference_ne.py`;
+`app_src/preprocessing.py`; `app_src/postprocessing.py`; `app_src/config.py`.
+
+**Mechanism.**
+
+- `SLEEP_SCORING_MODEL="stats_model"` is the default. It uses a normalized 1–7 Hz EEG
+  spectral feature to identify Wake, merges short relative gaps, and removes short Wake
+  bouts. With valid NE, duration and low-NE percentile rules can relabel candidate Wake
+  bouts as REM. Without valid NE, this backend does not identify REM; manual REM scoring
+  or an appropriate alternative backend is needed. It needs neither Torch nor checkpoints.
+- Selecting `"sdreamer"` routes to the EEG/EMG model or the NE-aware variant based on
+  NE availability. This is an externally developed model integration. It needs separately
+  supplied checkpoints and optional Torch dependencies (the Windows `torch.zip` add-on).
+  Its input preparation resamples EEG/EMG to 512 Hz and constructs 10-sample NE windows
+  for one-second epochs; NE is expected to have been prepared at 10 Hz, not automatically
+  resampled from an arbitrary rate by this path.
+- The confirmation callback paints progress before running inference in the next callback.
+  `POSTPROCESS` applies optional bout/REM cleanup to sDREAMER output, not to the statistical
+  backend, which already contains its own rules.
+- Predictions update the score overlays through `updated-sleep-scores-store` rather than
+  rebuilding the signal figure. Finite user labels are overlaid for either backend; the
+  separate sparse layer enables statistical calibration (Recipe 21). Ordinary one-step
+  undo and Save remain available in the same view.
+
+**Why it's built this way.** Separate prediction from interaction so the same correction
+workflow works for manual-only users, a lightweight rule-based scorer, and an optional
+external model. A prediction is a proposal the scorer can inspect and revise.
+
+**Adapt.** Add a backend behind `run_inference`; return one label per epoch with the same
+class mapping. Preserve explicit user evidence independently of generated output.
+
+**Gotchas.** MAT scores seed the user layer without provenance metadata: reopening a fully
+predicted saved file makes those scores protected evidence too. Clear selected intervals
+with `0` if they should be regenerated. Calibration agreement on supplied examples is not
+held-out accuracy, and NE thresholds are recording-dependent heuristics.
+
+---
+
+## Recipe 23 — Compatible startup updates and preserved settings
+
+**Goal.** Deliver compatible fixes to packaged Windows users without repeating a full
+download or discarding their supported display/model settings.
+
+**Depends on.** Recipe 1 (pre-import startup), Recipe 19 (exclude other app windows).
+
+**Source.** `run_desktop_app.py::run_startup_update_if_enabled`,
+`format_startup_update_console_message`, `claim_peer_slots`; shared external
+`desktop_app_source_updater` dependency; `packaging/windows/make_source_update_asset.ps1`,
+`lightweight_release.py`, and [packaging guidance](packaging/windows/README.md).
+
+**Mechanism.**
+
+- Eligible packaged launches check the latest stable release before importing `app_src`,
+  normally at most once per day. Source runs skip the check unless test overrides are set.
+  Slot 0 must hold all peer-port guards throughout patching; other running/starting windows
+  prevent updating their shared app code. Errors print a message and allow normal startup.
+- Compatible assets contain only `app_src/`, use the `sleep_scoring_app_update_` prefix,
+  and are validated by the shared updater before application. Source-only updates cannot
+  replace dependencies, checkpoints, the frozen launcher, or runtime layout.
+- Schema-2 config updates use a new authoritative template while retaining approved literal
+  settings such as stage colors, display choices, backend selection, the five statistical
+  controls, and reporting opt-in. `WINDOW_CONFIG` merges recursively. Arbitrary source edits
+  are not promised preservation; invalid editable values block application before mutation.
+- When a newer release has only a full package, the launcher prints its version and a
+  Releases download link rather than claiming no update or treating that as a failed patch.
+  v0.17.1 is the current full-package base for v0.17.2–v0.17.4 source updates; v0.17.0 users
+  need the full base once to receive the newer frozen startup behavior.
+
+**Why it's built this way.** Keep routine fixes small while respecting the frozen runtime
+boundary and user settings. Update failure must not keep an experimenter from scoring.
+
+**Adapt.** Configure the shared updater for your app/version/payload contract, define a
+reviewed settings allowlist, and validate updates against actual supported installed bases.
+
+**Gotchas.** Preserve settings through the updater contract rather than copying an old
+config wholesale. Run runtime-changing releases through the full-package path. Automatic
+updating is conditional on compatibility, network access, and exclusive startup access.
 
 ---
 
@@ -1239,8 +1375,8 @@ A quick-reference of the traps, collected:
   `== None` handling (Recipe 3).
 - **Heatmaps need 2-D `z`** (`(1, N)`, not `(N,)`) (Recipe 5).
 - **Label array must be padded to the exact duration** or the overlay misaligns (Recipe 5).
-- **Overlay index math** (`figure.data.length - 1/-2/-3`) assumes heatmaps are the last traces
-  (Recipes 5, 14). Don't append traces after them.
+- **Semantic overlay identity**: score heatmaps require `meta.role="sleep_scores"`;
+  discover them by role/type, never by trace order or name (Recipes 5, 12, 14).
 - **Half-open `[start, end)`** annotation range — off-by-one if your selection math disagrees
   (Recipe 14).
 - **Coalescer self-suppression** must wrap every custom drag/auto-pan, or relayouts fight
@@ -1288,6 +1424,8 @@ A quick-reference of the traps, collected:
 | Navigation profiler | `app_src/assets/graphNavigationProfiler.js` |
 | Unsaved-work exit guard | `app_src/assets/closeWindow.js` |
 | Model inference (domain) | `app_src/inference.py`, `run_inference_*.py` |
+| Sparse labels and prediction overlay | `app_src/sleep_score_layers.py`, `app_src/callbacks/prediction.py` |
+| Startup updates / supported settings | `run_desktop_app.py`, `packaging/windows/README.md`, shared `desktop_app_source_updater` dependency |
 | Postprocessing / export | `app_src/postprocessing.py` |
 | Video clips | `app_src/make_mp4.py` |
 

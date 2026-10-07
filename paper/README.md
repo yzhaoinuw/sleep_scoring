@@ -1,10 +1,12 @@
 # JOSS Paper Draft — Under Construction
 
-**Status: draft, not submission-ready, not actively being worked.**
+**Status: active revision, not submission-ready.**
 
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission.
-It is deprioritized behind getting a Zenodo archive DOI for the software
-itself. Nothing here should be treated as a citable or finished artifact.
+The first-pass release audit and feature/layout assessment are in
+[`manuscript_layout.md`](manuscript_layout.md), reviewed against v0.17.4.
+`paper.md` still contains outdated descriptions and awaits the corresponding
+rewrite. Nothing here should be treated as a citable or finished artifact.
 
 To cite the software today, use `CITATION.cff` at the repository root, or
 GitHub's "Cite this repository" button. That file is current and validated;
@@ -15,6 +17,8 @@ this draft is not.
 - `paper.md` — the paper body (summary, statement of need, key features,
   implementation).
 - `paper.bib` — the bibliography.
+- `manuscript_layout.md` — feature priorities, contribution boundaries, release
+  audit, current JOSS structure, and the next manuscript revision plan.
 
 ## What is done
 
@@ -40,7 +44,9 @@ this draft is not.
 - `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack one, so
   this may be acceptable as is, but it is the one entry Crossref cannot confirm.
 - Every claim in the paper still needs checking against the shipped app.
+- Apply the corrections and current required sections in `manuscript_layout.md`;
+  prioritize user-facing review/correction features and attribute upstream work.
 
 See the "Citation And Publication" section of
 [`treaty_docs/next_steps.md`](../treaty_docs/next_steps.md) for the full checklist
-and the Zenodo steps that come first.
+and the software archive status.
