@@ -27,10 +27,20 @@ search older entries by date anchor rather than reading every archive.
   in the statistical backend, not only a display channel.
 - Maintainer decisions: Project 2 of the Rochester U19
   (urmc.rochester.edu/research/u19/project-2) researchers are the main users,
-  for about four years (git history begins June 2023; flagged). The opt-in
+  since 2023 (git history begins June 2023; the maintainer confirmed a
+  little over three years, not four). The opt-in
   usage counter is recent and undercounts, so total-hours evidence will come
   from asking users. Cite Kjaerby et al. 2022, same research team, pending
   their confirmation. Title option 1 for now; the software name is open.
+- AI-use audit for the JOSS disclosure, from all work logs plus git
+  trailers: no AI record from June 2023 through 2025; first Claude
+  co-authored commit 2026-01-29 (Opus 4.5, test/CI setup); Codex from
+  2026-04 (GPT-5, later GPT-6); Claude Opus 4.8, Fable 5, Opus 5, and
+  Opus 5.5 from 2026-06. No Grok trace. Work-log "ChatGPT" mentions are an
+  unmerged experimental ChatGPT scoring backend (`codex/chatgpt`), not dev
+  assistance. Paper drafts: unlabeled 2026-06-02 draft, then Claude
+  2026-06 to 2026-08 and 2026-10-07, Codex layout 2026-10-06, ChatGPT outline
+  review 2026-10-07.
 - `paper.md` rewritten to the current JOSS sections (~1,285 words before
   Acknowledgments). Latency figures come from
   `ui_response_time_optimization_progress.txt`; the measured pipeline matches

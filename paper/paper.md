@@ -168,13 +168,12 @@ compatible updates that preserve supported settings.
 # Research impact statement
 
 Researchers in Project 2 of the University of Rochester U19 program have been
-the application's main users for about four years, using it to score and
-correct their rodent EEG/EMG/NE recordings.
-<!-- TODO(authors): git history begins June 2023; confirm "about four
-years". Add the users' rough estimate of total recording hours scored. The
-opt-in usage counter (README badge) is recent and covers only opted-in
-copies, so it undercounts total use. Name studies, preprints, or datasets
-scored with the app once confirmed. -->
+the application's main users since 2023, using it to score and correct their
+rodent EEG/EMG/NE recordings.
+<!-- TODO(authors): add the users' rough estimate of total recording hours
+scored. The opt-in usage counter (README badge) is recent and covers only
+opted-in copies, so it undercounts total use. Name studies, preprints, or
+datasets scored with the app once confirmed. -->
 It integrates with a companion preprocessing pipeline that converts raw
 acquisition output into its input format, and the repository provides
 packaged Windows releases, macOS source installation, documentation, tests,
@@ -194,12 +193,19 @@ was reverted). Consider rerunning on the current release before submission. -->
 
 # AI usage disclosure
 
-Generative AI coding agents (OpenAI Codex and Anthropic Claude Code) assisted
-with software development, tests, documentation, release audits, and drafting
-of this manuscript, as recorded in the repository's work log. The authors
-reviewed and tested the code changes and reviewed every manuscript claim.
-<!-- TODO(authors): confirm the scope, and that author review is complete,
-before submission. -->
+The application was developed without generative AI from 2023 through 2025.
+Since early 2026, AI coding agents have assisted with development, tests,
+documentation, and release work: Anthropic's Claude (Claude Code; Opus and
+Fable models) and OpenAI's GPT-5 and GPT-6 models (through Codex and
+ChatGPT). Agent sessions are recorded in the repository's work log, and
+changes were reviewed and tested by the maintainer before release. Claude and
+Codex also helped plan and draft this manuscript, and ChatGPT reviewed its
+outline. The authors verified every claim against the software and cited
+sources.
+<!-- TODO(authors): confirm no AI assistance before 2026 (the first
+AI co-authored commit is 2026-01-29, and work-log agent records begin
+2026-04); confirm Grok was never used (no trace in the work logs or git
+history); confirm author review is complete before submission. -->
 
 # Acknowledgments
 

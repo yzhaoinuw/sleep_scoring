@@ -137,9 +137,9 @@ The draft in `paper/` is not submission-ready. `paper.md` was rewritten on
 author confirmation. See `paper/README.md` for its status. Open items:
 
 - Resolve the inline `TODO`s: software name, Kjaerby/Hauglund framing and
-  whether those studies used the app, "about four years" of use (git history
-  begins June 2023), users' total-hours estimate, the build-vs-contribute
-  rationale, competitor characterizations, and the AI-disclosure scope.
+  whether those studies used the app, users' total-hours estimate, the build-vs-contribute
+  rationale, competitor characterizations, and the AI-disclosure scope (no AI before
+  2026? Grok never used?).
 - Decide whether to rerun the latency measurements in
   `ui_response_time_optimization_progress.txt` on the current release.
 - Add the workflow figure and a public example recording; render the JOSS PDF.
