@@ -17,6 +17,34 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-07
 
+### JOSS second-pass layout and paper rewrite (Claude Opus 5.5; effort/tokens not reported)
+
+- Second-pass layout review (pushed as `fd34155`): the app calls only Plotly
+  Resampler's `construct_update_data_patch` and never its stock Dash update
+  callback, so the coalescing/stale-drop/direct-restyle/auto-pan delivery
+  layer is presented as an app contribution (Recipes 7–8 promoted to Core),
+  with decimation credited to the library. NE is framed as scoring evidence
+  in the statistical backend, not only a display channel.
+- Maintainer decisions: Project 2 of the Rochester U19
+  (urmc.rochester.edu/research/u19/project-2) researchers are the main users,
+  for about four years (git history begins June 2023; flagged). The opt-in
+  usage counter is recent and undercounts, so total-hours evidence will come
+  from asking users. Cite Kjaerby et al. 2022, same research team, pending
+  their confirmation. Title option 1 for now; the software name is open.
+- `paper.md` rewritten to the current JOSS sections (~1,285 words before
+  Acknowledgments). Latency figures come from
+  `ui_response_time_optimization_progress.txt`; the measured pipeline matches
+  the shipped code because the later Dash-store bypass (`bdfd36c`) was
+  reverted (`1f525f4`), and the 935 ms baseline is an earlier app version,
+  not stock plotly-resampler. Inferred claims (build-vs-contribute rationale,
+  competitor characterizations) carry inline `TODO`s.
+- Verification:
+  - Crossref lookups for Kjaerby 2022 and Hauglund 2025 metadata and authors.
+  - AccuSleep, AccuSleePy, and somnotate READMEs checked for inputs and
+    photometry/video support; Visbrain's site was unavailable.
+  - Script check: every `[@key]` in `paper.md` exists in `paper.bib`.
+    `git diff --check` passed. No PDF render (pandoc/docker unavailable).
+
 ### Codex review of Claude's manuscript layout (Codex GPT-6; effort/tokens not reported)
 
 - Fetched and fast-forwarded `publication` to Claude's second-pass layout

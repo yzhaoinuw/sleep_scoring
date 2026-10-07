@@ -3,10 +3,10 @@
 **Status: active revision, not submission-ready.**
 
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission.
-The first-pass release audit and feature/layout assessment are in
+The feature/layout assessment is in
 [`manuscript_layout.md`](manuscript_layout.md), reviewed against v0.17.4.
-`paper.md` still contains outdated descriptions and awaits the corresponding
-rewrite. Nothing here should be treated as a citable or finished artifact.
+`paper.md` was rewritten to that layout on 2026-10-07; inline `TODO`
+comments mark claims awaiting author confirmation. Nothing here should be treated as a citable or finished artifact.
 
 To cite the software today, use `CITATION.cff` at the repository root, or
 GitHub's "Cite this repository" button. That file is current and validated;
@@ -14,8 +14,8 @@ this draft is not.
 
 ## Contents
 
-- `paper.md` — the paper body (summary, statement of need, key features,
-  implementation).
+- `paper.md` — the paper body (Summary, Statement of need, State of the field,
+  Software design, Research impact statement, AI usage disclosure).
 - `paper.bib` — the bibliography.
 - `manuscript_layout.md` — feature priorities, contribution boundaries, release
   audit, current JOSS structure, and the next manuscript revision plan.
@@ -39,13 +39,12 @@ this draft is not.
 
 - Author TODOs in `paper.md`: co-authors, affiliations, ORCIDs.
 - Acknowledgments: PI, data/model contributors, funding and grant numbers.
-- SleepEEGpy is named in the Statement of Need without a citation. Reviewers
-  reliably catch uncited comparisons.
 - `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack one, so
   this may be acceptable as is, but it is the one entry Crossref cannot confirm.
-- Every claim in the paper still needs checking against the shipped app.
-- Apply the corrections and current required sections in `manuscript_layout.md`;
-  prioritize user-facing review/correction features and attribute upstream work.
+- Inline `TODO` comments in `paper.md` (name, impact evidence, citations'
+  framing, build-vs-contribute rationale, competitor checks, AI disclosure).
+- `harris2020numpy` and `mckinney2010pandas` are no longer cited; drop or
+  cite them.
 
 See the "Citation And Publication" section of
 [`treaty_docs/next_steps.md`](../treaty_docs/next_steps.md) for the full checklist

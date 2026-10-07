@@ -131,17 +131,18 @@ the NIH grant `U19NS128613`.
 
 ### JOSS Paper (active revision)
 
-The draft in `paper/` is not submission-ready. The first-pass cookbook/release
-audit and feature assessment are in `paper/manuscript_layout.md`; the paper
-body still awaits revision. See `paper/README.md` for its status. Open items:
+The draft in `paper/` is not submission-ready. `paper.md` was rewritten on
+2026-10-07 to the current JOSS structure, following
+`paper/manuscript_layout.md`; inline `TODO` comments mark claims that need
+author confirmation. See `paper/README.md` for its status. Open items:
 
-- Apply the proposed current JOSS structure: Summary, Statement of need,
-  State of the field, Software design, Research impact statement, AI usage
-  disclosure, Acknowledgments, and References. Prioritize selection, aligned
-  video, adaptive scoring, and preservation of user labels; credit upstream
-  resampling/models and omit usage reporting from the first feature pass.
-- Correct stale stage/shortcut, undo, video-player, spectral implementation,
-  backend, and public-example claims identified in the layout assessment.
+- Resolve the inline `TODO`s: software name, Kjaerby/Hauglund framing and
+  whether those studies used the app, "about four years" of use (git history
+  begins June 2023), users' total-hours estimate, the build-vs-contribute
+  rationale, competitor characterizations, and the AI-disclosure scope.
+- Decide whether to rerun the latency measurements in
+  `ui_response_time_optimization_progress.txt` on the current release.
+- Add the workflow figure and a public example recording; render the JOSS PDF.
 - Fill the remaining `paper.md` TODOs: co-authors, affiliations (with their
   ORCIDs), and the Acknowledgments (PI, data/model contributors, funding/grant
   numbers).
