@@ -4,6 +4,15 @@ This file summarizes changes that affect people using the app. Maintainer-only
 implementation and release details are recorded in
 `treaty_docs/work_log.md`.
 
+## v0.17.4
+
+- Video snippets use native playback controls without accumulating background
+  player polling after repeated snippet checks.
+- An old video clip that is still in use no longer prevents a different
+  snippet from being prepared; cleanup is retried on later selections.
+- Sleep-score selection and annotation remain tied to the score overlays when
+  plot traces are reordered.
+
 ## v0.17.3
 
 - Exposed the statistical model's global and within-bout low-NE REM threshold

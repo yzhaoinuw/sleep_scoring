@@ -143,6 +143,10 @@ The first time, the app may ask you to locate the matching `.avi`. If
 [preprocessing](https://github.com/yzhaoinuw/preprocess_sleep_data) already
 found it, the app shows that path.
 
+Clips use the built-in video controls for playback and seeking. You can close
+a clip before it finishes and select another range. Old clips still in use are
+left for a later cleanup so they do not block preparation of the next snippet.
+
 ### Generate Automatic Scores
 
 https://github.com/user-attachments/assets/47ba95ca-c7aa-49fd-bf25-659e290bbdb4

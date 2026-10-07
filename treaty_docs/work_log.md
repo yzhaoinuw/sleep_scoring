@@ -15,6 +15,70 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-06
+
+### v0.17.4 partial-release candidate (Codex GPT-6; effort/tokens not reported)
+
+- The maintainer tested multiple MAT/AVI pairs, varied snippet timing and
+  duration, and switching before playback finished; all worked normally.
+  Proceed with a partial release of the cleanup improvement. The original
+  reporter's frozen-frame failure remains unconfirmed.
+- Candidate v0.17.4 includes native video playback, nonfatal cleanup of locked
+  clips, and the already-integrated score-overlay identification change since
+  v0.17.3. Experimental Active/Quiet Wake work stays on its separate branch.
+- Align app/setup/CFF versions and the verified 2026-10-06 release date. No
+  dependency, launcher, or frozen runtime changes are needed. Correct the
+  packaging README's stale v0.17.0 fixture description to match the existing
+  v0.17.1 release gate; no packaging code changes.
+- Supported update baselines are v0.17.1, v0.17.2, and v0.17.3. Commit the
+  candidate, then run the full lightweight gate before any tag or publication.
+- Verification:
+  - `Get-Date -Format yyyy-MM-dd`: 2026-10-06.
+  - Fetched `origin/dev`, `origin/main`, and tags; local and remote dev/main
+    all start at `9ebcad2`. GitHub's latest release is v0.17.3.
+  - Prior focused validation: 55 tests, Black, source smoke, and ten browser
+    player replacement cycles passed; see 2026-10-02. The maintainer's normal
+    desktop playback checks above add interactive coverage.
+  - Release gate and publication are pending for this candidate.
+
+## 2026-10-02
+
+### Video cleanup improvement on dev (Codex GPT-6; effort/tokens not reported)
+
+- The maintainer could not reproduce the reported freeze after more than ten
+  varied snippets and authorized improving the confirmed cleanup defects.
+  Treat this as cleanup work: the earlier timer-leak reproduction did not
+  establish a causal link to the reporter's frozen frame or a failure threshold.
+- Use Dash's native HTML video element for local MP4 playback. The app consumes
+  none of DashPlayer's polled properties; replacing that wrapper avoids its
+  unmount interval leak without patching compiled third-party JavaScript.
+  Native controls and preloading remain enabled, with the existing clip
+  extraction, timing, and per-window storage. Keep dependency/package metadata
+  unchanged for this local runtime change.
+- Old MP4 deletion is best effort: a Windows-open clip remains for a later
+  cleanup instead of preventing generation of a different snippet. Regression
+  coverage verifies generation while one file is locked, deletion of other old
+  clips, retry after release, and preservation of non-video files.
+- Switched the clean checkout from `active-quiet-wake` to `dev`; the experimental
+  branch and earlier investigation-note stash remain parked. Changes are local
+  and uncommitted; no push or release was requested.
+- Verification:
+  - `conda run --no-capture-output -n sleep_scoring_dash3.0 python -m pytest
+    tests/test_app_helpers.py tests/test_multi_session.py tests/test_smoke.py
+    --basetemp .pytest_tmp/video-cleanup -p no:cacheprovider -q`: 55 passed,
+    one existing Flask-Caching deprecation warning.
+  - Repository-pinned Black hook passed for the three touched Python files;
+    `conda run --no-capture-output -n sleep_scoring_dash3.0 python
+    run_desktop_app.py --smoke`: passed.
+  - Isolated browser harness calling the actual `show_clip` component completed
+    ten mount/remove cycles across three AVI-derived clips: zero player timers,
+    zero JavaScript/media errors, and the same single diagnostic status timer
+    before and after. A subsequent clip played through its full two seconds.
+    Harness: ignored `.pytest_tmp/video-investigation/cleanup_probe.py`.
+  - These checks cover source behavior in the in-app browser, not a rebuilt
+    packaged Windows WebView2 app or the reporter's original failure.
+  - `git diff --check` and `treaty validate .`: passed.
+
 ## 2026-09-10
 
 ### Stable score-trace identification (Codex GPT-6; effort/tokens not reported)

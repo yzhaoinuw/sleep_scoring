@@ -428,7 +428,50 @@ class TestAdaptivePrediction:
 
 
 class TestMakeClip:
-    """Tests for video clip timing guards."""
+    """Tests for video clip timing guards and stale-file cleanup."""
+
+    def test_locked_old_clip_does_not_block_new_clip_and_is_retried(self, tmp_path):
+        from pathlib import Path
+
+        from app_src.callbacks import video
+
+        locked = tmp_path / "locked.mp4"
+        removable = tmp_path / "removable.mp4"
+        unrelated = tmp_path / "keep.txt"
+        for path in (locked, removable, unrelated):
+            path.write_bytes(b"existing")
+
+        original_unlink = Path.unlink
+
+        def unlink_with_lock(path, *args, **kwargs):
+            if path == locked:
+                raise PermissionError("Clip is still in use")
+            return original_unlink(path, *args, **kwargs)
+
+        def encode(video_path, start_time, end_time, save_path):
+            save_path.write_bytes(b"new clip")
+
+        with (
+            patch.object(video, "VIDEO_DIR", tmp_path),
+            patch.object(video, "get_video_duration", return_value=100),
+            patch.object(video, "make_mp4_clip", side_effect=encode),
+        ):
+            with patch.object(Path, "unlink", unlink_with_lock):
+                clip_name, message = video.make_clip("recording.avi", [10, 12], {})
+
+            assert message == ""
+            assert (tmp_path / clip_name).read_bytes() == b"new clip"
+            assert locked.exists()
+            assert not removable.exists()
+            assert unrelated.exists()
+
+            # A later selection retries cleanup after Windows releases the file.
+            next_clip, message = video.make_clip("recording.avi", [20, 22], {})
+            assert message == ""
+            assert (tmp_path / next_clip).is_file()
+            assert not locked.exists()
+            assert not (tmp_path / clip_name).exists()
+            assert unrelated.exists()
 
     def test_rejects_negative_adjusted_start(self, tmp_path):
         from app_src.callbacks.video import make_clip

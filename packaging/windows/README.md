@@ -104,12 +104,12 @@ For a release candidate, use the one-command gate:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\packaging\windows\release_lightweight.ps1
 ```
 
-It discovers every compatible tag from v0.17.0 through the release immediately
+It discovers every compatible tag from v0.17.1 through the release immediately
 before the target version. It then validates the lightweight-release boundary,
 runs pytest, Black, JavaScript, compile, and source smoke checks once, builds
 and validates the update asset, and tests it against:
 
-- a fresh v0.17.0 Windows package containing the schema-2-capable updater; and
+- a fresh v0.17.1 Windows package containing the schema-2-capable updater; and
 - user-customized values in the approved `config.py` assignments.
 
 The retained full-package ZIPs are fixture inputs in the ignored

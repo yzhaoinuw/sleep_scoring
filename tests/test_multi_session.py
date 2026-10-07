@@ -267,7 +267,7 @@ class TestChooseMatPeerRefusal:
 class TestClipUrlIncludesSlotDir:
     def test_show_clip_serves_from_slot_subdir(self, monkeypatch, tmp_path):
         from app_src.callbacks import video
-        from pathlib import Path
+        from dash import html
 
         slot_video_dir = tmp_path / "slot_2"
         slot_video_dir.mkdir()
@@ -276,4 +276,6 @@ class TestClipUrlIncludesSlotDir:
 
         _, player, _ = video.show_clip("clip.mp4")
 
-        assert player.url == str(Path("/assets/videos") / "slot_2" / "clip.mp4")
+        assert isinstance(player, html.Video)
+        assert player.src == "/assets/videos/slot_2/clip.mp4"
+        assert player.controls is True

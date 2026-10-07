@@ -4,7 +4,7 @@
 from pathlib import Path
 
 import dash
-import dash_player
+from dash import html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -141,7 +141,12 @@ def make_clip(video_path, box_select_range, metadata):
 
     for file in VIDEO_DIR.iterdir():
         if file.is_file() and file.suffix == ".mp4":
-            file.unlink()
+            try:
+                file.unlink()
+            except OSError:
+                # A previous clip may still be served/played on Windows.
+                # Leave it for the next cleanup instead of blocking this clip.
+                pass
 
     try:
         make_mp4_clip(
@@ -171,12 +176,14 @@ def show_clip(clip_name):
         return "", "", "Video not ready yet. Please check again in a second."
 
     clip_path = Path("/assets/videos") / VIDEO_DIR.name / clip_name
-    player = dash_player.DashPlayer(
+    # Local MP4 playback needs no progress polling. DashPlayer 1.1.0 leaves
+    # its polling intervals alive after this component is removed.
+    player = html.Video(
         id="player",
-        url=str(clip_path),
+        src=clip_path.as_posix(),
         controls=True,
-        width="100%",
-        height="100%",
+        preload="auto",
+        style={"width": "100%", "height": "100%"},
     )
 
     return clip_name, player, components.reselect_video_button

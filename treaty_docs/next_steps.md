@@ -6,6 +6,10 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- Prepare the v0.17.4 partial release on `dev`. The maintainer verified video
+  playback across several MAT/AVI pairs and varied snippets, including switching
+  before playback ends. The original frozen-frame report remains unconfirmed;
+  describe the change as cleanup improvement, not a confirmed freeze fix.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
