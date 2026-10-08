@@ -186,6 +186,13 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
 
 ### Authors and metadata
 
+- [ ] **Credit for the scoring rules (resolve before submission).** The
+  default scorer's rules (Wake from 1–7 Hz EEG power, REM from an NE dip,
+  minimum bout lengths) were agreed by Project 2 researchers as a group and
+  passed on through a few people. The maintainer designed and built the
+  adaptive parameter fitting and the rest of the software. Decide with the PI
+  and those researchers whether anyone is a co-author. Either way, the paper
+  should say where the rules came from, not only in Acknowledgments.
 - [ ] Co-authors: the maintainer developed the software largely
   independently, so the paper is currently single-author. Add someone only if
   they meet the JOSS bar above (code, or active project direction), with
