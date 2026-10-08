@@ -8,17 +8,19 @@ authors:
     affiliation: "University of Rochester, Rochester, NY, USA"
     orcid: "https://orcid.org/0000-0002-0819-5012"
 abstract: >-
-  An open-source desktop application for visualizing, manually annotating, and
-  automatically scoring rodent sleep stages from electroencephalogram (EEG),
-  electromyogram (EMG), and optional fiber-photometry norepinephrine (NE)
-  recordings. The app loads MATLAB .mat recordings, presents a synchronized
-  interactive view of the EEG spectrogram, raw traces, and existing sleep
-  scores, and lets a scorer label segments as Wake, Slow-Wave Sleep, or REM
-  with keyboard shortcuts and aligned video. With the optional PyTorch
-  dependency installed, a built-in transformer model (sDREAMER) scores a
-  recording automatically for review and correction in the same interface.
-  Annotations are written back into the original .mat file, and per-bout and
-  per-stage summary statistics are exported to Excel.
+  A local desktop application for reviewing and correcting rodent sleep
+  annotations (wakefulness, NREM sleep, REM sleep, and microarousals) at
+  one-second resolution. It brings EEG, EMG, an EEG spectrogram, an optional
+  fiber-photometry norepinephrine (NE) signal, and behavior-video clips of a
+  selected interval into one shared scoring workflow. Users can label
+  intervals manually or generate automatic scores, then revise individual
+  seconds or whole bouts; labels a user has supplied are kept as-is in every
+  automatic result. The default automatic scorer is a rule-based algorithm
+  that adapts to expert-labeled examples: it treats the user's labels on the
+  current recording as ground truth and adjusts its parameters to best match
+  them. The externally developed sDREAMER model can be selected instead, with
+  optional PyTorch dependencies. Completed scores are saved back to the
+  recording and exported as bout tables with stage and transition statistics.
 repository-code: "https://github.com/yzhaoinuw/sleep_scoring"
 # Zenodo concept DOI. It resolves to the newest release, so it stays correct
 # without editing; the per-release DOIs are reachable from that record.

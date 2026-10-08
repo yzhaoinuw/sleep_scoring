@@ -82,6 +82,17 @@ software's name to match the repository name. We keep the name consistent
 across the paper title, `CITATION.cff`, and the Zenodo archive, because JOSS
 publishes the paper alongside an archived release of the software.
 
+### Authorship
+
+JOSS's policy: "Purely financial (such as being named on an award) and
+organizational (such as general supervision of a research group)
+contributions are not considered sufficient for co-authorship of JOSS
+submissions, but active project direction and other forms of non-code
+contributions are." All co-authors must consent to being listed and accept
+accountability for the work. So supervision or funding alone does not qualify
+someone, but setting the software's scientific direction or requirements
+does. Contributors who do not meet this bar go in Acknowledgments.
+
 ### References and links
 
 - **The References heading is intentionally empty in `paper.md`.** JOSS
@@ -177,9 +188,6 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
   by name. Keep the approved funding sentence verbatim.
 - [ ] Update the manuscript date when the revision is finalized.
 - [ ] Rename the Zenodo archive title to match the paper and `CITATION.cff`.
-- [ ] The `CITATION.cff` abstract is out of date: it presents sDREAMER as the
-  automatic scorer and uses "Slow-Wave Sleep". Align it with the paper's
-  Summary.
 
 ### Bibliography and final checks
 

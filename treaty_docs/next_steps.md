@@ -138,9 +138,8 @@ author confirmation. See `paper/README.md` for its status. Open items:
 
 - Software name settled on 2026-10-07: "Sleep Scoring App" in the paper
   title and `CITATION.cff` (repository and package stay `sleep_scoring`).
-  Still to do: rename the Zenodo archive title to match, and align the stale
-  `CITATION.cff` abstract (sDREAMER-centric, "Slow-Wave Sleep") with the
-  paper's Summary.
+  The `CITATION.cff` abstract now follows the paper's Summary. Still to do:
+  rename the Zenodo archive title to match.
 - Resolve the inline `TODO`s: Kjaerby/Hauglund framing and
   whether those studies used the app, users' total-hours estimate, the build-vs-contribute
   rationale, competitor characterizations, and final author review for the AI
