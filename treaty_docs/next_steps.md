@@ -147,9 +147,11 @@ author confirmation. See `paper/README.md` for its status. Open items:
 - Decide whether to rerun the latency measurements in
   `ui_response_time_optimization_progress.txt` on the current release.
 - Add the workflow figure and a public example recording; render the JOSS PDF.
-- Fill the remaining `paper.md` TODOs: co-authors, affiliations (with their
-  ORCIDs), and the Acknowledgments (PI, data/model contributors, funding/grant
-  numbers).
+- Fill the remaining `paper.md` TODOs: affiliation, and the Acknowledgments
+  (PI, recording/feedback contributors, sDREAMER developers; keep the approved
+  funding sentence). The paper stays single-author unless someone meets the
+  JOSS bar (code or active project direction); the maintainer decided on
+  2026-10-08 not to add the PI for now.
 - Verify every claim in the paper against the current shipped app.
 - Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
   reviewers: name one or two external adopters (in Acknowledgments or a

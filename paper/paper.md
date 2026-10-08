@@ -20,7 +20,8 @@ authors:
     orcid: 0000-0002-0819-5012
     corresponding: true
     affiliation: 1
-  # TODO: add co-authors (lab members who contributed code, models, or data)
+  # TODO: add co-authors only if they meet the JOSS authorship bar (code, or
+  # active project direction); supplying data alone goes in Acknowledgments.
 affiliations:
   - name: University of Rochester, Rochester, NY, USA   # TODO: confirm/expand
     index: 1

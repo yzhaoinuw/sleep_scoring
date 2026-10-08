@@ -91,7 +91,12 @@ submissions, but active project direction and other forms of non-code
 contributions are." All co-authors must consent to being listed and accept
 accountability for the work. So supervision or funding alone does not qualify
 someone, but setting the software's scientific direction or requirements
-does. Contributors who do not meet this bar go in Acknowledgments.
+does. Contributors who do not meet this bar, including people who only
+supplied recordings or test data, go in Acknowledgments.
+
+JOSS also does not require citing every dependency. The paper cites the
+libraries it discusses as design choices (Plotly, Plotly Resampler, PyTorch)
+and leaves out general-purpose ones such as NumPy and pandas.
 
 ### References and links
 
@@ -181,18 +186,19 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
 
 ### Authors and metadata
 
-- [ ] Co-authors (lab members who contributed code, models, or data), their
-  affiliations, and ORCIDs; confirm or expand the University of Rochester
+- [ ] Co-authors: the maintainer developed the software largely
+  independently, so the paper is currently single-author. Add someone only if
+  they meet the JOSS bar above (code, or active project direction), with
+  their affiliation and ORCID. Confirm or expand the University of Rochester
   affiliation.
-- [ ] Acknowledgments: thank the PI, data contributors, and model contributors
-  by name. Keep the approved funding sentence verbatim.
+- [ ] Acknowledgments: thank the PI, the users who supplied recordings and
+  feedback, and the sDREAMER developers by name. Keep the approved funding
+  sentence verbatim.
 - [ ] Update the manuscript date when the revision is finalized.
 - [ ] Rename the Zenodo archive title to match the paper and `CITATION.cff`.
 
 ### Bibliography and final checks
 
-- [ ] `harris2020numpy` and `mckinney2010pandas` are not cited; drop them or
-  cite them.
 - [ ] `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack
   one, so this may be acceptable, but Crossref cannot confirm it.
 - [ ] Render the JOSS PDF and review it, including the generated references.
