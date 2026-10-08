@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "sleep_scoring: An interactive desktop application for rodent EEG/EMG sleep scoring with optional deep-learning-assisted prediction"
+title: "Sleep Scoring App: Interactive review and correction of rodent sleep annotations with synchronized electrophysiology, photometry, and behavior video"
 message: "If you use this software, please cite it using the metadata from this file."
 type: software
 authors:

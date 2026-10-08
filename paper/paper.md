@@ -1,8 +1,8 @@
 ---
-title: 'sleep_scoring: Interactive review and correction of rodent sleep annotations with synchronized electrophysiology, photometry, and behavior video'
-# TODO(name): the software name in the title is provisional; decide whether
-# to keep `sleep_scoring` or adopt a name such as "Sleep Scoring App", and
-# align the repository, CITATION.cff, and Zenodo metadata with the choice.
+title: 'Sleep Scoring App: Interactive review and correction of rodent sleep annotations with synchronized electrophysiology, photometry, and behavior video'
+# TODO(name): the paper now uses "Sleep Scoring App" as the software's name;
+# the repository and package stay `sleep_scoring`. Align the CITATION.cff and
+# Zenodo titles with this name before submission.
 tags:
   - Python
   - sleep
@@ -33,7 +33,8 @@ bibliography: paper.bib
 Sleep research in rodents depends on *sleep scoring*: labeling each moment
 of a recording as wakefulness, non-rapid-eye-movement (NREM) sleep, or REM
 sleep, plus brief microarousals (MA), from brain electrical activity (EEG)
-and muscle activity (EMG). `sleep_scoring` is a local desktop application
+and muscle activity (EMG). Sleep Scoring App
+([`sleep_scoring`](https://github.com/yzhaoinuw/sleep_scoring)) is a local desktop application
 for reviewing and correcting these annotations at one-second resolution. It
 brings EEG, EMG, an EEG spectrogram, an optional fiber-photometry
 norepinephrine (NE) signal, and behavior-video clips of a selected interval
@@ -49,7 +50,7 @@ statistics.
 
 # Statement of need
 
-`sleep_scoring` was developed for researchers studying how brain state
+Sleep Scoring App was developed for researchers studying how brain state
 regulates cerebrospinal-fluid transport during sleep, in
 [Project 2](https://www.urmc.rochester.edu/research/u19/project-2) of the
 NIH BRAIN Initiative U19 program at the University of Rochester. That work
@@ -67,7 +68,7 @@ boundaries, often across multi-hour recordings.
 
 Without an integrated tool, this review means moving among a signal viewer,
 a classifier's output, and separate video software, and redrawing boundaries
-that an automatic scorer or a previous pass got wrong. `sleep_scoring` is
+that an automatic scorer or a previous pass got wrong. Sleep Scoring App is
 intended for experimenters scoring rodent EEG/EMG, particularly those with
 aligned NE photometry and behavior video.
 
@@ -82,15 +83,20 @@ that physiological boundaries or model estimates are accurate to one second.
 
 # State of the field
 
-Several open tools support rodent sleep scoring. AccuSleep and its Python
+Several open tools support rodent sleep scoring.
+[AccuSleep](https://github.com/zekebarger/AccuSleep) and its Python
 successor [AccuSleePy](https://github.com/zekebarger/AccuSleePy)
 [@barger2019accusleep] combine a manual-labeling
 interface with a neural-network classifier for EEG/EMG and configurable
-brain states. SPINDLE [@miladinovic2019spindle] provides end-to-end learned
-scoring across laboratories and species. Somnotate
+brain states. [SPINDLE](https://sleeplearning.ethz.ch)
+[@miladinovic2019spindle] provides end-to-end learned
+scoring across laboratories and species.
+[Somnotate](https://github.com/paulbrodersen/somnotate)
 [@brodersen2024somnotate] classifies vigilance states with linear
 discriminant analysis and a hidden Markov model, with simple interfaces for
-refining annotations. Visbrain Sleep [@combrisson2019visbrain] offers a
+refining annotations.
+[Visbrain Sleep](https://github.com/EtienneCmb/visbrain)
+[@combrisson2019visbrain] offers a
 general hypnogram viewer and editor for polysomnography.
 <!-- TODO(verify): confirm each characterization against the cited paper and
 current documentation, including epoch-length options, and add commercial
@@ -113,18 +119,23 @@ reasons a new application was built in 2023. -->
 
 # Software design
 
-The application is built with Dash and Plotly [@plotly], web technologies,
+The application is built with [Dash](https://dash.plotly.com) and
+[Plotly](https://plotly.com/python/) [@plotly], web technologies,
 but runs as a desktop program. Its interface is a web page rendered inside a
-native window (via `pywebview`) by the operating system's embedded web
+native window (via [pywebview](https://pywebview.flowrl.com)) by the operating system's embedded web
 engine, WebView2 on Windows or WebKit on macOS, and talks to a server
 running on the same computer. No internet connection is needed: recordings
 open by path through native file dialogs and never leave the machine. The
 only network use is an optional update check and opt-in usage reporting. In
 what follows, "interface" means this embedded web page and its JavaScript,
 and "server" the local Python process. The design is organized around three
-tasks.
+tasks: (1) inspecting and correcting at the needed scale, (2) automatic
+scoring that keeps and learns from expert labels, and (3) checking behavior
+and completing a recording.
 
-**Inspecting and correcting at the needed scale.** EEG spectrogram with a
+## 1. Inspecting and correcting at the needed scale
+
+EEG spectrogram with a
 theta/delta ratio, EEG, EMG, and NE share one time axis, and the score is
 drawn as an overlay on every signal row, so a boundary can be read against
 each physiological signal. Users switch between navigation and annotation with
@@ -134,7 +145,8 @@ drag reaches the viewport edge, the view pans automatically and newly
 revealed signal is streamed in, so long selections keep boundary detail.
 All selection forms feed one labeling step, keys `1`–`4` and `0` for clear.
 
-Long signals are decimated on demand by Plotly Resampler
+Long signals are decimated on demand by
+[Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
 [@vanderdonckt2022plotlyresampler]. The application uses that library only
 to compute what to draw for a range, and owns how updates flow. The main
 tradeoff is to keep interaction state in the interface and full-resolution
@@ -153,7 +165,9 @@ the same navigation, selection, and labeling design to synthetic
 multichannel data; adapting it to a new signal type centers on one
 data-loading function and one label configuration.
 
-**Automatic scoring that keeps and learns from expert labels.** The
+## 2. Automatic scoring that keeps and learns from expert labels
+
+The
 application keeps the labels a user has supplied in a sparse layer, separate
 from the displayed scores. When an automatic scoring run is confirmed, the
 app snapshots this layer and places it over the backend's output, so labels
@@ -177,13 +191,15 @@ used for fitting. We chose this recording-specific, inspectable adaptation
 over persistent model training: it is fast, does not change the defaults for
 the next recording, and matching the supplied examples is not a claim of
 held-out accuracy. The externally developed sDREAMER model
-[@chen2023sdreamer] can be selected instead, with optional PyTorch
-[@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
+[@chen2023sdreamer] can be selected instead, with optional
+[PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
 user labels in the same way.
 
-**Checking behavior and completing a recording.** For a selected interval of
+## 3. Checking behavior and completing a recording
+
+For a selected interval of
 up to five minutes, the application cuts the matching clip from the behavior
-video with ffmpeg, validates the recording-to-video offset, and plays it in
+video with [FFmpeg](https://ffmpeg.org), validates the recording-to-video offset, and plays it in
 the same window. One-step undo and filesystem-backed recovery protect
 in-progress work; up to three isolated windows allow side-by-side
 comparison, refusing the same file twice. Saving reports the first unscored

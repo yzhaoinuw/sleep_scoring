@@ -17,6 +17,26 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-07
 
+### JOSS naming, links, and PI-facing paper README (Claude Opus 5.5; effort/tokens not reported)
+
+- Maintainer decisions: the software is named "Sleep Scoring App" in the
+  paper and `CITATION.cff` title (the repository and package stay
+  `sleep_scoring`, linked at first mention). sDREAMER stays as a one-sentence,
+  externally credited backend because it is a shipped, selectable feature and
+  the "whichever backend" label-preservation claim depends on it. Software
+  design's three tasks became numbered subsections.
+- JOSS rules checked on 2026-10-07 against joss.readthedocs.io (paper,
+  submitting, editing pages): 750–1,750 words (body now about 1,650), fixed
+  sections, References auto-generated from `paper.bib`, hyperlinks
+  encouraged, plain-text title, no API docs in the paper, archive author
+  list should match the paper's. No rule requires the software name to match
+  the repository. These are summarized in `paper/README.md` for the PI's
+  review.
+- Verification:
+  - Every new hyperlink returned HTTP 200 except ffmpeg.org, which timed out
+    from this machine (canonical URL kept).
+  - `git diff --check` passed.
+
 ### JOSS second-pass layout and paper rewrite (Claude Opus 5.5; effort/tokens not reported)
 
 - Second-pass layout review (pushed as `fd34155`): the app calls only Plotly
