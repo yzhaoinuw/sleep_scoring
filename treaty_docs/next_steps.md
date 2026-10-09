@@ -14,8 +14,10 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
 - JOSS revision is active on `publication`, synchronized locally with main
-  through v0.17.4. Review `paper/manuscript_layout.md`, then rewrite `paper.md`
-  around user-facing inspection/correction and the app's own contributions.
+  through v0.17.4. The manuscript has been rewritten; maintainer review,
+  integration of the reviewed Windows latency results, optional Mac trials,
+  and the workflow figure remain open. See `paper/README.md` for the
+  measurement protocol and claims awaiting author confirmation.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
@@ -144,8 +146,27 @@ author confirmation. See `paper/README.md` for its status. Open items:
   whether those studies used the app, users' total-hours estimate, the build-vs-contribute
   rationale, competitor characterizations, and final author review for the AI
   disclosure.
-- Decide whether to rerun the latency measurements in
-  `ui_response_time_optimization_progress.txt` on the current release.
+- First current-release latency session captured on 2026-10-08; keyboard
+  navigation has 34 retained updates (median 329.3 ms, p95 371.2 ms) at a
+  379.9-second viewport. Recording duration/rates verified from MAT metadata
+  (~2.86 hours, EEG/EMG 610.3515625 Hz, NE 10.172526245117188 Hz); maintainer
+  reported default Sampling Level, verified as x1. Complete machine display
+  context in the run notes before finalizing the manuscript claim.
+  Mouse follow-up now has 48 retained updates at 311 seconds (median
+  212.2 ms, p95 238.7 ms); no further repetitions needed for the first pass.
+  Its recording/Sampling Level context follows the requested same-recording
+  x1 protocol but is not independently captured by the logger. Auto-pan
+  refreshes are correlated within drags and have a different completion
+  boundary. Use [`paper/latency_measurements.md`](../paper/latency_measurements.md)
+  for the selected results and proposed wording; final machine context and
+  manuscript integration remain open.
+- Optional current-release Mac measurements can use the same capture script
+  in the Mac's working source environment: run `record --check`, then
+  `record`. This new launcher has been verified on Windows only so far.
+  Match recording/x1/task widths, keep separate sessions, and record Mac
+  model/chip and renderer/display context. New Windows results are appended
+  to `ui_response_time_optimization_progress.txt`; the old M4 section remains
+  dated history until a fresh Mac run is reviewed.
 - Add the workflow figure and a public example recording; render the JOSS PDF.
 - Fill the remaining `paper.md` TODOs: affiliation, and the Acknowledgments
   (PI, recording/feedback contributors, sDREAMER developers; keep the approved

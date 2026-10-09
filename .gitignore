@@ -26,6 +26,7 @@ gold_standard_demo.png
 model_infer_example.txt
 test-artifacts/
 .pytest_tmp/
+paper/latency_runs/
 .pre-commit-codex/
 sleep_scoring_app_data/
 usage-stats.json

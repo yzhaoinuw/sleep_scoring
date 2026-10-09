@@ -4,6 +4,18 @@ UI Response Time Optimization Progress
 Current one-line summary
 ------------------------
 
+Latest measurements (v0.17.4, 2026-10-08): keyboard navigation had a median
+logged update latency of 329.3 ms (p95 371.2 ms, 34 retained updates), and
+custom mouse panning 212.2 ms (p95 238.7 ms, 48 retained updates). These
+were instrumented Windows sessions with fixed but different viewport
+widths; they describe the current app rather than a before/after speedup.
+Full context and metric boundaries are in the dated October section below
+and paper/latency_measurements.md. A new macOS run is still pending.
+
+
+Historical optimization summary (May 2026)
+-----------------------------------------
+
 Significant progress. Default navigation is about 2.5x faster end to end:
 the measured final response dropped from roughly 935 ms to a typical
 300-370 ms range, with most tested interactions under 400 ms.
@@ -18,9 +30,13 @@ not Python resampling.
 Scope
 -----
 
-This summary compares early browser-measured navigation logs from 2026-05-21
+The original May summary compares early browser-measured navigation logs
+from 2026-05-21
 against the latest optimized navigation and annotation auto-pan behavior
 validated through manual testing on 2026-05-23 and documented on 2026-05-24.
+The 2026-10-08 section adds current-release measurements using a different
+recording and repeated fixed-width tasks. Historical Windows/M4 results
+remain below with their original dates and conditions.
 
 The key end-to-end timing metric is `browser_total`. Server callback timing is
 a sub-measurement inside the browser apply path, so it should not be added on
@@ -405,3 +421,129 @@ key-hold portion of coalescing is included. The two configurations are
 broadly comparable on the dominant Plotly apply cost, which is consistent
 with the conclusion that the remaining cost is browser-side WebGL redraw
 rather than platform-specific resampling work.
+
+
+2026-10-08 v0.17.4 Windows — Repeated Current-Release Navigation Measurements
+===========================================================================
+
+Purpose And Procedure
+---------------------
+
+These two maintainer-run sessions provide descriptive latency measurements
+for the JOSS manuscript. They do not reproduce the old 935-ms baseline or
+the May Apple M4 conditions, and do not establish a speedup or platform ranking.
+
+- Capture tool: python paper/measure_latency.py record.
+- Source commit: 8d4b04036d44984cfca7fb0e12ce3dcc6a5a05c7; app v0.17.4.
+- Slot 0, server/browser profiling and direct restyle enabled; automatic
+  updates skipped. Logging was enabled throughout these instrumented runs.
+- First three observations excluded independently per event/source/mode/
+  viewport-width group. Medians and p95 use linear interpolation.
+- Counts refer to logged completed refresh observations from one recording,
+  not independent recording replicates or verified physical gesture counts.
+- Raw captures, metadata and generated reports remain in ignored local
+  paper/latency_runs/ directories. The reviewed summary and proposed paper
+  wording are in paper/latency_measurements.md.
+
+
+Recording And Machine Context
+-----------------------------
+
+The maintainer identified the first recording and reported default Sampling
+Level. Scalar MAT fields and array shapes were inspected without loading
+signal values:
+
+- EEG/EMG: 6,286,400 samples each, 610.3515625 Hz.
+- NE: 104,774 samples, 10.172526245117188 Hz.
+- EEG/EMG sample-count duration: 10,299.63776 s (about 2.86 hours).
+- NE sample-count duration: 10,299.70309 s; app scoring duration rounds to
+  10,300 seconds.
+- Default Sampling Level x1: 2,048 display samples per resampled trace.
+- Follow-up mouse run was requested on the same recording at x1. Its
+  notes are unfilled, and the logger does not independently capture MAT
+  identity or Sampling Level; this context follows the requested protocol.
+
+Both captures recorded Windows build 26200, Intel family 6/model 141,
+16 logical CPUs, 31.71 GiB RAM, Python 3.11.14, Dash 3.3.0, Plotly 6.5.0,
+Plotly Resampler 0.11.0, NumPy 2.3.5, SciPy 1.16.3 and pywebview 6.1.
+GPU, window/display scaling, embedded browser version, power mode and
+background applications remain to be recorded for the final methods context.
+
+
+Selected Ordinary-Navigation Results
+------------------------------------
+
+                                  Keyboard             Custom mouse pan
+Run                               20261008-183612       20261008-213414
+Fixed viewport                    379.9 s               311.0 s
+Recorded updates                  37                    51
+Retained after three warm-ups      34                    48
+Median browser_total              329.3 ms              212.2 ms
+p95 browser_total                 371.2 ms              238.7 ms
+Retained range                    299.2-374.0 ms        183.1-243.6 ms
+Median coalesce                   160.6 ms              2.8 ms
+Median dash_apply                 167.3 ms              206.0 ms
+Median server callback            12.1 ms               12.6 ms
+
+The follow-up mouse block supplies the preferred descriptive mouse result.
+The first session also had a smaller block at a 343.7-second viewport
+(15 retained updates, median 187.5 ms, p95 199.7 ms); do not pool it with
+the follow-up or interpret the difference as a regression. Viewport widths
+and recording segments were not matched for such a comparison.
+
+Both selected ordinary-navigation blocks meet the initial target of at
+least 20 retained updates. Setup/zoom events were scattered across changing
+widths with too few observations to report a zoom-latency distribution.
+
+
+Metric Boundaries And Interpretation
+-----------------------------------
+
+Ordinary browser_total is afterplotTime minus inputPerformanceTime: it
+starts when the coalescer receives the request that produces the logged
+update. For custom mouse pan that request is issued after release. It
+includes coalescing and callback delivery through the Plotly completion/
+profiler event, rather than physical input-device or screen presentation
+latency. dash_apply includes callback/delivery/update work and does not
+isolate drawing. Server callback time is already included in browser_total;
+never add it on top. Component medians need not add to the median total.
+
+In these sessions, server callbacks account for a small part of total
+latency. Keyboard coalescing is itself substantial (median 160.6 ms), so
+the entire non-server remainder cannot be attributed to Plotly/WebGL redraw.
+
+Selection auto-pan has a different completion boundary: its timer ends
+after issuing Plotly.restyle, without awaiting completed rendering. The
+first session's largest merge group at 311.0 seconds had 61 recorded and
+58 retained refreshes: median 467.4 ms, p95 553.2 ms, range 382.5-796.3 ms.
+Those refreshes are correlated within drags; they are not 58 independent
+gesture trials. Keep auto-pan separate from the ordinary-navigation claim.
+
+
+Verification And Follow-Up
+--------------------------
+
+- A parser bug originally excluded auto-pan because Python logs emitted
+  applied=True while the parser expected lowercase true. Case-insensitive
+  parsing recovered all 88 auto-pan events from the first raw capture;
+  no recording rerun was needed. The follow-up used the corrected script.
+- Reviewed 113 ordinary-navigation plus 88 auto-pan samples in the first
+  session, and 63 ordinary-navigation samples in the follow-up. Independent
+  statistics calculations checked the retained mouse median and p95.
+- No Traceback/Error: indicators were found. All server callbacks in the
+  follow-up logged active_at_start=1. Raw captures were not changed.
+- New macOS capture is pending. The same launcher uses portable Python
+  APIs and the app's existing native-renderer selection; code inspection
+  supports compatibility, but this new capture launcher has not yet been
+  run on a Mac. In the working Mac source environment, run:
+
+    python paper/measure_latency.py record --check
+    python paper/measure_latency.py record
+
+  Use the same recording and Sampling Level, fixed viewport widths, and
+  separate keyboard/mouse blocks with at least 30 gestures each. Record
+  actual viewport widths; match the Windows keyboard 379.9-second and
+  mouse 311.0-second widths as closely as practical for comparable tasks.
+  Record the Mac model/chip, macOS version, RAM, display and renderer/runtime
+  context. Keep Mac and Windows sessions separate; historical M4 numbers
+  are not replaced until new Mac data has been captured and reviewed.

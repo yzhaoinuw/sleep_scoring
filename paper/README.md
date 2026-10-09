@@ -151,6 +151,9 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
 
 ### Figure
 
+The maintainer will choose the recording and capture the figure; the current
+tooling pass is limited to latency logging.
+
 - [ ] **Capture and add the workflow figure** (maintainer). One annotated
   screenshot at a zoom of roughly 2–5 minutes showing: all four signal rows
   (spectrogram with theta/delta, EEG, EMG, NE) with the score overlay and
@@ -179,10 +182,115 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
 - [ ] **Research impact evidence.** Add the users' rough estimate of total
   recording hours scored, and name studies, preprints, or datasets scored
   with the app once confirmed.
-- [ ] **Latency measurements.** Decide whether to rerun the manual timing
-  tests on the current release before submission.
+- [ ] **Latency measurements.** Two current-release Windows sessions are
+  reviewed in `latency_measurements.md`. Complete machine/display context
+  and integrate the selected results into the manuscript. Optional fresh
+  macOS measurements can use the launcher and procedure below.
 - [ ] **AI usage disclosure.** Confirm that author review of the manuscript
   is complete.
+
+### Run the latency measurements
+
+The first two maintainer sessions have been reviewed; see
+[`latency_measurements.md`](latency_measurements.md) for the selected results,
+metric boundaries and proposed manuscript wording.
+
+From the repository folder, activate the existing environment and launch:
+
+```powershell
+conda activate sleep_scoring_dash3.0
+python paper/measure_latency.py record
+```
+
+The same commands can be used in a macOS terminal with the app's working
+source-run environment. The capture script uses portable Python APIs; the
+desktop launcher selects the native renderer outside Windows. This new
+capture launcher has been exercised on Windows, not yet on macOS. Run
+`python paper/measure_latency.py record --check` on the Mac first, then
+launch `record` and check that the resulting summary contains browser samples.
+Record the Mac model/chip, RAM, macOS version and native browser/runtime
+context in the notes; the automatic CPU description may only identify the
+architecture. If optional `psutil` is absent, fill in RAM manually.
+
+This opens the normal desktop app. **Background server and browser logging
+are ON for this run**, using the existing profiling environment overrides.
+Choose your MAT file normally. Close other app windows before launching:
+only slot 0 profiles, and the launcher checks that ports 8050–8052 are free.
+Automatic updates are skipped for this measurement run. App source/config
+and recording files are not changed by the tooling; normal app saves remain
+under your control.
+
+To verify logging without opening a window:
+
+```powershell
+python paper/measure_latency.py record --check
+```
+
+The three profiling flags should all print `true`, and `INSTANCE_SLOT` should
+be `0`. Closing the app ends the run and automatically writes a summary in
+`paper/latency_runs/<timestamp>/`. No copy/paste of terminal logs is needed.
+Logging also remains visible in the launching terminal.
+
+Use a separate run for each recording and Sampling Level. For an initial
+repeatable task:
+
+1. Use Sampling Level **x1** and a fixed **300-second viewport** away from the
+   recording edges. Record the actual width in the notes; arrow panning
+   preserves it.
+2. Press the right arrow once, wait for the trace refresh to finish, then
+   press the left arrow once. Continue for at least **30 individual presses**,
+   with about two seconds between presses. Avoid held keys; rapid repeated
+   inputs can be coalesced into fewer refresh observations.
+3. If measuring pointer pan/zoom too, make each gesture separately, pause
+   until the refresh completes, and repeat at least 30 times per task.
+   Different viewport widths and event sources produce separate groups.
+4. For auto-pan, switch to annotation mode and drag a selection beyond an
+   edge for a few seconds. Repeat several separate drags. This measures
+   live-refresh operations within drags; those observations are correlated
+   and are not equivalent to 30 independent user trials. No labeling or
+   saving is required to measure navigation/selection.
+5. Close the app normally. Fill in `notes.md` with recording duration and
+   rates/sample counts, Sampling Level, viewport/task, window/display scale,
+   CPU/GPU model and embedded browser/runtime version, power mode, and other
+   active apps (Edge/WebView2 on Windows; the native renderer on macOS).
+
+Each run contains:
+
+- `app.log`: complete stdout/stderr, flushed continuously.
+- `profiling-check.json`: verified effective flags before launch.
+- `metadata.json`: commit, OS, CPU description/count, RAM, Python and package
+  versions, and the direct-restyle setting.
+- `events.jsonl` and `samples.csv`: parsed profiler events and valid browser
+  samples, with ordinary navigation/server events joined by their profile ID.
+- `summary.md`: counts, medians and p95 values grouped by event, source, mode,
+  and viewport width. The first three samples in each group are excluded as
+  warm-up; raw samples are retained.
+- `notes.md`: the recording/task/display details to complete yourself.
+
+To rebuild the report or change the warm-up count:
+
+```powershell
+python paper/measure_latency.py summarize paper/latency_runs/<timestamp> --warmup 3
+```
+
+Use at least 20 retained observations per ordinary-navigation group before
+interpreting its distribution. If a run has no browser samples, the report
+says so rather than producing latency numbers. Do not mix Sampling Levels or
+recordings within a run, or call the current-path measurements a comparison
+with an older baseline. The tool records the current configuration; it does
+not disable coalescing or change direct restyle for a comparative experiment.
+
+**Metric boundaries:** ordinary `browser_total` includes coalescing and the
+trace-update completion path; server callback time is already inside that
+total. The existing auto-pan `browser_total` stops after issuing the
+`Plotly.restyle` call and does not await completed rendering. Report those
+two event types separately. Neither measures human task time, scoring
+accuracy, or exact screen presentation latency. These are instrumented runs,
+with logging enabled, rather than an assertion about uninstrumented speed.
+
+The output folder is ignored by Git. Raw app logs may include recording
+paths; inspect/redact local logs and notes before sharing them. Keep the
+existing manuscript timing claims qualified until the new runs are reviewed.
 
 ### Authors and metadata
 
