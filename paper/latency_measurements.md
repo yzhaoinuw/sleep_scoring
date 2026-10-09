@@ -4,8 +4,8 @@ Codex assessment of two maintainer-run, instrumented Windows sessions using
 v0.17.4, plus one macOS session on 2026-10-09 (see
 [macOS session](#macos-session--2026-10-09)). These support descriptive
 navigation measurements for the first manuscript pass. They do not establish
-a before/after speedup or a comparison of hardware. The manuscript body has
-not yet been revised with these results.
+a before/after speedup or a comparison of hardware. The Research impact
+statement in `paper.md` now reports the selected Windows and macOS results.
 
 ## Results selected for the manuscript
 

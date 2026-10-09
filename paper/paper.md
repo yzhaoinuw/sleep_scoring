@@ -222,17 +222,19 @@ acquisition output into its input format, and the repository provides
 packaged Windows releases, macOS source installation, documentation, tests,
 demonstration videos, and archived versions [@sleepscoring_zenodo].
 
-Manual timing tests on a 4.25-hour recording show the interaction design is
-practical on long data. On a Windows laptop, optimizing the update pipeline
-reduced the time from the end of a navigation gesture to the refreshed traces
-from about 935 ms to about 300–370 ms; server work was 14–17 ms of that, and
-the remainder is plot redrawing in the interface. On an Apple M4 laptop, refreshes after drag
-panning took about 190–300 ms, and live auto-pan updates during a selection
-about 260–310 ms. These are local manual measurements rather than a
-controlled benchmark.
-<!-- Source: ui_response_time_optimization_progress.txt (2026-05-23/25).
-The measured pipeline matches the shipped code (the later Dash-store bypass
-was reverted). Consider rerunning on the current release before submission. -->
+Manual timing tests on a 2.86-hour recording show the interaction design is
+practical on long data. With the current release, the median time from the
+application receiving a navigation request to the refreshed traces was 329 ms
+for keyboard navigation and 212 ms for mouse panning on a Windows laptop
+(95th percentiles 371 and 239 ms), and 181 and 64 ms on an Apple M4 laptop
+(95th percentiles 191 and 69 ms), over 34–69 updates per task at 256- to
+380-second views. Server work took under 13 ms of each update, and much of
+the keyboard time is deliberate coalescing of repeated key presses. These are
+local instrumented measurements rather than a controlled benchmark.
+<!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
+recording at Sampling Level x1; first three updates per task excluded).
+Windows and Mac runs differ in machine and viewport; do not frame the
+difference as a speedup or platform ranking. -->
 
 # AI usage disclosure
 
