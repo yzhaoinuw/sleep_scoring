@@ -182,10 +182,10 @@ tooling pass is limited to latency logging.
 - [ ] **Research impact evidence.** Add the users' rough estimate of total
   recording hours scored, and name studies, preprints, or datasets scored
   with the app once confirmed.
-- [ ] **Latency measurements.** Two current-release Windows sessions are
-  reviewed in `latency_measurements.md`. Complete machine/display context
-  and integrate the selected results into the manuscript. Optional fresh
-  macOS measurements can use the launcher and procedure below.
+- [ ] **Latency measurements.** Two current-release Windows sessions and
+  one macOS (Apple M4) session are reviewed in `latency_measurements.md`.
+  Complete the Windows machine/display context and integrate the selected
+  results into the manuscript.
 - [ ] **AI usage disclosure.** Confirm that author review of the manuscript
   is complete.
 
@@ -204,10 +204,10 @@ python paper/measure_latency.py record
 
 The same commands can be used in a macOS terminal with the app's working
 source-run environment. The capture script uses portable Python APIs; the
-desktop launcher selects the native renderer outside Windows. This new
-capture launcher has been exercised on Windows, not yet on macOS. Run
-`python paper/measure_latency.py record --check` on the Mac first, then
-launch `record` and check that the resulting summary contains browser samples.
+desktop launcher selects the native renderer outside Windows. The capture
+launcher has been exercised on both Windows and macOS (2026-10-09). Run
+`python paper/measure_latency.py record --check` first, then launch `record`
+and check that the resulting summary contains browser samples.
 Record the Mac model/chip, RAM, macOS version and native browser/runtime
 context in the notes; the automatic CPU description may only identify the
 architecture. If optional `psutil` is absent, fill in RAM manually.

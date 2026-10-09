@@ -1,9 +1,11 @@
-# Manual latency measurements — 2026-10-08
+# Manual latency measurements — 2026-10-08/09
 
 Codex assessment of two maintainer-run, instrumented Windows sessions using
-v0.17.4. These support descriptive navigation measurements for the first
-manuscript pass. They do not establish a before/after speedup or a comparison
-of hardware. The manuscript body has not yet been revised with these results.
+v0.17.4, plus one macOS session on 2026-10-09 (see
+[macOS session](#macos-session--2026-10-09)). These support descriptive
+navigation measurements for the first manuscript pass. They do not establish
+a before/after speedup or a comparison of hardware. The manuscript body has
+not yet been revised with these results.
 
 ## Results selected for the manuscript
 
@@ -113,3 +115,58 @@ The first summary was rebuilt after fixing case-sensitive auto-pan boolean
 parsing (`True` versus `true`); no recording rerun was needed for that fix.
 The follow-up already used the fixed parser. No application source changed
 between the two measurements. Both raw logs remain unchanged.
+
+## macOS session — 2026-10-09
+
+One maintainer-run instrumented session (local run `20261009-011356`) on the
+same recording at Sampling Level x1, both confirmed by the maintainer. It was
+the first use of `measure_latency.py` on macOS; capture, parsing and summary
+worked without changes. Same commit family as the Windows runs (recorded
+source commit `5ba8193d257b2825618ce32863b69a9863759d6b`, which adds only the
+capture tooling); same warm-up rule (first three per group excluded).
+
+| Interaction | Viewport (s) | Recorded | Retained | Median (ms) | p95 (ms) | Range (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Keyboard navigation | 331.9 | 72 | 69 | 181.0 | 190.6 | 175–194 |
+| Custom mouse drag navigation | 255.9 | 61 | 58 | 64.0 | 69.2 | 58–75 |
+
+| Retained block | Median coalescing (ms) | Median callback/delivery/update phase (ms) | Median server callback (ms) |
+| --- | ---: | ---: | ---: |
+| Keyboard | 122.0 | 58.0 | 6.6 |
+| Mouse drag | 1.0 | 63.0 | 6.7 |
+
+Medians and inclusive-method p95 were recomputed from `samples.csv` with
+Python's `statistics` module and match the generated summary. WebKit reports
+`performance.now()` at 1-ms resolution, so macOS browser times are whole
+milliseconds; this is immaterial at these magnitudes. The viewports were
+narrower than the Windows blocks (379.9 and 311.0 s) and were not matched to
+them.
+
+Selection auto-pan merge refreshes were also captured in three blocks
+(338.6, 311.0 and 312.6 s; 153, 226 and 295 retained; medians 115.0, 133.0
+and 136.0 ms; p95 129.4, 143.8 and 146.0 ms). As on Windows, these are
+correlated within drags and end after issuing `Plotly.restyle`; keep them
+exploratory. Single-observation groups are setup zooms between blocks, and two
+short keyboard bursts (6 and 4 retained) are not reported.
+
+No `Traceback` or `Error:` lines were found; all 197 logged server callbacks
+had `active_at_start=1`.
+
+Machine context: Apple M4 (Mac16,13), 10 cores, integrated GPU, 16 GiB RAM,
+macOS 26.3.1, built-in 2880×1864 Retina display, WKWebView through pywebview
+6.1 (WebKit 21623.2.7.111.2), Low Power Mode off. Python 3.11.0, Dash 3.3.0,
+Plotly 6.5.0, Plotly Resampler 0.11.0, NumPy 2.4.0, SciPy 1.16.3. Window size
+and background applications were not recorded.
+
+Raw-log SHA-256 for `20261009-011356`:
+`f707f7f3b2c64e1ed49d4815e4d022e67f98fdd29683ba960e44815bddb91e88`.
+
+Possible manuscript addition, kept separate from the Windows sentence:
+
+> On an Apple M4 MacBook Air (macOS 26.3.1), the corresponding medians were
+> 181 ms for keyboard navigation and 64 ms for mouse panning (p95 191 and
+> 69 ms; 69 and 58 retained updates at 332- and 256-second viewports).
+
+Do not present the Windows-to-Mac difference as a speedup or platform
+ranking; machines, viewports and renderers differ. Do not combine it with the
+historical May 2026 M4 numbers, which used different code and tasks.

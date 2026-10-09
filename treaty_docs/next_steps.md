@@ -15,8 +15,8 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   Keep the experiment separate from the official branches.
 - JOSS revision is active on `publication`, synchronized locally with main
   through v0.17.4. The manuscript has been rewritten; maintainer review,
-  integration of the reviewed Windows latency results, optional Mac trials,
-  and the workflow figure remain open. See `paper/README.md` for the
+  integration of the reviewed Windows and macOS latency results and the
+  workflow figure remain open. See `paper/README.md` for the
   measurement protocol and claims awaiting author confirmation.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
@@ -160,13 +160,12 @@ author confirmation. See `paper/README.md` for its status. Open items:
   boundary. Use [`paper/latency_measurements.md`](../paper/latency_measurements.md)
   for the selected results and proposed wording; final machine context and
   manuscript integration remain open.
-- Optional current-release Mac measurements can use the same capture script
-  in the Mac's working source environment: run `record --check`, then
-  `record`. This new launcher has been verified on Windows only so far.
-  Match recording/x1/task widths, keep separate sessions, and record Mac
-  model/chip and renderer/display context. New Windows results are appended
-  to `ui_response_time_optimization_progress.txt`; the old M4 section remains
-  dated history until a fresh Mac run is reviewed.
+- macOS session captured on 2026-10-09 (Apple M4, same recording, x1):
+  keyboard median 181.0 ms (p95 190.6 ms, 69 retained, 331.9 s), mouse drag
+  64.0 ms (p95 69.2 ms, 58 retained, 255.9 s). Reviewed in
+  `paper/latency_measurements.md` and appended to
+  `ui_response_time_optimization_progress.txt`; the May M4 section stays as
+  dated history and is not pooled with it.
 - Add the workflow figure and a public example recording; render the JOSS PDF.
 - Fill the remaining `paper.md` TODOs: affiliation, and the Acknowledgments
   (PI, recording/feedback contributors, sDREAMER developers; keep the approved

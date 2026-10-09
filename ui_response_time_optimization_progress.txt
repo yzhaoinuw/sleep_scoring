@@ -10,7 +10,12 @@ custom mouse panning 212.2 ms (p95 238.7 ms, 48 retained updates). These
 were instrumented Windows sessions with fixed but different viewport
 widths; they describe the current app rather than a before/after speedup.
 Full context and metric boundaries are in the dated October section below
-and paper/latency_measurements.md. A new macOS run is still pending.
+and paper/latency_measurements.md.
+
+macOS (v0.17.4, Apple M4, 2026-10-09), same recording at x1: keyboard
+navigation median 181.0 ms (p95 190.6 ms, 69 retained) at 331.9 s, custom
+mouse panning 64.0 ms (p95 69.2 ms, 58 retained) at 255.9 s. Separate
+machine and viewports; not a platform ranking. See the 2026-10-09 section.
 
 
 Historical optimization summary (May 2026)
@@ -35,8 +40,9 @@ from 2026-05-21
 against the latest optimized navigation and annotation auto-pan behavior
 validated through manual testing on 2026-05-23 and documented on 2026-05-24.
 The 2026-10-08 section adds current-release measurements using a different
-recording and repeated fixed-width tasks. Historical Windows/M4 results
-remain below with their original dates and conditions.
+recording and repeated fixed-width tasks; the 2026-10-09 section adds a
+matching-protocol macOS run. Historical Windows/M4 results remain below with
+their original dates and conditions.
 
 The key end-to-end timing metric is `browser_total`. Server callback timing is
 a sub-measurement inside the browser apply path, so it should not be added on
@@ -532,18 +538,78 @@ Verification And Follow-Up
   statistics calculations checked the retained mouse median and p95.
 - No Traceback/Error: indicators were found. All server callbacks in the
   follow-up logged active_at_start=1. Raw captures were not changed.
-- New macOS capture is pending. The same launcher uses portable Python
-  APIs and the app's existing native-renderer selection; code inspection
-  supports compatibility, but this new capture launcher has not yet been
-  run on a Mac. In the working Mac source environment, run:
+- The macOS capture was completed on 2026-10-09; see the next section.
 
-    python paper/measure_latency.py record --check
-    python paper/measure_latency.py record
 
-  Use the same recording and Sampling Level, fixed viewport widths, and
-  separate keyboard/mouse blocks with at least 30 gestures each. Record
-  actual viewport widths; match the Windows keyboard 379.9-second and
-  mouse 311.0-second widths as closely as practical for comparable tasks.
-  Record the Mac model/chip, macOS version, RAM, display and renderer/runtime
-  context. Keep Mac and Windows sessions separate; historical M4 numbers
-  are not replaced until new Mac data has been captured and reviewed.
+2026-10-09 v0.17.4 macOS — Current-Release Navigation Measurements
+==================================================================
+
+Purpose And Procedure
+---------------------
+
+One maintainer-run instrumented session on the same recording as the
+Windows runs, at Sampling Level x1 (both confirmed by the maintainer). It
+is the first macOS use of paper/measure_latency.py; capture, parsing and
+summary worked unchanged. Same profiling flags, direct restyle and
+three-observation warm-up rule as the Windows section. Recorded source
+commit 5ba8193d257b2825618ce32863b69a9863759d6b (adds only the capture
+tooling on top of the Windows runs' commit). Local run 20261009-011356.
+
+
+Machine Context
+---------------
+
+Apple M4 (Mac16,13), 10 cores, integrated GPU, 16 GiB RAM, macOS 26.3.1,
+built-in 2880x1864 Retina display, WKWebView through pywebview 6.1 (WebKit
+21623.2.7.111.2), Low Power Mode off. Python 3.11.0, Dash 3.3.0, Plotly
+6.5.0, Plotly Resampler 0.11.0, NumPy 2.4.0, SciPy 1.16.3. Window size and
+background applications were not recorded.
+
+
+Selected Ordinary-Navigation Results
+------------------------------------
+
+                                  Keyboard             Custom mouse pan
+Fixed viewport                    331.9 s               255.9 s
+Recorded updates                  72                    61
+Retained after three warm-ups      69                    58
+Median browser_total              181.0 ms              64.0 ms
+p95 browser_total                 190.6 ms              69.2 ms
+Retained range                    175-194 ms            58-75 ms
+Median coalesce                   122.0 ms              1.0 ms
+Median dash_apply                 58.0 ms               63.0 ms
+Median server callback            6.6 ms                6.7 ms
+
+Both blocks exceed the 20-retained-update target. Statistics were
+recomputed from samples.csv and match the generated summary. WebKit
+reports performance.now() at 1-ms resolution, so these times are whole
+milliseconds.
+
+
+Interpretation
+--------------
+
+Against the Windows session, the difference is almost entirely in
+dash_apply (about 60 ms here versus 167-206 ms on Windows); server callback
+time is small on both machines. Keyboard totals are now dominated by
+deliberate coalescing (122 ms of 181 ms). Machines, renderers (WebKit versus
+WebView2) and viewport widths differ, so this is descriptive, not a platform
+ranking or a speedup claim, and it does not replace or pool with the May
+2026 M4 numbers, which used different code and tasks.
+
+Selection auto-pan merge refreshes (exploratory; correlated within drags;
+timer ends after issuing Plotly.restyle): 338.6 s, 153 retained, median
+115.0 ms, p95 129.4 ms; 311.0 s, 226 retained, 133.0 / 143.8 ms; 312.6 s,
+295 retained, 136.0 / 146.0 ms.
+
+
+Verification
+------------
+
+- No Traceback/Error: lines; all 197 server callbacks logged
+  active_at_start=1. Raw capture unchanged.
+- Raw-log SHA-256:
+  f707f7f3b2c64e1ed49d4815e4d022e67f98fdd29683ba960e44815bddb91e88.
+- Single-observation groups are setup zooms between blocks; two short
+  keyboard bursts (6 and 4 retained) are not reported.
+- Reviewed summary and suggested wording: paper/latency_measurements.md.
