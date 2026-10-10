@@ -45,6 +45,10 @@ from app_src.make_figure import (  # noqa: E402
     STAGE_NAMES,
 )
 
+# Calibration accepts any candidate within this fraction of the labelled
+# seconds of the best fit, then prefers the one closest to the defaults.
+CALIBRATION_MISMATCH_TOLERANCE_FRACTION = 0.10
+
 
 @dataclass(frozen=True)
 class StatsModelConfig:
@@ -605,14 +609,26 @@ def _best_calibration_config(
     base_config: StatsModelConfig,
     user_labels: np.ndarray,
     candidates: list[StatsModelConfig],
+    mismatch_tolerance: int = 0,
 ) -> StatsModelConfig:
+    """Pick the configuration closest to the defaults among near-best fits.
+
+    Labels constrain only the seconds they cover, so the strictly best fit can
+    be an extreme setting that is degenerate elsewhere (e.g. Wake-only labels
+    are matched perfectly by calling the whole recording Wake).
+    """
+    mismatches = [
+        _configuration_mismatch_count(features, config, user_labels) for config in candidates
+    ]
+    acceptable = min(mismatches) + mismatch_tolerance
     return min(
-        candidates,
-        key=lambda config: (
-            _configuration_mismatch_count(features, config, user_labels),
-            _configuration_distance(config, base_config),
+        (
+            (mismatch, config)
+            for mismatch, config in zip(mismatches, candidates)
+            if mismatch <= acceptable
         ),
-    )
+        key=lambda item: (_configuration_distance(item[1], base_config), item[0]),
+    )[1]
 
 
 def calibrate_stats_model_config(
@@ -623,8 +639,10 @@ def calibrate_stats_model_config(
     """Fit the live Wake/REM knobs to any supplied manual Wake/NREM/REM labels.
 
     The user may provide one segment or many.  Candidate configurations are
-    evaluated against their raw predictions, before manual labels are overlaid;
-    ties retain the behavior closest to the ordinary statistical-model config.
+    evaluated against their raw predictions, before manual labels are overlaid.
+    Among candidates within ``CALIBRATION_MISMATCH_TOLERANCE_FRACTION`` of the
+    labelled seconds of the best fit, the one closest to the ordinary
+    statistical-model config wins.
     """
     if base_config is None:
         base_config = StatsModelConfig()
@@ -635,6 +653,10 @@ def calibrate_stats_model_config(
     calibratable_labels = np.isfinite(user_labels) & np.isin(user_labels, [0, 1, 2])
     if not np.any(calibratable_labels):
         return base_config, 0
+    calibratable_label_count = int(np.count_nonzero(calibratable_labels))
+    mismatch_tolerance = math.floor(
+        CALIBRATION_MISMATCH_TOLERANCE_FRACTION * calibratable_label_count
+    )
 
     features = compute_stats_model_features(mat, base_config)
     current_config = base_config
@@ -665,18 +687,21 @@ def calibrate_stats_model_config(
             base_config,
             user_labels,
             [replace(current_config, wake_threshold=value) for value in wake_thresholds],
+            mismatch_tolerance=mismatch_tolerance,
         )
         current_config = _best_calibration_config(
             features,
             base_config,
             user_labels,
             [replace(current_config, min_wake_duration=value) for value in min_wake_durations],
+            mismatch_tolerance=mismatch_tolerance,
         )
         current_config = _best_calibration_config(
             features,
             base_config,
             user_labels,
             [replace(current_config, min_rem_duration=value) for value in min_rem_durations],
+            mismatch_tolerance=mismatch_tolerance,
         )
         current_config = _best_calibration_config(
             features,
@@ -692,9 +717,10 @@ def calibrate_stats_model_config(
                     rem_percentiles, rem_percentiles
                 )
             ],
+            mismatch_tolerance=mismatch_tolerance,
         )
 
-    return current_config, int(np.count_nonzero(calibratable_labels))
+    return current_config, calibratable_label_count
 
 
 def infer(

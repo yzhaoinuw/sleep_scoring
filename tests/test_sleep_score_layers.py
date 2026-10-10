@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 
 
 def test_overlay_user_sleep_scores_preserves_only_finite_manual_labels():
@@ -50,6 +51,52 @@ def test_calibration_uses_one_user_label_before_any_overlay():
 
     assert label_count == 1
     assert config.wake_threshold <= 0.4
+
+
+def test_calibration_with_single_stage_labels_avoids_extreme_threshold():
+    from app_src.run_inference_stats_model import (
+        StatsModelConfig,
+        StatsModelFeatures,
+        calibrate_stats_model_config,
+    )
+
+    features = StatsModelFeatures(
+        start_time=0.0,
+        end_time=100.0,
+        column_times=np.array([0.5]),
+        low_band_means=np.array([0.5]),
+        normalization_range=(0.0, 1.0),
+        ne_for_rem=None,
+        time_ne=None,
+    )
+
+    def prediction_for_threshold(_features, config):
+        # Raising the threshold captures more labelled Wake; only the maximum
+        # (which would call the whole recording Wake) matches every second.
+        missed = int(np.clip(round((0.95 - config.wake_threshold) * 100), 0, 100))
+        scores = np.zeros(100, dtype=int)
+        scores[:missed] = 1
+        return SimpleNamespace(sleep_scores=scores)
+
+    with (
+        patch("app_src.run_inference_stats_model.eeg_time_range", return_value=(0.0, 100.0)),
+        patch(
+            "app_src.run_inference_stats_model.compute_stats_model_features",
+            return_value=features,
+        ),
+        patch(
+            "app_src.run_inference_stats_model.predict_stats_model_from_features",
+            side_effect=prediction_for_threshold,
+        ),
+    ):
+        config, label_count = calibrate_stats_model_config({}, [0] * 100)
+
+    # Within the 10-second tolerance of the perfect 0.95 fit, 0.85 is closest
+    # to the default; the other knobs cannot change the fit and stay default.
+    assert label_count == 100
+    assert config.wake_threshold == pytest.approx(0.85)
+    assert config.min_wake_duration == StatsModelConfig().min_wake_duration
+    assert config.min_rem_duration == StatsModelConfig().min_rem_duration
 
 
 def test_calibration_with_no_user_labels_keeps_defaults_without_feature_work():

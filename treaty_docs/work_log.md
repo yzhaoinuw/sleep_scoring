@@ -15,6 +15,29 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-09
+
+### Stats-model calibration overfit to single-stage labels (Claude Opus 5.5)
+
+- Report: on `35_app13.mat`, 202 s of Wake-only expert labels made the
+  adaptive stats model call ~78% of the recording Wake and none NREM.
+- Cause: calibration minimized mismatches on labelled seconds only, so the
+  maximum Wake threshold (0.95) matched Wake-only labels perfectly and the
+  closest-to-default tie-break never applied.
+- Fix: each coordinate step now accepts candidates within
+  `CALIBRATION_MISMATCH_TOLERANCE_FRACTION` (10%) of the labelled seconds of
+  the best fit and picks the one closest to the defaults. Tolerance floors to
+  zero for fewer than 10 labels, so one-label calibration is unchanged.
+- Evidence (ground truth from the wake-ne-analysis copy, codes 4/5 counted as
+  Wake): defaults 84.3% agreement; old calibration 0.95, 17.6%; new
+  calibration 0.85, 86.5%. A 0.80 threshold scores 92% but misses 68 labelled
+  seconds, outside the tolerance.
+- Open: Wake-only labels still change REM, because REM bouts are relabelled
+  from Wake candidate bouts and so depend on the Wake threshold.
+- Verification: new regression test fails on the old code (picks 0.95) and
+  passes with the fix; full suite 216 passed, 2 skipped; `git diff --check`
+  clean. Not yet exercised in the running app.
+
 ## 2026-10-06
 
 ### v0.17.4 partial-release delivery (Codex GPT-6; effort/tokens not reported)
