@@ -20,8 +20,9 @@ this draft is not.
   Software design, Research impact statement, AI usage disclosure,
   Acknowledgments, References).
 - `paper.bib` — the bibliography.
+- `figures/` — five original application snapshots and their panel mapping.
 - `manuscript_layout.md` — feature priorities, contribution boundaries, release
-  audit, the recommended figure, and the revision plan.
+  audit, the two-figure plan and captions, and the revision plan.
 
 ## For reviewers: JOSS requirements that shape this paper
 
@@ -149,21 +150,17 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
 
 ## What is still open
 
-### Figure
+### Figures
 
-The maintainer will choose the recording and capture the figure.
-
-- [ ] **Capture and add the workflow figure** (maintainer). One annotated
-  screenshot at a zoom of roughly 2–5 minutes showing: all four signal rows
-  (spectrogram with theta/delta, EEG, EMG, NE) with the score overlay and
-  legend; a mix of predicted and manually corrected bouts, ideally an MA and
-  a REM bout with a visible NE dip; an active (preferably right-click
-  whole-bout) selection; and the video clip window for that selection.
-  Optionally, the tuned-parameter message after an adaptive run. Use a
-  recording the lab is willing to publish. Full spec:
-  [`manuscript_layout.md`, "Recommended figure"](manuscript_layout.md#recommended-figure).
-- [ ] Add the figure to `paper.md` with a caption and label, and recheck the
-  word count afterward.
+- [x] Capture the workflow snapshots (maintainer): five originals in
+  [`figures/`](figures/README.md), all showing the same recording interval.
+- [x] Agree the two-figure layout and proposed captions: expert-guided
+  adaptation (three panels) and selection-linked video (two panels). See
+  [`manuscript_layout.md`, "Recommended figures"](manuscript_layout.md#recommended-figures).
+- [ ] Assemble matching crops and callouts, keeping one larger interface
+  overview and checking readability at paper size.
+- [ ] Add the composed figures to `paper.md` with captions, labels, and
+  in-text references; recheck the word count and render the JOSS PDF.
 - [ ] Publish a public example recording reviewers can open in the app.
 
 ### Claims the authors said they would verify

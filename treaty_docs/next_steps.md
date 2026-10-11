@@ -15,7 +15,7 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   Keep the experiment separate from the official branches.
 - JOSS revision is active on `publication`, synchronized locally with main
   through v0.17.4. The manuscript has been rewritten; maintainer review
-  and the workflow figure remain open; the Windows and macOS latency results
+  and final workflow-figure assembly remain open; the Windows and macOS latency results
   are in the Research impact statement. See `paper/README.md` for the
   measurement protocol and claims awaiting author confirmation.
 - Keep the full-path video-association fix for a later app-source-only update
@@ -166,7 +166,10 @@ author confirmation. See `paper/README.md` for its status. Open items:
   `paper/latency_measurements.md` and appended to
   `ui_response_time_optimization_progress.txt`; the May M4 section stays as
   dated history and is not pooled with it.
-- Add the workflow figure and a public example recording; render the JOSS PDF.
+- Five workflow snapshots and the two-figure plan/captions are recorded in
+  `paper/figures/` and `paper/manuscript_layout.md`. Assemble the adaptation
+  and selection/video panels, add them to `paper.md`, recheck caption-inclusive
+  word count, and render the JOSS PDF. A public example recording remains open.
 - Fill the remaining `paper.md` TODOs: affiliation, and the Acknowledgments
   (PI, recording/feedback contributors, sDREAMER developers; keep the approved
   funding sentence). The paper stays single-author unless someone meets the

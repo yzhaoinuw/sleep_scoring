@@ -15,6 +15,34 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-11
+
+### Paper figure plan and publication delivery (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer chose adaptability as the figure's purpose: the caption follows
+  prediction, expert NREM labeling, and regenerated predictions without
+  labeling-history qualifications. Changes beyond the labeled interval
+  illustrate adaptation within this recording, not held-out accuracy or
+  cross-recording generalizability.
+- Agreed two figures: three adaptation panels with one larger interface
+  overview, and two selection/video panels. Preserved the five supplied
+  screenshots and recorded the panel mapping, proposed captions, and crop
+  guidance. Final assembly, manuscript placement, and PDF review remain open.
+- Prepared the authorized commit/push on `publication` from remote commit
+  `15fdf38` in an isolated managed worktree. The original `dev` checkout's
+  local work-log/next-step edits, archive, and latency runs are preserved.
+- Verification:
+  - Visually inspected all five source snapshots during the figure discussion;
+    the selected 9609–9622 s bout matches the video clip's 13-second duration.
+  - Verified all five copied PNG SHA256 hashes against the originals and 27
+    local Markdown link targets; `git diff --check` passed.
+  - `conda run -n sleep_scoring_dash3.0 treaty validate .` cannot validate the
+    configured `treaty_docs` layout: installed CLI 0.3.2 expects flat files,
+    while `.copier-answers.yml` pins template v0.9.0. Trying the docs directory
+    instead misses root AGENTS/overview files. No tooling update was made.
+  - No runtime code changed; application tests are not needed for this
+    documentation-and-screenshot commit. Commit hooks remain enabled.
+
 ## 2026-10-08
 
 ### Latency tooling delivery (Codex, GPT-6; effort/token budget not reported)

@@ -316,30 +316,81 @@ the maintainer. Cite directly relevant alternatives, Plotly Resampler,
 sDREAMER, the NE/sleep biology reference, and the software archive. Recheck
 any revised bibliographic claims.
 
-## Recommended figure
+## Recommended figures
 
-The maintainer will capture the screenshot. A still image cannot show
-navigation speed, so it should show what persists on screen; one annotated
-screenshot, at a zoom of roughly 2–5 minutes so one-second detail and bout
-structure are both visible:
+Figure plan agreed with the maintainer on 2026-10-11. The five original
+screenshots in [`figures/`](figures/README.md) show the same time range of
+one MATLAB recording. Use them to build two figures, with expert-guided
+adaptation as the centerpiece and selection-linked video as the supporting
+workflow. Keep one full interface overview; repeated full-window screenshots
+would make the meaningful changes too small at publication size.
 
-- **All four rows:** spectrogram with theta/delta, EEG, EMG, and NE, with the
-  score overlay across every row in all four stage colors and the legend.
-- **A mix of label origins:** a predicted stretch plus a few manually
-  corrected bouts, ideally including an MA and a REM bout whose NE dip is
-  visible, illustrating NE-informed scoring.
-- **An active selection:** preferably a right-click whole-bout selection,
-  with its highlighted box and the selection message showing the range.
-- **Video check:** the clip window open for that selection, either as an
-  inset or as a second panel (b).
-- **Optional:** the tuned-parameter message after an adaptive prediction run,
-  which makes the adaptive scorer visible.
+### Figure 1: Expert-guided adaptation of sleep-stage predictions
 
-Callouts (letters or numbered arrows) should map to the caption: shared time
-axis, score overlay, selection, video, tuned values. Use a recording the lab
-is willing to publish, export at print resolution, and keep the window size
-modest so the labels are legible at JOSS column width. Link the demo videos
-in the README for the dynamic behavior.
+| Panel | Source | Role |
+| --- | --- | --- |
+| A | [`app_figure.png`](figures/app_figure.png) | Larger interface overview: spectrogram with theta/delta, EEG, EMG, NE, and stage legend. |
+| B | [`app_figure_correction.png`](figures/app_figure_correction.png) | Expert NREM label at 9751–9806 s (55 s). |
+| C | [`app_figure_after_correction.png`](figures/app_figure_after_correction.png) | Regenerated adaptive statistical predictions, including changes beyond the directly labeled interval. |
+
+Use matching crops for B and C, retaining the common time axis and enough
+surrounding signal to show prediction changes outside the labeled interval.
+Align corresponding times across panels rather than relying on identical
+pixel positions in the original windows. Add panel letters and callouts for
+the expert label and representative changes elsewhere. Retain the stage
+legend or provide one shared legend so color is not the only explanation.
+
+**Proposed caption:**
+
+> **Expert-guided adaptation of sleep-stage predictions.** All panels show
+> the same interval from one recording. **(A)** Predicted sleep stages
+> displayed alongside the EEG spectrogram and EEG, EMG, and NE signals.
+> **(B)** The expert labels a selected interval as NREM. **(C)** Predictions
+> regenerated after model calibration using expert annotations, showing
+> changes beyond the directly labeled interval.
+
+The caption focuses on adaptability; it does not need labeling-history
+qualifications. Identify the backend as the adaptive statistical model in
+the surrounding manuscript text. Changes beyond the labeled interval show
+how expert input informs predictions elsewhere in the recording; the figure
+is a workflow example, not a measurement of held-out accuracy or
+cross-recording generalizability.
+
+### Figure 2: Selection-linked behavioral review
+
+| Panel | Source | Role |
+| --- | --- | --- |
+| A | [`app_figure_right_click_select.png`](figures/app_figure_right_click_select.png) | Right-click selection of the 9609–9622 s bout (13 s). |
+| B | [`app_figure_video.png`](figures/app_figure_video.png) | Corresponding 13-second behavior clip in the application video dialog. |
+
+Crop A around the selected bout while retaining its time axis and selection
+message. Pair it with the video dialog from B, keeping the clip time range
+and duration visible. A callout should explain the right-click action,
+which a static screenshot cannot demonstrate by itself. The video is a
+behavioral-review feature; the still frame does not establish the animal's
+sleep state.
+
+**Proposed caption:**
+
+> **Selection-linked behavioral review.** **(A)** A right-click selects the
+> contiguous bout at 9609–9622 s. **(B)** The corresponding 13-second behavior
+> clip is opened in the application for review alongside the physiological
+> signals.
+
+### Assembly and manuscript integration
+
+- Preserve the five original PNGs; create final panel compositions as
+  separate files. Crop window chrome and repeated controls where they do
+  not explain the workflow, while keeping time axes and relevant messages.
+- Check label and trace readability at the final paper size. The source
+  viewport is roughly 15 minutes; narrower matching crops will help readers
+  see the correction and adaptation without shrinking every full window.
+- Add the two composed figures to `paper.md`, with captions, labels, and
+  references from Software design subsections 2 and 3; recheck the word
+  count and render the JOSS PDF.
+- If space is tight, prioritize Figure 1 and condense Figure 2 to a small
+  selection-to-video inset. Link README demonstration videos for dynamic
+  interaction; still figures do not show navigation speed.
 
 ## Release-to-cookbook audit
 
@@ -469,7 +520,7 @@ remaining gaps, none manuscript-blocking:
 comparison from primary sources and confirm the build-vs-contribute
 paragraph; collect concrete use/impact evidence and decide whether to rerun
 the latency measurements;
-supply the NE/sleep biology citation; provide a public example and current
-workflow figure; complete author metadata and AI disclosure; then render and
+supply the NE/sleep biology citation; provide a public example and assemble the agreed
+workflow figures; complete author metadata and AI disclosure; then render and
 review the JOSS PDF. The first pass should stand without usage-tracking
 material or unmeasured performance claims.
