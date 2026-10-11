@@ -99,6 +99,41 @@ def test_calibration_with_single_stage_labels_avoids_extreme_threshold():
     assert config.min_rem_duration == StatsModelConfig().min_rem_duration
 
 
+@pytest.mark.parametrize(
+    ("majority_count", "minority_stage", "minority_count", "with_ne"),
+    [(100, 0, 10, False), (400, 2, 35, True)],
+    ids=["rare-wake", "rare-rem"],
+)
+def test_calibration_tolerance_cannot_absorb_a_minority_stage(
+    majority_count, minority_stage, minority_count, with_ne
+):
+    from app_src import run_inference_stats_model as model
+
+    # Correct NREM labels dominate; the minority-stage example is only matched
+    # by raising the Wake threshold above its signal level.
+    n = majority_count + minority_count
+    features = model.StatsModelFeatures(
+        start_time=0.0,
+        end_time=float(n),
+        column_times=np.arange(n) + 0.5,
+        low_band_means=np.r_[np.ones(majority_count), np.full(minority_count, 0.8)],
+        normalization_range=(0.0, 1.0),
+        ne_for_rem=np.r_[np.ones(majority_count), np.zeros(minority_count)] if with_ne else None,
+        time_ne=np.arange(n) + 0.5 if with_ne else None,
+    )
+    labels = np.r_[np.ones(majority_count), np.full(minority_count, float(minority_stage))]
+
+    with (
+        patch.object(model, "eeg_time_range", return_value=(0.0, float(n))),
+        patch.object(model, "compute_stats_model_features", return_value=features),
+    ):
+        config, _ = model.calibrate_stats_model_config({}, labels)
+
+    prediction = model.predict_stats_model_from_features(features, config).sleep_scores
+    np.testing.assert_array_equal(prediction[majority_count:], minority_stage)
+    np.testing.assert_array_equal(prediction[:majority_count], 1)
+
+
 def test_calibration_with_no_user_labels_keeps_defaults_without_feature_work():
     from app_src.run_inference_stats_model import (
         StatsModelConfig,
