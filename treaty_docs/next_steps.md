@@ -13,8 +13,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
-- JOSS revision is active on `publication`, synchronized locally with main
-  through v0.17.4. The manuscript has been rewritten; maintainer review
+- JOSS revision is active on `publication`, based on main through v0.17.4
+  and now including dev's calibration-overfit fix with per-stage tolerances.
+  The manuscript has been rewritten; maintainer review
   and final workflow-figure assembly remain open; the Windows and macOS latency results
   are in the Research impact statement. See `paper/README.md` for the
   measurement protocol and claims awaiting author confirmation.
@@ -116,6 +117,16 @@ Ongoing work:
   paying particular attention to REM subsections and post-REM Wake boundaries.
 - Keep the current default behavior stable until the alternative is clearly
   better on the targeted recordings.
+- Maybe later: keep expert examples confined to their own stage. Wake-only
+  labels still change REM (35_app13: tuned Wake threshold 0.70→0.85 grew REM
+  788→1,323 s with REM knobs unchanged) because REM is relabelled from Wake
+  candidate bouts, so the Wake threshold gates REM. Ideas, preferred first:
+  (1) tune only the knobs for stages that were labelled; (2) give REM
+  candidates their own fixed threshold so the tuned one only splits
+  Wake/NREM (changes unlabelled defaults, so validate against ground truth);
+  (3) merge default and tuned runs per labelled stage; (4) apply tuning only
+  near the examples (likely not, since examples should generalize). See the
+  2026-10-09 work-log entry.
 
 ## Citation And Publication
 

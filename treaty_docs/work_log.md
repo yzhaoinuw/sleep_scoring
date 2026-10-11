@@ -17,6 +17,32 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-11
 
+### Dev calibration fix merged into publication (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer authorized bringing the committed dev change into `publication`.
+  Merged dev `7129f49` (calibration-overfit fix and per-stage tolerance review)
+  into publication `c7abf74`, preserving the figure sources and manuscript work.
+- Calibration now favors parameters closest to defaults among near-best
+  candidates, with a separate 10%-of-labeled-seconds allowance per stage.
+  Updated the paper, layout assessment, and cookbook to match this behavior;
+  stage-confined adaptation remains a future idea, as recorded on dev.
+- Resolved the work-log conflict by retaining the October 11 and October 8
+  publication entries and inserting dev's October 9 calibration entry between
+  them. Dev's older October 6 entries already exist in publication's archive.
+  The original dev checkout's uncommitted changes remain untouched.
+- Verification:
+  - Full merged Python suite: `conda run -n sleep_scoring_dash3.0 python -m
+    pytest --basetemp .pytest_tmp\publication_merge -p no:cacheprovider -q`:
+    229 passed (one existing Flask-Caching deprecation warning).
+  - The first run encountered a missing `.pytest_tmp` parent in the fresh
+    worktree; creating that directory resolved the fixture-setup errors.
+  - `git diff --exit-code dev -- app_src/run_inference_stats_model.py
+    tests/test_sleep_score_layers.py` passed; no unmerged entries or conflict
+    markers remain. `git diff --check` passed. Approximate manuscript body
+    word count is 1,685, excluding front matter and comments.
+  - Commit hooks remain enabled; targeted branch ancestry and remote refs
+    will be verified after the authorized push.
+
 ### Paper figure plan and publication delivery (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer chose adaptability as the figure's purpose: the caption follows
@@ -42,6 +68,37 @@ search older entries by date anchor rather than reading every archive.
     instead misses root AGENTS/overview files. No tooling update was made.
   - No runtime code changed; application tests are not needed for this
     documentation-and-screenshot commit. Commit hooks remain enabled.
+
+## 2026-10-09
+
+### Stats-model calibration overfit to single-stage labels (Claude Opus 5.5)
+
+- Report: on `35_app13.mat`, 202 s of Wake-only expert labels made the
+  adaptive stats model call ~78% of the recording Wake and none NREM.
+- Cause: calibration minimized mismatches on labelled seconds only, so the
+  maximum Wake threshold (0.95) matched Wake-only labels perfectly and the
+  closest-to-default tie-break never applied.
+- Fix: each coordinate step accepts candidates that, for every labelled
+  stage, miss at most `CALIBRATION_MISMATCH_TOLERANCE_FRACTION` (10%) of that
+  stage's labelled seconds more than the strict best fit, then picks the one
+  closest to the defaults. Tolerance floors to zero below 10 labels per
+  stage, so one-label calibration is unchanged.
+- Review follow-up (Codex on PR #17): a first version pooled the tolerance
+  over all labels, so 100 correct NREM labels let defaults win while missing
+  all 10 Wake examples. Per-stage tolerances fix this; regression tests use
+  the real predictor for rare-Wake and rare-REM (NE path) cases.
+- Evidence (ground truth from the wake-ne-analysis copy, codes 4/5 counted as
+  Wake): defaults 84.3% agreement; old calibration 0.95, 17.6%; new
+  calibration 0.85, 86.5%. A 0.80 threshold scores 92% but misses 68 labelled
+  seconds, outside the tolerance.
+- Open: Wake-only labels still change REM, because REM bouts are relabelled
+  from Wake candidate bouts and so depend on the Wake threshold.
+- Maintainer's later labels on 35_app13 (175 s Wake + 138 s NREM) calibrate
+  to threshold 0.80, 92.0% agreement, under both the pooled and per-stage rules.
+- Verification: the Wake-only test fails on the original code (picks 0.95);
+  the minority-stage tests fail under the pooled rule; all pass with the fix.
+  Full suite 218 passed, 2 skipped; `git diff --check` clean. Not yet
+  exercised in the running app.
 
 ## 2026-10-08
 

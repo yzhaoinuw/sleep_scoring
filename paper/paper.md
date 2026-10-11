@@ -44,7 +44,8 @@ generate automatic scores, then revise individual seconds or whole bouts;
 labels a user has supplied are kept as-is in every automatic result. The
 default automatic scorer is a rule-based algorithm that adapts to
 expert-labeled examples: it treats the user's labels on the current
-recording as ground truth and adjusts its parameters to best match them.
+recording as ground truth and fits them while favoring parameters near
+the defaults.
 Completed scores are saved back
 to the recording and exported as bout tables with stage and transition
 statistics.
@@ -185,9 +186,10 @@ recording-wide and within-bout percentile thresholds; without usable NE, it
 identifies only Wake and NREM. Before each run, the algorithm treats the
 user's Wake, NREM, and REM labels on the current recording, however few
 (one is enough), as ground truth and automatically adjusts its five
-parameters, searching a fixed set of candidate values, to best match those
-examples; ties favor the
-defaults, and the chosen values are displayed. MA labels are kept but not
+parameters over a fixed set of candidate values. At each search step, it
+favors parameters closest to the defaults among candidates whose fit is
+near-best for each labeled stage, reducing overfitting to single-stage
+examples. The chosen values are displayed. MA labels are kept but not
 used for fitting. We chose this recording-specific, inspectable adaptation
 over persistent model training: it is fast, does not change the defaults for
 the next recording, and matching the supplied examples is not a claim of

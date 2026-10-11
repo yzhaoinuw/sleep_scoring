@@ -139,7 +139,7 @@ mention tied to the workflow; **Credit** identifies a dependency;
 | 18. Performance instrumentation | **Support (evidence source)** | Not a feature, but the cheapest route to evidence for contribution 2: the existing browser/server profiler can produce a small, reproducible latency table. Existing instrumentation alone is not a benchmark. |
 | 19. Multiple desktop instances | Support | Up to three isolated windows for comparing different recordings; the same MAT path is refused in a peer window. This is not simultaneous collaborative scoring. |
 | 20. Opt-in aggregate reporting | Optional | Omit from the feature narrative. If used as impact evidence later, app-copy totals cannot establish distinct users/labs, accuracy, or time saved. |
-| 21. Adaptive statistical calibration | Core | Explicit examples tune five controls for this recording by a small deterministic search with a default-distance tie-break; examples remain protected in predictions. Not persistent training or established accuracy improvement. |
+| 21. Adaptive statistical calibration | Core | Explicit examples tune five controls for this recording by a small deterministic search that favors defaults among near-best fits within per-stage tolerances; examples remain protected in predictions. Not persistent training or established accuracy improvement. |
 | 22. Prediction backends/correction | Core | One correction workflow supports manual work, the default statistical scorer (NE-dependent REM), and optional upstream sDREAMER. Attribute the model correctly. |
 | 23. Compatible startup updates | Support | One sentence on maintaining packaged installations and supported settings; updater mechanics stay in the cookbook. |
 

@@ -1159,10 +1159,14 @@ through the dedicated `prediction-message` component.
    as a manual override but is not used to fit the Wake/REM rules. One example
    is enough to run calibration.
 3. **Search a small, deterministic configuration space.** Features are
-   extracted once, then two coordinate-descent passes choose the configuration
-   with the fewest mismatches on the supplied examples. Equal fits prefer the
-   configuration closest to the ordinary defaults, avoiding arbitrary changes
-   when the examples do not distinguish candidates.
+   extracted once, then two coordinate-descent passes evaluate raw predictions.
+   At each step, identify the best fit by total mismatches (ties favor defaults).
+   Accept candidates that miss no more than that best fit plus 10% of each
+   stage's labeled seconds, rounded down, separately for Wake, NREM, and REM.
+   Among accepted candidates, prefer the configuration closest to the ordinary
+   defaults (then fewer total mismatches). This reduces single-stage overfitting
+   without letting plentiful labels absorb all examples of a rarer stage.
+   Fewer than ten labeled seconds for a stage gives it zero extra tolerance.
 4. **Predict, then overlay.** The chosen configuration applies only to that
    prediction run. The app overlays every finite user label on the model output
    afterwards, so examples and MA annotations stay untouched. It does not edit
@@ -1193,8 +1197,8 @@ into a permanent label or changing the next recording's defaults.
 
 **Adapt.** For another rule-based model, preserve a sparse human-evidence
 layer, cache expensive features once, search a deliberately small candidate
-set, and use a default-distance tie-breaker. Tune only controls with a clear
-user-visible effect.
+set, and favor defaults among fits within a per-stage tolerance. Tune only
+controls with a clear user-visible effect.
 
 **Gotchas.**
 
