@@ -111,6 +111,16 @@ Ongoing work:
   paying particular attention to REM subsections and post-REM Wake boundaries.
 - Keep the current default behavior stable until the alternative is clearly
   better on the targeted recordings.
+- Maybe later: keep expert examples confined to their own stage. Wake-only
+  labels still change REM (35_app13: tuned Wake threshold 0.70→0.85 grew REM
+  788→1,323 s with REM knobs unchanged) because REM is relabelled from Wake
+  candidate bouts, so the Wake threshold gates REM. Ideas, preferred first:
+  (1) tune only the knobs for stages that were labelled; (2) give REM
+  candidates their own fixed threshold so the tuned one only splits
+  Wake/NREM (changes unlabelled defaults, so validate against ground truth);
+  (3) merge default and tuned runs per labelled stage; (4) apply tuning only
+  near the examples (likely not, since examples should generalize). See the
+  2026-10-09 work-log entry.
 
 ## Citation And Publication
 
