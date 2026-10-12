@@ -38,9 +38,13 @@ search older entries by date anchor rather than reading every archive.
   Software design subsections 2 and 3. Figure 1's caption also explains the
   outline and change bars. Body is about 1,725 words with captions (script:
   strip front matter, comments, headings, link targets, and citations).
-- Not done: no JOSS PDF render (no Docker, inara, or pandoc on this Mac),
-  so readability at paper size is unchecked. App tick labels are about
-  15 px in a ~2,050 px-wide figure, so they will be small in print.
+- No local renderer (Docker, inara, pandoc) on this Mac, so added
+  `.github/workflows/draft-pdf.yml`: the Open Journals draft action on
+  pushes touching `paper/`, uploading `paper.pdf` as an artifact (not
+  committed). Run 38206413116 succeeded with no LaTeX warnings. Pages
+  rendered with PDFKit: figures sit on pages 4 and 5 at full text width;
+  panel letters and callouts are readable, in-app text is about 3–4 pt.
+  Glued "9609–9622 s" in the Figure 2 caption with a non-breaking space.
 
 ## 2026-10-11
 

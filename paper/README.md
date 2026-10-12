@@ -165,7 +165,12 @@ download the `paper` artifact from the run. The PDF is not committed.
 - [x] Add the composed figures to `paper.md` with captions, labels, and
   in-text references. The body is now about 1,725 words including
   captions, leaving roughly 25 words of headroom.
-- [ ] Render the JOSS PDF and check figure readability at paper size.
+- [x] Render the JOSS PDF (2026-10-12, `JOSS draft PDF` workflow): 7 pages,
+  Figure 1 on page 4, Figure 2 on page 5, both at full text width. Panel
+  letters, titles, and callouts read at print size; the application's own
+  tick labels and messages are about 3–4 pt, legible only when zoomed.
+- [ ] Decide whether print legibility of the in-app text matters enough to
+  retake the snapshots with a smaller window (larger relative text).
 - [ ] Publish a public example recording reviewers can open in the app.
 
 ### Claims the authors said they would verify

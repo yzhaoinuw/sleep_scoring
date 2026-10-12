@@ -16,7 +16,7 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - JOSS revision is active on `publication`, based on main through v0.17.4
   and now including dev's calibration-overfit fix with per-stage tolerances.
   The manuscript has been rewritten; maintainer review
-  and the rendered-PDF figure check remain open; the Windows and macOS latency results
+  and a decision on figure text legibility remain open; the Windows and macOS latency results
   are in the Research impact statement. See `paper/README.md` for the
   measurement protocol and claims awaiting author confirmation.
 - Keep the full-path video-association fix for a later app-source-only update
@@ -179,8 +179,10 @@ author confirmation. See `paper/README.md` for its status. Open items:
   dated history and is not pooled with it.
 - Both workflow figures are composed by `paper/figures/build_figures.py` and
   placed in `paper.md` (body about 1,725 words with captions; about 25 words
-  of headroom). Render the JOSS PDF and check figure readability at paper
-  size. A public example recording remains open.
+  of headroom). The `JOSS draft PDF` workflow renders the paper as a run
+  artifact; in-app text in the figures is only legible zoomed, so decide
+  whether to retake the snapshots with a smaller window. A public example
+  recording remains open.
 - Fill the remaining `paper.md` TODOs: affiliation, and the Acknowledgments
   (PI, recording/feedback contributors, sDREAMER developers; keep the approved
   funding sentence). The paper stays single-author unless someone meets the

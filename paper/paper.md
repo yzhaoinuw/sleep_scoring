@@ -219,7 +219,7 @@ statistics, including microarousals. Packaged Windows installations receive
 compatible updates that preserve supported settings.
 
 ![**Selection-linked behavioral review.** **(A)** A right-click selects the
-contiguous bout at 9609–9622 s. **(B)** The corresponding 13-second behavior
+contiguous bout at 9609–9622\ s. **(B)** The corresponding 13-second behavior
 clip is opened in the application for review alongside the physiological
 signals.\label{fig:video}](figures/figure2_video_review.png)
 
