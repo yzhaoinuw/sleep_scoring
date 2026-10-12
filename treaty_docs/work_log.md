@@ -15,6 +15,17 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-12
+
+### Figure 1 caption names the calibration input (Claude Code, Opus 5.5)
+
+- Reversed the 2026-10-11 "no labeling-history qualifications" choice for
+  the Figure 1 caption: panel C's message reports calibration from 358
+  labeled seconds while panel B shows only the 55 s NREM label, so the
+  caption now says "this and earlier expert labels (358 s in total)".
+- Maintainer confirmed the snapshots were captured after the per-stage
+  calibration-tolerance fix (`c2e3bb6`), so they need not be retaken.
+
 ## 2026-10-11
 
 ### Dev calibration fix merged into publication (Codex, GPT-6; effort/token budget not reported)

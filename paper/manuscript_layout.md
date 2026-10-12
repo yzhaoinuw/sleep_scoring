@@ -346,11 +346,13 @@ legend or provide one shared legend so color is not the only explanation.
 > the same interval from one recording. **(A)** Predicted sleep stages
 > displayed alongside the EEG spectrogram and EEG, EMG, and NE signals.
 > **(B)** The expert labels a selected interval as NREM. **(C)** Predictions
-> regenerated after model calibration using expert annotations, showing
-> changes beyond the directly labeled interval.
+> regenerated after model calibration on this and earlier expert labels
+> (358 s in total), showing changes beyond the directly labeled interval.
 
-The caption focuses on adaptability; it does not need labeling-history
-qualifications. Identify the backend as the adaptive statistical model in
+The caption focuses on adaptability. It states the total labeled seconds
+because panel C's calibration message reports 358 s while panel B shows only
+the 55 s NREM label; without that, readers would take B as the sole input.
+Identify the backend as the adaptive statistical model in
 the surrounding manuscript text. Changes beyond the labeled interval show
 how expert input informs predictions elsewhere in the recording; the figure
 is a workflow example, not a measurement of held-out accuracy or
