@@ -39,9 +39,9 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** The body is currently about 1,650 words, excluding
-  front matter and comments, so new material generally has to replace
-  existing text. The figure caption will also count.
+- **750–1,750 words.** The body is currently about 1,725 words including
+  figure captions, excluding front matter and comments, so new material
+  has to replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
   EEG, and EMG from scratch.
 - **No user manual or API documentation.** JOSS says that belongs in the
@@ -157,10 +157,12 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image.
 - [x] Agree the two-figure layout and proposed captions: expert-guided
   adaptation (three panels) and selection-linked video (two panels). See
   [`manuscript_layout.md`, "Recommended figures"](manuscript_layout.md#recommended-figures).
-- [ ] Assemble matching crops and callouts, keeping one larger interface
-  overview and checking readability at paper size.
-- [ ] Add the composed figures to `paper.md` with captions, labels, and
-  in-text references; recheck the word count and render the JOSS PDF.
+- [x] Assemble matching crops and callouts: `figures/build_figures.py`
+  writes `figure1_adaptation.png` and `figure2_video_review.png`.
+- [x] Add the composed figures to `paper.md` with captions, labels, and
+  in-text references. The body is now about 1,725 words including
+  captions, leaving roughly 25 words of headroom.
+- [ ] Render the JOSS PDF and check figure readability at paper size.
 - [ ] Publish a public example recording reviewers can open in the app.
 
 ### Claims the authors said they would verify

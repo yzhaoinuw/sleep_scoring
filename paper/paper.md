@@ -189,7 +189,7 @@ user's Wake, NREM, and REM labels on the current recording, however few
 parameters over a fixed set of candidate values. At each search step, it
 favors parameters closest to the defaults among candidates whose fit is
 near-best for each labeled stage, reducing overfitting to single-stage
-examples. The chosen values are displayed. MA labels are kept but not
+examples. The chosen values are displayed (\autoref{fig:adaptation}). MA labels are kept but not
 used for fitting. We chose this recording-specific, inspectable adaptation
 over persistent model training: it is fast, does not change the defaults for
 the next recording, and matching the supplied examples is not a claim of
@@ -198,17 +198,30 @@ held-out accuracy. The externally developed sDREAMER model
 [PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
 user labels in the same way.
 
+![**Expert-guided adaptation of sleep-stage predictions.** All panels show
+the same interval from one recording. **(A)** Predicted sleep stages
+displayed alongside the EEG spectrogram and EEG, EMG, and NE signals.
+**(B)** The expert labels a selected interval as NREM. **(C)** Predictions
+regenerated after model calibration on this and earlier expert labels
+(358 s in total), showing changes beyond the directly labeled interval
+(outlined); black bars mark where stages changed from (B).\label{fig:adaptation}](figures/figure1_adaptation.png)
+
 ## 3. Checking behavior and completing a recording
 
 For a selected interval of
 up to five minutes, the application cuts the matching clip from the behavior
 video with [FFmpeg](https://ffmpeg.org), validates the recording-to-video offset, and plays it in
-the same window. One-step undo and filesystem-backed recovery protect
+the same window (\autoref{fig:video}). One-step undo and filesystem-backed recovery protect
 in-progress work; up to three isolated windows allow side-by-side
 comparison, refusing the same file twice. Saving reports the first unscored
 gap; a complete recording also exports bout, stage, and transition
 statistics, including microarousals. Packaged Windows installations receive
 compatible updates that preserve supported settings.
+
+![**Selection-linked behavioral review.** **(A)** A right-click selects the
+contiguous bout at 9609–9622 s. **(B)** The corresponding 13-second behavior
+clip is opened in the application for review alongside the physiological
+signals.\label{fig:video}](figures/figure2_video_review.png)
 
 # Research impact statement
 

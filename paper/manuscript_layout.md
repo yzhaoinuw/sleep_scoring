@@ -387,9 +387,9 @@ sleep state.
 - Check label and trace readability at the final paper size. The source
   viewport is roughly 15 minutes; narrower matching crops will help readers
   see the correction and adaptation without shrinking every full window.
-- Add the two composed figures to `paper.md`, with captions, labels, and
-  references from Software design subsections 2 and 3; recheck the word
-  count and render the JOSS PDF.
+- Done 2026-10-12: both figures are in `paper.md`, referenced from
+  Software design subsections 2 and 3, and the body is about 1,725 words
+  including captions. The JOSS PDF render remains open.
 - If space is tight, prioritize Figure 1 and condense Figure 2 to a small
   selection-to-video inset. Link README demonstration videos for dynamic
   interaction; still figures do not show navigation speed.
@@ -522,7 +522,7 @@ remaining gaps, none manuscript-blocking:
 comparison from primary sources and confirm the build-vs-contribute
 paragraph; collect concrete use/impact evidence and decide whether to rerun
 the latency measurements;
-supply the NE/sleep biology citation; provide a public example and assemble the agreed
-workflow figures; complete author metadata and AI disclosure; then render and
+supply the NE/sleep biology citation; provide a public example and review the
+workflow figures in the rendered PDF; complete author metadata and AI disclosure; then render and
 review the JOSS PDF. The first pass should stand without usage-tracking
 material or unmeasured performance claims.

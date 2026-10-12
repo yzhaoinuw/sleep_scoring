@@ -26,6 +26,22 @@ search older entries by date anchor rather than reading every archive.
 - Maintainer confirmed the snapshots were captured after the per-stage
   calibration-tolerance fix (`c2e3bb6`), so they need not be retaken.
 
+### Composed paper figures placed in the manuscript (Claude Code, Opus 5.5)
+
+- `paper/figures/build_figures.py` builds both figures from the untouched
+  snapshots. B, C, and Figure 2A share a 9420–9915 s window aligned by time
+  (the post-calibration snapshots are offset 13 px right, 1 px down). The
+  "stage changed from (B)" bars come from comparing overlay colors, not
+  hand-drawn. The clipped legend is blanked in zoomed crops, and C's
+  calibration message is re-flowed onto two lines at word gaps.
+- Added both figures to `paper.md` with `\autoref` references from
+  Software design subsections 2 and 3. Figure 1's caption also explains the
+  outline and change bars. Body is about 1,725 words with captions (script:
+  strip front matter, comments, headings, link targets, and citations).
+- Not done: no JOSS PDF render (no Docker, inara, or pandoc on this Mac),
+  so readability at paper size is unchecked. App tick labels are about
+  15 px in a ~2,050 px-wide figure, so they will be small in print.
+
 ## 2026-10-11
 
 ### Dev calibration fix merged into publication (Codex, GPT-6; effort/token budget not reported)

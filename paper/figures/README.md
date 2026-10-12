@@ -13,5 +13,19 @@ layout and proposed captions are in
 | [`app_figure_right_click_select.png`](app_figure_right_click_select.png) | Right-click selection of the 9609–9622 s bout. | Figure 2A |
 | [`app_figure_video.png`](app_figure_video.png) | Behavior clip for that selected 13-second interval. | Figure 2B |
 
-Keep these files unchanged as source assets. Final cropped panel
-compositions and their placement in `paper.md` remain to be completed.
+Keep these files unchanged as source assets. The composed figures used in
+`paper.md` are generated from them:
+
+```
+python paper/figures/build_figures.py
+```
+
+| Output | Contents |
+| --- | --- |
+| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9420–9915 s crops before (B) and after (C) calibration. C outlines the labeled interval, and black bars mark seconds whose stage differs from B, computed from the overlay colors. |
+| [`figure2_video_review.png`](figure2_video_review.png) | The same crop with the right-clicked bout outlined (A) and the video dialog (B). |
+
+All snapshots share the 9155–10090 s viewport at 2 px/s; the post-calibration
+snapshots sit 13 px right and 1 px lower, so the script aligns crops by time.
+The zoomed crops blank the clipped stage legend (panel A keeps it), and the
+calibration message in C is re-flowed onto two lines at word gaps.
