@@ -129,7 +129,10 @@ and leaves out general-purpose ones such as NumPy and pandas.
 
 JOSS renders `paper.md` with its own toolchain, so a plain Markdown preview
 does not show the final layout or references. Preview it with the JOSS
-draft-PDF GitHub Action or the `openjournals/inara` Docker image.
+draft-PDF GitHub Action or the `openjournals/inara` Docker image. The
+repository's `JOSS draft PDF` workflow (`.github/workflows/draft-pdf.yml`)
+runs on every push that touches `paper/` and can also be started by hand;
+download the `paper` artifact from the run. The PDF is not committed.
 
 ## What is done
 
