@@ -44,6 +44,14 @@ search older entries by date anchor rather than reading every archive.
     validation (20 payload files), and a fresh v0.17.1 frozen update/smoke
     preserving customized settings. Its ZIP SHA-256 was
     `204DA779C648E978552F16A3AF38C2FC6897F0210FDADFA4CBD02C126BE559C4`.
-  - Official PR history and final handoff documentation now form a new
-    candidate commit. Run the complete gate against that exact ref, verify
-    its CI, and tag that tested payload before publication.
+  - Final payload `9113f6532cf901beaa103dc61fef77634f1bfceb` passed the
+    complete lightweight gate after the official PR merge: 244 Python tests,
+    51 JavaScript tests, Black, compilation, source smoke, schema-2 validation
+    (20 files), and a fresh frozen v0.17.1 update/smoke preserving settings.
+    Final ZIP SHA-256:
+    `31644A007CF638B113F0E4CE0A8751C0140E50FAA0612DD77EF95393662F73D1`.
+  - GitHub CI run `38448938238` and CodeQL run `38448937619` both succeeded
+    on that exact payload. `dev` is pushed at `9113f65`; documentation follows
+    the tested payload. Tag v0.17.5 will point to `9113f65`, with `main`
+    fast-forwarded to include the verification record before publication.
+    GitHub asset and Zenodo DOI verification remain the publication steps.
