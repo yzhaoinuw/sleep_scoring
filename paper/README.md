@@ -212,9 +212,10 @@ download the `paper` artifact from the run. The PDF is not committed.
   feedback, and the sDREAMER developers by name. Keep the approved funding
   sentence verbatim.
 - [ ] Update the manuscript date when the revision is finalized.
-- [ ] Rename the Zenodo archive title to match the paper and `CITATION.cff`
-  (the next release does this, since Zenodo reads `CITATION.cff`), then update
-  the `sleepscoring_zenodo` title and year in `paper.bib` to the new record.
+- [x] Zenodo v0.17.5 uses the paper's title, and `sleepscoring_zenodo` in
+  `paper.bib` matches the archived title/year. Verified on 2026-10-13:
+  [version DOI](https://doi.org/10.5281/zenodo.23349241). The bibliography
+  retains the concept DOI so it resolves to the latest archived release.
 
 ### Bibliography and final checks
 
