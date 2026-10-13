@@ -8,8 +8,8 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 - Annotation save protection is implemented: verified sibling staging before replacement,
   cleanup on success, and a complete local recovery MAT on destination
-  failure. Test native saving and overwriting on the affected shared drive
-  before delivery/release. Separately handle corrupt MAT selection in the
+  failure. Test native saving and overwriting on the affected shared drive; v0.17.5 candidate validation covers
+  synthetic failure paths and a fresh frozen installation. Separately handle corrupt MAT selection in the
   load UI, and inspect an intact file reported to have missing scores.
   Actual user-side truncation timing remains unconfirmed.
 - Video cleanup shipped in v0.17.4 after automated and maintainer playback
@@ -31,7 +31,7 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   `app_src`-only changes, tag the tested commit and publish only the automatic
   source-update ZIP, its SHA-256 file, and release notes.
 - Use `packaging/windows/release_lightweight.ps1` as the standard candidate
-  gate. Its supported source-update fixture is v0.17.1; retain the v0.17.0
+  gate. v0.17.5 targets v0.17.1–v0.17.4; the frozen source-update fixture is v0.17.1; retain the v0.17.0
   package only for historic full-package verification because its frozen
   launcher/runtime boundary cannot accept source-only updates.
 - Let the builder use schema 1 when `app_src/config.py` is unchanged and schema

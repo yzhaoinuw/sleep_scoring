@@ -210,6 +210,10 @@ day and applies compatible updates before the window opens. If it cannot — no
 network, or a local edit in the way — it says so in the terminal and opens
 normally.
 
+v0.17.5 is a compatible source update for v0.17.1–v0.17.4 installations.
+It improves expert-label calibration and protects annotation saves. New
+installations use the v0.17.1 `_full.zip` and receive the latest patch at startup.
+
 Some releases replace the whole package and cannot be applied automatically.
 When the terminal reports one, download the new `_full.zip` and repeat the
 [installation steps](#packaged-windows-app).
