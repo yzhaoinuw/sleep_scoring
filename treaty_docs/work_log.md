@@ -17,7 +17,7 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-13
 
-### v0.17.5 partial-release candidate (Codex, GPT-6; effort/token budget not reported)
+### v0.17.5 partial release published (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer requested a partial release so the manuscript describes shipped
   behavior. Candidate includes the per-stage calibration tolerance from PR #17
@@ -51,7 +51,18 @@ search older entries by date anchor rather than reading every archive.
     Final ZIP SHA-256:
     `31644A007CF638B113F0E4CE0A8751C0140E50FAA0612DD77EF95393662F73D1`.
   - GitHub CI run `38448938238` and CodeQL run `38448937619` both succeeded
-    on that exact payload. `dev` is pushed at `9113f65`; documentation follows
-    the tested payload. Tag v0.17.5 will point to `9113f65`, with `main`
-    fast-forwarded to include the verification record before publication.
-    GitHub asset and Zenodo DOI verification remain the publication steps.
+    on that exact payload. Annotated tag v0.17.5 is pushed and its peeled
+    commit is `9113f65`; `main` includes the documentation verification
+    follow-up. Synchronize `dev` with this documentation after publication.
+  - Published GitHub release v0.17.5 at 2026-10-13T18:48:36Z. GitHub reports
+    the ZIP SHA-256 above and checksum-file SHA-256
+    `F5F66229D08976AA8404637B48C6488CD4364C19493AD5EF44BFDD600935F45E`,
+    both matching local files. Only the update ZIP/checksum were attached.
+  - Zenodo record `23349241` confirms version v0.17.5, the tagged GitHub
+    source, the new Sleep Scoring App title, version DOI
+    `10.5281/zenodo.23349241`, and concept DOI `10.5281/zenodo.21748494`.
+    The required `q=sleep_scoring` search omitted the renamed record; querying
+    `q=conceptrecid:21748494&all_versions=true` found it. Use that stable
+    concept query for future verification. The released webhook returned 202;
+    the published event's 409 said the release had already been received.
+    No recreation or redelivery was needed.
