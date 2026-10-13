@@ -78,6 +78,10 @@ def clear_temp_dir(filename):
         if temp_file.suffix in [".mat", ".xlsx"]:
             if temp_file.stem == filename:
                 continue
+            if temp_file.suffix == ".mat" and temp_file.stem.startswith(f"{filename}_annotations_"):
+                # Unique failed-save exports belong to this recording too.
+                # Reopening it for same-slot recovery must not delete them.
+                continue
             temp_file.unlink()
 
 

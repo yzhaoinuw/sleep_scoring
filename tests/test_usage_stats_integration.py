@@ -35,7 +35,6 @@ def saved_recording(tmp_path, monkeypatch):
             patch.object(saving, "cache", cache),
             patch.object(saving, "TEMP_PATH", tmp_path),
             patch.object(saving, "loadmat", return_value=mat),
-            patch.object(saving, "savemat"),
             patch.object(saving, "shutil"),
             patch.object(
                 saving,

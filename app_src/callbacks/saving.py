@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Serverside callbacks for annotation history, undo, and saving results."""
 
+import os
 import shutil
+import tempfile
+from pathlib import Path
 
 import dash
 import numpy as np
@@ -9,7 +12,9 @@ import pandas as pd
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from scipy.io import loadmat, savemat
+from scipy.io.matlab import MatReadError
 
+from app_src.atomic_save import copy_verified_export, remove_temporary_export
 from app_src.dialogs import save_file_dialog
 from app_src.postprocessing import (
     get_first_unscored_segment,
@@ -90,6 +95,10 @@ def undo_annotation(n_clicks):
     Output("interval-component", "max_intervals"),
     Input("save-button", "n_clicks"),
     prevent_initial_call=True,
+    running=[
+        (Output("save-button", "disabled"), True, False),
+        (Output("save-button", "children"), "Saving...", "Save Annotations"),
+    ],
 )
 def save_annotations(n_clicks):
     if n_clicks is None or n_clicks == 0:
@@ -97,15 +106,16 @@ def save_annotations(n_clicks):
 
     mat_path = cache.get("filepath")
     filename = cache.get("filename")
-    temp_mat_path = TEMP_PATH / f"{filename}.mat"
-    mat = loadmat(mat_path, squeeze_me=True)
+    try:
+        mat = loadmat(mat_path, squeeze_me=True)
+    except (OSError, ValueError, MatReadError) as exc:
+        return f"Could not read the recording to save annotations: {exc}", 0
 
     # Replace None in sleep_scores
     sleep_scores_history = cache.get("sleep_scores_history")
     labels = None
     if sleep_scores_history:
-        sleep_scores = sleep_scores_history[-1]
-        np.place(sleep_scores, sleep_scores == None, [-1])
+        sleep_scores = np.array(sleep_scores_history[-1], dtype=float, copy=True)
         sleep_scores = np.nan_to_num(sleep_scores, nan=-1)
         mat["sleep_scores"] = sleep_scores
 
@@ -120,7 +130,29 @@ def save_annotations(n_clicks):
         if not key.startswith("_"):
             mat_filtered[key] = value
 
-    savemat(temp_mat_path, mat_filtered)
+    # A separate export per attempt also keeps simultaneous saves from sharing
+    # a source file. Close the handle before copying/reopening it on Windows.
+    temp_mat_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=f"{filename}_annotations_",
+            suffix=".mat",
+            dir=TEMP_PATH,
+            delete=False,
+        ) as export:
+            temp_mat_path = Path(export.name)
+            savemat(export.file, mat_filtered)
+            export.flush()
+            os.fsync(export.fileno())
+    except (OSError, ValueError) as exc:
+        if temp_mat_path is not None:
+            remove_temporary_export(temp_mat_path)
+        return (
+            f"Could not prepare the annotation file: {exc}. "
+            "Existing saved files have not been replaced. Your annotations remain in this session.",
+            0,
+        )
 
     unscored_segment = get_first_unscored_segment(mat.get("sleep_scores"))
     unscored_message = ""
@@ -136,9 +168,25 @@ def save_annotations(n_clicks):
     mat_save_path = save_file_dialog("mat", f"{filename}.mat")
 
     if not mat_save_path:
+        remove_temporary_export(temp_mat_path)
         return unscored_message, 5 if unscored_message else dash.no_update
 
-    shutil.copy(temp_mat_path, mat_save_path)
+    try:
+        copy_verified_export(temp_mat_path, mat_save_path)
+    except OSError as exc:
+        return (
+            f"Could not save annotations to {mat_save_path}: {exc}. "
+            f"A complete recovery MAT file is available at {temp_mat_path}. "
+            "Copy it to a safe folder before opening another recording, or retry saving.",
+            0,
+        )
+
+    # The user can explicitly select the local recovery file as the destination.
+    # In that unusual case it is the saved recording and must not be deleted.
+    if os.path.normcase(os.path.abspath(mat_save_path)) != os.path.normcase(
+        os.path.abspath(temp_mat_path)
+    ):
+        remove_temporary_export(temp_mat_path)
     message = f"Saved annotations to {mat_save_path}."
     if unscored_message:
         message += f"\n{unscored_message}"

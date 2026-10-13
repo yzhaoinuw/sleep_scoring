@@ -6,6 +6,12 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- Annotation save protection is implemented: verified sibling staging before replacement,
+  cleanup on success, and a complete local recovery MAT on destination
+  failure. Test native saving and overwriting on the affected shared drive
+  before delivery/release. Separately handle corrupt MAT selection in the
+  load UI, and inspect an intact file reported to have missing scores.
+  Actual user-side truncation timing remains unconfirmed.
 - Video cleanup shipped in v0.17.4 after automated and maintainer playback
   checks. The original frozen-frame report remains unconfirmed; if it recurs,
   collect the app version, selected time range, and playback/extraction errors

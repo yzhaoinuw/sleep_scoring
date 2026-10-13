@@ -179,6 +179,12 @@ the remaining time, while your labels stay unchanged.
 Click **Save Annotations** at the lower left of the graph, then choose where to
 write the `.mat` file.
 
+The app verifies a temporary copy in the destination folder before replacing
+the final file. A failed copy leaves an existing saved file untouched. After
+a successful save, the temporary MAT exports are removed. If saving fails,
+the message identifies a complete local recovery MAT file; copy it to a safe
+folder before opening another recording, or retry saving.
+
 If anything is still unscored, the app reports the first gap as
 `[start, end] (duration s)`. Once the recording is fully scored, it also offers
 to export sleep bouts and summary statistics to Excel.
