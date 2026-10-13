@@ -170,9 +170,12 @@ The statistical model is tuned by five more settings in the same file:
 
 For the statistical model, the labels you add in the current recording also
 adapt its Wake/REM configuration live for the next prediction. One or more
-Wake, NREM, or REM examples are enough; the app chooses the closest matching
-configuration for that recording without editing `config.py`. The model fills
-the remaining time, while your labels stay unchanged.
+Wake, NREM, or REM examples are enough. Calibration balances agreement with
+each labelled stage against changes to the remaining default predictions;
+a short example can improve scoring without demanding a perfect fit at the
+expense of the whole recording. Your labels stay unchanged, and `config.py`
+is not edited. Review the result: sparse examples cannot guarantee better
+predictions throughout the recording.
 
 ### Save Sleep Scores
 

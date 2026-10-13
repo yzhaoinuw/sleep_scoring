@@ -45,9 +45,9 @@ from app_src.make_figure import (  # noqa: E402
     STAGE_NAMES,
 )
 
-# Calibration accepts any candidate within this fraction of each labelled
-# stage's seconds of the best fit, then prefers the one closest to the defaults.
-CALIBRATION_MISMATCH_TOLERANCE_FRACTION = 0.10
+# Balance stage-averaged label error against changed unlabelled predictions.
+# Defaults are a prior, not ground truth; manual labels are overlaid afterward.
+CALIBRATION_UNLABELLED_CHANGE_WEIGHT = 0.25
 CALIBRATION_STAGES = (0, 1, 2)
 
 
@@ -579,7 +579,7 @@ def _calibration_label_array(
 
 
 def _configuration_distance(config: StatsModelConfig, base_config: StatsModelConfig) -> float:
-    """Prefer the least changed configuration when labels do not break a tie."""
+    """Prefer the least changed configuration when calibration costs tie."""
     return float(
         abs(config.wake_threshold - base_config.wake_threshold) / 0.05
         + abs(config.min_wake_duration - base_config.min_wake_duration) / 5.0
@@ -593,50 +593,6 @@ def _configuration_distance(config: StatsModelConfig, base_config: StatsModelCon
     )
 
 
-def _configuration_mismatch_counts(
-    features: StatsModelFeatures,
-    config: StatsModelConfig,
-    user_labels: np.ndarray,
-) -> np.ndarray:
-    """Return mismatched labelled seconds for each of Wake, NREM, and REM."""
-    prediction = predict_stats_model_from_features(features, config).sleep_scores
-    count = min(prediction.size, user_labels.size)
-    labels = user_labels[:count]
-    mismatched = prediction[:count] != labels
-    return np.array(
-        [np.count_nonzero(mismatched & (labels == stage)) for stage in CALIBRATION_STAGES]
-    )
-
-
-def _best_calibration_config(
-    features: StatsModelFeatures,
-    base_config: StatsModelConfig,
-    user_labels: np.ndarray,
-    candidates: list[StatsModelConfig],
-    stage_tolerances: np.ndarray | None = None,
-) -> StatsModelConfig:
-    """Pick the configuration closest to the defaults among near-best fits.
-
-    Labels constrain only the seconds they cover, so the strictly best fit can
-    be an extreme setting that is degenerate elsewhere (e.g. Wake-only labels
-    are matched perfectly by calling the whole recording Wake). A candidate is
-    near-best when, for every stage, it misses at most that stage's tolerance
-    more labelled seconds than the strict best fit, so plentiful labels of one
-    stage cannot absorb every example of a rarer one.
-    """
-    if stage_tolerances is None:
-        stage_tolerances = np.zeros(len(CALIBRATION_STAGES), dtype=int)
-    mismatches = np.array(
-        [_configuration_mismatch_counts(features, config, user_labels) for config in candidates]
-    )
-    totals = mismatches.sum(axis=1)
-    distances = [_configuration_distance(config, base_config) for config in candidates]
-    strict_best = min(range(len(candidates)), key=lambda i: (totals[i], distances[i]))
-    acceptable = np.all(mismatches <= mismatches[strict_best] + stage_tolerances, axis=1)
-    chosen = min(np.flatnonzero(acceptable), key=lambda i: (distances[i], totals[i]))
-    return candidates[chosen]
-
-
 def calibrate_stats_model_config(
     mat: dict,
     user_sleep_scores: np.ndarray | list[float] | None,
@@ -646,9 +602,10 @@ def calibrate_stats_model_config(
 
     The user may provide one segment or many.  Candidate configurations are
     evaluated against their raw predictions, before manual labels are overlaid.
-    Among candidates within ``CALIBRATION_MISMATCH_TOLERANCE_FRACTION`` of each
-    labelled stage's seconds of the best fit, the one closest to the ordinary
-    statistical-model config wins.
+    Candidate cost averages the mismatch fraction of each labelled stage and
+    adds a penalty for changing unlabelled seconds from the base prediction.
+    Parameter distance from the base configuration breaks cost ties. Every
+    call starts from the base prediction, never an earlier calibrated run.
     """
     if base_config is None:
         base_config = StatsModelConfig()
@@ -662,11 +619,38 @@ def calibrate_stats_model_config(
     calibratable_label_count = int(stage_label_counts.sum())
     if not calibratable_label_count:
         return base_config, 0
-    stage_tolerances = np.floor(
-        CALIBRATION_MISMATCH_TOLERANCE_FRACTION * stage_label_counts
-    ).astype(int)
-
     features = compute_stats_model_features(mat, base_config)
+    baseline_scores = predict_stats_model_from_features(features, base_config).sleep_scores
+    stage_masks = [
+        user_labels == stage
+        for stage, count in zip(CALIBRATION_STAGES, stage_label_counts)
+        if count
+    ]
+    # MA and other finite, nonnegative manual overrides are not calibration
+    # targets or unlabelled seconds. Negative missing-score sentinels are.
+    unlabelled_mask = ~(np.isfinite(user_labels) & (user_labels >= 0))
+    configuration_costs: dict[StatsModelConfig, tuple[float, float]] = {}
+
+    def configuration_key(config: StatsModelConfig) -> tuple[float, float]:
+        if config not in configuration_costs:
+            prediction = (
+                baseline_scores
+                if config == base_config
+                else predict_stats_model_from_features(features, config).sleep_scores
+            )
+            mismatched = prediction != user_labels
+            label_error = float(np.mean([np.mean(mismatched[mask]) for mask in stage_masks]))
+            unlabelled_change = (
+                float(np.mean(prediction[unlabelled_mask] != baseline_scores[unlabelled_mask]))
+                if np.any(unlabelled_mask)
+                else 0.0
+            )
+            configuration_costs[config] = (
+                label_error + CALIBRATION_UNLABELLED_CHANGE_WEIGHT * unlabelled_change,
+                _configuration_distance(config, base_config),
+            )
+        return configuration_costs[config]
+
     current_config = base_config
     wake_thresholds = sorted({*np.linspace(0.05, 0.95, 19), base_config.wake_threshold})
     min_wake_durations = sorted({0.0, 2.5, 5.0, 10.0, 15.0, base_config.min_wake_duration})
@@ -690,31 +674,19 @@ def calibrate_stats_model_config(
     # Two short coordinate-descent passes keep calibration responsive while
     # allowing Wake and REM choices to inform one another.
     for _ in range(2):
-        current_config = _best_calibration_config(
-            features,
-            base_config,
-            user_labels,
+        current_config = min(
             [replace(current_config, wake_threshold=value) for value in wake_thresholds],
-            stage_tolerances=stage_tolerances,
+            key=configuration_key,
         )
-        current_config = _best_calibration_config(
-            features,
-            base_config,
-            user_labels,
+        current_config = min(
             [replace(current_config, min_wake_duration=value) for value in min_wake_durations],
-            stage_tolerances=stage_tolerances,
+            key=configuration_key,
         )
-        current_config = _best_calibration_config(
-            features,
-            base_config,
-            user_labels,
+        current_config = min(
             [replace(current_config, min_rem_duration=value) for value in min_rem_durations],
-            stage_tolerances=stage_tolerances,
+            key=configuration_key,
         )
-        current_config = _best_calibration_config(
-            features,
-            base_config,
-            user_labels,
+        current_config = min(
             [
                 replace(
                     current_config,
@@ -725,7 +697,7 @@ def calibrate_stats_model_config(
                     rem_percentiles, rem_percentiles
                 )
             ],
-            stage_tolerances=stage_tolerances,
+            key=configuration_key,
         )
 
     return current_config, calibratable_label_count

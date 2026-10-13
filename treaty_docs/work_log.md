@@ -17,6 +17,51 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-13
 
+### Calibration change penalty implemented on reused fix branch (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer approved the stage-balanced label-error plus unlabelled-change
+  objective and requested reuse of `fix/calibration-overfit`. Created its
+  local tracking checkout from the existing remote branch, then fast-forwarded
+  it to current `dev` (`9c823bb`) before editing. Dirty dev Treaty notes are
+  preserved in stash `9d90a4348942ceefa5e8a66794ec0494149a4f1e`, named
+  `Preserve dev notes before renewed calibration-overfit work`; private paper
+  figures, latency runs, and recordings were left in place.
+- Replaced hard 10% eligibility with mean per-labelled-stage mismatch rate
+  plus `0.25` times the fraction of unlabelled predictions changed from a
+  freshly computed default result. Default parameter distance breaks ties.
+  Features and candidate costs are reused within a call; each call starts
+  from defaults. Manual nonnegative overrides, including MA, are outside
+  both calibration targets and the change penalty; negative missing-score
+  sentinels remain unlabelled. Manual overlay is unchanged.
+- Exact cached 33-Wake-second example [9582, 9615) now chooses threshold 0.75
+  and minimum Wake duration 15 s: raw counts 975 Wake / 8,441 NREM / 884 REM,
+  740 changed seconds, 88.97% agreement with the stored local reference
+  instead of 17.61%. Six raw misses remain, but all 33 manual labels are
+  preserved after overlay. The earlier 521-Wake-label case retains 0.85
+  with 86.65% raw reference agreement (previous 86.47%). Reference labels
+  are evaluation only, never inputs to candidate selection.
+- Added public real-predictor regression coverage for nonmonotonic
+  Wake-to-REM promotion and recording-wide collapse. Stage balancing,
+  fully labelled corrections, manual override exclusion, missing sentinels,
+  one real Wake label, repeatability, and label immutability are covered.
+  Two key regressions fail on the old implementation and pass now.
+- Updated README, cookbook, citation abstract, and Unreleased changelog for
+  the new behavior. Version/date metadata remain v0.17.5; this is local
+  feature work, not a published release. Defaults remain an imperfect prior;
+  broader recording and interactive validation are still needed. The
+  two-pass coordinate search can miss changes requiring joint knob moves.
+- Delivery: changes committed locally on `fix/calibration-overfit` for
+  maintainer testing. No new PR, push, merge, or release requested.
+- Verification: activated `sleep_scoring_dash3.0` through `conda run`;
+  `python -m pytest --basetemp .pytest_tmp\calibration-objective-full
+  -p no:cacheprovider -q`: 250 passed. Pinned `pre-commit run black
+  --all-files` passed using `.pre-commit-codex/atomic-save` after formatting
+  the test file. `python run_desktop_app.py --smoke` passed. Private
+  `python user_test_files/verify_calibration_objective.py` checked old/new
+  regressions, cached and earlier label sets, and exact manual overlay;
+  results are in `user_test_files/wake33_diagnostics/implemented_results.json`.
+  `git diff --check` passed. Live app cache and recording files were not written.
+
 ### v0.17.5 partial release published (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer requested a partial release so the manuscript describes shipped

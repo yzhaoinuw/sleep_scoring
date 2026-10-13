@@ -106,6 +106,15 @@ Ongoing work:
 
 ## Statistical Model
 
+- Validate the new calibration objective on `fix/calibration-overfit` in the
+  running app, starting with the cached 33-second Wake example [9582, 9615)
+  in `35_app13.mat`, then difficult recordings with mixed-stage examples.
+  Local tests pass and the collapse is avoided offline, but the 0.25 change
+  penalty and reliance on defaults need broader validation before integration.
+  Confirm manual labels remain intact after prediction and undo. See the
+  2026-10-13 work-log evidence and private `wake33_diagnostics/` comparisons.
+- Before publication integration or a release, reconcile the paper's adaptive
+  calibration description with the new stage-balanced error/change objective.
 - Validate the adaptive statistical model side by side on recordings with
   difficult REM/NE valleys and shifted spectral distributions. Check one- and
   few-example calibrations as well as user-label preservation after another
