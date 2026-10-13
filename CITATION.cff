@@ -18,8 +18,8 @@ abstract: >-
   automatic result. The default automatic scorer is a rule-based algorithm
   that adapts to expert-labeled examples: it treats the user's labels on the
   current recording as ground truth and fits them while favoring parameters
-  near the defaults. The externally developed sDREAMER model can be selected instead, with
-  optional PyTorch dependencies. Completed scores are saved back to the
+  near the defaults. The externally developed sDREAMER model can be selected
+  instead, with optional PyTorch dependencies. Completed scores are saved back to the
   recording and exported as bout tables with stage and transition statistics.
 repository-code: "https://github.com/yzhaoinuw/sleep_scoring"
 # Zenodo concept DOI. It resolves to the newest release, so it stays correct

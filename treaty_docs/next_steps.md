@@ -8,8 +8,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 - Annotation save protection is implemented: verified sibling staging before replacement,
   cleanup on success, and a complete local recovery MAT on destination
-  failure. Test native saving and overwriting on the affected shared drive; v0.17.5 candidate validation covers
-  synthetic failure paths and a fresh frozen installation. Separately handle corrupt MAT selection in the
+  failure. Test native saving and overwriting on the affected shared drive;
+  v0.17.5 candidate validation covers synthetic failure paths and a fresh
+  frozen installation. Separately handle corrupt MAT selection in the
   load UI, and inspect an intact file reported to have missing scores.
   Actual user-side truncation timing remains unconfirmed.
 - Video cleanup shipped in v0.17.4 after automated and maintainer playback

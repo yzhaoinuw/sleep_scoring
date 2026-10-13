@@ -23,10 +23,10 @@ search older entries by date anchor rather than reading every archive.
   behavior. Candidate includes the per-stage calibration tolerance from PR #17
   and annotation-save protection from local dev commit `a6932cc`.
 - Reviewed PR #18: it copies only the publication title/abstract into
-  `CITATION.cff`; all seven GitHub checks passed. Normal merge is blocked by
-  the required-review policy, and the administrator override is awaiting the
-  maintainer's explicit answer. The same reviewed metadata is included locally
-  for candidate preparation, with abstract wording aligned to calibration.
+  `CITATION.cff`; all seven GitHub checks passed. Maintainer explicitly
+  authorized the administrator override after the required-review policy
+  blocked normal merging. PR merged as `715fabe` and its official history is
+  included in this final candidate; abstract wording matches calibration.
 - Aligned app/setup/CFF version 0.17.5 and release date 2026-10-13. Runtime
   changes are confined to compatible `app_src/` code; no frozen dependency,
   launcher, model, or packaging change. Supported bases are v0.17.1–v0.17.4.
@@ -39,5 +39,11 @@ search older entries by date anchor rather than reading every archive.
 - Verification:
   - `Get-Date -Format yyyy-MM-dd`: 2026-10-13. PR #18 diff changes title and
     abstract only; all seven checks succeeded on `ccfda9d`.
-  - Full lightweight candidate gate and frozen-install update validation will
-    run on the committed candidate before any tag or release publication.
+  - Initial candidate `b554dd5` passed the full lightweight gate: 244 Python
+    tests, 51 JavaScript tests, Black, compilation, source smoke, schema-2
+    validation (20 payload files), and a fresh v0.17.1 frozen update/smoke
+    preserving customized settings. Its ZIP SHA-256 was
+    `204DA779C648E978552F16A3AF38C2FC6897F0210FDADFA4CBD02C126BE559C4`.
+  - Official PR history and final handoff documentation now form a new
+    candidate commit. Run the complete gate against that exact ref, verify
+    its CI, and tag that tested payload before publication.
