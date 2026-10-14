@@ -106,13 +106,14 @@ These tools center on electrophysiology and, for most, on classification.
 Our need was the inverse emphasis: a correction workspace in which NE
 photometry informs scoring rather than being an extra trace, video checks
 are tied to the selected interval, and automatic scoring keeps user-supplied
-labels as-is. Extending an existing tool would have meant changing its
-central data model (a single label stream over EEG/EMG inputs) as well as
-its interaction layer. A focused application was the smaller change, and its
-interaction design is documented for reuse.
-<!-- TODO(authors): this build-vs-contribute rationale is inferred from the
-design, not from project history. Confirm or replace it with the actual
-reasons a new application was built in 2023. -->
+labels as-is. Project 2 researchers previously scored with Viewpoint's
+commercial [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore),
+which did not integrate fiber-photometry signals such as NE well; that gap
+motivated a dedicated application, whose interaction design is documented
+for reuse.
+<!-- History from the Project 2 users (2026-10-14); they confirm the wording
+in the full-draft review. SleepScore supports synchronized video, so the
+stated gap is NE photometry integration only. -->
 
 
 # Software design

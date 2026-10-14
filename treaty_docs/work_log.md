@@ -67,6 +67,11 @@ search older entries by date anchor rather than reading every archive.
 - Word count depends on the rule: 1,674 running words, 1,726 with headings,
   ~1,746 with headings and rendered citations. Codex's earlier ~1,748 used
   the strict rule, so headroom is only a few words; docs now give both.
+- Replaced the inferred build-vs-contribute rationale in State of the field
+  with the users' history: Project 2 previously scored with Viewpoint's
+  SleepScore, which did not integrate NE photometry well. Kept the claim to
+  photometry because SleepScore's product page lists synchronized video.
+  Body now ~1,666 running / ~1,738 strict words.
 
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 

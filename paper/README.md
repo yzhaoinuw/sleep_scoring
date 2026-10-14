@@ -45,7 +45,7 @@ checked on 2026-10-07.
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
 - **750–1,750 words.** As of 2026-10-14 the body (captions included,
-  front matter and comments excluded) is about 1,675 words of running text, or about 1,745 counting headings and
+  front matter and comments excluded) is about 1,665 words of running text, or about 1,740 counting headings and
   rendered citations. Treat the
   stricter count as binding: new material has to replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
@@ -194,9 +194,11 @@ download the `paper` artifact from the run. The PDF is not committed.
   SPINDLE, Somnotate, and Visbrain against the cited papers and current
   documentation, including epoch-length options. Add commercial packages only
   with a citable source.
-- [ ] **Build vs. contribute.** The rationale in State of the field is
-  inferred from the design, not from project history. Confirm it, or replace
-  it with the actual reasons a new application was built in 2023.
+- [x] **Build vs. contribute.** Replaced the inferred rationale with the
+  users' account (2026-10-14): Project 2 previously used Viewpoint's
+  SleepScore, which did not integrate fiber-photometry (NE) signals well.
+  SleepScore is linked to its product page, not cited. Users confirm the
+  wording in the full-draft review.
 - [ ] **Research impact evidence.** Add the users' rough estimate of total
   recording hours scored, and name studies, preprints, or datasets scored
   with the app once confirmed.
