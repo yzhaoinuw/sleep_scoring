@@ -48,6 +48,7 @@ search older entries by date anchor rather than reading every archive.
   Check Video, spectrogram, EEG, EMG, NE), cut at 9675 s so it stays large
   beside the dialog. The bout and Check Video are outlined; subplot titles
   are recentred on the cropped plot area. Caption names Check Video.
+- Cropped Figure 2A's selection message as well; the caption gives the range.
 
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 

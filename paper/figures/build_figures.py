@@ -11,7 +11,6 @@ centres, with small vertical offsets between captured application states.
 
 from pathlib import Path
 
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).resolve().parent
@@ -76,35 +75,6 @@ def axis_title(width, center):
     strip = Image.new("RGB", (width, 30), WHITE)
     ImageDraw.Draw(strip).text((center, 2), "Time (s)", anchor="mt", fill=INK, font=font(20))
     return strip
-
-
-def text_segments(strip, gap=14):
-    """Split a one-line text strip into word groups at wide blank gaps."""
-    a = np.asarray(strip.convert("L")) < 200
-    inked = np.where(a.any(0))[0]
-    breaks = np.where(np.diff(inked) > gap)[0]
-    starts = np.r_[inked[0], inked[breaks + 1]]
-    ends = np.r_[inked[breaks], inked[-1]] + 1
-    return list(zip(starts, ends))
-
-
-def wrap_strip(strip, width):
-    """Re-flow a screenshot text line into several lines no wider than width.
-
-    Lines break only at word gaps, so the application's own text is kept.
-    """
-    segs = text_segments(strip, gap=6)
-    lines, line_start = [], segs[0][0]
-    for i, (s, e) in enumerate(segs):
-        if e - line_start > width:
-            prev_end = segs[i - 1][1]
-            lines.append(strip.crop((line_start, 0, prev_end, strip.height)))
-            line_start = s
-    lines.append(strip.crop((line_start, 0, segs[-1][1], strip.height)))
-    out = Image.new("RGB", (width, strip.height * len(lines)), WHITE)
-    for i, line in enumerate(lines):
-        out.paste(line, (0, i * strip.height))
-    return out
 
 
 def stack(*parts, gap=0):
@@ -215,8 +185,8 @@ def figure2():
         top, bottom = y0 - CONTROLS_TOP, y1 - CONTROLS_TOP
         draw.rectangle((PLOT_LEFT - PANEL_LEFT, top, view.width, bottom), fill=WHITE)
         draw.text((center, top + (bottom - top) / 2), title, anchor="mm", fill=INK, font=font(20))
-    msg = wrap_strip(selected.crop((25, 1117, 1930, 1143)), view.width)
-    body = stack(view, axis_title(view.width, center), msg, gap=0)
+    # The selection message is omitted; the caption gives the bout's range.
+    body = stack(view, axis_title(view.width, center))
 
     # Callouts: the selected bout and the button that opens its clip.
     x0 = x_of(SELECT_START_S) - PANEL_LEFT

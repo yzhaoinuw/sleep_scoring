@@ -33,7 +33,7 @@ keeps the recording name and colour bar on A only, drops Plotly's hover
 toolbar, and moves the axis title below C's ticks, which it overlapped.
 Figure 2A keeps the original tick values and signal pixels, recenters the
 subplot titles on the cropped plot area, and adds a time-axis title.
-Figure 2A's selection message is wrapped at word gaps; Figure 1C omits the
-calibration message, whose totals the caption states. The cached label layer confirms
+Both figures omit the app's status messages (Figure 1C's calibration
+summary and Figure 2A's selection message); the captions state what they say. The cached label layer confirms
 the 228-second total, including the earlier Wake interval [2873, 3051) and
 the NREM correction [9752, 9802); the earlier Wake interval is outside the view.

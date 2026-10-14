@@ -369,8 +369,9 @@ cross-recording generalizability.
 | A | [`app_figure_right_click_select.png`](figures/app_figure_right_click_select.png) | Right-click selection of the 9176–9272 s bout (96 s). |
 | B | [`app_figure_video.png`](figures/app_figure_video.png) | Corresponding 96-second behavior clip in the application video dialog. |
 
-Crop A around the selected bout while retaining its time axis and selection
-message. Pair it with the video dialog from B, keeping the clip time range
+Show A as the app view from the controls row (Check Video outlined) through
+the time axis, cut at 9675 s; the selection message is omitted because the
+caption gives the bout's range. Pair it with the video dialog from B, keeping the clip time range
 and duration visible. A callout should explain the right-click action,
 which a static screenshot cannot demonstrate by itself. The video is a
 behavioral-review feature; the still frame does not establish the animal's
