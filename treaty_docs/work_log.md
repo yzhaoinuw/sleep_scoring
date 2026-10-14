@@ -17,6 +17,28 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-14
 
+### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
+
+- Pushed `fix/calibration-overfit` and `dev` at `370a46c`; pushed the
+  publication merge at `4cd6277`. Local refs, tracking refs, and targeted
+  `git ls-remote --heads` results matched. Publication contains dev as an
+  ancestor, with identical application runtime. GitHub accepted the
+  maintainer's direct dev push under its configured owner bypass; no PR,
+  main update, tag, or release was created.
+- Dev CI run `38509728540` and CodeQL run `38509728215` succeeded. JOSS
+  draft PDF run `38509732148` succeeded on publication `4cd6277`. Downloaded
+  its seven-page artifact to ignored `.pytest_tmp/publication-sync-4cd6277/`,
+  rendered all pages with bundled Poppler, and visually checked them.
+  Figure 1 is on page 4 with the 228-second calibration breakdown; Figure 2
+  is on page 5 with the 96-second selection. Text extraction confirms the
+  updated values and no unresolved reference markers. The existing draft's
+  small in-app text remains a zoom/readability decision, as noted in README.
+- Verification: `gh run view` for all three successful runs; `pdfinfo`,
+  `pdftoppm`, and bundled `pypdf` extraction. The runtime matches the tree
+  that passed 259 tests. This follow-up changes verification/status notes
+  only; manuscript body and figure PNGs are identical to the inspected PDF
+  input. `git diff --check` passed before the follow-up commit/push.
+
 ### Dev integration and manuscript figure refresh (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer authorized adding the replacement figures, merging the tested

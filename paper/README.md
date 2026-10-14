@@ -176,8 +176,10 @@ download the `paper` artifact from the run. The PDF is not committed.
   Figure 1 on page 4, Figure 2 on page 5, both at full text width. Panel
   letters, titles, and callouts read at print size; the application's own
   tick labels and messages are about 3–4 pt, legible only when zoomed.
-- [ ] Render and inspect the refreshed figures in the JOSS PDF after the
-  2026-10-14 synchronization.
+- [x] Render and inspect the refreshed figures after the 2026-10-14 sync:
+  [JOSS PDF run 38509732148](https://github.com/yzhaoinuw/sleep_scoring/actions/runs/38509732148)
+  succeeded on merge `4cd6277`; both figure panels and their updated captions
+  were checked in the seven-page PDF. Small in-app text still benefits from zoom.
 - [ ] Decide whether print legibility of the in-app text matters enough to
   retake the snapshots with a smaller window (larger relative text).
 - [ ] Publish a public example recording reviewers can open in the app.
