@@ -33,7 +33,11 @@ search older entries by date anchor rather than reading every archive.
   maintainer's request: the large B→C changes are visible across the shared
   time axis, and the 1–5 s slivers distracted. C is now titled "Same interval
   after adaptive calibration" and keeps the outline of the labeled interval;
-  the caption says C is the same interval as B. Body is ~1,680 words.
+  the caption says C is the same interval as B.
+- Cropped the calibration message from 1C (unreadable at print size; the
+  caption states its totals). Moved the Figure 1 reference in `paper.md`
+  from "The chosen values are displayed", which the figure no longer shows,
+  to the sentence about labels as ground truth.
 
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 

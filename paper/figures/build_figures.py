@@ -183,12 +183,10 @@ def figure1():
     panel_a, _ = with_header(overview, "A", "Predicted stages with spectrogram, EEG, EMG, and NE")
 
     # B and C: matching time windows of the EEG, EMG, and NE rows.
-    zoom_b = zoom_crop(labeled, "before")
-    zoom_c = zoom_crop(after, "after")
-
-    msg_c = wrap_strip(after.crop((25, 1091, 1940, 1118)), zoom_c.width)
-    body_b = zoom_b
-    body_c = stack(zoom_c, msg_c, gap=8)
+    # C omits the app's calibration message: unreadable at print size, and
+    # the caption states its labeled-second totals.
+    body_b = zoom_crop(labeled, "before")
+    body_c = zoom_crop(after, "after")
 
     # B starts at A's left plot edge while its letter stays under A's.
     indent = PLOT_LEFT - ox

@@ -184,11 +184,11 @@ Wake from a normalized 1–7 Hz EEG spectral feature with minimum bout
 lengths, and relabel candidate bouts as REM when NE falls below
 recording-wide and within-bout percentile thresholds; without usable NE, it
 identifies only Wake and NREM. Each run treats supplied Wake, NREM, and REM
-labels (one is enough) as ground truth and searches fixed candidate values
+labels (one is enough) as ground truth (\autoref{fig:adaptation}) and searches fixed candidate values
 for five parameters. It balances average error
 across labeled stages against changes to unlabelled default predictions;
 equal costs favor parameters near the defaults. The chosen values are
-displayed (\autoref{fig:adaptation}). MA labels are kept but not
+displayed. MA labels are kept but not
 used for fitting. We chose this inspectable, recording-specific adaptation
 over persistent training to keep defaults unchanged for the next recording;
 fitting examples does not establish held-out accuracy. The externally developed sDREAMER model

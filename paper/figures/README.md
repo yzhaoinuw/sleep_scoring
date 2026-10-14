@@ -32,6 +32,7 @@ is two pixels higher and the selection image one pixel lower. Zoomed panels
 retain the original tick values and signal pixels, recenter subplot titles,
 and add a common time-axis title; panel A keeps the full stage legend, drops
 Plotly's hover toolbar, and moves its axis title below the ticks it overlapped.
-Screenshot messages are wrapped at word gaps. The cached label layer confirms
+Figure 2A's selection message is wrapped at word gaps; Figure 1C omits the
+calibration message, whose totals the caption states. The cached label layer confirms
 the 228-second total, including the earlier Wake interval [2873, 3051) and
 the NREM correction [9752, 9802); the earlier Wake interval is outside the view.

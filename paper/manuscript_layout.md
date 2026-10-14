@@ -350,8 +350,9 @@ legend or provide one shared legend so color is not the only explanation.
 > (228 s in total: 178 s Wake and 50 s NREM), showing changes beyond the directly labeled interval.
 
 The caption focuses on adaptability. It states the total labeled seconds
-because panel C's calibration message reports 228 s while panel B shows only
-the 50 s NREM label; without that, readers would take B as the sole input.
+because calibration used 228 s of labels while panel B shows only the 50 s
+NREM label; without that, readers would take B as the sole input. Panel C
+omits the app's calibration message, which is unreadable at print size.
 Identify the backend as the adaptive statistical model in
 the surrounding manuscript text. Changes beyond the labeled interval show
 how expert input informs predictions elsewhere in the recording; the figure
