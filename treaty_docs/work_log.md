@@ -30,8 +30,6 @@ search older entries by date anchor rather than reading every archive.
 - Figure 2: the video dialog is scaled (LANCZOS, aspect kept) to panel A's
   body height, so both panels are equal in height; A stays wider.
 
-## 2026-10-14
-
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 
 - Pushed `fix/calibration-overfit` and `dev` at `370a46c`; pushed the
