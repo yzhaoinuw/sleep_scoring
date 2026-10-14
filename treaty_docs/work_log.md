@@ -17,6 +17,26 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-13
 
+### Replacement manuscript snapshots prepared for integration (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer supplied five replacement `app_figure*.png` snapshots and
+  authorized adding them, merging `fix/calibration-overfit` into `dev`, then
+  synchronizing `publication` from `dev`. No PR or release requested.
+- Visually inspected all five and verified PNG integrity and hashes. Sources
+  are 1980 by 1202 pixels. The calibration screenshot reports 228 labelled
+  seconds; selection and video snapshots show [9176, 9272] s (96 seconds).
+  Publication's existing composites/captions use old screenshot coordinates,
+  a 358-second calibration total, and a different 13-second video selection;
+  refresh those derived assets when synchronizing that branch.
+- Raw `paper/latency_runs/` data and preserved Treaty-note stashes remain
+  outside this asset commit. The calibration implementation passed 250 Python
+  tests and startup smoke; the subsequent import cleanup passed 50 relevant
+  tests and pinned Black, as recorded above.
+- Verification: `git fetch origin dev publication fix/calibration-overfit`,
+  targeted branch history, visual inspection, and private
+  `python .pytest_tmp/check_manuscript_assets.py` in the project environment.
+  `git diff --check` passed before committing the five source PNGs.
+
 ### Calibration dead-code audit (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer reports smoother behavior with the new objective and requested a
