@@ -41,7 +41,6 @@ from app_src.make_figure import (  # noqa: E402
     RANGE_PADDING_PERCENT,
     RANGE_QUANTILE,
     SLEEP_SCORE_OPACITY,
-    STAGE_COLORS,
     STAGE_NAMES,
 )
 

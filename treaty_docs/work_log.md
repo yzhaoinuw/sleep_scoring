@@ -17,6 +17,31 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-13
 
+### Calibration dead-code audit (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer reports smoother behavior with the new objective and requested a
+  follow-up check for code left unused by the change. Traced the prediction
+  callback through inference, calibration helpers, constants, and candidate
+  selection; reviewed the changed tests and current documentation.
+- The old tolerance constant, mismatch-count helpers, selector, and tolerance
+  arguments have no remaining references in tracked Python. AST/reference
+  inspection found no unused imports in the changed module/tests, unread
+  calibration locals, or unreferenced top-level runtime helpers after removing
+  one pre-existing unused `STAGE_COLORS` import from the statistical module.
+- Private `experiment_wake33.py` still duplicated the prototype objective and
+  patched a deleted selector. Removed that duplicate and use the production
+  calibrator with a temporary weight override instead. All 15 private
+  comparisons reran successfully; snapshots and recordings were preserved.
+  Historical before/after source snapshots remain intentional diagnostic data.
+- Verification: in `sleep_scoring_dash3.0`, ran the private AST audit
+  `.pytest_tmp/audit_calibration_references.py`, cleaned experiment script,
+  and `python -m pytest tests/test_sleep_score_layers.py
+  tests/test_app_helpers.py tests/test_smoke.py --basetemp
+  .pytest_tmp\calibration-dead-code-audit -p no:cacheprovider -q`: 50 passed.
+  Pinned Black and `git diff --check` passed. The previously verified 250-test
+  suite was not repeated for this unused-import cleanup. Changes stay local
+  on `fix/calibration-overfit`.
+
 ### Calibration change penalty implemented on reused fix branch (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer approved the stage-balanced label-error plus unlabelled-change

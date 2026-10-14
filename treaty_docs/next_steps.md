@@ -106,10 +106,10 @@ Ongoing work:
 
 ## Statistical Model
 
-- Validate the new calibration objective on `fix/calibration-overfit` in the
-  running app, starting with the cached 33-second Wake example [9582, 9615)
-  in `35_app13.mat`, then difficult recordings with mixed-stage examples.
-  Local tests pass and the collapse is avoided offline, but the 0.25 change
+- Continue validating the new objective on `fix/calibration-overfit` with
+  difficult recordings and mixed-stage examples. The maintainer reports
+  smoother running-app behavior; local tests pass and the cached 33-second
+  collapse is avoided offline. The 0.25 change
   penalty and reliance on defaults need broader validation before integration.
   Confirm manual labels remain intact after prediction and undo. See the
   2026-10-13 work-log evidence and private `wake33_diagnostics/` comparisons.
