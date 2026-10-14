@@ -170,14 +170,23 @@ The statistical model is tuned by five more settings in the same file:
 
 For the statistical model, the labels you add in the current recording also
 adapt its Wake/REM configuration live for the next prediction. One or more
-Wake, NREM, or REM examples are enough; the app chooses the closest matching
-configuration for that recording without editing `config.py`. The model fills
-the remaining time, while your labels stay unchanged.
+Wake, NREM, or REM examples are enough. Calibration balances agreement with
+each labelled stage against changes to the remaining default predictions;
+a short example can improve scoring without demanding a perfect fit at the
+expense of the whole recording. Your labels stay unchanged, and `config.py`
+is not edited. Review the result: sparse examples cannot guarantee better
+predictions throughout the recording.
 
 ### Save Sleep Scores
 
 Click **Save Annotations** at the lower left of the graph, then choose where to
 write the `.mat` file.
+
+The app verifies a temporary copy in the destination folder before replacing
+the final file. A failed copy leaves an existing saved file untouched. After
+a successful save, the temporary MAT exports are removed. If saving fails,
+the message identifies a complete local recovery MAT file; copy it to a safe
+folder before opening another recording, or retry saving.
 
 If anything is still unscored, the app reports the first gap as
 `[start, end] (duration s)`. Once the recording is fully scored, it also offers
@@ -203,6 +212,10 @@ The packaged Windows app keeps itself current. It checks GitHub about once a
 day and applies compatible updates before the window opens. If it cannot — no
 network, or a local edit in the way — it says so in the terminal and opens
 normally.
+
+v0.17.5 is a compatible source update for v0.17.1–v0.17.4 installations.
+It improves expert-label calibration and protects annotation saves. New
+installations use the v0.17.1 `_full.zip` and receive the latest patch at startup.
 
 Some releases replace the whole package and cannot be applied automatically.
 When the terminal reports one, download the new `_full.zip` and repeat the

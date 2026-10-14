@@ -2,6 +2,11 @@
 
 **Status: active revision, not submission-ready.**
 
+The 2026-10-14 integration uses the replacement screenshots captured on
+2026-10-13; calibration wording follows current `dev`.
+The change-penalized calibrator is not yet in the cited v0.17.5 archive; align
+the final manuscript with a release containing it before submission.
+
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
 for Sleep Scoring App (repository and package name: `sleep_scoring`).
 The feature/layout assessment is in
@@ -157,18 +162,22 @@ download the `paper` artifact from the run. The PDF is not committed.
 
 - [x] Capture the workflow snapshots (maintainer): five originals in
   [`figures/`](figures/README.md), all showing the same recording interval.
+  Replaced on 2026-10-13 with the current calibration and 96-second video
+  selection; derived panels and captions were refreshed from those sources.
 - [x] Agree the two-figure layout and proposed captions: expert-guided
   adaptation (three panels) and selection-linked video (two panels). See
   [`manuscript_layout.md`, "Recommended figures"](manuscript_layout.md#recommended-figures).
 - [x] Assemble matching crops and callouts: `figures/build_figures.py`
   writes `figure1_adaptation.png` and `figure2_video_review.png`.
 - [x] Add the composed figures to `paper.md` with captions, labels, and
-  in-text references. The body is now about 1,725 words including
-  captions, leaving roughly 25 words of headroom.
-- [x] Render the JOSS PDF (2026-10-12, `JOSS draft PDF` workflow): 7 pages,
+  in-text references. The refreshed body is approximately 1,748 words
+  including captions; recheck the word count before adding text.
+- [x] Render the previous JOSS PDF (2026-10-12, `JOSS draft PDF` workflow): 7 pages,
   Figure 1 on page 4, Figure 2 on page 5, both at full text width. Panel
   letters, titles, and callouts read at print size; the application's own
   tick labels and messages are about 3–4 pt, legible only when zoomed.
+- [ ] Render and inspect the refreshed figures in the JOSS PDF after the
+  2026-10-14 synchronization.
 - [ ] Decide whether print legibility of the in-app text matters enough to
   retake the snapshots with a smaller window (larger relative text).
 - [ ] Publish a public example recording reviewers can open in the app.

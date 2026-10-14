@@ -4,9 +4,9 @@ Run from any directory:
 
     python paper/figures/build_figures.py
 
-The five source PNGs are never modified. All snapshots show the same
-viewport (9155-10090 s at 2 px/s); the "after" snapshots sit 13 px to the
-right because the window layout shifted, so crops are aligned by time.
+The five source PNGs are never modified. The replacement snapshots are
+1980 by 1202 pixels. Crops align to their shared 9200/9400-second tick
+centres, with small vertical offsets between captured application states.
 """
 
 from pathlib import Path
@@ -16,18 +16,18 @@ from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).resolve().parent
 
-VIEW_START_S = 9155.0
-PX_PER_S = 2.0
-PLOT_LEFT = {"before": 83, "after": 96}
-ROW_SHIFT = {"before": 0, "after": 1}  # "after" snapshots sit 1 px lower
-PLOT_TOP, PLOT_BOTTOM = 366, 1084  # EEG plot top, NE plot bottom ("before" layout)
-ZOOM_TOP, ZOOM_BOTTOM = 330, 1135  # EEG title through the time-axis label
-# Stage legend beside the EEG title; panel A keeps it, zoomed crops clip it.
-LEGEND_BOX = (1232, 343, 1630, 362)
+TIME_ANCHOR_S, TIME_ANCHOR_X = 9200.0, 299.0
+PX_PER_S = (610.5 - TIME_ANCHOR_X) / 200.0
+ROW_SHIFT = {"before": 0, "after": -2, "selected": 1}
+PLOT_TOP, PLOT_BOTTOM = 316, 1034
+ZOOM_TOP, ZOOM_BOTTOM = 286, 1070
 
 # Window shared by the zoomed panels; covers every prediction change near
 # the expert label.
-ZOOM_START_S, ZOOM_END_S = 9420.0, 9915.0
+ZOOM_START_S, ZOOM_END_S = 9340.0, 9945.0
+VIDEO_START_S, VIDEO_END_S = 9070.0, 9675.0
+LABEL_START_S, LABEL_END_S = 9752.0, 9802.0
+SELECT_START_S, SELECT_END_S = 9176.0, 9272.0
 
 # Stage colors as rendered in the score overlay.
 STAGES = {"Wake": (128, 128, 255), "NREM": (255, 128, 128), "REM": (128, 255, 128)}
@@ -53,29 +53,37 @@ def font(size, bold=False):
 
 
 def load(name):
-    return Image.open(HERE / name).convert("RGB")
+    img = Image.open(HERE / name).convert("RGB")
+    if img.size != (1980, 1202):
+        raise ValueError(f"Update screenshot geometry for {name}: {img.size}")
+    return img
 
 
-def x_of(t, layout):
-    return round(PLOT_LEFT[layout] + (t - VIEW_START_S) * PX_PER_S)
+def x_of(t):
+    return round(TIME_ANCHOR_X + (t - TIME_ANCHOR_S) * PX_PER_S)
 
 
-def zoom_crop(img, layout, top, bottom):
+def zoom_crop(img, layout, start=ZOOM_START_S, end=ZOOM_END_S):
     shift = ROW_SHIFT[layout]
-    x0 = x_of(ZOOM_START_S, layout)
-    crop = img.crop((x0, top + shift, x_of(ZOOM_END_S, layout), bottom + shift))
-    dx = PLOT_LEFT[layout] - PLOT_LEFT["before"]
-    l, t, r, b = LEGEND_BOX
-    ImageDraw.Draw(crop).rectangle(
-        (l + dx - x0, t - top, r + dx - x0, b - top), fill=WHITE
-    )
-    return crop
+    x0 = x_of(start)
+    crop = img.crop((x0, ZOOM_TOP + shift, x_of(end), ZOOM_BOTTOM + shift))
+    draw = ImageDraw.Draw(crop)
+    # Re-centre subplot titles in the crops; the overview keeps the original
+    # titles and full stage legend. Only inter-plot whitespace is replaced.
+    for title, y0, y1 in [("EEG", 286, 315), ("EMG", 540, 569), ("NE", 794, 823)]:
+        draw.rectangle((0, y0 - ZOOM_TOP, crop.width, y1 - ZOOM_TOP), fill=WHITE)
+        draw.text((crop.width / 2, y0 - ZOOM_TOP + 7), title, anchor="mt", fill=INK, font=font(20))
+    # Keep the screenshot's tick values and place a common axis title below.
+    draw.rectangle((943 - x0, 1038 - ZOOM_TOP, 1031 - x0, 1066 - ZOOM_TOP), fill=WHITE)
+    axis = Image.new("RGB", (crop.width, 30), WHITE)
+    ImageDraw.Draw(axis).text((crop.width / 2, 2), "Time (s)", anchor="mt", fill=INK, font=font(20))
+    return stack(crop, axis)
 
 
 def stage_row(img, layout, y=885):
     """Stage per pixel column of the zoom window, read from a trace-free row."""
     a = np.asarray(img).astype(int)[y + ROW_SHIFT[layout]]
-    a = a[x_of(ZOOM_START_S, layout) : x_of(ZOOM_END_S, layout)]
+    a = a[x_of(ZOOM_START_S) : x_of(ZOOM_END_S)]
     colors = np.array(list(STAGES.values()))
     dist = np.abs(a[:, None, :] - colors[None, :, :]).sum(2)
     return dist.argmin(1)
@@ -91,7 +99,7 @@ def text_segments(strip, gap=14):
     return list(zip(starts, ends))
 
 
-def wrap_strip(strip, width, split_after_chars=(";", ".")):
+def wrap_strip(strip, width):
     """Re-flow a screenshot text line into several lines no wider than width.
 
     Lines break only at word gaps, so the application's own text is kept.
@@ -165,24 +173,23 @@ def figure1():
     after = load("app_figure_after_correction.png")
 
     # A: interface overview without window chrome or file controls.
-    overview = before.crop((15, 150, 2020, 1135))
+    overview = before.crop((15, 95, 1940, 1072))
     panel_a, _ = with_header(overview, "A", "Predicted stages with spectrogram, EEG, EMG, and NE")
 
     # B and C: matching time windows of the EEG, EMG, and NE rows.
-    zoom_b = zoom_crop(labeled, "before", ZOOM_TOP, ZOOM_BOTTOM)
-    zoom_c = zoom_crop(after, "after", ZOOM_TOP, ZOOM_BOTTOM)
+    zoom_b = zoom_crop(labeled, "before")
+    zoom_c = zoom_crop(after, "after")
 
-    msg_b = labeled.crop((10, 1167, 912, 1192))
-    msg_c = wrap_strip(after.crop((22, 1145, 1815, 1172)), zoom_c.width)
-    body_b = stack(zoom_b, msg_b, gap=8)
+    msg_c = wrap_strip(after.crop((25, 1091, 1940, 1118)), zoom_c.width)
+    body_b = zoom_b
     body_c = stack(zoom_c, msg_c, gap=8)
 
     panel_b, head_b = with_header(body_b, "B", "Expert labels an interval as NREM", extra=50)
     panel_c, head_c = with_header(body_c, "C", "Predictions after calibration", extra=50)
 
     # Callouts: the expert interval in B and C, and where C changed from B.
-    label_x0 = (9751 - ZOOM_START_S) * PX_PER_S
-    label_x1 = (9806 - ZOOM_START_S) * PX_PER_S
+    label_x0 = x_of(LABEL_START_S) - x_of(ZOOM_START_S)
+    label_x1 = x_of(LABEL_END_S) - x_of(ZOOM_START_S)
     db = ImageDraw.Draw(panel_b)
     bracket(db, label_x0, label_x1, head_b - 8, "expert NREM label")
 
@@ -204,18 +211,18 @@ def figure2():
     selected = load("app_figure_right_click_select.png")
     video = load("app_figure_video.png")
 
-    zoom = zoom_crop(selected, "after", ZOOM_TOP, ZOOM_BOTTOM)
-    msg = selected.crop((22, 1168, 924, 1193))
+    zoom = zoom_crop(selected, "selected", VIDEO_START_S, VIDEO_END_S)
+    msg = wrap_strip(selected.crop((25, 1117, 1930, 1143)), zoom.width)
     body = stack(zoom, msg, gap=8)
     panel_a, head_a = with_header(body, "A", "Right-click selects a whole bout", extra=50)
 
     da = ImageDraw.Draw(panel_a)
-    x0 = (9609 - ZOOM_START_S) * PX_PER_S
-    x1 = (9622 - ZOOM_START_S) * PX_PER_S
-    bracket(da, x0 - 4, x1 + 4, head_a - 8, "selected bout, 9609-9622 s")
+    x0 = x_of(SELECT_START_S) - x_of(VIDEO_START_S)
+    x1 = x_of(SELECT_END_S) - x_of(VIDEO_START_S)
+    bracket(da, x0 - 4, x1 + 4, head_a - 8, "selected bout, 9176-9272 s")
     outline_rows(da, x0 - 2, x1 + 2, head_a)
 
-    dialog = video.crop((533, 82, 1523, 1209))
+    dialog = video.crop((481, 73, 1480, 1169))
     panel_b, _ = with_header(dialog, "B", "Behavior clip for the selection", extra=50)
 
     return pad(side_by_side(panel_a, panel_b))

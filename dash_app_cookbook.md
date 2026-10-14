@@ -1159,14 +1159,14 @@ through the dedicated `prediction-message` component.
    as a manual override but is not used to fit the Wake/REM rules. One example
    is enough to run calibration.
 3. **Search a small, deterministic configuration space.** Features are
-   extracted once, then two coordinate-descent passes evaluate raw predictions.
-   At each step, identify the best fit by total mismatches (ties favor defaults).
-   Accept candidates that miss no more than that best fit plus 10% of each
-   stage's labeled seconds, rounded down, separately for Wake, NREM, and REM.
-   Among accepted candidates, prefer the configuration closest to the ordinary
-   defaults (then fewer total mismatches). This reduces single-stage overfitting
-   without letting plentiful labels absorb all examples of a rarer stage.
-   Fewer than ten labeled seconds for a stage gives it zero extra tolerance.
+   extracted once, then the default configuration produces a fresh reference
+   prediction. Two coordinate-descent passes minimize the mean mismatch
+   fraction across labelled stages plus `0.25` times the fraction of unlabelled
+   predictions changed from that reference. Each labelled stage has equal
+   weight, even when its examples are rare. MA/manual overrides are excluded
+   from the change penalty; missing values and negative sentinels are included.
+   Equal costs prefer the configuration closest to the defaults. Candidate
+   costs are cached within that run, and each new run starts from defaults.
 4. **Predict, then overlay.** The chosen configuration applies only to that
    prediction run. The app overlays every finite user label on the model output
    afterwards, so examples and MA annotations stay untouched. It does not edit
@@ -1212,6 +1212,11 @@ controls with a clear user-visible effect.
 - Calibration evaluates the raw candidate prediction before the user overlay;
   otherwise every supplied example would appear correct regardless of the
   candidate configuration.
+- Default predictions serve as a prior, not ground truth. Penalizing their
+  replacement reduces broad changes but can discourage a needed correction;
+  sparse examples do not guarantee a recording-wide improvement. The two-pass
+  coordinate search may also miss improvements requiring simultaneous knob
+  changes.
 - Do not share the prediction result component with the score-refresh callback:
   painting the new heatmap is asynchronous and would otherwise erase the
   tuned-settings message in a last-writer-wins race.

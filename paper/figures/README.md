@@ -1,6 +1,7 @@
 # Paper figure source snapshots
 
-These five original screenshots were supplied by the maintainer. All show
+These five replacement screenshots were supplied by the maintainer on
+2026-10-13. All show
 the same time range from the same MATLAB recording. The agreed two-figure
 layout and proposed captions are in
 [`manuscript_layout.md`](../manuscript_layout.md#recommended-figures).
@@ -8,10 +9,10 @@ layout and proposed captions are in
 | File | Captured state | Planned panel |
 | --- | --- | --- |
 | [`app_figure.png`](app_figure.png) | Prediction before the correction shown in the next snapshot. | Figure 1A |
-| [`app_figure_correction.png`](app_figure_correction.png) | Expert NREM label at 9751–9806 s. | Figure 1B |
-| [`app_figure_after_correction.png`](app_figure_after_correction.png) | Predictions regenerated after adaptive statistical calibration. | Figure 1C |
-| [`app_figure_right_click_select.png`](app_figure_right_click_select.png) | Right-click selection of the 9609–9622 s bout. | Figure 2A |
-| [`app_figure_video.png`](app_figure_video.png) | Behavior clip for that selected 13-second interval. | Figure 2B |
+| [`app_figure_correction.png`](app_figure_correction.png) | Expert NREM label at 9752–9802 s (50 s). | Figure 1B |
+| [`app_figure_after_correction.png`](app_figure_after_correction.png) | Predictions regenerated from 228 labelled seconds: 178 Wake and 50 NREM. | Figure 1C |
+| [`app_figure_right_click_select.png`](app_figure_right_click_select.png) | Right-click selection of the 9176–9272 s bout. | Figure 2A |
+| [`app_figure_video.png`](app_figure_video.png) | Behavior clip for that selected 96-second interval. | Figure 2B |
 
 Keep these files unchanged as source assets. The composed figures used in
 `paper.md` are generated from them:
@@ -22,10 +23,14 @@ python paper/figures/build_figures.py
 
 | Output | Contents |
 | --- | --- |
-| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9420–9915 s crops before (B) and after (C) calibration. C outlines the labeled interval, and black bars mark seconds whose stage differs from B, computed from the overlay colors. |
-| [`figure2_video_review.png`](figure2_video_review.png) | The same crop with the right-clicked bout outlined (A) and the video dialog (B). |
+| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9340–9945 s crops before (B) and after (C) calibration. C outlines the labeled interval, and black bars mark columns whose stage differs from B, computed from overlay colors. |
+| [`figure2_video_review.png`](figure2_video_review.png) | A 9070–9675 s crop with the right-clicked bout outlined (A) and the video dialog (B). |
 
-All snapshots share the 9155–10090 s viewport at 2 px/s; the post-calibration
-snapshots sit 13 px right and 1 px lower, so the script aligns crops by time.
-The zoomed crops blank the clipped stage legend (panel A keeps it), and the
-calibration message in C is re-flowed onto two lines at word gaps.
+The 1980-by-1202-pixel sources share the same horizontal axis; crops align
+to the 9200/9400 s tick centres (about 1.56 px/s). The post-calibration image
+is two pixels higher and the selection image one pixel lower. Zoomed panels
+retain the original tick values and signal pixels, recenter subplot titles,
+and add a common time-axis title; panel A keeps the full stage legend.
+Screenshot messages are wrapped at word gaps. The cached label layer confirms
+the 228-second total, including the earlier Wake interval [2873, 3051) and
+the NREM correction [9752, 9802); the earlier Wake interval is outside the view.

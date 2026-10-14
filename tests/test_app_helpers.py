@@ -99,6 +99,18 @@ class TestClearTempDir:
         assert (tmp_path / "current_file.mat").exists()
         assert (tmp_path / "keep_this.txt").exists()
 
+    def test_reopening_same_recording_retains_failed_save_exports(self, tmp_path):
+        from app_src.session import clear_temp_dir
+
+        recovery = tmp_path / "current_file_annotations_attempt123.mat"
+        recovery.write_bytes(b"recoverable MAT")
+        unrelated = tmp_path / "other_file_annotations_attempt456.mat"
+        unrelated.touch()
+        with patch("app_src.session.TEMP_PATH", tmp_path):
+            clear_temp_dir("current_file")
+        assert recovery.read_bytes() == b"recoverable MAT"
+        assert not unrelated.exists()
+
 
 class TestInitializeCache:
     """Tests for initialize_cache function."""

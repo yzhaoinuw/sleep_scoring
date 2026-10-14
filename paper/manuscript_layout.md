@@ -139,7 +139,7 @@ mention tied to the workflow; **Credit** identifies a dependency;
 | 18. Performance instrumentation | **Support (evidence source)** | Not a feature, but the cheapest route to evidence for contribution 2: the existing browser/server profiler can produce a small, reproducible latency table. Existing instrumentation alone is not a benchmark. |
 | 19. Multiple desktop instances | Support | Up to three isolated windows for comparing different recordings; the same MAT path is refused in a peer window. This is not simultaneous collaborative scoring. |
 | 20. Opt-in aggregate reporting | Optional | Omit from the feature narrative. If used as impact evidence later, app-copy totals cannot establish distinct users/labs, accuracy, or time saved. |
-| 21. Adaptive statistical calibration | Core | Explicit examples tune five controls for this recording by a small deterministic search that favors defaults among near-best fits within per-stage tolerances; examples remain protected in predictions. Not persistent training or established accuracy improvement. |
+| 21. Adaptive statistical calibration | Core | Explicit examples tune five controls by a small deterministic search balancing stage-averaged label error against changed unlabelled default predictions; examples remain protected in predictions. Not persistent training or established accuracy improvement. |
 | 22. Prediction backends/correction | Core | One correction workflow supports manual work, the default statistical scorer (NE-dependent REM), and optional upstream sDREAMER. Attribute the model correctly. |
 | 23. Compatible startup updates | Support | One sentence on maintaining packaged installations and supported settings; updater mechanics stay in the cookbook. |
 
@@ -330,7 +330,7 @@ would make the meaningful changes too small at publication size.
 | Panel | Source | Role |
 | --- | --- | --- |
 | A | [`app_figure.png`](figures/app_figure.png) | Larger interface overview: spectrogram with theta/delta, EEG, EMG, NE, and stage legend. |
-| B | [`app_figure_correction.png`](figures/app_figure_correction.png) | Expert NREM label at 9751–9806 s (55 s). |
+| B | [`app_figure_correction.png`](figures/app_figure_correction.png) | Expert NREM label at 9752–9802 s (50 s). |
 | C | [`app_figure_after_correction.png`](figures/app_figure_after_correction.png) | Regenerated adaptive statistical predictions, including changes beyond the directly labeled interval. |
 
 Use matching crops for B and C, retaining the common time axis and enough
@@ -347,11 +347,11 @@ legend or provide one shared legend so color is not the only explanation.
 > displayed alongside the EEG spectrogram and EEG, EMG, and NE signals.
 > **(B)** The expert labels a selected interval as NREM. **(C)** Predictions
 > regenerated after model calibration on this and earlier expert labels
-> (358 s in total), showing changes beyond the directly labeled interval.
+> (228 s in total: 178 s Wake and 50 s NREM), showing changes beyond the directly labeled interval.
 
 The caption focuses on adaptability. It states the total labeled seconds
-because panel C's calibration message reports 358 s while panel B shows only
-the 55 s NREM label; without that, readers would take B as the sole input.
+because panel C's calibration message reports 228 s while panel B shows only
+the 50 s NREM label; without that, readers would take B as the sole input.
 Identify the backend as the adaptive statistical model in
 the surrounding manuscript text. Changes beyond the labeled interval show
 how expert input informs predictions elsewhere in the recording; the figure
@@ -362,8 +362,8 @@ cross-recording generalizability.
 
 | Panel | Source | Role |
 | --- | --- | --- |
-| A | [`app_figure_right_click_select.png`](figures/app_figure_right_click_select.png) | Right-click selection of the 9609–9622 s bout (13 s). |
-| B | [`app_figure_video.png`](figures/app_figure_video.png) | Corresponding 13-second behavior clip in the application video dialog. |
+| A | [`app_figure_right_click_select.png`](figures/app_figure_right_click_select.png) | Right-click selection of the 9176–9272 s bout (96 s). |
+| B | [`app_figure_video.png`](figures/app_figure_video.png) | Corresponding 96-second behavior clip in the application video dialog. |
 
 Crop A around the selected bout while retaining its time axis and selection
 message. Pair it with the video dialog from B, keeping the clip time range
@@ -375,7 +375,7 @@ sleep state.
 **Proposed caption:**
 
 > **Selection-linked behavioral review.** **(A)** A right-click selects the
-> contiguous bout at 9609–9622 s. **(B)** The corresponding 13-second behavior
+> contiguous bout at 9176–9272 s. **(B)** The corresponding 96-second behavior
 > clip is opened in the application for review alongside the physiological
 > signals.
 

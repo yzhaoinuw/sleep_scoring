@@ -44,8 +44,8 @@ generate automatic scores, then revise individual seconds or whole bouts;
 labels a user has supplied are kept as-is in every automatic result. The
 default automatic scorer is a rule-based algorithm that adapts to
 expert-labeled examples: it treats the user's labels on the current
-recording as ground truth and fits them while favoring parameters near
-the defaults.
+recording as ground truth and balances agreement with each labeled stage
+against changes to unlabelled predictions from the default settings.
 Completed scores are saved back
 to the recording and exported as bout tables with stage and transition
 statistics.
@@ -178,32 +178,29 @@ is provenance: scores already saved in an opened file also enter the layer
 and are treated as user labels, even if they were earlier automatic results;
 users clear intervals they want rescored.
 
-The default backend is a rule-based algorithm that adapts to expert-labeled
-examples, and needs no GPU or deep-learning runtime. Its rules identify
+The default rule-based backend adapts to expert labels without a GPU or
+deep-learning runtime. Its rules identify
 Wake from a normalized 1–7 Hz EEG spectral feature with minimum bout
 lengths, and relabel candidate bouts as REM when NE falls below
 recording-wide and within-bout percentile thresholds; without usable NE, it
-identifies only Wake and NREM. Before each run, the algorithm treats the
-user's Wake, NREM, and REM labels on the current recording, however few
-(one is enough), as ground truth and automatically adjusts its five
-parameters over a fixed set of candidate values. At each search step, it
-favors parameters closest to the defaults among candidates whose fit is
-near-best for each labeled stage, reducing overfitting to single-stage
-examples. The chosen values are displayed (\autoref{fig:adaptation}). MA labels are kept but not
-used for fitting. We chose this recording-specific, inspectable adaptation
-over persistent model training: it is fast, does not change the defaults for
-the next recording, and matching the supplied examples is not a claim of
-held-out accuracy. The externally developed sDREAMER model
+identifies only Wake and NREM. Each run treats supplied Wake, NREM, and REM
+labels (one is enough) as ground truth and searches fixed candidate values
+for five parameters. It balances average error
+across labeled stages against changes to unlabelled default predictions;
+equal costs favor parameters near the defaults. The chosen values are
+displayed (\autoref{fig:adaptation}). MA labels are kept but not
+used for fitting. We chose this inspectable, recording-specific adaptation
+over persistent training to keep defaults unchanged for the next recording;
+fitting examples does not establish held-out accuracy. The externally developed sDREAMER model
 [@chen2023sdreamer] can be selected instead, with optional
 [PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
 user labels in the same way.
 
-![**Expert-guided adaptation of sleep-stage predictions.** All panels show
-the same interval from one recording. **(A)** Predicted sleep stages
-displayed alongside the EEG spectrogram and EEG, EMG, and NE signals.
-**(B)** The expert labels a selected interval as NREM. **(C)** Predictions
-regenerated after model calibration on this and earlier expert labels
-(358 s in total), showing changes beyond the directly labeled interval
+![**Expert-guided adaptation of sleep-stage predictions.** **(A)** Predicted stages
+with the spectrogram, EEG, EMG, and NE signals.
+**(B)** An enlarged view with a 50-second expert NREM correction. **(C)** The
+same interval after calibration using 228 s of expert labels (178 s Wake,
+50 s NREM), showing changes beyond the directly labeled interval
 (outlined); black bars mark where stages changed from (B).\label{fig:adaptation}](figures/figure1_adaptation.png)
 
 ## 3. Checking behavior and completing a recording
@@ -219,7 +216,7 @@ statistics, including microarousals. Packaged Windows installations receive
 compatible updates that preserve supported settings.
 
 ![**Selection-linked behavioral review.** **(A)** A right-click selects the
-contiguous bout at 9609–9622\ s. **(B)** The corresponding 13-second behavior
+contiguous bout at 9176–9272\ s. **(B)** The corresponding 96-second behavior
 clip is opened in the application for review alongside the physiological
 signals.\label{fig:video}](figures/figure2_video_review.png)
 

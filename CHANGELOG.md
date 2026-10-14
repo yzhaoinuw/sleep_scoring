@@ -4,6 +4,26 @@ This file summarizes changes that affect people using the app. Maintainer-only
 implementation and release details are recorded in
 `treaty_docs/work_log.md`.
 
+## Unreleased
+
+- Statistical-model calibration balances agreement with each labelled stage
+  against changes to unlabelled default predictions, reducing the chance
+  that a short example drives an extreme recording-wide change. Manual labels
+  remain unchanged after prediction.
+
+## v0.17.5
+
+- Statistical-model calibration favors settings near the defaults when they
+  fit expert labels nearly as well, reducing extreme predictions from
+  single-stage examples. Each labeled stage has its own tolerance, so many
+  examples of one stage cannot absorb all examples of a rarer stage.
+- Annotation saves verify a complete copy beside the destination before
+  replacing it. Failed copies or replacements retain a complete local
+  recovery MAT file and report its path.
+- The Save Annotations button shows `Saving...` and is disabled during a
+  save. Successful and canceled saves clean up their temporary MAT exports;
+  saving keeps the in-session label history unchanged.
+
 ## v0.17.4
 
 - Video snippets use native playback controls without accumulating background
