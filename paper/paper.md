@@ -101,13 +101,23 @@ general hypnogram viewer and editor for polysomnography.
 current documentation, including epoch-length options, and add commercial
 packages only with a citable source. As of 2026-10-07 the AccuSleep,
 AccuSleePy, and somnotate documentation describe EEG/EMG(/LFP) inputs and do
-not mention photometry or video. -->
+not mention photometry or video. Scoring methods checked 2026-10-14:
+AccuSleep CNN on EEG/EMG (PLOS ONE 2019); SPINDLE CNN+HMM on 2 EEG + 1 EMG,
+4 s epochs (PLoS Comput Biol 2019); somnotate LDA+HMM on EEG/LFP/EMG
+spectrograms (repo README); Visbrain detects spindles/K-complexes/slow
+waves/REMs but does not stage. Viewpoint SleepScore uses an undisclosed
+"probability method" on EEG/EMG (product page); check its manual before
+extending the NE claim to it. sDREAMER's NE-aware variant does use NE, so
+keep the claim scoped to the tools listed here. -->
 
 These tools center on electrophysiology and, for most, on automatic sleep
-scoring. Beyond automatic scoring, our work needed a workspace for labeling
-and correcting scores, in which NE photometry informs scoring rather than
-being an extra trace, video checks are tied to the selected interval, and
-predicted sleep scores keep the user's labels as-is. Project 2 researchers previously scored with Viewpoint's
+scoring, which draws on EEG, EMG, or LFP features alone. None of their
+scoring methods uses NE photometry, although NE dynamics have been proposed
+as markers for distinguishing wake, microarousals, NREM, and REM sleep
+[@andersen2023photometry]. Beyond automatic scoring, our work needed a
+workspace for labeling and correcting scores, in which NE photometry informs
+scoring rather than being an extra trace, and video checks are tied to the
+selected interval. Project 2 researchers previously scored with Viewpoint's
 commercial [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore),
 which did not integrate fiber-photometry signals such as NE well; that gap
 motivated a dedicated application, whose interaction design is documented
