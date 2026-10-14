@@ -28,24 +28,19 @@ bibliography: paper.bib
 
 # Summary
 
-{% Yue comment: suggest remove this. it's making a claim that
-Sleep research in rodents depends on labeling recording specifically as the four stages
-we use. but perhaps not all labs use the same stages. for example, some labs may further
-distinguish finer NREM stages. %
-Sleep research in rodents depends on *sleep scoring*: labeling each moment
-of a recording as wakefulness, non-rapid-eye-movement (NREM) sleep, or REM
-sleep, plus brief microarousals (MA), from brain electrical activity (EEG)
-and muscle activity (EMG).}
-
 Sleep Scoring App
-([`sleep_scoring`](https://github.com/yzhaoinuw/sleep_scoring)) is a local desktop application
-for reviewing and correcting these annotations {% Yue comment: we can absorb the four stages listed in the first sentence here} at one-second resolution. It
+([`sleep_scoring`](https://github.com/yzhaoinuw/sleep_scoring)) is a local
+desktop application for *sleep scoring* rodent recordings: labeling each
+second as wakefulness (Wake), non-rapid-eye-movement (NREM) sleep, REM
+sleep, or a brief microarousal (MA), from brain electrical activity (EEG)
+and muscle activity (EMG). It
 brings EEG, EMG, an EEG spectrogram, an optional fiber-photometry
 norepinephrine (NE) signal, and behavior-video clips of a selected interval
 into one shared scoring workflow. Users can label intervals manually or
-generate automatic scores {% Yue comment: can we reword to something like or use automatic scores predicted by sleep scoring models? the "generate" is a little loose} , then revise individual seconds or whole bouts;
-labels a user has supplied are kept as-is in every automatic result {%Yue comment: is this still true or need some rewording, as the fit is more flexible now? or you meant that he user labels are saved as is in the background, not in the automatic result? also, I'd prefer not to use 'automatic result'. use either automatic/predicted sleep scores}. The
-default automatic scorer is a rule-based algorithm that adapts to
+start from sleep scores predicted by an automatic scoring model, then revise
+individual seconds or whole bouts; predicted sleep scores never overwrite
+the user's own labels. The
+default scoring model is a rule-based algorithm that adapts to
 expert-labeled examples: it fits the user's labels on the current recording
 while changing the rest of its predictions as little as possible.
 Completed scores are saved back
@@ -71,8 +66,8 @@ animal's behavior, and correcting
 boundaries, often across multi-hour recordings.
 
 Without an integrated tool, this review means moving among a signal viewer,
-a classifier's output, and separate video software, and redrawing boundaries
-that an automatic scorer or a previous pass got wrong. Sleep Scoring App is
+predicted sleep scores, and separate video software, and redrawing boundaries
+that a scoring model or a previous pass got wrong. Sleep Scoring App is
 intended for experimenters scoring rodent EEG/EMG, particularly those with
 aligned NE photometry and behavior video.
 
@@ -96,7 +91,7 @@ brain states. [SPINDLE](https://sleeplearning.ethz.ch)
 [@miladinovic2019spindle] provides end-to-end learned
 scoring across laboratories and species.
 [Somnotate](https://github.com/paulbrodersen/somnotate)
-[@brodersen2024somnotate] classifies vigilance states with linear
+[@brodersen2024somnotate] scores vigilance states with linear
 discriminant analysis and a hidden Markov model, with simple interfaces for
 refining annotations.
 [Visbrain Sleep](https://github.com/EtienneCmb/visbrain)
@@ -108,11 +103,11 @@ packages only with a citable source. As of 2026-10-07 the AccuSleep,
 AccuSleePy, and somnotate documentation describe EEG/EMG(/LFP) inputs and do
 not mention photometry or video. -->
 
-These tools center on electrophysiology and, for most, on classification {% Yue comment: can we reconcile or unify the terms? what's meant by 'classification' here? is it the same as sleep scoring? if so, we should use the same term, sleep scoring, instead of using synonyms all of a sudden}.
-Our need was the inverse emphasis {% Yue comment: I don't see how this is an 'inverse' emphasis here. we don't need to stress 'inverse' here. just say that we provide extra, in addition to automatic sleep scoring, we also provide correction, labeling, NE trace, video check, and bunch of other useful stuff}} : a correction workspace in which NE
-photometry informs scoring rather than being an extra trace, video checks
-are tied to the selected interval, and automatic scoring keeps user-supplied
-labels as-is. Project 2 researchers previously scored with Viewpoint's
+These tools center on electrophysiology and, for most, on automatic sleep
+scoring. Beyond automatic scoring, our work needed a workspace for labeling
+and correcting scores, in which NE photometry informs scoring rather than
+being an extra trace, video checks are tied to the selected interval, and
+predicted sleep scores keep the user's labels as-is. Project 2 researchers previously scored with Viewpoint's
 commercial [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore),
 which did not integrate fiber-photometry signals such as NE well; that gap
 motivated a dedicated application, whose interaction design is documented
@@ -133,10 +128,10 @@ running on the same computer. No internet connection is needed: recordings
 open by path through native file dialogs and never leave the machine. The
 only network use is an optional update check and opt-in usage reporting. In
 what follows, "interface" means this embedded web page and its JavaScript,
-and "server" the local Python process. The design is organized around three
+and "server" the local Python process. The design is organized around four
 tasks: (1) inspecting and correcting at the needed scale, (2) automatic
-scoring that keeps and learns from expert labels, and (3) checking behavior
-and completing a recording.
+scoring that keeps and learns from expert labels, (3) checking behavior
+against video, and (4) protecting and completing work.
 
 ## 1. Inspecting and correcting at the needed scale
 
@@ -148,15 +143,15 @@ one key. Selections can be a zoom-adaptive click, a dragged box, or a
 right-click that selects the whole contiguous bout under the cursor; when a
 drag reaches the viewport edge, the view pans automatically and newly
 revealed signal is streamed in, so long selections keep boundary detail.
-All selection forms feed one labeling step, keys `1`–`4` {% Yue comment: do we need to spell out the key-sleep stage mapping here for completeness?} and `0` for clear.
+All selection forms feed one labeling step: keys `1`–`4` assign Wake,
+NREM, REM, or MA, and `0` clears.
 
-Long signals are decimated on demand {% Yue comment: perhaps spell out the reason? such as speed up the visualization, otherwise the visualization gets stuck upon rendering millions of points at once} by
+Drawing every sample of a multi-hour recording would stall the interface, so
+long signals are decimated on demand by
 [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
-[@vanderdonckt2022plotlyresampler]. The application uses that library
-to compute what to draw for a range, and but also has its own additional innovation in controlling the finer update flow. 
-{% Yue comment: I don't like to start with 'the tradeoff is'. we are talking about our additional innovation next, no? we should make it clear then. starting with 'the tradeoff is' works against it and sounds weak}
-The main
-tradeoff is to keep interaction state in the interface and full-resolution
+[@vanderdonckt2022plotlyresampler]. The application uses that library only
+to compute what to draw for a range, and replaces its stock update path with
+its own, which keeps interaction state in the interface and full-resolution
 data on the server. Gestures, panning, and labeling run as JavaScript in the
 interface. Navigation events are coalesced, so the server refreshes traces
 after a gesture is released or pauses rather than on every frame, and
@@ -166,40 +161,41 @@ instead refreshes newly revealed signal repeatedly through a dedicated
 endpoint outside the Dash callback graph. Applying a label repaints the
 overlay in the interface without a server round trip.
 
-This interaction layer does not depend on the sleep domain. We extracted it
+This interaction design does not depend on the sleep domain. We extracted it
 into a separate, runnable template [@timeseries_app_cookbook] that applies
-the same navigation, selection, and labeling design to synthetic
-multichannel data {% Yue comment: the stress is less about 'synthetic', but more about any time series data. 'synthetic' serves to show that it would work on any real time series} ; adapting it to a new signal type centers on one
-data-loading function and one label configuration.
+the same navigation, selection, and labeling design to general multichannel
+time series, demonstrated on synthetic data; adapting it to a new signal
+type centers on one data-loading function and one label configuration.
 
 ## 2. Automatic scoring that keeps and learns from expert labels
 
-The
-application keeps the labels a user has supplied in a sparse layer {% Yue comment: I'd like to be specific. don't say specific layer. 'layer' is vague and could confuse people, like the layer in neural network. just say that we keep the user supplied lables in cache or something. it doesn't cost more words and avoids ambiguity} , separate
-from the displayed scores. When an automatic scoring run is confirmed, the
-app snapshots this layer and places it over the backend's output, so labels
-supplied to that run are kept as-is, whichever backend {% Yue comment: remind me what backend are we talking about here? what options of backend do we have?}  is used. {% Yue comment: I don't think spelling out this 'tradeoff' is necessary. this is user manual level of detail that's not needed here. suggest we delete it. The tradeoff
-is provenance: scores already saved in an opened file also enter the layer
-and are treated as user labels, even if they were earlier automatic results;
-users clear intervals they want rescored.}
+The application keeps user labels in their own per-second array, separate
+from the displayed scores and empty wherever the user has not labeled. When
+automatic scoring is confirmed, the app snapshots these labels and places
+them over the model's predicted scores, so the user's labels are kept as-is
+with either of the two scoring models described below.
 
-The default rule-based backend adapts to expert labels without a GPU or
-deep-learning runtime {% Yue comment: I suggest we say what it is, rather than what it is not and what it doesn't use, because saying what it is not only invite unnecessary distraction here. just say it's rule based algo.}. Its rules identify
+The default scoring model is a rule-based algorithm. It identifies
 Wake from a normalized 1–7 Hz EEG spectral feature with minimum bout
-lengths, and relabel candidate bouts as REM when NE falls below
+lengths, and relabels candidate bouts as REM when NE falls below
 recording-wide and within-bout percentile thresholds; without usable NE, it
-identifies only Wake and NREM. Each run treats supplied {% Yue comment: say user labeled. 'supplied' can be a bit ambiguous} Wake, NREM, and REM
-labels (a single labeled interval is enough) as ground truth
+identifies only Wake and NREM. Each run treats user-labeled Wake, NREM, and
+REM intervals (a single labeled interval is enough) as ground truth
 (\autoref{fig:adaptation}) and searches fixed candidate values for five
-parameters {% Yue comment: have we specified which five params? either make the five params more explicit, like enumerate them, or just stay vague on this and say internal params in the algo}. Each candidate is scored by its average error across the labeled
-stages plus a penalty for changing unlabeled predictions; ties go to values
-nearest the defaults. The chosen values are reported. MA labels are kept but not
-used for fitting. We chose this inspectable, recording-specific adaptation
-over persistent training to keep defaults unchanged for the next recording {% Yue comment: too wordy if we just mean that the params tuning from the adaptation stays happens per recording. and perhaps provide a reason for this design: there's great variability from recording to recording. adaptation per recording makes it agile in that we don't need to rely on a large number of recordings to establish a baseline};
-fitting examples does not establish held-out accuracy. The externally developed sDREAMER model
-[@chen2023sdreamer] can be selected instead, with optional
-[PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
-user labels in the same way {% Yue comment: the mention of sDREAMER feels abrupt. if we decide to mention it at all, we may as well give it a proper intro that stats with something like "the app also provide an alternative, deep learning based sleep scoring model..."}.
+parameters: the Wake threshold, the minimum Wake and REM durations, and the
+two NE percentiles. Each candidate is scored by its average error across the
+labeled stages plus a penalty for changing unlabeled predictions; ties go to
+values nearest the defaults. The chosen values are reported. MA labels are
+kept but not used for fitting. Adaptation applies to the current recording
+only: recordings vary widely, and fitting each one directly avoids needing
+many labeled recordings to establish a baseline. Fitting examples does not
+establish held-out accuracy.
+
+As an alternative, the application provides sDREAMER [@chen2023sdreamer], an
+externally developed deep-learning sleep scoring model, which runs when the
+optional [PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies are
+installed. It is used as published, without adaptation, and its predicted
+scores keep user labels in the same way.
 
 ![**Expert-guided adaptation of sleep-stage predictions.** All panels show the
 same interval. **(A)** Predicted stages with the spectrogram, EEG, EMG, and NE
@@ -208,21 +204,25 @@ after adaptive calibration using 228 s of expert labels
 (178 s Wake, outside this view, and 50 s NREM); predictions change beyond the outlined labeled
 interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
 
-## 3. Checking behavior and completing a recording
+## 3. Checking behavior against video
 
-For a selected interval of
-up to five minutes {% Yue comment: should we provide a rationale on the five-minute cap here? 1) earlier we said that the app specializes on finer epoch scoring, so a shorter video check on the behavior is appropriate, 2) it speeds up the clip creation}, the application cuts the matching clip from the behavior
-video with [FFmpeg](https://ffmpeg.org), validates the recording-to-video offset, and plays it in
-the same window (\autoref{fig:video}). {% Yue comment: doesn't the following belong to a separate, perhaps other 'quality of life' features that the app provides, instead of belonging in 3. Checking behavior and completing a recording?} One-step undo and filesystem-backed recovery protect
-in-progress work; up to three isolated windows allow side-by-side
-comparison, refusing the same file twice. Saving reports the first unscored
-gap; a complete recording also exports bout, stage, and transition
-statistics, including microarousals.
+For a selected interval of up to five minutes, the application cuts the
+matching clip from the behavior video with [FFmpeg](https://ffmpeg.org),
+validates the recording-to-video offset, and plays it in the same window
+(\autoref{fig:video}). The cap suits checks of events that span seconds and
+keeps clip extraction quick.
 
 ![**Selection-linked behavioral review.** **(A)** A right-click selects the
 contiguous bout at 9176–9272\ s, and Check Video (both outlined) opens its
 clip. **(B)** The corresponding 96-second behavior clip, opened in the application for review alongside the physiological
 signals.\label{fig:video}](figures/figure2_video_review.png)
+
+## 4. Protecting and completing work
+
+One-step undo and filesystem-backed recovery protect in-progress work; up
+to three isolated windows allow side-by-side comparison, refusing the same
+file twice. Saving reports the first unscored gap; a complete recording also
+exports bout, stage, and transition statistics, including microarousals.
 
 # Research impact statement
 
