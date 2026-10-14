@@ -24,15 +24,15 @@ python paper/figures/build_figures.py
 | Output | Contents |
 | --- | --- |
 | [`figure1_adaptation.png`](figure1_adaptation.png) | Three full views of the same viewport stacked on one time axis: prediction (A), expert label (B), and after calibration (C). All include the spectrogram; tick labels appear only under C. C outlines the labeled interval; readers compare stages down the shared axis. |
-| [`figure2_video_review.png`](figure2_video_review.png) | A 9070–9675 s crop with the right-clicked bout outlined (A) and the video dialog (B), scaled with its aspect ratio kept so both panels have equal height. |
+| [`figure2_video_review.png`](figure2_video_review.png) | The right-click view from the controls row (Check Video outlined) through the time axis, cut at 9675 s, with the selected bout outlined (A), beside the video dialog (B) scaled with its aspect ratio kept to equal height. |
 
 The 1980-by-1202-pixel sources share the same horizontal axis; crops align
 to the 9200/9400 s tick centres (about 1.56 px/s). The post-calibration image
 is two pixels higher and the selection image one pixel lower. Figure 1
 keeps the recording name and colour bar on A only, drops Plotly's hover
 toolbar, and moves the axis title below C's ticks, which it overlapped.
-Figure 2A's zoomed crop retains the original tick values and signal pixels,
-recenters subplot titles, and adds a time-axis title.
+Figure 2A keeps the original tick values and signal pixels, recenters the
+subplot titles on the cropped plot area, and adds a time-axis title.
 Figure 2A's selection message is wrapped at word gaps; Figure 1C omits the
 calibration message, whose totals the caption states. The cached label layer confirms
 the 228-second total, including the earlier Wake interval [2873, 3051) and

@@ -44,6 +44,10 @@ search older entries by date anchor rather than reading every archive.
   has no page limit, but a figure plus caption must fit one page (~8.3 in of
   figure at 5.4 in wide); ticks only under C, name and colour bar only on A,
   16 px gaps, giving 1973 x 3065 px.
+- Figure 2A now shows the same full view as Figure 1 (controls row with
+  Check Video, spectrogram, EEG, EMG, NE), cut at 9675 s so it stays large
+  beside the dialog. The bout and Check Video are outlined; subplot titles
+  are recentred on the cropped plot area. Caption names Check Video.
 
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 

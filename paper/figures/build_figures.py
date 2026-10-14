@@ -19,8 +19,7 @@ HERE = Path(__file__).resolve().parent
 TIME_ANCHOR_S, TIME_ANCHOR_X = 9200.0, 299.0
 PX_PER_S = (610.5 - TIME_ANCHOR_X) / 200.0
 ROW_SHIFT = {"before": 0, "after": -2, "selected": 1}
-PLOT_TOP, PLOT_BOTTOM = 316, 1034
-ZOOM_TOP, ZOOM_BOTTOM = 286, 1070
+PLOT_BOTTOM = 1034
 WHITE = (255, 255, 255)
 INK = (20, 20, 20)
 GAP = 40
@@ -36,7 +35,13 @@ SPEC_TITLE_TOP, SPEC_TOP = 131, 152  # "EEG Spectrogram" title, plot top
 CBAR_TICKS_BOX = (1250, 131, 1560, 142)  # colour-bar ticks beside the title
 TICKS_BOTTOM = 1060
 STACK_GAP = 16
-VIDEO_START_S, VIDEO_END_S = 9070.0, 9675.0
+# Figure 2A keeps the controls row and spectrogram but ends at this time, so
+# the selected bout and Check Video button stay large next to the dialog.
+CONTROLS_TOP = 40
+FIG2_END_S = 9675.0
+CHECK_VIDEO_BOX = (256, 46, 383, 80)
+# Subplot title bands; cropping the time axis off-centres the app's titles.
+TITLE_BANDS = [("EEG Spectrogram", 129, 151), ("EEG", 286, 315), ("EMG", 540, 569), ("NE", 794, 823)]
 LABEL_START_S, LABEL_END_S = 9752.0, 9802.0
 SELECT_START_S, SELECT_END_S = 9176.0, 9272.0
 
@@ -71,22 +76,6 @@ def axis_title(width, center):
     strip = Image.new("RGB", (width, 30), WHITE)
     ImageDraw.Draw(strip).text((center, 2), "Time (s)", anchor="mt", fill=INK, font=font(20))
     return strip
-
-
-def zoom_crop(img, layout, start, width):
-    shift = ROW_SHIFT[layout]
-    x0 = x_of(start)
-    crop = img.crop((x0, ZOOM_TOP + shift, x0 + width, ZOOM_BOTTOM + shift))
-    draw = ImageDraw.Draw(crop)
-    # Re-centre subplot titles in the crops; the overview keeps the original
-    # titles and full stage legend. Only inter-plot whitespace is replaced.
-    for title, y0, y1 in [("EEG", 286, 315), ("EMG", 540, 569), ("NE", 794, 823)]:
-        draw.rectangle((0, y0 - ZOOM_TOP, crop.width, y1 - ZOOM_TOP), fill=WHITE)
-        draw.text((crop.width / 2, y0 - ZOOM_TOP + 7), title, anchor="mt", fill=INK, font=font(20))
-    # Keep the screenshot's tick values and place a common axis title below.
-    l, t, r, b = AXIS_TITLE_BOX
-    draw.rectangle((l - x0, t - ZOOM_TOP, r - x0, b - ZOOM_TOP), fill=WHITE)
-    return stack(crop, axis_title(crop.width, crop.width / 2))
 
 
 def text_segments(strip, gap=14):
@@ -160,13 +149,6 @@ def bracket(draw, x0, x1, y, label, color=INK, above=True):
     draw.text((tx, y - 34), label, fill=color, font=f)
 
 
-def outline_rows(draw, x0, x1, head):
-    """Outline an interval across the EEG, EMG, and NE plots of a zoom panel."""
-    draw.rectangle(
-        (x0, head + PLOT_TOP - ZOOM_TOP, x1, head + PLOT_BOTTOM - ZOOM_TOP), outline=INK, width=3
-    )
-
-
 def full_view(img, layout, top, bottom, blank=()):
     """Crop the full viewport from top to bottom, whitening boxes (source coordinates)."""
     shift = ROW_SHIFT[layout]
@@ -221,25 +203,42 @@ def figure2():
     selected = load("app_figure_right_click_select.png")
     video = load("app_figure_video.png")
 
-    zoom = zoom_crop(
-        selected, "selected", VIDEO_START_S, x_of(VIDEO_END_S) - x_of(VIDEO_START_S)
-    )
-    msg = wrap_strip(selected.crop((25, 1117, 1930, 1143)), zoom.width)
-    body = stack(zoom, msg, gap=8)
-    panel_a, head_a = with_header(body, "A", "Right-click selects a whole bout", extra=50)
+    # A: the window from the controls row through the time axis, cut at
+    # FIG2_END_S, with subplot titles and the axis title recentred on the
+    # remaining plot area.
+    right = x_of(FIG2_END_S)
+    view = full_view(selected, "selected", CONTROLS_TOP, TICKS_BOTTOM, [AXIS_TITLE_BOX])
+    view = view.crop((0, 0, right - PANEL_LEFT, view.height))
+    center = (PLOT_LEFT + right) / 2 - PANEL_LEFT
+    draw = ImageDraw.Draw(view)
+    for title, y0, y1 in TITLE_BANDS:
+        top, bottom = y0 - CONTROLS_TOP, y1 - CONTROLS_TOP
+        draw.rectangle((PLOT_LEFT - PANEL_LEFT, top, view.width, bottom), fill=WHITE)
+        draw.text((center, top + (bottom - top) / 2), title, anchor="mm", fill=INK, font=font(20))
+    msg = wrap_strip(selected.crop((25, 1117, 1930, 1143)), view.width)
+    body = stack(view, axis_title(view.width, center), msg, gap=0)
 
-    da = ImageDraw.Draw(panel_a)
-    x0 = x_of(SELECT_START_S) - x_of(VIDEO_START_S)
-    x1 = x_of(SELECT_END_S) - x_of(VIDEO_START_S)
-    bracket(da, x0 - 4, x1 + 4, head_a - 8, "selected bout, 9176–9272 s")
-    outline_rows(da, x0 - 2, x1 + 2, head_a)
+    # Callouts: the selected bout and the button that opens its clip.
+    x0 = x_of(SELECT_START_S) - PANEL_LEFT
+    x1 = x_of(SELECT_END_S) - PANEL_LEFT
+    draw = ImageDraw.Draw(body)
+    draw.rectangle(
+        (x0 - 2, SPEC_TOP - CONTROLS_TOP, x1 + 2, PLOT_BOTTOM - CONTROLS_TOP), outline=INK, width=3
+    )
+    l, t, r, b = CHECK_VIDEO_BOX
+    draw.rectangle(
+        (l - PANEL_LEFT - 5, t - CONTROLS_TOP - 5, r - PANEL_LEFT + 5, b - CONTROLS_TOP + 5),
+        outline=INK,
+        width=3,
+    )
+    panel_a, _ = with_header(body, "A", "Right-click selects a whole bout")
 
     # Scale the dialog (aspect ratio kept) so both panels have equal height.
     dialog = video.crop((481, 73, 1480, 1169))
     dialog = dialog.resize(
         (round(dialog.width * body.height / dialog.height), body.height), Image.LANCZOS
     )
-    panel_b, _ = with_header(dialog, "B", "Behavior clip for the selection", extra=50)
+    panel_b, _ = with_header(dialog, "B", "Behavior clip for the selection")
 
     return pad(side_by_side(panel_a, panel_b))
 
