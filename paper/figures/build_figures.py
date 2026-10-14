@@ -25,16 +25,17 @@ WHITE = (255, 255, 255)
 INK = (20, 20, 20)
 GAP = 40
 PLOT_LEFT, PLOT_RIGHT = 97, 1872  # overlay columns shared by every snapshot
-OVERVIEW_BOX = (15, 95, 1940, 1072)
 AXIS_TITLE_BOX = (943, 1038, 1031, 1066)  # "Time (s)", level with the ticks
-MODEBAR_BOX = (1690, 95, 1940, 125)  # Plotly hover toolbar in the overview
+MODEBAR_BOX = (1690, 95, 1940, 125)  # Plotly hover toolbar in panel 1A
 
-# B and C together span exactly the overview's plot width, so both rows of
-# Figure 1 share left and right plot edges. The window still covers every
-# prediction change near the expert label (about 9378-9888 s).
-ZOOM_WIDTH_PX = (PLOT_RIGHT - PLOT_LEFT - GAP) // 2
-ZOOM_GAP = PLOT_RIGHT - PLOT_LEFT - 2 * ZOOM_WIDTH_PX
-ZOOM_START_S = 9345.0
+# Figure 1 stacks three full-width views of the same viewport, so they share
+# one time axis; tick labels appear only under the bottom panel.
+PANEL_LEFT, PANEL_RIGHT = 15, 1940
+NAME_TOP = 95  # recording name and colour bar, kept on 1A only
+SPEC_TITLE_TOP, SPEC_TOP = 131, 152  # "EEG Spectrogram" title, plot top
+CBAR_TICKS_BOX = (1250, 131, 1560, 142)  # colour-bar ticks beside the title
+TICKS_BOTTOM = 1060
+STACK_GAP = 16
 VIDEO_START_S, VIDEO_END_S = 9070.0, 9675.0
 LABEL_START_S, LABEL_END_S = 9752.0, 9802.0
 SELECT_START_S, SELECT_END_S = 9176.0, 9272.0
@@ -72,7 +73,7 @@ def axis_title(width, center):
     return strip
 
 
-def zoom_crop(img, layout, start=ZOOM_START_S, width=ZOOM_WIDTH_PX):
+def zoom_crop(img, layout, start, width):
     shift = ROW_SHIFT[layout]
     x0 = x_of(start)
     crop = img.crop((x0, ZOOM_TOP + shift, x0 + width, ZOOM_BOTTOM + shift))
@@ -166,48 +167,54 @@ def outline_rows(draw, x0, x1, head):
     )
 
 
+def full_view(img, layout, top, bottom, blank=()):
+    """Crop the full viewport from top to bottom, whitening boxes (source coordinates)."""
+    shift = ROW_SHIFT[layout]
+    crop = img.crop((PANEL_LEFT, top + shift, PANEL_RIGHT, bottom + shift))
+    draw = ImageDraw.Draw(crop)
+    for l, t, r, b in blank:
+        draw.rectangle((l - PANEL_LEFT, t - top, r - PANEL_LEFT, b - top), fill=WHITE)
+    return crop
+
+
 def figure1():
     before = load("app_figure.png")
     labeled = load("app_figure_correction.png")
     after = load("app_figure_after_correction.png")
 
-    # A: interface overview without window chrome, file controls, or the
-    # hover toolbar; the axis title moves below the ticks it overlapped.
-    overview = before.crop(OVERVIEW_BOX)
-    ox, oy = OVERVIEW_BOX[:2]
-    draw = ImageDraw.Draw(overview)
-    for l, t, r, b in (MODEBAR_BOX, AXIS_TITLE_BOX):
-        draw.rectangle((l - ox, t - oy, r - ox, b - oy), fill=WHITE)
-    plot_center = (PLOT_LEFT + PLOT_RIGHT) / 2 - ox
-    overview = stack(overview, axis_title(overview.width, plot_center))
-    panel_a, _ = with_header(overview, "A", "Predicted stages with spectrogram, EEG, EMG, and NE")
-
-    # B and C: matching time windows of the EEG, EMG, and NE rows.
-    # C omits the app's calibration message: unreadable at print size, and
-    # the caption states its labeled-second totals.
-    body_b = zoom_crop(labeled, "before")
-    body_c = zoom_crop(after, "after")
-
-    # B starts at A's left plot edge while its letter stays under A's.
-    indent = PLOT_LEFT - ox
-    panel_b, head_b = with_header(
-        body_b, "B", "Expert labels an interval as NREM", extra=50, indent=indent
+    # A keeps the recording name and colour bar; the hover toolbar goes.
+    body_a = full_view(before, "before", NAME_TOP, PLOT_BOTTOM + 2, [MODEBAR_BOX])
+    # B and C start at the spectrogram title. C alone carries the time axis,
+    # with its title moved below the ticks it overlapped. C omits the app's
+    # calibration message: unreadable at print size, and the caption states
+    # its labeled-second totals.
+    body_b = full_view(labeled, "before", SPEC_TITLE_TOP, PLOT_BOTTOM + 2, [CBAR_TICKS_BOX])
+    body_c = full_view(
+        after, "after", SPEC_TITLE_TOP, TICKS_BOTTOM, [CBAR_TICKS_BOX, AXIS_TITLE_BOX]
     )
-    panel_c, head_c = with_header(body_c, "C", "Same interval after adaptive calibration", extra=50)
+    body_c = stack(body_c, axis_title(body_c.width, (PLOT_LEFT + PLOT_RIGHT) / 2 - PANEL_LEFT))
+
+    panel_a, _ = with_header(body_a, "A", "Predicted stages with spectrogram, EEG, EMG, and NE")
+    panel_b, head_b = with_header(body_b, "B", "Expert labels an interval as NREM")
+    panel_c, head_c = with_header(body_c, "C", "Same interval after adaptive calibration")
 
     # Callouts: the expert interval in B and C. Readers compare the stages
-    # across the shared time axis themselves.
-    label_x0 = x_of(LABEL_START_S) - x_of(ZOOM_START_S)
-    label_x1 = x_of(LABEL_END_S) - x_of(ZOOM_START_S)
-    db = ImageDraw.Draw(panel_b)
-    bracket(db, indent + label_x0, indent + label_x1, head_b - 8, "expert NREM label")
+    # down the shared time axis themselves.
+    label_x0 = x_of(LABEL_START_S) - PANEL_LEFT
+    label_x1 = x_of(LABEL_END_S) - PANEL_LEFT
+    bracket(ImageDraw.Draw(panel_b), label_x0, label_x1, head_b - 8, "expert NREM label")
+    ImageDraw.Draw(panel_c).rectangle(
+        (
+            label_x0,
+            head_c + SPEC_TOP - SPEC_TITLE_TOP,
+            label_x1,
+            head_c + PLOT_BOTTOM - SPEC_TITLE_TOP,
+        ),
+        outline=INK,
+        width=3,
+    )
 
-    dc = ImageDraw.Draw(panel_c)
-    outline_rows(dc, label_x0, label_x1, head_c)
-
-    bottom_row = side_by_side(panel_b, panel_c, gap=ZOOM_GAP)
-    fig = stack(panel_a, bottom_row, gap=30)
-    return pad(fig)
+    return pad(stack(panel_a, panel_b, panel_c, gap=STACK_GAP))
 
 
 def figure2():

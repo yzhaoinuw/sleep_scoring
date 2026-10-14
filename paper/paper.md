@@ -196,10 +196,10 @@ fitting examples does not establish held-out accuracy. The externally developed 
 [PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies; it does not adapt, but its output keeps
 user labels in the same way.
 
-![**Expert-guided adaptation of sleep-stage predictions.** **(A)** Predicted stages
-with the spectrogram, EEG, EMG, and NE signals.
-**(B)** An enlarged view with a 50-second expert NREM correction. **(C)** The
-same interval as (B) after adaptive calibration using 228 s of expert labels
+![**Expert-guided adaptation of sleep-stage predictions.** All panels show the
+same interval. **(A)** Predicted stages with the spectrogram, EEG, EMG, and NE
+signals. **(B)** A 50-second expert NREM correction. **(C)** Predictions
+after adaptive calibration using 228 s of expert labels
 (178 s Wake, 50 s NREM); predictions change beyond the outlined labeled
 interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
 

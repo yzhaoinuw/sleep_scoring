@@ -333,8 +333,11 @@ would make the meaningful changes too small at publication size.
 | B | [`app_figure_correction.png`](figures/app_figure_correction.png) | Expert NREM label at 9752–9802 s (50 s). |
 | C | [`app_figure_after_correction.png`](figures/app_figure_after_correction.png) | Regenerated adaptive statistical predictions, including changes beyond the directly labeled interval. |
 
-Use matching crops for B and C, retaining the common time axis and enough
-surrounding signal to show prediction changes outside the labeled interval.
+Updated 2026-10-14: stack A, B, and C as full views of the same viewport,
+each with the spectrogram, sharing one time axis (ticks under C only). The
+spectrogram is the basis for the expert label and the check on whether the
+adapted predictions make sense; zoomed side-by-side crops dropped it. The
+stack must fit one page with its caption (about 8.3 in at 5.4 in wide).
 Align corresponding times across panels rather than relying on identical
 pixel positions in the original windows. Add panel letters and callouts for
 the expert label and representative changes elsewhere. Retain the stage
@@ -385,9 +388,9 @@ sleep state.
 - Preserve the five original PNGs; create final panel compositions as
   separate files. Crop window chrome and repeated controls where they do
   not explain the workflow, while keeping time axes and relevant messages.
-- Check label and trace readability at the final paper size. The source
-  viewport is roughly 15 minutes; narrower matching crops will help readers
-  see the correction and adaptation without shrinking every full window.
+- Check label and trace readability at the final paper size. In-app text
+  prints at about 3 pt at full column width; panel titles and callouts are
+  the readable layer.
 - Done 2026-10-12: both figures are in `paper.md`, referenced from
   Software design subsections 2 and 3, and the body is about 1,725 words
   including captions. The JOSS PDF render remains open.

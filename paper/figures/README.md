@@ -23,15 +23,16 @@ python paper/figures/build_figures.py
 
 | Output | Contents |
 | --- | --- |
-| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9345–9902 s crops before (B) and after (C) calibration; B and C together span exactly A's plot width, so both rows share plot edges. C outlines the labeled interval; readers compare stages with B across the shared time axis. |
+| [`figure1_adaptation.png`](figure1_adaptation.png) | Three full views of the same viewport stacked on one time axis: prediction (A), expert label (B), and after calibration (C). All include the spectrogram; tick labels appear only under C. C outlines the labeled interval; readers compare stages down the shared axis. |
 | [`figure2_video_review.png`](figure2_video_review.png) | A 9070–9675 s crop with the right-clicked bout outlined (A) and the video dialog (B), scaled with its aspect ratio kept so both panels have equal height. |
 
 The 1980-by-1202-pixel sources share the same horizontal axis; crops align
 to the 9200/9400 s tick centres (about 1.56 px/s). The post-calibration image
-is two pixels higher and the selection image one pixel lower. Zoomed panels
-retain the original tick values and signal pixels, recenter subplot titles,
-and add a common time-axis title; panel A keeps the full stage legend, drops
-Plotly's hover toolbar, and moves its axis title below the ticks it overlapped.
+is two pixels higher and the selection image one pixel lower. Figure 1
+keeps the recording name and colour bar on A only, drops Plotly's hover
+toolbar, and moves the axis title below C's ticks, which it overlapped.
+Figure 2A's zoomed crop retains the original tick values and signal pixels,
+recenters subplot titles, and adds a time-axis title.
 Figure 2A's selection message is wrapped at word gaps; Figure 1C omits the
 calibration message, whose totals the caption states. The cached label layer confirms
 the 228-second total, including the earlier Wake interval [2873, 3051) and

@@ -38,6 +38,12 @@ search older entries by date anchor rather than reading every archive.
   caption states its totals). Moved the Figure 1 reference in `paper.md`
   from "The chosen values are displayed", which the figure no longer shows,
   to the sentence about labels as ground truth.
+- Rebuilt Figure 1 as three stacked full views (A prediction, B expert
+  label, C after calibration) at the maintainer's request: every panel now
+  has the spectrogram, which the zoomed side-by-side B/C had dropped. JOSS
+  has no page limit, but a figure plus caption must fit one page (~8.3 in of
+  figure at 5.4 in wide); ticks only under C, name and colour bar only on A,
+  16 px gaps, giving 1973 x 3065 px.
 
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 
