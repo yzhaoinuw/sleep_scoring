@@ -393,7 +393,7 @@ sleep state.
   prints at about 3 pt at full column width; panel titles and callouts are
   the readable layer.
 - Done 2026-10-12: both figures are in `paper.md`, referenced from
-  Software design subsections 2 and 3, and the body is about 1,725 words
+  Software design subsections 2 and 3, and the body was about 1,725 words
   including captions. The JOSS PDF render remains open.
 - If space is tight, prioritize Figure 1 and condense Figure 2 to a small
   selection-to-video inset. Link README demonstration videos for dynamic

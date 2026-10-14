@@ -44,9 +44,10 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** The body is currently about 1,725 words including
-  figure captions, excluding front matter and comments, so new material
-  has to replace existing text.
+- **750–1,750 words.** As of 2026-10-14 the body (captions included,
+  front matter and comments excluded) is about 1,675 words of running text, or about 1,745 counting headings and
+  rendered citations. Treat the
+  stricter count as binding: new material has to replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
   EEG, and EMG from scratch.
 - **No user manual or API documentation.** JOSS says that belongs in the
@@ -170,8 +171,8 @@ download the `paper` artifact from the run. The PDF is not committed.
 - [x] Assemble matching crops and callouts: `figures/build_figures.py`
   writes `figure1_adaptation.png` and `figure2_video_review.png`.
 - [x] Add the composed figures to `paper.md` with captions, labels, and
-  in-text references. The refreshed body is approximately 1,748 words
-  including captions; recheck the word count before adding text.
+  in-text references. See the 750–1,750-word note above for the
+  current count; recheck it before adding text.
 - [x] Render the previous JOSS PDF (2026-10-12, `JOSS draft PDF` workflow): 7 pages,
   Figure 1 on page 4, Figure 2 on page 5, both at full text width. Panel
   letters, titles, and callouts read at print size; the application's own
@@ -222,7 +223,8 @@ download the `paper` artifact from the run. The PDF is not committed.
 - [ ] Acknowledgments: thank the PI, the users who supplied recordings and
   feedback, and the sDREAMER developers by name. Keep the approved funding
   sentence verbatim.
-- [ ] Update the manuscript date when the revision is finalized.
+- [ ] Update the manuscript date when the revision is finalized (set to
+  14 October 2026 during the text review).
 - [x] Zenodo v0.17.5 uses the paper's title, and `sleepscoring_zenodo` in
   `paper.bib` matches the archived title/year. Verified on 2026-10-13:
   [version DOI](https://doi.org/10.5281/zenodo.23349241). The bibliography

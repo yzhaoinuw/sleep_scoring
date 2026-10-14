@@ -195,8 +195,9 @@ author confirmation. See `paper/README.md` for its status. Open items:
   dated history and is not pooled with it.
 - Both workflow figures are composed by `paper/figures/build_figures.py` and
   placed in `paper.md` (body about 1,725 words with captions; about 25 words
-  of headroom in the earlier draft). The refreshed draft is approximately
-  1,748 words including captions. The `JOSS draft PDF` workflow renders the paper as a run
+  of headroom in the earlier draft). After the 2026-10-14 text review the body
+  is about 1,675 words of running text, or about 1,745 counting headings and
+  rendered citations; treat the stricter count as binding. The `JOSS draft PDF` workflow renders the paper as a run
   artifact; in-app text in the figures is only legible zoomed, so decide
   whether to retake the snapshots with a smaller window. A public example
   recording remains open.

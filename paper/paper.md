@@ -1,8 +1,5 @@
 ---
 title: 'Sleep Scoring App: Interactive review and correction of rodent sleep annotations with synchronized electrophysiology, photometry, and behavior video'
-# TODO(name): the paper now uses "Sleep Scoring App" as the software's name;
-# the repository and package stay `sleep_scoring`. Align the CITATION.cff and
-# Zenodo titles with this name before submission.
 tags:
   - Python
   - sleep
@@ -25,7 +22,7 @@ authors:
 affiliations:
   - name: University of Rochester, Rochester, NY, USA   # TODO: confirm/expand
     index: 1
-date: 7 October 2026
+date: 14 October 2026
 bibliography: paper.bib
 ---
 
@@ -43,9 +40,8 @@ into one shared scoring workflow. Users can label intervals manually or
 generate automatic scores, then revise individual seconds or whole bouts;
 labels a user has supplied are kept as-is in every automatic result. The
 default automatic scorer is a rule-based algorithm that adapts to
-expert-labeled examples: it treats the user's labels on the current
-recording as ground truth and balances agreement with each labeled stage
-against changes to unlabelled predictions from the default settings.
+expert-labeled examples: it fits the user's labels on the current recording
+while changing the rest of its predictions as little as possible.
 Completed scores are saved back
 to the recording and exported as bout tables with stage and transition
 statistics.
@@ -62,7 +58,7 @@ the vasomotion underlying glymphatic clearance [@hauglund2025norepinephrine].
 <!-- TODO(authors): confirm with the Kjaerby/Hauglund co-authors that these
 two citations frame the program fairly, and whether either study's scoring
 used this application. -->
-Questions at this level depend on brief events, such as microarousals and
+Such questions depend on brief events, such as microarousals and
 state transitions, that span a few seconds. Scoring them requires reading
 the same short interval against several physiological signals and the
 animal's behavior, and correcting
@@ -121,9 +117,9 @@ reasons a new application was built in 2023. -->
 
 # Software design
 
-The application is built with [Dash](https://dash.plotly.com) and
-[Plotly](https://plotly.com/python/) [@plotly], web technologies,
-but runs as a desktop program. Its interface is a web page rendered inside a
+Built with [Dash](https://dash.plotly.com) and
+[Plotly](https://plotly.com/python/) [@plotly], the application runs as a
+desktop program: its interface is a web page rendered inside a
 native window (via [pywebview](https://pywebview.flowrl.com)) by the operating system's embedded web
 engine, WebView2 on Windows or WebKit on macOS, and talks to a server
 running on the same computer. No internet connection is needed: recordings
@@ -137,9 +133,9 @@ and completing a recording.
 
 ## 1. Inspecting and correcting at the needed scale
 
-EEG spectrogram with a
-theta/delta ratio, EEG, EMG, and NE share one time axis, and the score is
-drawn as an overlay on every signal row, so a boundary can be read against
+The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
+time axis, and the score is drawn as an overlay on every signal row
+(\autoref{fig:adaptation}A), so a boundary can be read against
 each physiological signal. Users switch between navigation and annotation with
 one key. Selections can be a zoom-adaptive click, a dragged box, or a
 right-click that selects the whole contiguous bout under the cursor; when a
@@ -184,11 +180,11 @@ Wake from a normalized 1–7 Hz EEG spectral feature with minimum bout
 lengths, and relabel candidate bouts as REM when NE falls below
 recording-wide and within-bout percentile thresholds; without usable NE, it
 identifies only Wake and NREM. Each run treats supplied Wake, NREM, and REM
-labels (one is enough) as ground truth (\autoref{fig:adaptation}) and searches fixed candidate values
-for five parameters. It balances average error
-across labeled stages against changes to unlabelled default predictions;
-equal costs favor parameters near the defaults. The chosen values are
-displayed. MA labels are kept but not
+labels (a single labeled interval is enough) as ground truth
+(\autoref{fig:adaptation}) and searches fixed candidate values for five
+parameters. Each candidate is scored by its average error across the labeled
+stages plus a penalty for changing unlabeled predictions; ties go to values
+nearest the defaults. The chosen values are reported. MA labels are kept but not
 used for fitting. We chose this inspectable, recording-specific adaptation
 over persistent training to keep defaults unchanged for the next recording;
 fitting examples does not establish held-out accuracy. The externally developed sDREAMER model
@@ -200,7 +196,7 @@ user labels in the same way.
 same interval. **(A)** Predicted stages with the spectrogram, EEG, EMG, and NE
 signals. **(B)** A 50-second expert NREM correction. **(C)** Predictions
 after adaptive calibration using 228 s of expert labels
-(178 s Wake, 50 s NREM); predictions change beyond the outlined labeled
+(178 s Wake, outside this view, and 50 s NREM); predictions change beyond the outlined labeled
 interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
 
 ## 3. Checking behavior and completing a recording
@@ -212,8 +208,7 @@ the same window (\autoref{fig:video}). One-step undo and filesystem-backed recov
 in-progress work; up to three isolated windows allow side-by-side
 comparison, refusing the same file twice. Saving reports the first unscored
 gap; a complete recording also exports bout, stage, and transition
-statistics, including microarousals. Packaged Windows installations receive
-compatible updates that preserve supported settings.
+statistics, including microarousals.
 
 ![**Selection-linked behavioral review.** **(A)** A right-click selects the
 contiguous bout at 9176–9272\ s, and Check Video (both outlined) opens its
@@ -235,7 +230,7 @@ packaged Windows releases, macOS source installation, documentation, tests,
 demonstration videos, and archived versions [@sleepscoring_zenodo].
 
 Manual timing tests on a 2.86-hour recording show the interaction design is
-practical on long data. With the current release, the median time from the
+practical on long data. With v0.17.4, the median time from the
 application receiving a navigation request to the refreshed traces was 329 ms
 for keyboard navigation and 212 ms for mouse panning on a Windows laptop
 (95th percentiles 371 and 239 ms), and 181 and 64 ms on an Apple M4 laptop
@@ -257,11 +252,11 @@ developing the software; specific model versions were not recorded. Since
 generation, refactoring, tests, documentation, and release checks: Claude
 Code (Claude Opus 4.5–5.5 and Fable 5) and OpenAI Codex (GPT-5 and GPT-6),
 with sessions recorded in the repository's work log. Claude Code and Codex
-also helped plan, draft, and review this manuscript. The authors made the
+also helped plan, draft, and review this manuscript. The author made the
 architectural and design decisions, reviewed and tested all AI-assisted code
 before release, and reviewed, revised, and verified the manuscript against
 the software and cited sources.
-<!-- TODO(authors): confirm author review is complete before submission. -->
+<!-- TODO(author): confirm review is complete before submission. -->
 
 # Acknowledgments
 

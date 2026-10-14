@@ -50,6 +50,24 @@ search older entries by date anchor rather than reading every archive.
   are recentred on the cropped plot area. Caption names Check Video.
 - Cropped Figure 2A's selection message as well; the caption gives the range.
 
+### Manuscript text review (Claude Code, Opus 5.5)
+
+- Checked `paper.md` claims against the code before editing: 300 s clip
+  limit (`clientsideCallbacks.js`), `MAX_SESSIONS = 3`, the 1–7 Hz band, five
+  tuned parameters, and the calibration cost (stage-averaged mismatch plus
+  0.25 x unlabeled-change fraction, ties to the defaults).
+- Applied the maintainer-approved edits: removed the resolved title TODO;
+  dated the draft 14 October 2026; "With v0.17.4" instead of "current
+  release" (timings predate v0.17.5); "The author" in the AI disclosure;
+  plainer Summary and calibration sentences; "(a single labeled interval is
+  enough)"; Figure 1 caption notes the 178 s of Wake labels lie outside the
+  view; Section 1 opens with a full sentence citing Figure 1A; US
+  "unlabeled"; tightened the Software design opener and "Such questions";
+  dropped the Windows-update sentence.
+- Word count depends on the rule: 1,674 running words, 1,726 with headings,
+  ~1,746 with headings and rendered citations. Codex's earlier ~1,748 used
+  the strict rule, so headroom is only a few words; docs now give both.
+
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 
 - Pushed `fix/calibration-overfit` and `dev` at `370a46c`; pushed the
