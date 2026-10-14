@@ -17,6 +17,21 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-14
 
+### Figure layout alignment (Claude Code, Opus 5.5)
+
+- Figure 1: B and C are sized from the overview's plot area (97–1872 px):
+  each 867 px wide (9345–9902 s) with a 41 px gap, B indented so its plot
+  starts at A's plot edge while its letter stays under A's. The window still
+  covers every B→C change near the label (9378–9888 s); changes outside it
+  (9118–9276 s, 10090–10162 s) were outside the previous crop too.
+- Panel A blanks Plotly's hover toolbar (camera/pan/zoom icons captured in
+  the new snapshot) and moves "Time (s)" below the tick row, where it had
+  collided with the 9600 tick.
+- Figure 2: the video dialog is scaled (LANCZOS, aspect kept) to panel A's
+  body height, so both panels are equal in height; A stays wider.
+
+## 2026-10-14
+
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 
 - Pushed `fix/calibration-overfit` and `dev` at `370a46c`; pushed the

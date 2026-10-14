@@ -23,14 +23,15 @@ python paper/figures/build_figures.py
 
 | Output | Contents |
 | --- | --- |
-| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9340–9945 s crops before (B) and after (C) calibration. C outlines the labeled interval, and black bars mark columns whose stage differs from B, computed from overlay colors. |
-| [`figure2_video_review.png`](figure2_video_review.png) | A 9070–9675 s crop with the right-clicked bout outlined (A) and the video dialog (B). |
+| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9345–9902 s crops before (B) and after (C) calibration; B and C together span exactly A's plot width, so both rows share plot edges. C outlines the labeled interval, and black bars mark columns whose stage differs from B, computed from overlay colors. |
+| [`figure2_video_review.png`](figure2_video_review.png) | A 9070–9675 s crop with the right-clicked bout outlined (A) and the video dialog (B), scaled with its aspect ratio kept so both panels have equal height. |
 
 The 1980-by-1202-pixel sources share the same horizontal axis; crops align
 to the 9200/9400 s tick centres (about 1.56 px/s). The post-calibration image
 is two pixels higher and the selection image one pixel lower. Zoomed panels
 retain the original tick values and signal pixels, recenter subplot titles,
-and add a common time-axis title; panel A keeps the full stage legend.
+and add a common time-axis title; panel A keeps the full stage legend, drops
+Plotly's hover toolbar, and moves its axis title below the ticks it overlapped.
 Screenshot messages are wrapped at word gaps. The cached label layer confirms
 the 228-second total, including the earlier Wake interval [2873, 3051) and
 the NREM correction [9752, 9802); the earlier Wake interval is outside the view.
