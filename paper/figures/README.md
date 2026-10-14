@@ -23,7 +23,7 @@ python paper/figures/build_figures.py
 
 | Output | Contents |
 | --- | --- |
-| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9345–9902 s crops before (B) and after (C) calibration; B and C together span exactly A's plot width, so both rows share plot edges. C outlines the labeled interval, and black bars mark columns whose stage differs from B, computed from overlay colors. |
+| [`figure1_adaptation.png`](figure1_adaptation.png) | Overview (A) plus matching 9345–9902 s crops before (B) and after (C) calibration; B and C together span exactly A's plot width, so both rows share plot edges. C outlines the labeled interval; readers compare stages with B across the shared time axis. |
 | [`figure2_video_review.png`](figure2_video_review.png) | A 9070–9675 s crop with the right-clicked bout outlined (A) and the video dialog (B), scaled with its aspect ratio kept so both panels have equal height. |
 
 The 1980-by-1202-pixel sources share the same horizontal axis; crops align

@@ -29,6 +29,11 @@ search older entries by date anchor rather than reading every archive.
   collided with the 9600 tick.
 - Figure 2: the video dialog is scaled (LANCZOS, aspect kept) to panel A's
   body height, so both panels are equal in height; A stays wider.
+- Dropped the computed "stage changed from (B)" bars from 1C at the
+  maintainer's request: the large B→C changes are visible across the shared
+  time axis, and the 1–5 s slivers distracted. C is now titled "Same interval
+  after adaptive calibration" and keeps the outline of the labeled interval;
+  the caption says C is the same interval as B. Body is ~1,680 words.
 
 ### Integration delivery and refreshed PDF verified (Codex, GPT-6; effort/token budget not reported)
 

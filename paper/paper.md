@@ -199,9 +199,9 @@ user labels in the same way.
 ![**Expert-guided adaptation of sleep-stage predictions.** **(A)** Predicted stages
 with the spectrogram, EEG, EMG, and NE signals.
 **(B)** An enlarged view with a 50-second expert NREM correction. **(C)** The
-same interval after calibration using 228 s of expert labels (178 s Wake,
-50 s NREM), showing changes beyond the directly labeled interval
-(outlined); black bars mark where stages changed from (B).\label{fig:adaptation}](figures/figure1_adaptation.png)
+same interval as (B) after adaptive calibration using 228 s of expert labels
+(178 s Wake, 50 s NREM); predictions change beyond the outlined labeled
+interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
 
 ## 3. Checking behavior and completing a recording
 

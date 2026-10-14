@@ -39,9 +39,6 @@ VIDEO_START_S, VIDEO_END_S = 9070.0, 9675.0
 LABEL_START_S, LABEL_END_S = 9752.0, 9802.0
 SELECT_START_S, SELECT_END_S = 9176.0, 9272.0
 
-# Stage colors as rendered in the score overlay.
-STAGES = {"Wake": (128, 128, 255), "NREM": (255, 128, 128), "REM": (128, 255, 128)}
-
 
 def font(size, bold=False):
     # Windows resolves "arial*.ttf" by name; macOS keeps Arial in Supplemental.
@@ -89,15 +86,6 @@ def zoom_crop(img, layout, start=ZOOM_START_S, width=ZOOM_WIDTH_PX):
     l, t, r, b = AXIS_TITLE_BOX
     draw.rectangle((l - x0, t - ZOOM_TOP, r - x0, b - ZOOM_TOP), fill=WHITE)
     return stack(crop, axis_title(crop.width, crop.width / 2))
-
-
-def stage_row(img, layout, y=885):
-    """Stage per pixel column of the zoom window, read from a trace-free row."""
-    a = np.asarray(img).astype(int)[y + ROW_SHIFT[layout]]
-    a = a[x_of(ZOOM_START_S) : x_of(ZOOM_START_S) + ZOOM_WIDTH_PX]
-    colors = np.array(list(STAGES.values()))
-    dist = np.abs(a[:, None, :] - colors[None, :, :]).sum(2)
-    return dist.argmin(1)
 
 
 def text_segments(strip, gap=14):
@@ -207,21 +195,16 @@ def figure1():
     panel_b, head_b = with_header(
         body_b, "B", "Expert labels an interval as NREM", extra=50, indent=indent
     )
-    panel_c, head_c = with_header(body_c, "C", "Predictions after calibration", extra=50)
+    panel_c, head_c = with_header(body_c, "C", "Same interval after adaptive calibration", extra=50)
 
-    # Callouts: the expert interval in B and C, and where C changed from B.
+    # Callouts: the expert interval in B and C. Readers compare the stages
+    # across the shared time axis themselves.
     label_x0 = x_of(LABEL_START_S) - x_of(ZOOM_START_S)
     label_x1 = x_of(LABEL_END_S) - x_of(ZOOM_START_S)
     db = ImageDraw.Draw(panel_b)
     bracket(db, indent + label_x0, indent + label_x1, head_b - 8, "expert NREM label")
 
-    changed = stage_row(labeled, "before") != stage_row(after, "after")
     dc = ImageDraw.Draw(panel_c)
-    bar_y = head_c - 18
-    runs = np.flatnonzero(np.diff(np.r_[0, changed.astype(int), 0]))
-    for s, e in zip(runs[::2], runs[1::2]):
-        dc.rectangle((s, bar_y, e - 1, bar_y + 12), fill=INK)
-    dc.text((0, bar_y - 34), "stage changed from (B)", fill=INK, font=font(26, bold=True))
     outline_rows(dc, label_x0, label_x1, head_c)
 
     bottom_row = side_by_side(panel_b, panel_c, gap=ZOOM_GAP)
