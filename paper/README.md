@@ -169,7 +169,8 @@ does not show the final layout or references. Preview it with the JOSS
 draft-PDF GitHub Action or the `openjournals/inara` Docker image. The
 repository's `JOSS draft PDF` workflow (`.github/workflows/draft-pdf.yml`)
 runs on every push that touches `paper/` and can also be started by hand;
-download the `paper` artifact from the run. The PDF is not committed.
+download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
+(the date is that of the commit it was built from). The PDF is not committed.
 
 ## What is done
 

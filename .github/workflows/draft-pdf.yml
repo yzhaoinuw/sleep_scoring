@@ -21,8 +21,17 @@ jobs:
           journal: joss
           paper-path: paper/paper.md
 
+      # Name the PDF after the manuscript and the date of the commit it was
+      # built from, e.g. Sleep_Scoring_App_JOSS_Manuscript_2026-10-15.pdf.
+      - name: Name PDF
+        id: name
+        run: |
+          name="Sleep_Scoring_App_JOSS_Manuscript_$(git log -1 --format=%cd --date=format:%Y-%m-%d)"
+          mv paper/paper.pdf "paper/${name}.pdf"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
-          name: paper
-          path: paper/paper.pdf
+          name: ${{ steps.name.outputs.name }}
+          path: paper/${{ steps.name.outputs.name }}.pdf
