@@ -139,48 +139,66 @@ running on the same computer. No internet connection is needed: recordings
 open by path through native file dialogs and never leave the machine. The
 only network use is an optional update check and opt-in usage reporting. In
 what follows, "interface" means this embedded web page and its JavaScript,
-and "server" the local Python process. The design is organized around four
-tasks: (1) inspecting and correcting at the needed scale, (2) automatic
-scoring that keeps and learns from expert labels, (3) checking behavior
-against video, and (4) protecting and completing work.
-{% Yue comment: 1) should we explain briefly out 'optimization' philosophy here, ie, keep as much as work on the embedded web page and its Javascript as possible as it is much faster compared to routing through the server, which takes a round trip? later, in 1. Inspecting and correcting at the needed scale, we have "It uses Plotly Resampler only to compute
-what to draw for a range, and replaces its stock update path with its own,
-which keeps interaction state in the interface and full-resolution data on
-the server. Zooming, panning, selecting, and labeling are handled by
-JavaScript in the interface." that paragraph may benefit from the explanation here so that the readers understand why keeping interactions in the interface is better. 2) what about the miscellaneous quality of life features we have in the app, such as the auto updater checker that automatically checks for and downloads update/fixes in the app? this may actually be a big advantage we have over other apps out there. it made distribution and update/fixes easier for the users. similarly, I suggest we do another thorough check through the Assessment of every cookbook recipe list in the manuscript_layout.md in paper/. if we find any that worths mention, we could add a fifth section for quality of life features}
-  
+and "server" the local Python process. One principle runs through the
+design: anything that responds directly to the user's hand runs in the
+interface, because each trip to the server adds delay, and the server is
+asked only for signal data the interface does not yet have. The design is
+organized around five tasks: (1) inspecting and correcting at the needed
+scale, (2) automatic scoring that keeps and learns from expert labels, (3)
+checking behavior against video, (4) protecting and completing work, and (5)
+installing and updating.
 
 ## 1. Inspecting and correcting at the needed scale
 
 The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
 (\autoref{fig:adaptation}A), so a boundary can be read against
-each physiological signal. 
-{% Yue comment: I suggest we also first start with a list to introduce the things we are gonna describe in the following. it makes the manuscript more organized and easier to follow. for example, start with the mode switch and WHY we design a mode switch. it is because the mouse plays different roles or serve as shortcuts during navigation and annotation. we separate the two mode so the mouse' roles don't collide. in navigation mode, the user can drag with mouse to pan, which allows for bigger stride to move faster. In annotation mode, since the user needs the mouse to select sections to annotate, it cannot be used to pan anymore. In that regard, we added arrow keys as shortcut to pan left and right (at adaptive, fixed pace, which can be slower than panning by mouse under navigation mode. Then enumerate the different select 'gestures' like single click, etc., before describing them.}
-Users switch between navigation and annotation with
-one key. A click selects a short interval scaled to the current zoom, for
-ranges too narrow to drag at that scale; a dragged box selects a wider
-range; and a right-click selects the whole contiguous bout under the cursor; when a
-drag reaches the viewport edge, the view pans automatically and newly
-revealed signal is streamed in, so long selections keep boundary detail.
-All selection forms feed one labeling step: keys `1`–`4` assign Wake,
-NREM, REM, or MA, and `0` clears.
+each physiological signal. Moving through and labeling this view rests on
+two modes, keyboard panning, three forms of selection, and one labeling
+step.
+
+The mouse does different jobs when navigating and when annotating, so these
+are separate modes, switched with one key. In navigation mode, dragging pans
+the view in large strides and scrolling zooms. In annotation mode the mouse
+selects intervals instead, so the left and right arrow keys, which work in
+either mode, pan by 30% of the visible window, a pace that scales with zoom.
+Annotation mode offers three selections. A click selects a short interval
+scaled to the current zoom, for ranges too narrow to drag at that scale; a
+dragged box selects a wider range; and a right-click selects the whole
+contiguous bout under the cursor. When a drag reaches the viewport edge, the
+view pans automatically and newly revealed signal is streamed in, so long
+selections keep boundary detail. All selections feed one labeling step:
+keys `1`–`4` assign Wake, NREM, REM, or MA, and `0` clears.
 
 Plotly alone becomes unresponsive when asked to draw the millions of samples
 in a multi-hour recording, so the application decimates long signals on
 demand with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
-[@vanderdonckt2022plotlyresampler]. It uses Plotly Resampler only to compute
-what to draw for a range, and replaces its stock update path with its own,
-which keeps interaction state in the interface and full-resolution data on
-the server {% Yue comment: as I suggested in a previous comment, I'd like to spell out why we replace plotly resampler's stock update with our own. eventually we need to land on more intelligent, more smooth. less lag. don't just end on the technical phrases, we need to land on results that any reader could understand}. Zooming, panning, selecting, and labeling are handled by
-JavaScript in the interface. While the user zooms or pans continuously, the
-application waits for the movement to stop or pause before requesting new
-traces, and drops requests already overtaken by newer movement, which
-reduces lag. Only the changed trace data are then sent and swapped in, rather
+[@vanderdonckt2022plotlyresampler]. Plotly Resampler computes what to draw
+for a range, but its stock update path asks the server for new traces on
+every zoom or pan event, which can fall behind continuous movement. The
+application keeps that computation and replaces the update path with its
+own, following the principle above. Zooming, panning, selecting, and
+labeling are handled by JavaScript in the interface. While the user zooms or
+pans continuously, the application waits for the movement to stop or pause
+before requesting new traces, and drops requests already overtaken by newer
+movement. Only the changed trace data are then sent and swapped in, rather
 than the whole figure being redrawn. During a selection drag, auto-pan
 instead fetches newly revealed signal repeatedly through a dedicated server
-endpoint. Applying a label repaints the overlay in the interface without a
-server round trip.
+endpoint, and applying a label repaints the overlay with no server round
+trip at all. The result is smoother navigation with less lag on multi-hour
+recordings. In manual timing tests on a 2.86-hour recording with v0.17.4,
+the median time from a navigation request to refreshed traces was 212 ms for
+mouse panning and 329 ms for keyboard navigation on a Windows laptop, and 64
+and 181 ms on an Apple M4 laptop. Server work took under 13 ms of each
+update; much of the keyboard time is deliberate waiting for repeated key
+presses to settle. These are local instrumented measurements, not a
+controlled benchmark.
+<!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
+recording at Sampling Level x1; first three updates per task excluded;
+34–69 updates per task at 256- to 380-second views; 95th percentiles
+Windows 371/239 ms, Mac 191/69 ms for keyboard/mouse). Windows and Mac runs
+differ in machine and viewport; do not frame the difference as a speedup or
+platform ranking. -->
 
 This interaction design does not depend on the sleep domain. We extracted it
 into a separate, runnable template [@timeseries_app_cookbook] that applies
@@ -250,6 +268,17 @@ when a file is reopened after a crash. Up to three isolated windows allow
 side-by-side comparison, refusing the same file twice. Saving reports the first unscored gap; a complete recording also
 exports bout, stage, and transition statistics, including microarousals.
 
+## 5. Installing and updating
+
+Windows users receive a packaged application that runs without a Python
+installation; macOS users install from source. The packaged application
+keeps itself current: about once a day it checks GitHub for a compatible
+release and applies it before the window opens, keeping the user's edited
+settings, so fixes reach users without a reinstall. We extracted this
+updater into a reusable, dependency-free package,
+[`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
+[@desktop_app_source_updater].
+
 # Research impact statement
 
 Researchers in Project 2 of the University of Rochester U19 program have been
@@ -263,20 +292,6 @@ It integrates with a companion preprocessing pipeline that converts raw
 acquisition output into its input format, and the repository provides
 packaged Windows releases, macOS source installation, documentation, tests,
 demonstration videos, and archived versions [@sleepscoring_zenodo].
-
-Manual timing tests on a 2.86-hour recording show the interaction design is
-practical on long data. With v0.17.4, the median time from the
-application receiving a navigation request to the refreshed traces was 329 ms
-for keyboard navigation and 212 ms for mouse panning on a Windows laptop
-(95th percentiles 371 and 239 ms), and 181 and 64 ms on an Apple M4 laptop
-(95th percentiles 191 and 69 ms), over 34–69 updates per task at 256- to
-380-second views. Server work took under 13 ms of each update, and much of
-the keyboard time is deliberate coalescing of repeated key presses. These are
-local instrumented measurements rather than a controlled benchmark. {% Yue comment: does the 'tech spec' report belong in # Research impact statement? I don't see how. is there a better section to place this?}
-<!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
-recording at Sampling Level x1; first three updates per task excluded).
-Windows and Mac runs differ in machine and viewport; do not frame the
-difference as a speedup or platform ranking. -->
 
 # AI usage disclosure
 
