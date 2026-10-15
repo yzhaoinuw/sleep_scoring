@@ -142,7 +142,7 @@ installing and updating.
 
 The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
-(\autoref{fig:adaptation}A), so a boundary can be read against
+(\autoref{fig:adaptation}A) {% Yue comment: all the figure reference in the main text seem to break. please fix}, so a boundary can be read against
 each physiological signal. Moving through and labeling this view rests on
 two modes, keyboard panning, three forms of selection, and one labeling
 step.
@@ -150,8 +150,7 @@ step.
 The mouse does different jobs when navigating and when annotating, so these
 are separate modes, switched with one key. In navigation mode, dragging pans
 the view in large strides and scrolling zooms. In annotation mode the mouse
-selects intervals instead, so the left and right arrow keys, which work in
-either mode, pan by 30% of the visible window, a pace that scales with zoom.
+selects intervals instead, so the left and right arrow keys can be used to pan at a adaptive pace that scales with zoom.
 Annotation mode offers three selections. A click selects a short interval
 scaled to the current zoom, for ranges too narrow to drag at that scale; a
 dragged box selects a wider range; and a right-click selects the whole
@@ -167,7 +166,7 @@ demand with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler
 for a range, but its stock update path asks the server for new traces on
 every zoom or pan event, which can fall behind continuous movement. The
 application keeps that computation and replaces the update path with its
-own, following the principle above. Zooming, panning, selecting, and
+own, following the principle described in [# Software design]. Zooming, panning, selecting, and
 labeling are handled by JavaScript in the interface. While the user zooms or
 pans continuously, the application waits for the movement to stop or pause
 before requesting new traces, and drops requests already overtaken by newer
@@ -231,7 +230,7 @@ change beyond the outlined interval.\\label{fig:adaptation}](figures/figure1_ada
 
 For a selected interval of up to five minutes, the application cuts the
 matching clip from the behavior video with [FFmpeg](https://ffmpeg.org),
-validates the recording-to-video offset, and plays it in the same window
+and plays it in the same window
 (\autoref{fig:video}). The cap suits checks of events that span seconds and
 keeps clip extraction quick.
 
@@ -245,19 +244,19 @@ Four further features protect and complete work: undo, crash recovery,
 side-by-side windows, and checks on save. Undo reverts the most recent
 change to the scores, and filesystem-backed recovery restores unsaved scores
 when a file is reopened after a crash. Up to three isolated windows allow
-side-by-side comparison, refusing the same file twice. Saving reports the first unscored gap; a complete recording also
-exports bout, stage, and transition statistics, including microarousals.
+side-by-side comparison of different recordings. A complete recording
+exports bout, stage, and transition statistics. unscored sections will be reported to the users so they can complete them.
 
 ## 5. Installing and updating
 
 Windows users receive a packaged application that runs without a Python
 installation; macOS users install from source. The packaged application
-keeps itself current: about once a day it checks GitHub for a compatible
+keeps itself current: it checks GitHub for a compatible
 release and applies it before the window opens, keeping the user's edited
-settings, so fixes reach users without a reinstall. We extracted this
+settings, so fixes reach users automatically without a reinstall. We extracted this
 updater into a reusable, dependency-free package,
 [`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
-[@desktop_app_source_updater].
+[@desktop_app_source_updater]. 
 
 # Research impact statement
 
