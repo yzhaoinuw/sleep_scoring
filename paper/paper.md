@@ -113,7 +113,7 @@ as markers for distinguishing wake, microarousals, NREM, and REM sleep
 workspace for labeling and correcting scores, in which NE photometry informs
 scoring and video checks are tied to the
 selected interval. Project 2 previously used Viewpoint's commercial
-[SleepScore](\1), which did not integrate NE
+[SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore), which did not integrate NE
 photometry well; that gap motivated a dedicated application.
 <!-- History from the Project 2 users (2026-10-14); they confirm the wording
 in the full-draft review. SleepScore supports synchronized video, so the
@@ -142,15 +142,16 @@ installing and updating.
 
 The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
-(\autoref{fig:adaptation}A) {% Yue comment: all the figure reference in the main text seem to break. please fix}, so a boundary can be read against
-each physiological signal. Moving through and labeling this view rests on
+(\autoref{fig:adaptation}A), so a boundary can be read against each
+physiological signal. Moving through and labeling this view rests on
 two modes, keyboard panning, three forms of selection, and one labeling
 step.
 
 The mouse does different jobs when navigating and when annotating, so these
 are separate modes, switched with one key. In navigation mode, dragging pans
 the view in large strides and scrolling zooms. In annotation mode the mouse
-selects intervals instead, so the left and right arrow keys can be used to pan at a adaptive pace that scales with zoom.
+selects intervals instead, so the left and right arrow keys pan at an
+adaptive pace that scales with zoom.
 Annotation mode offers three selections. A click selects a short interval
 scaled to the current zoom, for ranges too narrow to drag at that scale; a
 dragged box selects a wider range; and a right-click selects the whole
@@ -166,14 +167,15 @@ demand with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler
 for a range, but its stock update path asks the server for new traces on
 every zoom or pan event, which can fall behind continuous movement. The
 application keeps that computation and replaces the update path with its
-own, following the principle described in [# Software design]. Zooming, panning, selecting, and
-labeling are handled by JavaScript in the interface. While the user zooms or
+own, following the principle stated in [Software design](#software-design).
+Zooming, panning, selecting, and labeling are handled by JavaScript in the
+interface. While the user zooms or
 pans continuously, the application waits for the movement to stop or pause
 before requesting new traces, and drops requests already overtaken by newer
 movement. Only the changed trace data are then sent and swapped in, rather
-than the whole figure being redrawn. Applying a label repaints the overlay with no
-server round trip at all. The result is smoother navigation with less lag on multi-hour
-recordings. In manual timing tests on a 2.86-hour recording with v0.17.4,
+than the whole figure being redrawn. Applying a label repaints the overlay
+with no server round trip at all. The result is smoother navigation with
+less lag on multi-hour recordings. In manual timing tests on a 2.86-hour recording with v0.17.4,
 the median time from a navigation request to refreshed traces was 212 ms for
 mouse panning and 329 ms for keyboard navigation on a Windows laptop, and 64
 and 181 ms on an Apple M4 laptop; much of the keyboard time is deliberate
@@ -224,7 +226,7 @@ in the same way.
 predicted stages over the spectrogram, EEG, EMG, and NE; **(B)** a
 50-second expert NREM correction; **(C)** predictions after calibration on
 228 s of expert labels (178 s Wake outside this view, 50 s NREM), which
-change beyond the outlined interval.\\label{fig:adaptation}](figures/figure1_adaptation.png)
+change beyond the outlined interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
 
 ## 3. Checking behavior against video
 
@@ -235,8 +237,8 @@ and plays it in the same window
 keeps clip extraction quick.
 
 ![**Selection-linked behavioral review.** **(A)** A right-click selects the
-bout at 9176–9272\\ s, and Check Video (outlined) opens its clip. **(B)** The
-96-second clip plays beside the signals.\\label{fig:video}](figures/figure2_video_review.png)
+bout at 9176–9272\ s, and Check Video (outlined) opens its clip. **(B)** The
+96-second clip plays beside the signals.\label{fig:video}](figures/figure2_video_review.png)
 
 ## 4. Protecting and completing work
 
@@ -244,19 +246,19 @@ Four further features protect and complete work: undo, crash recovery,
 side-by-side windows, and checks on save. Undo reverts the most recent
 change to the scores, and filesystem-backed recovery restores unsaved scores
 when a file is reopened after a crash. Up to three isolated windows allow
-side-by-side comparison of different recordings. A complete recording
-exports bout, stage, and transition statistics. unscored sections will be reported to the users so they can complete them.
+side-by-side comparison of different recordings. Saving a complete
+recording exports bout, stage, and transition statistics; otherwise, saving
+reports the first unscored segment so the user can complete it.
 
 ## 5. Installing and updating
 
 Windows users receive a packaged application that runs without a Python
 installation; macOS users install from source. The packaged application
-keeps itself current: it checks GitHub for a compatible
-release and applies it before the window opens, keeping the user's edited
-settings, so fixes reach users automatically without a reinstall. We extracted this
-updater into a reusable, dependency-free package,
+keeps itself current: it checks GitHub for a compatible release and applies
+it before the window opens, keeping the user's edited settings, so fixes
+reach users automatically without a reinstall. We extracted this updater into a reusable, dependency-free package,
 [`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
-[@desktop_app_source_updater]. 
+[@desktop_app_source_updater].
 
 # Research impact statement
 
