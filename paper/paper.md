@@ -59,19 +59,16 @@ the vasomotion underlying glymphatic clearance [@hauglund2025norepinephrine].
 <!-- TODO(authors): confirm with the Kjaerby/Hauglund co-authors that these
 two citations frame the program fairly, and whether either study's scoring
 used this application. -->
-Such questions depend on brief events, such as microarousals and
-state transitions, that span a few seconds. Scoring them requires reading
-the same short interval against several physiological signals and the
-animal's behavior, and correcting
-boundaries, often across multi-hour recordings. One-second annotation is a
-design requirement of this research, not a claim that physiological
-boundaries or model estimates are accurate to one second.
-
-Without an integrated tool, this review means moving among a signal viewer,
-predicted sleep scores, and separate video software, and redrawing boundaries
-that a scoring model or a previous pass got wrong. Sleep Scoring App is
-intended for experimenters scoring rodent EEG/EMG, particularly those with
-aligned NE photometry and behavior video.
+Such questions depend on brief events, such as microarousals and state
+transitions, that span a few seconds. Scoring them means reading the same
+short interval against several physiological signals and the animal's
+behavior, and correcting boundaries across multi-hour recordings; without an
+integrated tool, this means moving among a signal viewer, predicted scores,
+and separate video software. One-second annotation is a design requirement
+of this research, not a claim that physiological boundaries or model
+estimates are accurate to one second. Sleep Scoring App is intended for
+experimenters scoring rodent EEG/EMG, particularly with aligned NE
+photometry and behavior video.
 
 The current version takes as input a MATLAB file produced from the raw
 recordings by a companion preprocessing pipeline,
@@ -86,18 +83,15 @@ until later versions accept more general input formats.
 Several open tools support rodent sleep scoring.
 [AccuSleep](https://github.com/zekebarger/AccuSleep) and its Python
 successor [AccuSleePy](https://github.com/zekebarger/AccuSleePy)
-[@barger2019accusleep] combine a manual-labeling
-interface with a neural-network classifier for EEG/EMG and configurable
-brain states. [SPINDLE](https://sleeplearning.ethz.ch)
-[@miladinovic2019spindle] provides end-to-end learned
-scoring across laboratories and species.
+[@barger2019accusleep] pair a manual-labeling interface with a
+neural-network scoring model. [SPINDLE](https://sleeplearning.ethz.ch)
+[@miladinovic2019spindle] provides end-to-end learned scoring across
+laboratories and species.
 [Somnotate](https://github.com/paulbrodersen/somnotate)
-[@brodersen2024somnotate] scores vigilance states with linear
-discriminant analysis and a hidden Markov model, with simple interfaces for
-refining annotations.
-[Visbrain Sleep](https://github.com/EtienneCmb/visbrain)
-[@combrisson2019visbrain] offers a
-general hypnogram viewer and editor for polysomnography.
+[@brodersen2024somnotate] scores with linear discriminant analysis and a
+hidden Markov model. [Visbrain Sleep](https://github.com/EtienneCmb/visbrain)
+[@combrisson2019visbrain] is a general polysomnography viewer and hypnogram
+editor.
 <!-- TODO(verify): confirm each characterization against the cited paper and
 current documentation, including epoch-length options, and add commercial
 packages only with a citable source. As of 2026-10-07 the AccuSleep,
@@ -135,9 +129,8 @@ Built with [Dash](https://dash.plotly.com) and
 desktop program: its interface is a web page rendered inside a
 native window (via [pywebview](https://pywebview.flowrl.com)) by the operating system's embedded web
 engine, WebView2 on Windows or WebKit on macOS, and talks to a server
-running on the same computer. No internet connection is needed: recordings
-open by path through native file dialogs and never leave the machine. The
-only network use is an optional update check and opt-in usage reporting. In
+running on the same computer. Recordings open by path through native file
+dialogs and never leave the machine. In
 what follows, "interface" means this embedded web page and its JavaScript,
 and "server" the local Python process. One principle runs through the
 design: anything that responds directly to the user's hand runs in the
@@ -189,10 +182,9 @@ trip at all. The result is smoother navigation with less lag on multi-hour
 recordings. In manual timing tests on a 2.86-hour recording with v0.17.4,
 the median time from a navigation request to refreshed traces was 212 ms for
 mouse panning and 329 ms for keyboard navigation on a Windows laptop, and 64
-and 181 ms on an Apple M4 laptop. Server work took under 13 ms of each
-update; much of the keyboard time is deliberate waiting for repeated key
-presses to settle. These are local instrumented measurements, not a
-controlled benchmark.
+and 181 ms on an Apple M4 laptop; much of the keyboard time is deliberate
+waiting for repeated key presses to settle. These are local instrumented
+measurements, not a controlled benchmark.
 <!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
 recording at Sampling Level x1; first three updates per task excluded;
 34–69 updates per task at 256- to 380-second views; 95th percentiles
@@ -200,20 +192,16 @@ Windows 371/239 ms, Mac 191/69 ms for keyboard/mouse). Windows and Mac runs
 differ in machine and viewport; do not frame the difference as a speedup or
 platform ranking. -->
 
-This interaction design does not depend on the sleep domain. We extracted it
-into a separate, runnable template [@timeseries_app_cookbook] that applies
-the same navigation, selection, and labeling design to general multichannel
-time series, demonstrated on synthetic data. To adapt it to a new signal
-type, one mainly edits one data-loading function and one label
-configuration.
+This interaction design is not specific to sleep. We extracted it into a
+runnable template for general multichannel time series
+[@timeseries_app_cookbook]; adapting it mainly means editing one
+data-loading function and one label configuration.
 
 ## 2. Automatic scoring that keeps and learns from expert labels
 
-The application keeps user labels in their own per-second array, separate
-from the displayed scores and empty wherever the user has not labeled. When
-automatic scoring is confirmed, the app snapshots these labels and places
-them over the model's predicted scores, so the user's labels are kept as-is
-with either of the two scoring models described below.
+The application keeps user labels in a per-second array separate from the
+displayed scores and places them over every prediction, so both scoring
+models described below keep them as-is.
 
 The default scoring model is a rule-based algorithm. It identifies
 Wake from a normalized 1–7 Hz EEG spectral feature, keeping Wake bouts of
@@ -232,12 +220,12 @@ only: recordings vary widely, and fitting each one directly avoids needing
 many labeled recordings to establish a baseline. Fitting examples does not
 establish held-out accuracy.
 
-As an alternative, the application provides the deep-learning sleep scoring
-model sDREAMER [@chen2023sdreamer], in a version adapted by the author
-([`sdreamer_flow`](https://github.com/yzhaoinuw/sdreamer_flow)), which runs
-when the optional [PyTorch](https://pytorch.org) [@paszke2019pytorch]
-dependencies are installed. It does not adapt to user labels, but its
-predicted scores keep them in the same way.
+Alternatively, the deep-learning model sDREAMER [@chen2023sdreamer], in a
+version adapted by the author
+([`sdreamer_flow`](https://github.com/yzhaoinuw/sdreamer_flow)), runs when
+the optional [PyTorch](https://pytorch.org) [@paszke2019pytorch]
+dependencies are installed; it does not adapt to user labels but keeps them
+in the same way.
 
 ![**Expert-guided adaptation of sleep-stage predictions.** All panels show the
 same interval. **(A)** Predicted stages with the spectrogram, EEG, EMG, and NE
