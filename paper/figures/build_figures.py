@@ -40,7 +40,12 @@ CONTROLS_TOP = 40
 FIG2_END_S = 9675.0
 CHECK_VIDEO_BOX = (256, 46, 383, 80)
 # Subplot title bands; cropping the time axis off-centres the app's titles.
-TITLE_BANDS = [("EEG Spectrogram", 129, 151), ("EEG", 286, 315), ("EMG", 540, 569), ("NE", 794, 823)]
+TITLE_BANDS = [
+    ("EEG Spectrogram", 129, 151),
+    ("EEG", 286, 315),
+    ("EMG", 540, 569),
+    ("NE", 794, 823),
+]
 LABEL_START_S, LABEL_END_S = 9752.0, 9802.0
 SELECT_START_S, SELECT_END_S = 9176.0, 9272.0
 

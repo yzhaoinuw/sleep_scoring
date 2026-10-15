@@ -33,8 +33,10 @@ search older entries by date anchor rather than reading every archive.
   `gh release list`, and branch-rule inspection completed. Latest manuscript
   PDF workflow `38687390320` passed at `4e0c7ea`. Targeted calibration/layer
   and manuscript-tool tests passed (22 tests); `git diff --check` passed.
-  Candidate release gate,
-  publication, remote-ref equality, and Zenodo DOI verification remain pending;
+  Initial release gate passed 259 Python tests, then Black reformatted one
+  list in `paper/figures/build_figures.py`; no figure pixels or behavior changed.
+  Rerun the complete gate on the committed formatting correction. Publication,
+  remote-ref equality, and Zenodo DOI verification remain pending;
   record their actual results in a follow-up before the final handoff.
 
 ## 2026-10-14
