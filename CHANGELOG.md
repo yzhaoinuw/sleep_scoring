@@ -4,7 +4,7 @@ This file summarizes changes that affect people using the app. Maintainer-only
 implementation and release details are recorded in
 `treaty_docs/work_log.md`.
 
-## Unreleased
+## v0.17.6
 
 - Statistical-model calibration balances agreement with each labelled stage
   against changes to unlabelled default predictions, reducing the chance

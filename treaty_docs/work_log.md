@@ -15,6 +15,28 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-15
+
+### v0.17.6 candidate and branch consolidation (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer requested a compatible calibration-overfit release and integration
+  of the manuscript into `dev` and `main`, with all three branches synchronized.
+  GitHub confirms v0.17.5 is still the latest release and predates objective
+  commit `7156b93`. Fetched and fast-forwarded `publication` to `4e0c7ea`,
+  retaining the latest collaborator revisions and figures.
+- Both `dev` and `main` are ancestors of publication. Prepare one v0.17.6
+  candidate containing the complete manuscript history, then fast-forward all
+  three branches to the tested commit. No PR or history rewriting is needed.
+  The automatic update contains only compatible `app_src/` changes; the tag
+  also archives the manuscript. Metadata uses the verified 2026-10-15 date.
+- Verification: `git fetch origin --prune --tags`, ancestry checks, authenticated
+  `gh release list`, and branch-rule inspection completed. Latest manuscript
+  PDF workflow `38687390320` passed at `4e0c7ea`. Targeted calibration/layer
+  and manuscript-tool tests passed (22 tests); `git diff --check` passed.
+  Candidate release gate,
+  publication, remote-ref equality, and Zenodo DOI verification remain pending;
+  record their actual results in a follow-up before the final handoff.
+
 ## 2026-10-14
 
 ### Figure layout alignment (Claude Code, Opus 5.5)

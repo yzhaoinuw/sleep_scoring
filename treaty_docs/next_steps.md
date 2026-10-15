@@ -20,8 +20,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
-- JOSS revision is active on `publication`, synchronized with current `dev`
-  through v0.17.5 and the subsequent change-penalized calibration objective.
+- JOSS revision is active on `publication`; the v0.17.6 candidate includes
+  the current manuscript and change-penalized calibration objective for
+  synchronization with `dev` and `main`.
   Replacement workflow snapshots and composed panels are integrated. Maintainer review
   and a decision on figure text legibility remain open; the Windows and macOS latency results
   are in the Research impact statement. See `paper/README.md` for the
@@ -38,7 +39,7 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   `app_src`-only changes, tag the tested commit and publish only the automatic
   source-update ZIP, its SHA-256 file, and release notes.
 - Use `packaging/windows/release_lightweight.ps1` as the standard candidate
-  gate. v0.17.5 targets v0.17.1–v0.17.4; the frozen source-update fixture is v0.17.1; retain the v0.17.0
+  gate. v0.17.6 targets v0.17.1–v0.17.5; the frozen source-update fixture is v0.17.1; retain the v0.17.0
   package only for historic full-package verification because its frozen
   launcher/runtime boundary cannot accept source-only updates.
 - Let the builder use schema 1 when `app_src/config.py` is unchanged and schema
@@ -116,11 +117,11 @@ Ongoing work:
   difficult recordings and mixed-stage examples. The maintainer reports
   smoother running-app behavior; local tests pass and the cached 33-second
   collapse is avoided offline. The 0.25 change penalty and reliance on
-  defaults need broader validation before a release.
+  defaults still need broader validation across recordings after v0.17.6.
   Confirm manual labels remain intact after prediction and undo. See the
   2026-10-13 work-log evidence and private `wake33_diagnostics/` comparisons.
-- Before submission, cite a release that includes the change-penalized
-  calibrator now described in the synchronized manuscript; v0.17.5 predates it.
+- Confirm Zenodo archives v0.17.6 after publication; it includes the
+  change-penalized calibrator described in the synchronized manuscript.
 - Validate the adaptive statistical model side by side on recordings with
   difficult REM/NE valleys and shifted spectral distributions. Check one- and
   few-example calibrations as well as user-label preservation after another

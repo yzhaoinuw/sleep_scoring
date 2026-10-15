@@ -27,8 +27,8 @@ repository-code: "https://github.com/yzhaoinuw/sleep_scoring"
 # without editing; the per-release DOIs are reachable from that record.
 doi: "10.5281/zenodo.21748494"
 license: MIT
-version: 0.17.5
-date-released: "2026-10-13"
+version: 0.17.6
+date-released: "2026-10-15"
 keywords:
   - sleep scoring
   - electroencephalography

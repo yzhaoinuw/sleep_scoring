@@ -13,8 +13,8 @@ GitHub's "Cite this repository" button. That file is current and validated;
 this draft is not.
 
 The calibration wording in `paper.md` describes the change-penalized
-calibrator on `dev`, which is not yet in the latest archived release
-(v0.17.5). The final manuscript must cite a release that contains it.
+calibrator included in the v0.17.6 release candidate. Zenodo archival must
+be confirmed after publication so the final manuscript cites matching software.
 
 **Collaborators reviewing the manuscript:** start with
 [What is still open](#what-is-still-open), especially
