@@ -30,7 +30,7 @@ bibliography: paper.bib
 
 Sleep Scoring App
 ([`sleep_scoring`](https://github.com/yzhaoinuw/sleep_scoring)) is a local
-desktop application for *sleep scoring* rodent recordings: labeling each
+desktop application for *sleep scoring* {% Yue comment: why do we italicize 'sleep scoring' here?} rodent recordings: labeling each
 second as wakefulness (Wake), non-rapid-eye-movement (NREM) sleep, REM
 sleep, or a brief microarousal (MA), from brain electrical activity (EEG)
 and muscle activity (EMG). It
@@ -76,9 +76,10 @@ a documented field layout, produced by a companion preprocessing pipeline,
 [`preprocess_sleep_data`](https://github.com/yzhaoinuw/preprocess_sleep_data);
 EEG and EMG share a sampling rate and the optional photometry signal carries
 its own. Other laboratories need a thin adapter to that layout; the
-application is not a general acquisition-format importer. One-second
-annotation is a design requirement of the motivating research, not a claim
-that physiological boundaries or model estimates are accurate to one second.
+application is not a general acquisition-format importer. {% Yue comment: "input contract" sounds a like a jargon.
+I suggest we write this part as something like:
+The current version of the app takes as input a MATLAB file that's preprocessed from its raw recordings by a companion preprocessing pipeline,
+[`preprocess_sleep_data`](https://github.com/yzhaoinuw/preprocess_sleep_data). EEG and EMG were recorded by the same device and share a sampling rate, while the optional photometry signal was recorded by a different device and typically has a different sampling rate. However, in the future iterations we may expand the app's input options to accommodate more general input format. Right now, other labs that wish to try the app may need a thin adapter to their input file.} {% Yue comment: this following sentence feels out of place to me. Does it belong to # Statement of need? % One-second annotation is a design requirement of the motivating research, not a claim that physiological boundaries or model estimates are accurate to one second.}
 
 # State of the field
 
@@ -116,7 +117,7 @@ scoring methods uses NE photometry, although NE dynamics have been proposed
 as markers for distinguishing wake, microarousals, NREM, and REM sleep
 [@andersen2023photometry]. Beyond automatic scoring, our work needed a
 workspace for labeling and correcting scores, in which NE photometry informs
-scoring rather than being an extra trace, and video checks are tied to the
+scoring {% Yue comment: suggest we delete 'rather than ...'. % rather than being an extra trace}, and video checks are tied to the
 selected interval. Project 2 researchers previously scored with Viewpoint's
 commercial [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore),
 which did not integrate fiber-photometry signals such as NE well; that gap
@@ -149,24 +150,24 @@ The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
 (\autoref{fig:adaptation}A), so a boundary can be read against
 each physiological signal. Users switch between navigation and annotation with
-one key. Selections can be a zoom-adaptive click, a dragged box, or a
+one key. Selections can be a zoom-adaptive click {% Yue comment: suggest we add "for selecting a tiny time range too narrow to select otherwise at current scale"}, a dragged box {% Yue comment: similarly suggest we add "for selecting a wider time range". the rationale for these addition is that simply listing the type of different selections without pointing out why they exist feels pointless}, or a
 right-click that selects the whole contiguous bout under the cursor; when a
 drag reaches the viewport edge, the view pans automatically and newly
 revealed signal is streamed in, so long selections keep boundary detail.
 All selection forms feed one labeling step: keys `1`–`4` assign Wake,
 NREM, REM, or MA, and `0` clears.
 
-Drawing every sample of a multi-hour recording would stall the interface, so
+{% Yue comment: suggest we add a short transition/leading phrase, such as "the vanilla plotly visualization is not capable of showing millions of points at once..." then introduce our use of plotly resampler} Drawing every sample of a multi-hour recording would stall the interface, so
 long signals are decimated on demand by
 [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
-[@vanderdonckt2022plotlyresampler]. The application uses that library only
+[@vanderdonckt2022plotlyresampler]. The application uses that library {% Yue comment: just spell out Plotly Resampler again instead of 'that library"} only
 to compute what to draw for a range, and replaces its stock update path with
 its own, which keeps interaction state in the interface and full-resolution
-data on the server. Gestures, panning, and labeling run as JavaScript in the
+data on the server. Gestures {% Yue comment: what is 'gesture'? don't think we defined it previously. suggest we either speel out what are gesture or define it once earlier. otherwise, people may think it's a gesture one uses on a touchscreen.} panning, and labeling run as JavaScript in the
 interface. Navigation events are coalesced, so the server refreshes traces
 after a gesture is released or pauses rather than on every frame, and
 refreshes overtaken by newer navigation are discarded. Updates are applied as
-trace patches rather than figure rebuilds. During a selection drag, auto-pan
+trace patches rather than figure rebuilds {% Yue comment: perhaps a short explanation on why trace patches are more ideal than figure rebuilds? my suggestion is to reword this whole coalescence concept. simply put, it waits for quick, continuous user movement, or your word, gestures, to settle, before actually updating the visualization to be more efficient and reduce lag. what we have now sounds a bit too technical and abstract}. During a selection drag, auto-pan
 instead refreshes newly revealed signal repeatedly through a dedicated
 endpoint outside the Dash callback graph. Applying a label repaints the
 overlay in the interface without a server round trip.
@@ -175,7 +176,7 @@ This interaction design does not depend on the sleep domain. We extracted it
 into a separate, runnable template [@timeseries_app_cookbook] that applies
 the same navigation, selection, and labeling design to general multichannel
 time series, demonstrated on synthetic data; adapting it to a new signal
-type centers on one data-loading function and one label configuration.
+type centers on one data-loading function and one label configuration. {% Yue comment: this is just my writing habit. But I would write this as "to adapt ..., one simply needs to edit ...". "centers on" sounds like a matter of fact rather than an instruction on how to adapt.}
 
 ## 2. Automatic scoring that keeps and learns from expert labels
 
@@ -187,7 +188,8 @@ with either of the two scoring models described below.
 
 The default scoring model is a rule-based algorithm. It identifies
 Wake from a normalized 1–7 Hz EEG spectral feature with minimum bout
-lengths, and relabels candidate bouts as REM when NE falls below
+lengths {% Yue comment: what is "minimum bout
+lengths"? one second? let's try to be specific here}, and relabels candidate bouts as REM when NE falls below
 recording-wide and within-bout percentile thresholds; without usable NE, it
 identifies only Wake and NREM. Each run treats user-labeled Wake, NREM, and
 REM intervals (a single labeled interval is enough) as ground truth
@@ -204,7 +206,7 @@ establish held-out accuracy.
 As an alternative, the application provides sDREAMER [@chen2023sdreamer], an
 externally developed deep-learning sleep scoring model, which runs when the
 optional [PyTorch](https://pytorch.org) [@paszke2019pytorch] dependencies are
-installed. It is used as published, without adaptation, and its predicted
+installed. It is used as published, without adaptation {% Yue comment: just realized that this is not entirely true. the optionally integrated sDREAMER model is in fact my adaptation of the original. see my repo: https://github.com/yzhaoinuw/sdreamer_flow}, and its predicted
 scores keep user labels in the same way.
 
 ![**Expert-guided adaptation of sleep-stage predictions.** All panels show the
@@ -229,7 +231,7 @@ signals.\label{fig:video}](figures/figure2_video_review.png)
 
 ## 4. Protecting and completing work
 
-One-step undo and filesystem-backed recovery protect in-progress work; up
+{% Yue comment: I feel like we should list the features first instead of describing them cold one by one, since we haven't introduced these features ealier in the manuscript, have we?} One-step undo and filesystem-backed recovery protect in-progress work; up
 to three isolated windows allow side-by-side comparison, refusing the same
 file twice. Saving reports the first unscored gap; a complete recording also
 exports bout, stage, and transition statistics, including microarousals.
@@ -270,7 +272,7 @@ developing the software; specific model versions were not recorded. Since
 2026, AI coding agents working in the repository have assisted with code
 generation, refactoring, tests, documentation, and release checks: Claude
 Code (Claude Opus 4.5–5.5 and Fable 5) and OpenAI Codex (GPT-5 and GPT-6),
-with sessions recorded in the repository's work log. Claude Code and Codex
+with sessions recorded in the repository's work log {% Yue comment: spell out 'treaty_docs"? this could be an opportunity to oraganically plug our own agent-collab-treaty repo}. Claude Code and Codex
 also helped plan, draft, and review this manuscript. The author made the
 architectural and design decisions, reviewed and tested all AI-assisted code
 before release, and reviewed, revised, and verified the manuscript against
