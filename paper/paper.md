@@ -74,9 +74,9 @@ photometry and behavior video.
 The current version takes as input a MATLAB file produced from the raw
 recordings by a companion preprocessing pipeline,
 [`preprocess_sleep_data`](https://github.com/yzhaoinuw/preprocess_sleep_data).
-EEG and EMG are recorded by the same device and share a sampling rate, while
+{% Yue comment: can this line be trimmed. feels like unnecessary details. % EEG and EMG are recorded by the same device and share a sampling rate, while
 the optional photometry signal comes from a separate device and usually has
-its own. Other laboratories may need a thin adapter to this file layout
+its own.} Other laboratories may need a thin adapter to this file layout
 until later versions accept more general input formats.
 
 # State of the field
@@ -113,7 +113,9 @@ as markers for distinguishing wake, microarousals, NREM, and REM sleep
 [@andersen2023photometry]. Beyond automatic scoring, our work needed a
 workspace for labeling and correcting scores, in which NE photometry informs
 scoring and video checks are tied to the
-selected interval. Project 2 previously used Viewpoint's commercial
+selected interval {% Yue comment: suggest we just write "in which NE photometry and video checks inform
+scoring". otherwise it is not clear what the point is in mentioning "video checks are tied to the
+selected interval"}. Project 2 previously used Viewpoint's commercial
 [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore), which did not integrate NE
 photometry well; that gap motivated a dedicated application.
 <!-- History from the Project 2 users (2026-10-14); they confirm the wording
@@ -128,7 +130,7 @@ Built with [Dash](https://dash.plotly.com) and
 web page shown in a native window via
 [pywebview](https://pywebview.flowrl.com), backed by a server on the same
 computer. Recordings open by path through native file
-dialogs and never leave the machine. In
+dialogs {% Yue comment: suggest we delete the following part % and never leave the machine}. In
 what follows, "interface" means this embedded web page and its JavaScript,
 and "server" the local Python process. One principle runs through the
 design: anything that responds directly to the user's hand runs in the
@@ -139,14 +141,30 @@ scale, (2) automatic scoring that keeps and learns from expert labels, (3)
 checking behavior against video, (4) protecting and completing work, and (5)
 installing and updating.
 
+{% Yue comment: I'd like a bit of reorganization here. We should distinguish the 'One principle runs through the
+design' and the five tasks the 'design' is organized around. the latter is the broader one: the purpose of the app is to accomplish the five tasks. I suggest we lead with it. The 'One principle' is actually but one aspect of the design, namely, optimization of responsiveness. so we should make it clear that it is a principle in this aspect, not a general principle for the entire app design. that fact that it's built on Dash and plotly serves the tasks (specifically, smooth interactive visualization), so I suggest we put it second. does it make sense?}
+
+{% Yue comment: further, I'd like to rethink the emphases of the five tasks. I suggest we lead with downloading and updating, not only because that's the natural order, but also it is really the first and big barrier breaker for users at large. it doesn't require any programming skills or set up to use, which could potentially deter users (neural scientist) with no programming experience. It installs and uses like a 'closed source' software, just download and click to open. everything needed is packaged with pyinstaller. initially this led to a problem, every tiny update/bug fix would require a rebuild and redistribution and the user had to redownload it. But we mostly eliminated that problem by separating the source code from the part that's packaged by pyinstaller so updates that don't touch on the dependencies can be shared without repackaging on our end and redownloading on the users end (but users still need to manually swap the updated source code). Later, we further make the user experience easier by introducing the auto-update feature that also handles the source code update so that all the user needs to do now is to use the app as normal and the update would happen automatically in the background.
+the ordering for the rest of the tasks can stay unchanged. But I'd like to suggest some renaming of the tasks. For example, 'Inspecting and correcting at the needed scale' ->  'Visualizing and Annotating at scale', 'inspecting' and 'correcting' are both too narrow. the user could literally just move around and view without inspecting for anything. similarly the user may just label without correcting for anything. 
+
+'Checking behavior against video' -> 'Checking movement against video', this is less important, but I feel like we could be more specific here. in our context, muscle movement indicated by EMG informs sleep states. The video provides an additional source to corroborate that. so the user's looking at movement, instead of behavior, which may suggest more complex things that are not the focus for the sleep scoring in our context. less important, but may avoid misunderstanding caused by the broader meaning of 'behavior'. I will defer this decision to you.
+
+'Protecting and completing work' -> something like 'Crash recovery', but it doesn't cover the informing the user of the unscored section feature. But I don't like the use of 'completing work' here. sounds a bit uninformative.
+
+Moreover, I'd like to aggressively trim the details mentioned in some of the tasks. starting with Inspecting and correcting at the needed scale, it offers too much detail that make it read like a manual, which is already covered in the repo README. we shouldn't hope to tell so much of the actual usage of the app to the reviewers that they learn how to actually use it. that shouldn't be the focus of this paper. that's the README's job. 
+
+similarly, we should also trim Automatic scoring that keeps and learns from expert labels, at least kill the part that actually tries to educate the readers on what parameters are tuned. that belongs to a paper that specifically talks about the sleep scoring algo. Similarly, I wonder if we even need to spell out the exact features used in the algo, such as 1–7 Hz Hz of the. EEG spectrogram, and duration requirement on bouts and what not. staying high level may be enough. for example, just say the algo look at the strength of certain frequency band in the spectrogram (or even just spectrogram) as telling characteristics for labeling sleep stages. I'd like your input on the exact level of detail we should keep at here. but what we offer now feels too much.}
+
 ## 1. Inspecting and correcting at the needed scale
 
 The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
 (\autoref{fig:adaptation}A), so a boundary can be read against each
-physiological signal. Moving through and labeling this view rests on
+physiological signal {% Yue comment: suggest rewording. something like "so each signal can be used independently to label or examine the sleep state." two issues I have with the current wording. 1) 'physiological signal' is unnecessary. just 'signal' is fine, 2) 'a boundary' is not clear. what boundary?}. Moving through and labeling this view rests on
 two modes, keyboard panning, three forms of selection, and one labeling
 step.
+
+{% Yue comment: following up with the longest comment I put in the text above, I now question whether we even need to mention the two mode. The point here is to tell the readers that we make the visualization and annotation as intuitive as possible for the users, not to introduce what we have in the app. For example, we can just say that we implement several 'shortcut' gestures to make navigating through the visualization and annotating intuitive. then list, as three good examples, single click to select strip too narrow to select by box select, right-click to select contiguous bout, select-and-dragging to select arbitrarily long sections while in zoomed in view, and so on. don't need to give an exhausted list of all modes, gestures, what have we, to offer. similarly, I also don't think that we need to spell out the mapping between sleep scores and the keys, going against my earlier judgment. these belong to the README in the repo as the manual if the readers decide to try the app. here, we only need to say we make it convenient and intuitive for the users to annotate by pressing keys on a keyboard. you know what I mean?}
 
 The mouse does different jobs when navigating and when annotating, so these
 are separate modes, switched with one key. In navigation mode, dragging pans
