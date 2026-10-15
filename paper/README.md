@@ -1,23 +1,47 @@
 # JOSS Paper Draft — Under Construction
 
-**Status: active revision, not submission-ready.**
-
-The 2026-10-14 integration uses the replacement screenshots captured on
-2026-10-13; calibration wording follows current `dev`.
-The change-penalized calibrator is not yet in the cited v0.17.5 archive; align
-the final manuscript with a release containing it before submission.
+**Status: active revision, not submission-ready** (updated 2026-10-15).
 
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
 for Sleep Scoring App (repository and package name: `sleep_scoring`).
-The feature/layout assessment is in
-[`manuscript_layout.md`](manuscript_layout.md), reviewed against v0.17.4.
-`paper.md` was rewritten to that layout on 2026-10-07; inline `TODO`
-comments mark claims awaiting author confirmation. Nothing here should be
-treated as a citable or finished artifact.
+Inline `TODO` comments in `paper.md` mark claims awaiting author
+confirmation. Nothing here should be treated as a citable or finished
+artifact.
 
 To cite the software today, use `CITATION.cff` at the repository root, or
 GitHub's "Cite this repository" button. That file is current and validated;
 this draft is not.
+
+The calibration wording in `paper.md` describes the change-penalized
+calibrator on `dev`, which is not yet in the latest archived release
+(v0.17.5). The final manuscript must cite a release that contains it.
+
+**Collaborators reviewing the manuscript:** start with
+[What is still open](#what-is-still-open), especially
+[Claims the authors said they would verify](#claims-the-authors-said-they-would-verify)
+and [Authors and metadata](#authors-and-metadata). Those items need your
+knowledge, not the maintainer's. The
+[JOSS requirements](#for-reviewers-joss-requirements-that-shape-this-paper)
+section explains choices that may look unusual but are required by JOSS.
+
+## Overview
+
+- [Contents](#contents): the files in this directory.
+- [For reviewers: JOSS requirements that shape this paper](#for-reviewers-joss-requirements-that-shape-this-paper)
+  - [Structure and length](#structure-and-length)
+  - [What each section has to argue](#what-each-section-has-to-argue)
+  - [Software scope: why sDREAMER is still mentioned](#software-scope-why-sdreamer-is-still-mentioned)
+  - [Naming](#naming)
+  - [Authorship](#authorship)
+  - [References and links](#references-and-links)
+  - [Software eligibility](#software-eligibility-not-about-the-text-but-checked-at-review)
+  - [Rendering the PDF](#rendering-the-pdf)
+- [What is done](#what-is-done)
+- [What is still open](#what-is-still-open)
+  - [Figures](#figures)
+  - [Claims the authors said they would verify](#claims-the-authors-said-they-would-verify)
+  - [Authors and metadata](#authors-and-metadata)
+  - [Release and final checks](#release-and-final-checks)
 
 ## Contents
 
@@ -25,9 +49,14 @@ this draft is not.
   Software design, Research impact statement, AI usage disclosure,
   Acknowledgments, References).
 - `paper.bib` — the bibliography.
-- `figures/` — five original application snapshots and their panel mapping.
-- `manuscript_layout.md` — feature priorities, contribution boundaries, release
-  audit, the two-figure plan and captions, and the revision plan.
+- `figures/` — five original application snapshots, their panel mapping
+  (`figures/README.md`), `build_figures.py`, and the two composed figures.
+- `latency_measurements.md`, `measure_latency.py`, `latency_runs/` — the
+  navigation timing measurements quoted in Software design, the script that
+  summarizes them, and the raw runs.
+- `manuscript_layout.md` — the 2026-10-07 planning document (reviewed against
+  v0.17.4): feature priorities, contribution boundaries, release audit, and
+  the two-figure plan. `paper.md` has since been revised beyond it.
 
 ## For reviewers: JOSS requirements that shape this paper
 
@@ -44,17 +73,18 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** As of 2026-10-14 the body (captions included,
-  front matter and comments excluded) is about 1,665 words of running text, or about 1,740 counting headings and
-  rendered citations. Treat the
-  stricter count as binding: new material has to replace existing text.
+- **750–1,750 words.** As of 2026-10-15 the body (captions included,
+  front matter and comments excluded) is about 1,740 words of running text,
+  or about 1,790 counting headings and more with rendered citations. Treat
+  the stricter count as binding: the draft is slightly over, so new material
+  has to replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
   EEG, and EMG from scratch.
 - **No user manual or API documentation.** JOSS says that belongs in the
   software's own documentation. The paper therefore describes design decisions
   and tradeoffs rather than listing every feature or button.
 - **Subsections are allowed** (JOSS supports several heading levels and
-  recommends two or three). The three numbered subsections under Software
+  recommends two or three). The five numbered subsections under Software
   design are our choice for readability, not a requirement.
 
 ### What each section has to argue
@@ -78,8 +108,8 @@ sDREAMER is a backend users can select in the released app, so the paper
 mentions it, but in one sentence that makes clear it is externally developed
 and cited to its authors. The paper's own contribution is the default
 adaptive, rule-based scorer and the label-preservation design. The claim that
-user labels are kept "whichever backend is used" also depends on the app
-having more than one backend.
+both scoring models keep user labels as-is also depends on the app having
+more than one backend.
 
 ### Naming
 
@@ -156,31 +186,38 @@ download the `paper` artifact from the run. The PDF is not committed.
   added on 2026-10-07 were checked on that date. Two given names intentionally
   differ from Crossref, which lowercases them; see the header comment in
   `paper.bib`.
+- **Figures.** Five workflow snapshots of the same recording interval are in
+  [`figures/`](figures/README.md), replaced on 2026-10-13 with the current
+  calibration and a 96-second video selection. `figures/build_figures.py`
+  composes them into the two agreed figures, expert-guided adaptation (three
+  panels) and selection-linked video (two panels), which are in `paper.md`
+  with captions, labels, and in-text references.
+- **Rendered figures checked.** The 2026-10-14 PDF
+  ([run 38509732148](https://github.com/yzhaoinuw/sleep_scoring/actions/runs/38509732148))
+  is seven pages with both figures at full text width; panel letters,
+  titles, and callouts read at print size, while the application's own tick
+  labels are about 3–4 pt and need zoom. On 2026-10-15 the figure
+  cross-references, which a text edit had broken, were repaired and confirmed
+  in the PDF from
+  [run 38686198524](https://github.com/yzhaoinuw/sleep_scoring/actions/runs/38686198524).
+- **Build vs. contribute.** The inferred rationale was replaced with the
+  users' account (2026-10-14): Project 2 previously used Viewpoint's
+  SleepScore, which did not integrate fiber-photometry (NE) signals well.
+  SleepScore is linked to its product page, not cited. Users confirm the
+  wording in the full-draft review.
+- **Latency measurements.** Two Windows sessions and one macOS (Apple M4)
+  session on v0.17.4 are reviewed in `latency_measurements.md` and
+  summarized in Software design, section 1.
+- **Zenodo title.** Zenodo v0.17.5 uses the paper's title, and
+  `sleepscoring_zenodo` in `paper.bib` matches the archived title and year
+  (verified 2026-10-13,
+  [version DOI](https://doi.org/10.5281/zenodo.23349241)). The bibliography
+  keeps the concept DOI so it resolves to the latest archived release.
 
 ## What is still open
 
 ### Figures
 
-- [x] Capture the workflow snapshots (maintainer): five originals in
-  [`figures/`](figures/README.md), all showing the same recording interval.
-  Replaced on 2026-10-13 with the current calibration and 96-second video
-  selection; derived panels and captions were refreshed from those sources.
-- [x] Agree the two-figure layout and proposed captions: expert-guided
-  adaptation (three panels) and selection-linked video (two panels). See
-  [`manuscript_layout.md`, "Recommended figures"](manuscript_layout.md#recommended-figures).
-- [x] Assemble matching crops and callouts: `figures/build_figures.py`
-  writes `figure1_adaptation.png` and `figure2_video_review.png`.
-- [x] Add the composed figures to `paper.md` with captions, labels, and
-  in-text references. See the 750–1,750-word note above for the
-  current count; recheck it before adding text.
-- [x] Render the previous JOSS PDF (2026-10-12, `JOSS draft PDF` workflow): 7 pages,
-  Figure 1 on page 4, Figure 2 on page 5, both at full text width. Panel
-  letters, titles, and callouts read at print size; the application's own
-  tick labels and messages are about 3–4 pt, legible only when zoomed.
-- [x] Render and inspect the refreshed figures after the 2026-10-14 sync:
-  [JOSS PDF run 38509732148](https://github.com/yzhaoinuw/sleep_scoring/actions/runs/38509732148)
-  succeeded on merge `4cd6277`; both figure panels and their updated captions
-  were checked in the seven-page PDF. Small in-app text still benefits from zoom.
 - [ ] Decide whether print legibility of the in-app text matters enough to
   retake the snapshots with a smaller window (larger relative text).
 - [ ] Publish a public example recording reviewers can open in the app.
@@ -194,17 +231,9 @@ download the `paper` artifact from the run. The PDF is not committed.
   SPINDLE, Somnotate, and Visbrain against the cited papers and current
   documentation, including epoch-length options. Add commercial packages only
   with a citable source.
-- [x] **Build vs. contribute.** Replaced the inferred rationale with the
-  users' account (2026-10-14): Project 2 previously used Viewpoint's
-  SleepScore, which did not integrate fiber-photometry (NE) signals well.
-  SleepScore is linked to its product page, not cited. Users confirm the
-  wording in the full-draft review.
 - [ ] **Research impact evidence.** Add the users' rough estimate of total
   recording hours scored, and name studies, preprints, or datasets scored
   with the app once confirmed.
-- [x] **Latency measurements.** Two current-release Windows sessions and
-  one macOS (Apple M4) session are reviewed in `latency_measurements.md`
-  and summarized in the Research impact statement.
 - [ ] **AI usage disclosure.** Confirm that author review of the manuscript
   is complete.
 
@@ -227,16 +256,17 @@ download the `paper` artifact from the run. The PDF is not committed.
   sentence verbatim.
 - [ ] Update the manuscript date when the revision is finalized (set to
   14 October 2026 during the text review).
-- [x] Zenodo v0.17.5 uses the paper's title, and `sleepscoring_zenodo` in
-  `paper.bib` matches the archived title/year. Verified on 2026-10-13:
-  [version DOI](https://doi.org/10.5281/zenodo.23349241). The bibliography
-  retains the concept DOI so it resolves to the latest archived release.
 
-### Bibliography and final checks
+### Release and final checks
 
+- [ ] Release the change-penalized calibrator (the `dev` change described in
+  the status note) and confirm Zenodo archived it, so the paper's
+  calibration description matches an archived version.
+- [ ] Bring the body back within 1,750 words under the stricter count.
 - [ ] `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack
   one, so this may be acceptable, but Crossref cannot confirm it.
-- [ ] Render the JOSS PDF and review it, including the generated references.
+- [ ] Review the final rendered PDF in full, including the generated
+  references.
 
 See the "Citation And Publication" section of
 [`treaty_docs/next_steps.md`](../treaty_docs/next_steps.md) for the full checklist
