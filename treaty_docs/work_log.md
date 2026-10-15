@@ -17,6 +17,33 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-15
 
+### v0.17.6 published and archived; manuscript integrated (Codex, GPT-6; effort/token budget not reported)
+
+- Final candidate `058fc94` passed the complete lightweight gate, then `dev`
+  and `main` fast-forwarded to publication at the same commit. All six local
+  and tracking refs plus targeted remote branch refs matched. GitHub accepted
+  the direct dev push under its configured maintainer bypass; no PR created.
+- Published annotated tag `v0.17.6` at `058fc94` and the latest GitHub release
+  with the 52,030-byte automatic update ZIP and its checksum. GitHub's asset
+  digest matches local SHA-256
+  `21d54c6c0ecf8bc20f377b4325ac64432fbfb6277bbca12654c9e18d7a6a2c60`.
+  Compatibility covers v0.17.1 through v0.17.5; schema 2 has 20 payload files.
+- Zenodo record `23385811` is published as v0.17.6 with DOI
+  `10.5281/zenodo.23385811` and a related identifier pointing to the exact
+  GitHub tag. The general `sleep_scoring` query still omits the renamed
+  records; `conceptrecid:21748494` finds this release. The paper's concept DOI
+  therefore now resolves to software containing the described calibrator.
+- Verification: `release_lightweight.ps1` on the final committed candidate:
+  259 Python tests, 51 JavaScript tests, Black, compilation, source smoke,
+  schema-2 validation, and fresh v0.17.1 frozen-install update/smoke passed
+  with customized settings preserved. Transcript:
+  `release_artifacts/v0.17.6_final_gate.log` (ignored). `gh release view`,
+  release asset API digests, `git ls-remote --heads/--tags`, and Zenodo records
+  API confirmed delivery. Candidate JOSS PDF workflow `38688072216` passed.
+  This post-publication documentation follow-up leaves the released runtime,
+  manuscript body, and figures unchanged; synchronize it across all three
+  branches and verify their final refs before handoff.
+
 ### v0.17.6 candidate and branch consolidation (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer requested a compatible calibration-overfit release and integration

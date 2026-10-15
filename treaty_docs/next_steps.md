@@ -20,9 +20,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
-- JOSS revision is active on `publication`; the v0.17.6 candidate includes
-  the current manuscript and change-penalized calibration objective for
-  synchronization with `dev` and `main`.
+- JOSS revision is active on `publication`, synchronized with `dev` and `main`
+  through v0.17.6, including the current manuscript and change-penalized
+  calibration objective. Zenodo archival is verified.
   Replacement workflow snapshots and composed panels are integrated. Maintainer review
   and a decision on figure text legibility remain open; the Windows and macOS latency results
   are in the Research impact statement. See `paper/README.md` for the
@@ -120,8 +120,6 @@ Ongoing work:
   defaults still need broader validation across recordings after v0.17.6.
   Confirm manual labels remain intact after prediction and undo. See the
   2026-10-13 work-log evidence and private `wake33_diagnostics/` comparisons.
-- Confirm Zenodo archives v0.17.6 after publication; it includes the
-  change-penalized calibrator described in the synchronized manuscript.
 - Validate the adaptive statistical model side by side on recordings with
   difficult REM/NE valleys and shifted spectral distributions. Check one- and
   few-example calibrations as well as user-label preservation after another
@@ -149,8 +147,8 @@ Ongoing work:
 
 ### Zenodo Archive DOI
 
-Latest verified archive: v0.17.5, DOI `10.5281/zenodo.23349241`, confirmed
-through the Zenodo records API on 2026-10-13 (see the release work log).
+Latest verified archive: v0.17.6, DOI `10.5281/zenodo.23385811`, confirmed
+through the Zenodo records API on 2026-10-15 (see the release work log).
 
 Done as of v0.17.2: the release is archived, concept DOI
 `10.5281/zenodo.21748494` is in the README badge and `CITATION.cff`, and the

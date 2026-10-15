@@ -13,8 +13,9 @@ GitHub's "Cite this repository" button. That file is current and validated;
 this draft is not.
 
 The calibration wording in `paper.md` describes the change-penalized
-calibrator included in the v0.17.6 release candidate. Zenodo archival must
-be confirmed after publication so the final manuscript cites matching software.
+calibrator released in v0.17.6 and archived by Zenodo
+([version DOI](https://doi.org/10.5281/zenodo.23385811), verified 2026-10-15).
+The software citation now resolves to a release containing this behavior.
 
 **Collaborators reviewing the manuscript:** start with
 [What is still open](#what-is-still-open), especially
@@ -208,10 +209,10 @@ download the `paper` artifact from the run. The PDF is not committed.
 - **Latency measurements.** Two Windows sessions and one macOS (Apple M4)
   session on v0.17.4 are reviewed in `latency_measurements.md` and
   summarized in Software design, section 1.
-- **Zenodo title.** Zenodo v0.17.5 uses the paper's title, and
+- **Zenodo title.** Zenodo v0.17.6 uses the paper's title, and
   `sleepscoring_zenodo` in `paper.bib` matches the archived title and year
-  (verified 2026-10-13,
-  [version DOI](https://doi.org/10.5281/zenodo.23349241)). The bibliography
+  (verified 2026-10-15,
+  [version DOI](https://doi.org/10.5281/zenodo.23385811)). The bibliography
   keeps the concept DOI so it resolves to the latest archived release.
 
 ## What is still open
@@ -259,9 +260,8 @@ download the `paper` artifact from the run. The PDF is not committed.
 
 ### Release and final checks
 
-- [ ] Release the change-penalized calibrator (the `dev` change described in
-  the status note) and confirm Zenodo archived it, so the paper's
-  calibration description matches an archived version.
+- [x] Release the change-penalized calibrator and confirm Zenodo archived it:
+  v0.17.6, DOI `10.5281/zenodo.23385811`, verified 2026-10-15.
 - [ ] Bring the body back within 1,750 words under the stricter count.
 - [ ] `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack
   one, so this may be acceptable, but Crossref cannot confirm it.
