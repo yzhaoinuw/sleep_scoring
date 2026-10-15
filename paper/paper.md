@@ -212,9 +212,6 @@ model sDREAMER [@chen2023sdreamer], in a version adapted by the author
 when the optional [PyTorch](https://pytorch.org) [@paszke2019pytorch]
 dependencies are installed. It does not adapt to user labels, but its
 predicted scores keep them in the same way.
-<!-- TODO(author): state concretely what sdreamer_flow changes from the
-published sDREAMER (e.g. retrained on program recordings, training
-pipeline, architecture), in one clause. -->
 
 ![**Expert-guided adaptation of sleep-stage predictions.** All panels show the
 same interval. **(A)** Predicted stages with the spectrogram, EEG, EMG, and NE
