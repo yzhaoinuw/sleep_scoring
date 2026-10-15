@@ -112,11 +112,9 @@ as markers for distinguishing wake, microarousals, NREM, and REM sleep
 [@andersen2023photometry]. Beyond automatic scoring, our work needed a
 workspace for labeling and correcting scores, in which NE photometry informs
 scoring and video checks are tied to the
-selected interval. Project 2 researchers previously scored with Viewpoint's
-commercial [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore),
-which did not integrate fiber-photometry signals such as NE well; that gap
-motivated a dedicated application, whose interaction design is documented
-for reuse.
+selected interval. Project 2 previously used Viewpoint's commercial
+[SleepScore](\1), which did not integrate NE
+photometry well; that gap motivated a dedicated application.
 <!-- History from the Project 2 users (2026-10-14); they confirm the wording
 in the full-draft review. SleepScore supports synchronized video, so the
 stated gap is NE photometry integration only. -->
@@ -125,11 +123,10 @@ stated gap is NE photometry integration only. -->
 # Software design
 
 Built with [Dash](https://dash.plotly.com) and
-[Plotly](https://plotly.com/python/) [@plotly], the application runs as a
-desktop program: its interface is a web page rendered inside a
-native window (via [pywebview](https://pywebview.flowrl.com)) by the operating system's embedded web
-engine, WebView2 on Windows or WebKit on macOS, and talks to a server
-running on the same computer. Recordings open by path through native file
+[Plotly](https://plotly.com/python/) [@plotly], the application is a local
+web page shown in a native window via
+[pywebview](https://pywebview.flowrl.com), backed by a server on the same
+computer. Recordings open by path through native file
 dialogs and never leave the machine. In
 what follows, "interface" means this embedded web page and its JavaScript,
 and "server" the local Python process. One principle runs through the
@@ -175,10 +172,8 @@ labeling are handled by JavaScript in the interface. While the user zooms or
 pans continuously, the application waits for the movement to stop or pause
 before requesting new traces, and drops requests already overtaken by newer
 movement. Only the changed trace data are then sent and swapped in, rather
-than the whole figure being redrawn. During a selection drag, auto-pan
-instead fetches newly revealed signal repeatedly through a dedicated server
-endpoint, and applying a label repaints the overlay with no server round
-trip at all. The result is smoother navigation with less lag on multi-hour
+than the whole figure being redrawn. Applying a label repaints the overlay with no
+server round trip at all. The result is smoother navigation with less lag on multi-hour
 recordings. In manual timing tests on a 2.86-hour recording with v0.17.4,
 the median time from a navigation request to refreshed traces was 212 ms for
 mouse panning and 329 ms for keyboard navigation on a Windows laptop, and 64
@@ -213,11 +208,10 @@ REM intervals (a single labeled interval is enough) as ground truth
 (\autoref{fig:adaptation}) and searches fixed candidate values for five
 parameters: the Wake threshold, the minimum Wake and REM durations, and the
 two NE percentiles. Each candidate is scored by its average error across the
-labeled stages plus a penalty for changing unlabeled predictions; ties go to
-values nearest the defaults. The chosen values are reported. MA labels are
-kept but not used for fitting. Adaptation applies to the current recording
-only: recordings vary widely, and fitting each one directly avoids needing
-many labeled recordings to establish a baseline. Fitting examples does not
+labeled stages plus a penalty for changing unlabeled predictions. MA labels
+are kept but not used for fitting. Adaptation is per recording, because
+recordings vary widely, and needs no baseline built from many labeled
+recordings. Fitting examples does not
 establish held-out accuracy.
 
 Alternatively, the deep-learning model sDREAMER [@chen2023sdreamer], in a
@@ -227,12 +221,11 @@ the optional [PyTorch](https://pytorch.org) [@paszke2019pytorch]
 dependencies are installed; it does not adapt to user labels but keeps them
 in the same way.
 
-![**Expert-guided adaptation of sleep-stage predictions.** All panels show the
-same interval. **(A)** Predicted stages with the spectrogram, EEG, EMG, and NE
-signals. **(B)** A 50-second expert NREM correction. **(C)** Predictions
-after adaptive calibration using 228 s of expert labels
-(178 s Wake, outside this view, and 50 s NREM); predictions change beyond the outlined labeled
-interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
+![**Expert-guided adaptation.** One interval shown three times: **(A)**
+predicted stages over the spectrogram, EEG, EMG, and NE; **(B)** a
+50-second expert NREM correction; **(C)** predictions after calibration on
+228 s of expert labels (178 s Wake outside this view, 50 s NREM), which
+change beyond the outlined interval.\\label{fig:adaptation}](figures/figure1_adaptation.png)
 
 ## 3. Checking behavior against video
 
@@ -243,9 +236,8 @@ validates the recording-to-video offset, and plays it in the same window
 keeps clip extraction quick.
 
 ![**Selection-linked behavioral review.** **(A)** A right-click selects the
-contiguous bout at 9176–9272\ s, and Check Video (both outlined) opens its
-clip. **(B)** The corresponding 96-second behavior clip, opened in the application for review alongside the physiological
-signals.\label{fig:video}](figures/figure2_video_review.png)
+bout at 9176–9272\\ s, and Check Video (outlined) opens its clip. **(B)** The
+96-second clip plays beside the signals.\\label{fig:video}](figures/figure2_video_review.png)
 
 ## 4. Protecting and completing work
 
@@ -276,18 +268,14 @@ rodent EEG/EMG/NE recordings.
 scored. The opt-in usage counter (README badge) is recent and covers only
 opted-in copies, so it undercounts total use. Name studies, preprints, or
 datasets scored with the app once confirmed. -->
-It integrates with a companion preprocessing pipeline that converts raw
-acquisition output into its input format, and the repository provides
-packaged Windows releases, macOS source installation, documentation, tests,
-demonstration videos, and archived versions [@sleepscoring_zenodo].
+The repository provides releases, documentation, tests, demonstration
+videos, and archived versions [@sleepscoring_zenodo].
 
 # AI usage disclosure
 
-From 2023 through 2025, the maintainer used the web versions of ChatGPT
-(OpenAI) and Claude (Anthropic) for coding questions and suggestions while
-developing the software; specific model versions were not recorded. Since
-2026, AI coding agents working in the repository have assisted with code
-generation, refactoring, tests, documentation, and release checks: Claude
+From 2023 through 2025, the author asked web-based ChatGPT and Claude
+coding questions (model versions not recorded). Since 2026, coding agents
+have assisted with code, tests, documentation, and release checks: Claude
 Code (Claude Opus 4.5–5.5 and Fable 5) and OpenAI Codex (GPT-5 and GPT-6),
 with sessions recorded in the repository's work log (`treaty_docs/`), kept
 under the author's
