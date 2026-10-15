@@ -143,13 +143,21 @@ and "server" the local Python process. The design is organized around four
 tasks: (1) inspecting and correcting at the needed scale, (2) automatic
 scoring that keeps and learns from expert labels, (3) checking behavior
 against video, and (4) protecting and completing work.
+{% Yue comment: 1) should we explain briefly out 'optimization' philosophy here, ie, keep as much as work on the embedded web page and its Javascript as possible as it is much faster compared to routing through the server, which takes a round trip? later, in 1. Inspecting and correcting at the needed scale, we have "It uses Plotly Resampler only to compute
+what to draw for a range, and replaces its stock update path with its own,
+which keeps interaction state in the interface and full-resolution data on
+the server. Zooming, panning, selecting, and labeling are handled by
+JavaScript in the interface." that paragraph may benefit from the explanation here so that the readers understand why keeping interactions in the interface is better. 2) what about the miscellaneous quality of life features we have in the app, such as the auto updater checker that automatically checks for and downloads update/fixes in the app? this may actually be a big advantage we have over other apps out there. it made distribution and update/fixes easier for the users. similarly, I suggest we do another thorough check through the Assessment of every cookbook recipe list in the manuscript_layout.md in paper/. if we find any that worths mention, we could add a fifth section for quality of life features}
+  
 
 ## 1. Inspecting and correcting at the needed scale
 
 The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
 (\autoref{fig:adaptation}A), so a boundary can be read against
-each physiological signal. Users switch between navigation and annotation with
+each physiological signal. 
+{% Yue comment: I suggest we also first start with a list to introduce the things we are gonna describe in the following. it makes the manuscript more organized and easier to follow. for example, start with the mode switch and WHY we design a mode switch. it is because the mouse plays different roles or serve as shortcuts during navigation and annotation. we separate the two mode so the mouse' roles don't collide. in navigation mode, the user can drag with mouse to pan, which allows for bigger stride to move faster. In annotation mode, since the user needs the mouse to select sections to annotate, it cannot be used to pan anymore. In that regard, we added arrow keys as shortcut to pan left and right (at adaptive, fixed pace, which can be slower than panning by mouse under navigation mode. Then enumerate the different select 'gestures' like single click, etc., before describing them.}
+Users switch between navigation and annotation with
 one key. A click selects a short interval scaled to the current zoom, for
 ranges too narrow to drag at that scale; a dragged box selects a wider
 range; and a right-click selects the whole contiguous bout under the cursor; when a
@@ -164,7 +172,7 @@ demand with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler
 [@vanderdonckt2022plotlyresampler]. It uses Plotly Resampler only to compute
 what to draw for a range, and replaces its stock update path with its own,
 which keeps interaction state in the interface and full-resolution data on
-the server. Zooming, panning, selecting, and labeling are handled by
+the server {% Yue comment: as I suggested in a previous comment, I'd like to spell out why we replace plotly resampler's stock update with our own. eventually we need to land on more intelligent, more smooth. less lag. don't just end on the technical phrases, we need to land on results that any reader could understand}. Zooming, panning, selecting, and labeling are handled by
 JavaScript in the interface. While the user zooms or pans continuously, the
 application waits for the movement to stop or pause before requesting new
 traces, and drops requests already overtaken by newer movement, which
@@ -264,7 +272,7 @@ for keyboard navigation and 212 ms for mouse panning on a Windows laptop
 (95th percentiles 191 and 69 ms), over 34–69 updates per task at 256- to
 380-second views. Server work took under 13 ms of each update, and much of
 the keyboard time is deliberate coalescing of repeated key presses. These are
-local instrumented measurements rather than a controlled benchmark.
+local instrumented measurements rather than a controlled benchmark. {% Yue comment: does the 'tech spec' report belong in # Research impact statement? I don't see how. is there a better section to place this?}
 <!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
 recording at Sampling Level x1; first three updates per task excluded).
 Windows and Mac runs differ in machine and viewport; do not frame the
