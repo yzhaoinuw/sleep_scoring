@@ -200,7 +200,8 @@ The application keeps user labels in a per-second array separate from the
 displayed scores and places them over every prediction, so both scoring
 models described below keep them as-is.
 
-The default scoring model is a rule-based algorithm. It identifies
+The default scoring model is a rule-based algorithm that encodes the stage
+criteria used in Project 2 [@kjaerby2022norepinephrine]. It identifies
 Wake from a normalized 1–7 Hz EEG spectral feature, keeping Wake bouts of
 at least 5 s by default, and relabels candidate bouts of at least 30 s as
 REM when NE falls below
@@ -215,6 +216,11 @@ are kept but not used for fitting. Adaptation is per recording, because
 recordings vary widely, and needs no baseline built from many labeled
 recordings. Fitting examples does not
 establish held-out accuracy.
+<!-- Rule origin: Project 2 researchers agreed the rules as a group. Kjaerby
+et al. (Methods) define Wake/NREM/REM from EEG and EMG in 1 s epochs and MA
+as wake bouts under 15 s, and note NE is lowest in REM; the app's numeric
+thresholds (1-7 Hz feature, NE percentiles, 5 s/30 s minimums) are not in
+that paper, so keep the citation at the level of stage criteria. -->
 
 Alternatively, the deep-learning model sDREAMER [@chen2023sdreamer], in a
 version adapted by the author

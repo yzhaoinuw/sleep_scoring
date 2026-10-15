@@ -208,8 +208,9 @@ author confirmation. See `paper/README.md` for its status. Open items:
 - Before submission, settle credit for the default scorer's rules: Project 2
   researchers agreed them as a group (relayed through a few people); the
   maintainer built the adaptation and everything else. Decide authorship
-  with the PI and those researchers, and credit the rules' origin in the
-  paper text either way.
+  with the PI and those researchers (users have suggested names). The
+  rules' origin is credited in the paper text since 2026-10-15, citing
+  Kjaerby et al. 2022 for the stage criteria.
 - Verify every claim in the paper against the current shipped app.
 - Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
   reviewers: name one or two external adopters (in Acknowledgments or a

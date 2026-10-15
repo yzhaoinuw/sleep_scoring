@@ -250,8 +250,11 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
   minimum bout lengths) were agreed by Project 2 researchers as a group and
   passed on through a few people. The maintainer designed and built the
   adaptive parameter fitting and the rest of the software. Decide with the PI
-  and those researchers whether anyone is a co-author. Either way, the paper
-  should say where the rules came from, not only in Acknowledgments.
+  and those researchers whether anyone is a co-author; users have suggested
+  names. The paper now says where the rules came from: Software design,
+  section 2 says they encode the stage criteria used in Project 2, citing
+  Kjaerby et al. 2022, which a user suggested. That paper defines the stages
+  but not the app's numeric thresholds, so the citation stays at that level.
 - [ ] Co-authors: the maintainer developed the software largely
   independently, so the paper is currently single-author. Add someone only if
   they meet the JOSS bar above (code, or active project direction), with
