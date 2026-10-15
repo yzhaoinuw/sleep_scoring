@@ -168,10 +168,10 @@ author confirmation. See `paper/README.md` for its status. Open items:
   title and `CITATION.cff` (repository and package stay `sleep_scoring`).
   The `CITATION.cff` abstract follows the paper's Summary. The v0.17.5
   Zenodo archive uses the updated software title.
-- Resolve the inline `TODO`s: Kjaerby/Hauglund framing and
-  whether those studies used the app, users' total-hours estimate, the build-vs-contribute
-  rationale, competitor characterizations, and final author review for the AI
-  disclosure.
+- Resolve the inline `TODO`s: Kjaerby/Hauglund framing, publications scored
+  with the app once they appear, competitor characterizations, and final
+  author review for the AI disclosure. Users' total hours (~1,000 h from four
+  users) and the build-vs-contribute rationale were resolved on 2026-10-14/15.
 - First current-release latency session captured on 2026-10-08; keyboard
   navigation has 34 retained updates (median 329.3 ms, p95 371.2 ms) at a
   379.9-second viewport. Recording duration/rates verified from MAT metadata

@@ -57,8 +57,9 @@ relates sleep states to cortical NE dynamics, which oscillate during NREM
 sleep and shape sleep architecture [@kjaerby2022norepinephrine] and drive
 the vasomotion underlying glymphatic clearance [@hauglund2025norepinephrine].
 <!-- TODO(authors): confirm with the Kjaerby/Hauglund co-authors that these
-two citations frame the program fairly, and whether either study's scoring
-used this application. -->
+two citations frame the program fairly. Neither study's scoring used this
+application: Kjaerby et al. scored in Viewpoint's SleepScore (Methods), and
+users report no publications from the app's scores yet (2026-10-15). -->
 Such questions depend on brief events, such as microarousals and state
 transitions, that span a few seconds. Scoring them means reading the same
 short interval against several physiological signals and the animal's
@@ -264,11 +265,15 @@ reach users automatically without a reinstall. We extracted this updater into a 
 
 Researchers in Project 2 of the University of Rochester U19 program have been
 the application's main users since 2023, using it to score and correct their
-rodent EEG/EMG/NE recordings.
-<!-- TODO(authors): add the users' rough estimate of total recording hours
-scored. The opt-in usage counter (README badge) is recent and covers only
-opted-in copies, so it undercounts total use. Name studies, preprints, or
-datasets scored with the app once confirmed. -->
+rodent EEG/EMG/NE recordings. The program's channel for the application has
+about 30 members; four users who reported their use have together scored
+about 1,000 hours of recordings, a lower bound on total use. Results scored
+with the application have been presented in conference posters.
+<!-- Source: replies from four users, 2026-10-15: ~300 h, ~300 h, ~250 h,
+and 50-100 recordings at a typical ~3 h (150-300 h); about 1,000-1,150 h in
+total. No publications or datasets from these scores yet, and no known users
+outside the program. TODO(authors): name studies, preprints, or datasets
+scored with the app once published. -->
 The repository provides releases, documentation, tests, demonstration
 videos, and archived versions [@sleepscoring_zenodo].
 
