@@ -63,7 +63,7 @@ users report no publications from the app's scores yet (2026-10-15). -->
 Such questions depend on brief events, such as microarousals and state
 transitions, that span a few seconds. Scoring them means reading the same
 short interval against several physiological signals and the animal's
-behavior, and correcting boundaries across multi-hour recordings; without an
+movement, and correcting boundaries across multi-hour recordings; without an
 integrated tool, this means moving among a signal viewer, predicted scores,
 and separate video software. One-second annotation is a design requirement
 of this research, not a claim that physiological boundaries or model
@@ -74,9 +74,7 @@ photometry and behavior video.
 The current version takes as input a MATLAB file produced from the raw
 recordings by a companion preprocessing pipeline,
 [`preprocess_sleep_data`](https://github.com/yzhaoinuw/preprocess_sleep_data).
-{% Yue comment: can this line be trimmed. feels like unnecessary details. % EEG and EMG are recorded by the same device and share a sampling rate, while
-the optional photometry signal comes from a separate device and usually has
-its own.} Other laboratories may need a thin adapter to this file layout
+Other laboratories may need a thin adapter to this file layout
 until later versions accept more general input formats.
 
 # State of the field
@@ -111,11 +109,8 @@ scoring, which draws on EEG, EMG, or LFP features alone. None of their
 scoring methods uses NE photometry, although NE dynamics have been proposed
 as markers for distinguishing wake, microarousals, NREM, and REM sleep
 [@andersen2023photometry]. Beyond automatic scoring, our work needed a
-workspace for labeling and correcting scores, in which NE photometry informs
-scoring and video checks are tied to the
-selected interval {% Yue comment: suggest we just write "in which NE photometry and video checks inform
-scoring". otherwise it is not clear what the point is in mentioning "video checks are tied to the
-selected interval"}. Project 2 previously used Viewpoint's commercial
+workspace for labeling and correcting scores, in which NE photometry and
+video checks inform scoring. Project 2 previously used Viewpoint's commercial
 [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore), which did not integrate NE
 photometry well; that gap motivated a dedicated application.
 <!-- History from the Project 2 users (2026-10-14); they confirm the wording
@@ -125,77 +120,61 @@ stated gap is NE photometry integration only. -->
 
 # Software design
 
-Built with [Dash](https://dash.plotly.com) and
-[Plotly](https://plotly.com/python/) [@plotly], the application is a local
-web page shown in a native window via
-[pywebview](https://pywebview.flowrl.com), backed by a server on the same
-computer. Recordings open by path through native file
-dialogs {% Yue comment: suggest we delete the following part % and never leave the machine}. In
-what follows, "interface" means this embedded web page and its JavaScript,
-and "server" the local Python process. One principle runs through the
-design: anything that responds directly to the user's hand runs in the
-interface, because each trip to the server adds delay, and the server is
-asked only for signal data the interface does not yet have. The design is
-organized around five tasks: (1) inspecting and correcting at the needed
-scale, (2) automatic scoring that keeps and learns from expert labels, (3)
-checking behavior against video, (4) protecting and completing work, and (5)
-installing and updating.
+The application is designed around five tasks: (1) installing and updating,
+(2) visualizing and annotating at scale, (3) automatic scoring that keeps and
+learns from expert labels, (4) checking movement against video, and (5)
+saving, recovery, and export. Smooth interactive visualization is central
+to these tasks, so the application is built with
+[Dash](https://dash.plotly.com) and [Plotly](https://plotly.com/python/)
+[@plotly]: a local web page, shown in a native window via
+[pywebview](https://pywebview.flowrl.com) and backed by a Python server on
+the same computer. In what follows, "interface" means this embedded web page
+and its JavaScript, and "server" the local Python process.
 
-{% Yue comment: I'd like a bit of reorganization here. We should distinguish the 'One principle runs through the
-design' and the five tasks the 'design' is organized around. the latter is the broader one: the purpose of the app is to accomplish the five tasks. I suggest we lead with it. The 'One principle' is actually but one aspect of the design, namely, optimization of responsiveness. so we should make it clear that it is a principle in this aspect, not a general principle for the entire app design. that fact that it's built on Dash and plotly serves the tasks (specifically, smooth interactive visualization), so I suggest we put it second. does it make sense?}
+## 1. Installing and updating
 
-{% Yue comment: further, I'd like to rethink the emphases of the five tasks. I suggest we lead with downloading and updating, not only because that's the natural order, but also it is really the first and big barrier breaker for users at large. it doesn't require any programming skills or set up to use, which could potentially deter users (neural scientist) with no programming experience. It installs and uses like a 'closed source' software, just download and click to open. everything needed is packaged with pyinstaller. initially this led to a problem, every tiny update/bug fix would require a rebuild and redistribution and the user had to redownload it. But we mostly eliminated that problem by separating the source code from the part that's packaged by pyinstaller so updates that don't touch on the dependencies can be shared without repackaging on our end and redownloading on the users end (but users still need to manually swap the updated source code). Later, we further make the user experience easier by introducing the auto-update feature that also handles the source code update so that all the user needs to do now is to use the app as normal and the update would happen automatically in the background.
-the ordering for the rest of the tasks can stay unchanged. But I'd like to suggest some renaming of the tasks. For example, 'Inspecting and correcting at the needed scale' ->  'Visualizing and Annotating at scale', 'inspecting' and 'correcting' are both too narrow. the user could literally just move around and view without inspecting for anything. similarly the user may just label without correcting for anything. 
+Many experimenters do not program, so on Windows the application installs
+like conventional desktop software: users download a release packaged with
+[PyInstaller](https://pyinstaller.org), extract it, and double-click to
+open, with no Python installation or setup. macOS users install from
+source. Packaging alone meant that every small fix required a rebuild and a
+new download, so the application's own source code is kept outside the
+packaged runtime. A fix that leaves dependencies unchanged then ships as a
+small source update, which the packaged application applies itself at
+startup, keeping the user's edited settings; only dependency changes need a
+new download. We extracted this updater into a reusable, dependency-free
+package,
+[`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
+[@desktop_app_source_updater].
 
-'Checking behavior against video' -> 'Checking movement against video', this is less important, but I feel like we could be more specific here. in our context, muscle movement indicated by EMG informs sleep states. The video provides an additional source to corroborate that. so the user's looking at movement, instead of behavior, which may suggest more complex things that are not the focus for the sleep scoring in our context. less important, but may avoid misunderstanding caused by the broader meaning of 'behavior'. I will defer this decision to you.
-
-'Protecting and completing work' -> something like 'Crash recovery', but it doesn't cover the informing the user of the unscored section feature. But I don't like the use of 'completing work' here. sounds a bit uninformative.
-
-Moreover, I'd like to aggressively trim the details mentioned in some of the tasks. starting with Inspecting and correcting at the needed scale, it offers too much detail that make it read like a manual, which is already covered in the repo README. we shouldn't hope to tell so much of the actual usage of the app to the reviewers that they learn how to actually use it. that shouldn't be the focus of this paper. that's the README's job. 
-
-similarly, we should also trim Automatic scoring that keeps and learns from expert labels, at least kill the part that actually tries to educate the readers on what parameters are tuned. that belongs to a paper that specifically talks about the sleep scoring algo. Similarly, I wonder if we even need to spell out the exact features used in the algo, such as 1–7 Hz Hz of the. EEG spectrogram, and duration requirement on bouts and what not. staying high level may be enough. for example, just say the algo look at the strength of certain frequency band in the spectrogram (or even just spectrogram) as telling characteristics for labeling sleep stages. I'd like your input on the exact level of detail we should keep at here. but what we offer now feels too much.}
-
-## 1. Inspecting and correcting at the needed scale
+## 2. Visualizing and annotating at scale
 
 The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
-(\autoref{fig:adaptation}A), so a boundary can be read against each
-physiological signal {% Yue comment: suggest rewording. something like "so each signal can be used independently to label or examine the sleep state." two issues I have with the current wording. 1) 'physiological signal' is unnecessary. just 'signal' is fine, 2) 'a boundary' is not clear. what boundary?}. Moving through and labeling this view rests on
-two modes, keyboard panning, three forms of selection, and one labeling
-step.
-
-{% Yue comment: following up with the longest comment I put in the text above, I now question whether we even need to mention the two mode. The point here is to tell the readers that we make the visualization and annotation as intuitive as possible for the users, not to introduce what we have in the app. For example, we can just say that we implement several 'shortcut' gestures to make navigating through the visualization and annotating intuitive. then list, as three good examples, single click to select strip too narrow to select by box select, right-click to select contiguous bout, select-and-dragging to select arbitrarily long sections while in zoomed in view, and so on. don't need to give an exhausted list of all modes, gestures, what have we, to offer. similarly, I also don't think that we need to spell out the mapping between sleep scores and the keys, going against my earlier judgment. these belong to the README in the repo as the manual if the readers decide to try the app. here, we only need to say we make it convenient and intuitive for the users to annotate by pressing keys on a keyboard. you know what I mean?}
-
-The mouse does different jobs when navigating and when annotating, so these
-are separate modes, switched with one key. In navigation mode, dragging pans
-the view in large strides and scrolling zooms. In annotation mode the mouse
-selects intervals instead, so the left and right arrow keys pan at an
-adaptive pace that scales with zoom.
-Annotation mode offers three selections. A click selects a short interval
-scaled to the current zoom, for ranges too narrow to drag at that scale; a
-dragged box selects a wider range; and a right-click selects the whole
-contiguous bout under the cursor. When a drag reaches the viewport edge, the
-view pans automatically and newly revealed signal is streamed in, so long
-selections keep boundary detail. All selections feed one labeling step:
-keys `1`–`4` assign Wake, NREM, REM, or MA, and `0` clears.
+(\autoref{fig:adaptation}A), so each signal can be used on its own to
+examine or label sleep states. Shortcut gestures keep navigation and
+annotation direct. For example, a click selects an interval too narrow to
+drag at the current zoom, a right-click selects a whole contiguous bout, and
+a drag that reaches the edge of a zoomed-in view keeps panning, so a
+selection can extend arbitrarily far without losing detail. A selection is
+then labeled with a single key press.
 
 Plotly alone becomes unresponsive when asked to draw the millions of samples
 in a multi-hour recording, so the application decimates long signals on
 demand with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
-[@vanderdonckt2022plotlyresampler]. Plotly Resampler computes what to draw
-for a range, but its stock update path asks the server for new traces on
-every zoom or pan event, which can fall behind continuous movement. The
-application keeps that computation and replaces the update path with its
-own, following the principle stated in [Software design](#software-design).
-Zooming, panning, selecting, and labeling are handled by JavaScript in the
-interface. While the user zooms or
-pans continuously, the application waits for the movement to stop or pause
-before requesting new traces, and drops requests already overtaken by newer
-movement. Only the changed trace data are then sent and swapped in, rather
-than the whole figure being redrawn. Applying a label repaints the overlay
-with no server round trip at all. The result is smoother navigation with
-less lag on multi-hour recordings. In manual timing tests on a 2.86-hour recording with v0.17.4,
-the median time from a navigation request to refreshed traces was 212 ms for
+[@vanderdonckt2022plotlyresampler]. Its stock update path, however, asks the
+server for new traces on every zoom or pan event, which can fall behind
+continuous movement. The application replaces that path, following one
+principle for responsiveness: anything that responds directly to the user's
+hand runs in the interface, because each trip to the server adds delay, and
+the server is asked only for signal data the interface does not yet have.
+Zooming, panning, selecting, and labeling therefore run in the interface.
+While the user zooms or pans continuously, the application waits for the
+movement to pause before requesting new traces, drops requests already
+overtaken by newer movement, and swaps in only the changed trace data rather
+than redrawing the figure. Applying a label needs no server round trip at
+all. In manual timing tests on a 2.86-hour recording with v0.17.4, the
+median time from a navigation request to refreshed traces was 212 ms for
 mouse panning and 329 ms for keyboard navigation on a Windows laptop, and 64
 and 181 ms on an Apple M4 laptop; much of the keyboard time is deliberate
 waiting for repeated key presses to settle. These are local instrumented
@@ -212,33 +191,31 @@ runnable template for general multichannel time series
 [@timeseries_app_cookbook]; adapting it mainly means editing one
 data-loading function and one label configuration.
 
-## 2. Automatic scoring that keeps and learns from expert labels
+## 3. Automatic scoring that keeps and learns from expert labels
 
 The application keeps user labels in a per-second array separate from the
 displayed scores and places them over every prediction, so both scoring
 models described below keep them as-is.
 
 The default scoring model is a rule-based algorithm that encodes the stage
-criteria used in Project 2 [@kjaerby2022norepinephrine]. It identifies
-Wake from a normalized 1–7 Hz EEG spectral feature, keeping Wake bouts of
-at least 5 s by default, and relabels candidate bouts of at least 30 s as
-REM when NE falls below
-recording-wide and within-bout percentile thresholds; without usable NE, it
-identifies only Wake and NREM. Each run treats user-labeled Wake, NREM, and
-REM intervals (a single labeled interval is enough) as ground truth
-(\autoref{fig:adaptation}) and searches fixed candidate values for five
-parameters: the Wake threshold, the minimum Wake and REM durations, and the
-two NE percentiles. Each candidate is scored by its average error across the
-labeled stages plus a penalty for changing unlabeled predictions. MA labels
-are kept but not used for fitting. Adaptation is per recording, because
-recordings vary widely, and needs no baseline built from many labeled
-recordings. Fitting examples does not
-establish held-out accuracy.
+criteria used in Project 2 [@kjaerby2022norepinephrine]: it identifies Wake
+from EEG spectral power and REM from sustained low NE, and without usable NE
+it identifies only Wake and NREM. Its thresholds adapt to each recording.
+Each run treats the user's labels (a single labeled interval is enough) as
+ground truth and chooses the settings that best fit them while changing the
+rest of the predictions as little as possible (\autoref{fig:adaptation}).
+Adaptation therefore needs no baseline built from many labeled recordings,
+but fitting examples does not establish held-out accuracy.
 <!-- Rule origin: Project 2 researchers agreed the rules as a group. Kjaerby
 et al. (Methods) define Wake/NREM/REM from EEG and EMG in 1 s epochs and MA
 as wake bouts under 15 s, and note NE is lowest in REM; the app's numeric
-thresholds (1-7 Hz feature, NE percentiles, 5 s/30 s minimums) are not in
-that paper, so keep the citation at the level of stage criteria. -->
+thresholds are not in that paper, so keep the citation at the level of
+stage criteria. Detail deliberately left to the README (2026-10-15): Wake
+uses a normalized 1-7 Hz EEG feature; REM needs bouts of at least 30 s
+below recording-wide and within-bout NE percentiles; five settings are
+fitted (Wake threshold, minimum Wake and REM durations, two NE percentiles),
+scored by average per-stage error plus a penalty for changing unlabeled
+predictions; MA labels are kept but not fitted. -->
 
 Alternatively, the deep-learning model sDREAMER [@chen2023sdreamer], in a
 version adapted by the author
@@ -253,37 +230,26 @@ predicted stages over the spectrogram, EEG, EMG, and NE; **(B)** a
 228 s of expert labels (178 s Wake outside this view, 50 s NREM), which
 change beyond the outlined interval.\label{fig:adaptation}](figures/figure1_adaptation.png)
 
-## 3. Checking behavior against video
+## 4. Checking movement against video
 
-For a selected interval of up to five minutes, the application cuts the
-matching clip from the behavior video with [FFmpeg](https://ffmpeg.org),
-and plays it in the same window
+EMG shows the muscle activity that helps distinguish sleep states, and the
+behavior video can corroborate it. For a selected interval of up to five
+minutes, the application cuts the matching clip from the video with
+[FFmpeg](https://ffmpeg.org) and plays it in the same window
 (\autoref{fig:video}). The cap suits checks of events that span seconds and
 keeps clip extraction quick.
 
-![**Selection-linked behavioral review.** **(A)** A right-click selects the
+![**Selection-linked video review.** **(A)** A right-click selects the
 bout at 9176–9272\ s, and Check Video (outlined) opens its clip. **(B)** The
 96-second clip plays beside the signals.\label{fig:video}](figures/figure2_video_review.png)
 
-## 4. Protecting and completing work
+## 5. Saving, recovery, and export
 
-Four further features protect and complete work: undo, crash recovery,
-side-by-side windows, and checks on save. Undo reverts the most recent
-change to the scores, and filesystem-backed recovery restores unsaved scores
-when a file is reopened after a crash. Up to three isolated windows allow
-side-by-side comparison of different recordings. Saving a complete
-recording exports bout, stage, and transition statistics; otherwise, saving
-reports the first unscored segment so the user can complete it.
-
-## 5. Installing and updating
-
-Windows users receive a packaged application that runs without a Python
-installation; macOS users install from source. The packaged application
-keeps itself current: it checks GitHub for a compatible release and applies
-it before the window opens, keeping the user's edited settings, so fixes
-reach users automatically without a reinstall. We extracted this updater into a reusable, dependency-free package,
-[`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
-[@desktop_app_source_updater].
+Undo reverts the most recent change to the scores, and filesystem-backed
+recovery restores unsaved scores when a file is reopened after a crash.
+Saving a complete recording exports bout, stage, and transition statistics;
+otherwise, saving reports the first unscored segment so the user can
+complete it.
 
 # Research impact statement
 

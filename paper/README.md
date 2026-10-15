@@ -75,10 +75,9 @@ checked on 2026-10-07.
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
 - **750–1,750 words.** As of 2026-10-15 the body (captions included,
-  front matter and comments excluded) is about 1,780 words of running text,
-  or about 1,830 counting headings and more with rendered citations. Treat
-  the stricter count as binding: the draft is over, so new material has to
-  replace existing text.
+  front matter and comments excluded) is about 1,590 words of running text,
+  or about 1,630 counting headings and more with rendered citations. Treat
+  the stricter count as binding: new material should replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
   EEG, and EMG from scratch.
 - **No user manual or API documentation.** JOSS says that belongs in the
@@ -209,7 +208,7 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
   wording in the full-draft review.
 - **Latency measurements.** Two Windows sessions and one macOS (Apple M4)
   session on v0.17.4 are reviewed in `latency_measurements.md` and
-  summarized in Software design, section 1.
+  summarized in Software design, section 2.
 - **Research impact evidence.** Four users reported their use on
   2026-10-15: about 1,000 hours of recordings in total, from a channel of
   about 30 members, with results presented in conference posters. The
@@ -252,7 +251,7 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
   adaptive parameter fitting and the rest of the software. Decide with the PI
   and those researchers whether anyone is a co-author; users have suggested
   names. The paper now says where the rules came from: Software design,
-  section 2 says they encode the stage criteria used in Project 2, citing
+  section 3 says they encode the stage criteria used in Project 2, citing
   Kjaerby et al. 2022, which a user suggested. That paper defines the stages
   but not the app's numeric thresholds, so the citation stays at that level.
 - [ ] Co-authors: the maintainer developed the software largely
@@ -270,7 +269,6 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
 
 - [x] Release the change-penalized calibrator and confirm Zenodo archived it:
   v0.17.6, DOI `10.5281/zenodo.23385811`, verified 2026-10-15.
-- [ ] Bring the body back within 1,750 words under the stricter count.
 - [ ] `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack
   one, so this may be acceptable, but Crossref cannot confirm it.
 - [ ] Review the final rendered PDF in full, including the generated
