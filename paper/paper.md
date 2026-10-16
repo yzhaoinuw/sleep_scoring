@@ -120,7 +120,7 @@ stated gap is NE photometry integration only. -->
 
 # Software design
 
-The application is designed around five tasks: (1) installing and updating,
+The application is designed around five tasks: (1) installing and updating {% Yue comment: this sounds underwhelming. suggest we call it 'zero-setup installing and updating' or something. All open source apps need this. but sets ours apart is that we made it as easy as it can be for users, zero setup. No installing python, no anaconda or environment setup, no pip install, no git clone, or what have you. that's the app's strength. we need to highlight it}
 (2) visualizing and annotating at scale, (3) automatic scoring that keeps and
 learns from expert labels, (4) checking movement against video, and (5)
 saving, recovery, and export. Smooth interactive visualization is central
@@ -137,12 +137,13 @@ Many experimenters do not program, so on Windows the application installs
 like conventional desktop software: users download a release packaged with
 [PyInstaller](https://pyinstaller.org), extract it, and double-click to
 open, with no Python installation or setup. macOS users install from
-source. Packaging alone meant that every small fix required a rebuild and a
+source {% Yue comment: would like a bit of bridging here. a cold "macOS users install from
+source" sounds like a middle finger to the Mac users. the story is that all out initial users were Windows users. We added support for Mac users later. But MacOS has a stricter term for third party apps and the exe file packaged by pyinstaller won't work on Mac. forgot the exact story. but to make it work on Mac off the shelf like on Windows involves additional work or dev certificate that costs money or something. so we decided to leave it at that and that's why Mac users need to build from source to install it}. Packaging alone meant that every small fix required a rebuild and a
 new download, so the application's own source code is kept outside the
 packaged runtime. A fix that leaves dependencies unchanged then ships as a
 small source update, which the packaged application applies itself at
 startup, keeping the user's edited settings; only dependency changes need a
-new download. We extracted this updater into a reusable, dependency-free
+new download {% Yue comment: can we not start the sentence with 'a fix'? the 'main character' here is our design or the app. start with that. also, can we say 'bug fix, new features, and other updates"? because it could be more than a bug fix in a new release. another thing, can we just leave the qualifier 'dependency' out of the main sentence and put it in a footnote or something. in the main sentence, the main idea is that we made the app auto-update itself for most scenarios. that's it, making it read smoother. In a foot note, or a clause, we can say that provided the update doesn't involve the dependencies}. We extracted this updater into a reusable, dependency-free
 package,
 [`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
 [@desktop_app_source_updater].
@@ -153,7 +154,7 @@ The EEG spectrogram (with a theta/delta ratio), EEG, EMG, and NE share one
 time axis, and the score is drawn as an overlay on every signal row
 (\autoref{fig:adaptation}A), so each signal can be used on its own to
 examine or label sleep states. Shortcut gestures keep navigation and
-annotation direct. For example, a click selects an interval too narrow to
+annotation direct {% Yue comment: dude, I don't understand why you would lead with and use 'Shortcut gestures' as the subject of the sentence. It reads like the shortcut gestures come out of nowhere or come with Dash to begin with. No, WE designed and built these so they exist. Again you missed the 'main character' here. you know what I mean? We build these for ease-of-use} For example, a click selects an interval too narrow to
 drag at the current zoom, a right-click selects a whole contiguous bout, and
 a drag that reaches the edge of a zoomed-in view keeps panning, so a
 selection can extend arbitrarily far without losing detail. A selection is
@@ -167,7 +168,7 @@ server for new traces on every zoom or pan event, which can fall behind
 continuous movement. The application replaces that path, following one
 principle for responsiveness: anything that responds directly to the user's
 hand runs in the interface, because each trip to the server adds delay, and
-the server is asked only for signal data the interface does not yet have.
+the server is asked only for signal data the interface does not yet have. {% Yue comment: would it be better if we added brief background knowledge prior? like why there would be a trip to the server, i.e. why there's server-interface coordination/communication and how it works? or at a minimum, just say that's just how dash work, but at least first say that there's a communication between the two parts and what they communicate. then perhaps also add a little explanation on why there would be "signal data the interface does not yet have"? you can just add a quick sentence when we mention plotly resampler. overall I'm thinking for example, based on my understanding that, computation heavy and large data must be handled by the server. the interface is in charge of rendering the visualization and has a limited memory and cannot handle large data and heavy computation. the communication between the two can be time costly, so we try to keep as much as possible on the interface. But some actions require the communication.} 
 Zooming, panning, selecting, and labeling therefore run in the interface.
 While the user zooms or pans continuously, the application waits for the
 movement to pause before requesting new traces, drops requests already
@@ -177,7 +178,7 @@ all. In manual timing tests on a 2.86-hour recording with v0.17.4, the
 median time from a navigation request to refreshed traces was 212 ms for
 mouse panning and 329 ms for keyboard navigation on a Windows laptop, and 64
 and 181 ms on an Apple M4 laptop; much of the keyboard time is deliberate
-waiting for repeated key presses to settle. These are local instrumented
+waiting for repeated key presses to settle. {% Yue comment: do we have the same numbers for before our optimization to show the effect of our optimization?} These are local instrumented
 measurements, not a controlled benchmark.
 <!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
 recording at Sampling Level x1; first three updates per task excluded;
@@ -200,12 +201,12 @@ models described below keep them as-is.
 The default scoring model is a rule-based algorithm that encodes the stage
 criteria used in Project 2 [@kjaerby2022norepinephrine]: it identifies Wake
 from EEG spectral power and REM from sustained low NE, and without usable NE
-it identifies only Wake and NREM. Its thresholds adapt to each recording.
+it identifies only Wake and NREM {% Yue comment: here again mate, when you use 'The default scoring model' as the subject of the sentence, it feels like it grows out of nowhere or is handed to us. No, we implemented it, albeit the main idea comes from the users. we did build the ideas into a straightforward algo. you get the idea?} Its thresholds adapt to each recording.
 Each run treats the user's labels (a single labeled interval is enough) as
 ground truth and chooses the settings that best fit them while changing the
 rest of the predictions as little as possible (\autoref{fig:adaptation}).
 Adaptation therefore needs no baseline built from many labeled recordings,
-but fitting examples does not establish held-out accuracy.
+but fitting examples does not establish held-out accuracy {% Yue comment: could you explain the necessity of mentioning "held-out accuracy" or expand a bit to explain what it means. I don't really follow}.
 <!-- Rule origin: Project 2 researchers agreed the rules as a group. Kjaerby
 et al. (Methods) define Wake/NREM/REM from EEG and EMG in 1 s epochs and MA
 as wake bouts under 15 s, and note NE is lowest in REM; the app's numeric
