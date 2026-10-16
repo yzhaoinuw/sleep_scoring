@@ -52,17 +52,17 @@ statistics.
 Sleep Scoring App was developed for researchers studying how brain state
 regulates cerebrospinal-fluid transport during sleep, in
 [Project 2](https://www.urmc.rochester.edu/research/u19/project-2) of the
-NIH BRAIN Initiative U19 program at the University of Rochester. That work
+BrainFlowZZZ program at the University of Rochester. That work
 relates sleep states to cortical NE dynamics, which oscillate during NREM
-sleep and shape sleep architecture [@kjaerby2022norepinephrine] and drive
+sleep and shape sleep architecture [@kjaerby2022norepinephrine] and may drive
 the vasomotion underlying glymphatic clearance [@hauglund2025norepinephrine].
 <!-- TODO(authors): confirm with the Kjaerby/Hauglund co-authors that these
 two citations frame the program fairly. Neither study's scoring used this
 application: Kjaerby et al. scored in Viewpoint's SleepScore (Methods), and
 users report no publications from the app's scores yet (2026-10-15). -->
 Such questions depend on brief events, such as microarousals and state
-transitions, that span a few seconds. Scoring them means reading the same
-short interval against several physiological signals and the animal's
+transitions, that span a few seconds. Scoring them means examining the same
+short interval across several physiological signals and the animal's
 movement, and correcting boundaries across multi-hour recordings; without an
 integrated tool, this means moving among a signal viewer, predicted scores,
 and separate video software. One-second annotation is a design requirement
@@ -253,7 +253,7 @@ complete it.
 
 # Research impact statement
 
-Researchers in Project 2 of the University of Rochester U19 program have been
+Researchers in Project 2 of the University of Rochester BrainFlowZZZ program have been
 the application's main users since 2023, using it to score and correct their
 rodent EEG/EMG/NE recordings. The program's channel for the application has
 about 30 members; four users who reported their use have together scored

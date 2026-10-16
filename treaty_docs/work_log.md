@@ -15,6 +15,28 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-16
+
+### PI manuscript comments and interval-review wording (Codex, GPT-6; effort/token budget not reported)
+
+- Applied Douglas Kelley's annotated-PDF corrections to the manuscript source:
+  use BrainFlowZZZ for the program name and soften the NE/vasomotion claim to
+  "may drive." The existing author-verification TODO remains open; this wording
+  change does not establish consensus or confirm either study used the app.
+- The maintainer questioned whether "comparing ... to" changes the meaning of
+  interval review. Used "examining the same short interval across several
+  physiological signals and the animal's movement" to preserve the intended
+  simultaneous review of aligned channels rather than imply a comparison of
+  an interval with the signals. Other manuscript text and figures are unchanged.
+- Fetched five newer publication commits through `61142fc` before delivery;
+  replayed these four edits on top, preserving their reorganization,
+  research-impact evidence, and "movement" wording. Maintainer authorized
+  committing and pushing this review pass on `publication`.
+- Verification: reviewed the four requested changes against the previously
+  extracted annotations and current source; `git diff --check` passed before
+  and after integration. The final diff contains only the four requested
+  wording changes and this record; the pre-commit hook passed/skipped.
+
 ## 2026-10-15
 
 ### v0.17.6 published and archived; manuscript integrated (Codex, GPT-6; effort/token budget not reported)
