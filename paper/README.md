@@ -75,9 +75,10 @@ checked on 2026-10-07.
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
 - **750–1,750 words.** As of 2026-10-15 the body (captions included,
-  front matter and comments excluded) is about 1,590 words of running text,
-  or about 1,630 counting headings and more with rendered citations. Treat
-  the stricter count as binding: new material should replace existing text.
+  front matter and comments excluded) is about 1,700 words of running text,
+  or about 1,750 counting headings and more with rendered citations. Treat
+  the stricter count as binding: the draft is at the limit, so new material
+  has to replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
   EEG, and EMG from scratch.
 - **No user manual or API documentation.** JOSS says that belongs in the
@@ -209,8 +210,8 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
 - **Latency measurements.** Two Windows sessions and one macOS (Apple M4)
   session on v0.17.4 are reviewed in `latency_measurements.md` and
   summarized in Software design, section 2.
-- **Research impact evidence.** Four users reported their use on
-  2026-10-15: about 1,000 hours of recordings in total, from a channel of
+- **Research impact evidence.** Five users reported their use on
+  2026-10-15/16: about 1,200 hours of recordings in total, from a channel of
   about 30 members, with results presented in conference posters. The
   per-user breakdown is in a comment in `paper.md`.
 - **Zenodo title.** Zenodo v0.17.6 uses the paper's title, and

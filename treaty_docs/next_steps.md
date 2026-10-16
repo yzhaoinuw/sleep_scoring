@@ -170,7 +170,7 @@ author confirmation. See `paper/README.md` for its status. Open items:
   Zenodo archive uses the updated software title.
 - Resolve the inline `TODO`s: Kjaerby/Hauglund framing, publications scored
   with the app once they appear, competitor characterizations, and final
-  author review for the AI disclosure. Users' total hours (~1,000 h from four
+  author review for the AI disclosure. Users' total hours (~1,200 h from five
   users) and the build-vs-contribute rationale were resolved on 2026-10-14/15.
 - First current-release latency session captured on 2026-10-08; keyboard
   navigation has 34 retained updates (median 329.3 ms, p95 371.2 ms) at a
