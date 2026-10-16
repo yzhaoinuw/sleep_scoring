@@ -141,12 +141,13 @@ Our first users ran Windows; macOS support came later, and because a
 comparable package would need Apple's code signing and notarization, macOS
 users currently install from source. Packaging alone would have required a
 rebuild and a fresh download for every change, so we kept the application's
-own source code outside the packaged runtime. The packaged application
-therefore updates itself: at startup it applies bug fixes, new features, and
-other updates, keeping the user's edited settings.[^deps] We extracted this
-updater into a reusable, dependency-free package,
+own source code outside the packaged runtime. We further built and
+integrated into the application an updater, released as the reusable,
+dependency-free package
 [`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
-[@desktop_app_source_updater].
+[@desktop_app_source_updater], which automatically fetches and applies
+updates, including bug fixes, new features, and other improvements, at
+startup.[^deps]
 
 [^deps]: Updates that change the packaged dependencies still require
 downloading a new release.
