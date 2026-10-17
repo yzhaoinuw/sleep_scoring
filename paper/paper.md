@@ -304,8 +304,32 @@ the software and cited sources.
 This work was supported by the BRAIN Initiative of the US National Institutes
 of Health (U19NS128613).
 
-<!-- TODO: thank the lab PI, data contributors, and model contributors by
-name. The funding sentence above is the PI-approved wording and should be
-kept verbatim. -->
+We thank Mie Andersen, Natalie Linea Hauglund, Anastasia Tsopanidou, and
+Verena Untiet for helping define the sleep-stage rules that the rule-based
+model encodes. We especially thank Mie Andersen, Rebeka Kovács, Klaudia Anna
+Tokarska, and Anastasia Tsopanidou, who have used the
+application the longest and given feedback consistently throughout its
+development. We also thank the other users whose feedback and feature requests
+shaped the application: at the University of Copenhagen, Katharina Franziska
+Baumgart, Antonia Benita Beiersdorfer, Julia Johanna Berger, Zuzanna
+Bojarowska, Jaspreet Kaur Daniil, Saiyue Deng, Stefanie Gregoriades, Natalie
+Linea Hauglund, Elise Schiøler Nielsen, Laurence Vince Riesselmann, Katia
+Soud, and Yingshan Wang; and at the University of Rochester, Ziru Deng, Tianyi
+Tong, and Jianbo Wang. We thank Douglas Kelley for supervising this work, Verena Untiet for
+leading the Copenhagen group, and Maiken Nedergaard for leading the
+BrainFlowZZZ program.
+
+<!-- The funding sentence above is the PI-approved wording and should be
+kept verbatim. Names (2026-10-16) are from the user consensus so far; the
+Copenhagen users are running a poll, so the user list may grow. Names are
+alphabetical by surname within each group. The "especially thank" group
+must meet both criteria (longest-term use AND consistent feedback); several
+other users meet one, so don't add anyone on one alone (assumed surnames: Daniil,
+Schiøler Nielsen); check spelling and diacritics with each person.
+TODO(authors): confirm whether Douglas Kelley meets the JOSS authorship bar
+(active project direction) and belongs in the author list instead. -->
+
+<!-- TODO: thank data and model contributors by name, if separate from the
+people above. -->
 
 # References
