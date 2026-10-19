@@ -15,6 +15,41 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-19
+
+### Manuscript title, acknowledgments, and branch sync (Claude Code, Claude Opus 5.5; effort not reported; 15M token budget)
+
+- Retitled the paper (2026-10-18) to "Visualizing and annotating rodent
+  sleep recordings ..." to match the Software design wording; "review and
+  correction" described only fixing existing labels. `CITATION.cff` follows
+  the paper; the Zenodo bib entry keeps the archived title until the next
+  release so the reference stays accurate to the record.
+- Acknowledgments: users in alphabetical order by surname within each site,
+  so the order implies no ranking. A separate "especially thank" clause names
+  four users who meet two criteria: among the earliest users (a matter of
+  record) and extensive one-on-one feedback (only the maintainer can
+  confirm). Wording chosen to avoid disputes over who is included. Verena
+  Untiet is thanked for the rules and for leading the Copenhagen group, not
+  as a user. The list may grow after the Copenhagen users' poll.
+- Authorship: after reviewing the JOSS criteria, the maintainer remains the
+  sole person qualified as an author.
+- `paszke2019pytorch`: Crossref and the NeurIPS proceedings page list no DOI;
+  title, authors, volume, and year match the proceedings page, whose URL was
+  added. Accepted without a DOI.
+- Interface-server paragraph split by the maintainer's review: decimation
+  first, then the responsiveness principle, the stock update path, the user
+  lag, and the fix. The lag is placed beside the stock path, not claimed as
+  its proven cause, because the 935 ms baseline was not stock Plotly
+  Resampler.
+- Fast-forwarded `dev` and `main` to `publication` at `f447167` and pushed;
+  GitHub accepted the direct dev push under the maintainer bypass of its
+  pull-request rule. This treaty-docs follow-up is synchronized the same way.
+- Verification: CITATION packaging tests (`pytest -q
+  tests/test_full_release_packaging.py tests/test_update_asset_packaging.py`:
+  39 passed, 2 skipped); `git diff --check`; Crossref API search and the
+  NeurIPS proceedings page for the PyTorch entry; `git ls-remote --heads`
+  for `publication`, `dev`, and `main`.
+
 ## 2026-10-16
 
 ### PI manuscript comments and interval-review wording (Codex, GPT-6; effort/token budget not reported)

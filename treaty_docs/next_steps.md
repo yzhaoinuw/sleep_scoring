@@ -21,8 +21,8 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
 - JOSS revision is active on `publication`, synchronized with `dev` and `main`
-  through v0.17.6, including the current manuscript and change-penalized
-  calibration objective. Zenodo archival is verified.
+  through v0.17.6, and again on 2026-10-19 after the title, acknowledgments,
+  and design-text revisions. Zenodo archival is verified.
   Replacement workflow snapshots and composed panels are integrated. Maintainer review
   and a decision on figure text legibility remain open; the Windows and macOS latency results
   are in the Research impact statement. See `paper/README.md` for the
@@ -167,10 +167,16 @@ author confirmation. See `paper/README.md` for its status. Open items:
 - Software name settled on 2026-10-07: "Sleep Scoring App" in the paper
   title and `CITATION.cff` (repository and package stay `sleep_scoring`).
   The `CITATION.cff` abstract follows the paper's Summary. The v0.17.5
-  Zenodo archive uses the updated software title.
-- Resolve the inline `TODO`s: Kjaerby/Hauglund framing, publications scored
-  with the app once they appear, competitor characterizations, and final
-  author review for the AI disclosure. Users' total hours (~1,200 h from five
+  Zenodo archive uses the updated software title. On 2026-10-18 the paper
+  subtitle changed to "Visualizing and annotating rodent sleep recordings
+  with synchronized electrophysiology, photometry, and behavior video" in
+  `paper.md` and `CITATION.cff`; the `sleepscoring_zenodo` bib entry keeps
+  the archived title. After the next release, confirm Zenodo shows the new
+  title and update that bib entry.
+- Resolve the inline `TODO`s: Kjaerby/Hauglund framing, competitor
+  characterizations, and final author review for the AI disclosure.
+  Publications were checked on 2026-10-18: none to name yet, so the impact
+  section cites posters only; add any that appear before submission. Users' total hours (~1,200 h from five
   users) and the build-vs-contribute rationale were resolved on 2026-10-14/15.
 - First current-release latency session captured on 2026-10-08; keyboard
   navigation has 34 retained updates (median 329.3 ms, p95 371.2 ms) at a
@@ -196,21 +202,26 @@ author confirmation. See `paper/README.md` for its status. Open items:
   placed in `paper.md` (body about 1,725 words with captions; about 25 words
   of headroom in the earlier draft). After the 2026-10-14 text review the body
   is about 1,665 words of running text, or about 1,740 counting headings and
-  rendered citations; treat the stricter count as binding. The `JOSS draft PDF` workflow renders the paper as a run
+  rendered citations; treat the stricter count as binding. As of 2026-10-18
+  it is about 1,730 words of running text excluding Acknowledgments (about
+  150 more if counted). The `JOSS draft PDF` workflow renders the paper as a run
   artifact; in-app text in the figures is only legible zoomed, so decide
   whether to retake the snapshots with a smaller window. A public example
   recording remains open.
-- Fill the remaining `paper.md` TODOs: affiliation, and the Acknowledgments
-  (PI, recording/feedback contributors, sDREAMER developers; keep the approved
-  funding sentence). The paper stays single-author unless someone meets the
-  JOSS bar (code or active project direction); the maintainer decided on
-  2026-10-08 not to add the PI for now.
-- Before submission, settle credit for the default scorer's rules: Project 2
-  researchers agreed them as a group (relayed through a few people); the
-  maintainer built the adaptation and everything else. Decide authorship
-  with the PI and those researchers (users have suggested names). The
-  rules' origin is credited in the paper text since 2026-10-15, citing
-  Kjaerby et al. 2022 for the stage criteria.
+- Fill the remaining `paper.md` TODOs: confirm or expand the affiliation,
+  and finish Acknowledgments. Its first pass (2026-10-18) names the rule
+  contributors, the users, the supervisor, the Copenhagen group leader, and
+  the program PI. Still open: names from the Copenhagen users' poll,
+  spelling and diacritics checks, and whether to thank the sDREAMER
+  developers (already cited) or recording suppliers by name. Keep the
+  approved funding sentence verbatim.
+- Authorship settled on 2026-10-18: after reviewing the JOSS criteria, the
+  maintainer remains the sole person qualified as an author.
+- Before submission, confirm the credit list for the default scorer's rules
+  is complete: Project 2 researchers agreed them as a group (relayed through
+  a few people). Acknowledgments names the four researchers users
+  identified; the paper text cites Kjaerby et al. 2022 for the stage
+  criteria.
 - Verify every claim in the paper against the current shipped app.
 - Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
   reviewers: name one or two external adopters (in Acknowledgments or a
