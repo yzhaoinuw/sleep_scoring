@@ -251,7 +251,7 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
   as usual for NeurIPS proceedings). On 2026-10-18 it was checked against the
   [NeurIPS proceedings page](https://proceedings.neurips.cc/paper/2019/hash/bdbca288fee7f92f2bfa9f7012727740-Abstract.html)
   instead, and that URL was added to the entry.
-- **Acknowledgments (updated 2026-10-19).** Names the six researchers
+- **Acknowledgments (updated 2026-10-19).** Names the seven researchers
   who helped define the sleep-stage rules; especially thanks four of the
   earliest users, who gave extensive one-on-one feedback; lists the other
   users at Copenhagen and Rochester alphabetically; and thanks the
@@ -288,7 +288,7 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
   minimum bout lengths) were agreed by Project 2 researchers as a group and
   passed on through a few people; the maintainer designed and built the
   adaptive parameter fitting and the rest of the software. Acknowledgments
-  currently names the six researchers users identified. Software design,
+  currently names the seven researchers users identified. Software design,
   section 3 cites Kjaerby et al. 2022 for the stage criteria; that paper
   defines the stages but not the app's numeric thresholds, so the citation
   stays at that level.

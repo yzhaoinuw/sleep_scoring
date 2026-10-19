@@ -17,6 +17,14 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-19
 
+### Additional sleep-stage-rule contributor (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer identified Jingyuan Chen as another contributor to the sleep-stage
+  rules. Added him in surname order and updated the current count to seven.
+- Verification: scoped diff review and `git diff --check`; the supplied review
+  PDF remains for the maintainer to refresh from the new JOSS build artifact.
+  Deliver through the existing publication/dev/main workflow.
+
 ### Acknowledgment name corrections (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer corrected the user name to Jaspreet Kaur and added Shadi Sartipi

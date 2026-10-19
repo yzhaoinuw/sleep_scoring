@@ -305,8 +305,8 @@ the software and cited sources.
 This work was supported by the BRAIN Initiative of the US National Institutes
 of Health (U19NS128613).
 
-We thank Mie Andersen, Natalie Linea Hauglund, Shadi Sartipi, Anastasia
-Tsopanidou, Verena Untiet, and Yuan Yao for helping define the sleep-stage
+We thank Mie Andersen, Jingyuan Chen, Natalie Linea Hauglund, Shadi Sartipi,
+Anastasia Tsopanidou, Verena Untiet, and Yuan Yao for helping define the sleep-stage
 rules that the rule-based model encodes. We especially thank Mie Andersen,
 Rebeka Kovács, Klaudia Anna Tokarska, and Anastasia Tsopanidou, who were among
 the application's earliest users and gave extensive one-on-one feedback.

@@ -219,7 +219,7 @@ author confirmation. See `paper/README.md` for its status. Open items:
   maintainer remains the sole person qualified as an author.
 - Before submission, confirm the credit list for the default scorer's rules
   is complete: Project 2 researchers agreed them as a group (relayed through
-  a few people). Acknowledgments names the six researchers users
+  a few people). Acknowledgments names the seven researchers users
   identified; the paper text cites Kjaerby et al. 2022 for the stage
   criteria.
 - Verify every claim in the paper against the current shipped app.
