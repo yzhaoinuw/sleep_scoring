@@ -18,7 +18,7 @@ authors:
     corresponding: true
     affiliation: 1
 affiliations:
-  - name: University of Rochester, Rochester, NY, USA   # TODO: confirm/expand
+  - name: University of Rochester, Rochester, NY, USA
     index: 1
 date: 14 October 2026
 bibliography: paper.bib

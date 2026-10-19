@@ -1,4 +1,4 @@
-# Sleep Scoring
+# Sleep Scoring App
 
 [![Agent Collab Treaty](https://raw.githubusercontent.com/yzhaoinuw/agent_collab_treaty/main/assets/treaty-adopted.svg)](https://github.com/yzhaoinuw/agent_collab_treaty)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21748494-blue.svg)](https://doi.org/10.5281/zenodo.21748494)

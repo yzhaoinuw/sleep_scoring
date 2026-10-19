@@ -23,10 +23,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - JOSS revision is active on `publication`, synchronized with `dev` and `main`
   through v0.17.6, and again on 2026-10-19 after the title, acknowledgments,
   and design-text revisions. Zenodo archival is verified.
-  Replacement workflow snapshots and composed panels are integrated. Maintainer review
-  and a decision on figure text legibility remain open; the Windows and macOS latency results
-  are in the Research impact statement. See `paper/README.md` for the
-  measurement protocol and claims awaiting author confirmation.
+  Replacement workflow snapshots and composed panels are integrated; the
+  maintainer closed the figure print-legibility item on 2026-10-19.
+  See `paper/README.md` for the remaining author checks and submission tasks.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
@@ -205,13 +204,14 @@ author confirmation. See `paper/README.md` for its status. Open items:
   rendered citations; treat the stricter count as binding. As of 2026-10-18
   it is about 1,730 words of running text excluding Acknowledgments (about
   150 more if counted). The `JOSS draft PDF` workflow renders the paper as a run
-  artifact; in-app text in the figures is only legible zoomed, so decide
-  whether to retake the snapshots with a smaller window. A public example
-  recording remains open.
-- Fill the remaining `paper.md` TODOs: confirm or expand the affiliation,
-  and finish Acknowledgments. Its first pass (2026-10-18) names the rule
-  contributors, the users, the supervisor, the Copenhagen group leader, and
-  the program PI. Still open: names from the Copenhagen users' poll,
+  artifact. Keep the checked-in review PDF and its paper README link current
+  after every manuscript, bibliography, or figure edit. The maintainer closed
+  the print-legibility item on 2026-10-19. A public example recording remains
+  open.
+- Affiliation confirmed by the maintainer on 2026-10-19. Fill the remaining
+  `paper.md` TODOs and finish Acknowledgments. Its first pass (2026-10-18)
+  names the rule contributors, the users, the supervisor, the Copenhagen group
+  leader, and the program PI. Still open: names from the Copenhagen users' poll,
   spelling and diacritics checks, and whether to thank the sDREAMER
   developers (already cited) or recording suppliers by name. Keep the
   approved funding sentence verbatim.

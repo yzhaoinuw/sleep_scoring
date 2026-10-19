@@ -17,6 +17,65 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-19
 
+### Review-copy delivery and affiliation confirmation (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer confirmed the University of Rochester affiliation. Checked it
+  off in the paper README, removed the resolved metadata TODO comment, and
+  updated next steps. Rendered manuscript text and the supplied PDF are
+  unchanged. The PDF refresh reminder is temporary and stays in the paper
+  README; removed it from `AGENTS.md` as requested.
+- Maintainer authorized committing/pushing all pending review-copy and naming
+  documentation changes, then integrating publication into `dev` and `main`.
+  Fetched refs confirm all three remote branches start at `ab0cf66`; local
+  dev/main can fast-forward through those earlier synchronized revisions.
+- Verification: checklist assertions, absence of the temporary AGENTS reminder,
+  PDF link target, unchanged supplied-PDF SHA-256, and `git diff --check` passed.
+  Push and verify local/tracking/remote ref equality after this commit; inspect
+  the automatic PDF/CI builds before handoff.
+
+### Checked-in manuscript PDF for collaborator review (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer supplied `paper/Sleep_Scoring_App_JOSS_Manuscript_2026-10-18.pdf`
+  and requested a tracked copy so collaborators can review it directly. Link
+  the PDF prominently from the paper README. Keep the source authoritative,
+  retain one current dated PDF, and use Git history for previous versions.
+- After any manuscript-text, bibliography, or figure edit, regenerate the JOSS
+  PDF, replace the previous copy, update the README link, and include it with
+  the source changes when sharing updates for review. Keep this temporary
+  reminder in the paper README, outside `AGENTS.md`, per the maintainer's
+  clarification. The existing workflow only uploads an artifact and does not
+  refresh the checked-in PDF automatically.
+- Verification: `pypdf` opens all seven pages, the first-page title matches
+  the current manuscript, and there are no review annotations. The supplied
+  PDF is unchanged (SHA-256
+  `f9011804172b466f6752cceb222391a925d0e8f3e09020c30dfd9631a4aa86b7`).
+  `git diff --check` and the README link target check passed. PDF staged for
+  addition; maintainer subsequently authorized commit/push and integration
+  into `dev` and `main`.
+
+### Release-title cleanup and README naming (Codex, GPT-6; effort/token budget not reported)
+
+- Normalized seven published GitHub release display titles to their existing
+  tags: v0.17.6, v0.17.5, v0.17.4, v0.17.2, v0.13.0, v0.12.0, and v0.4.
+  All 27 published release titles now equal their tag names. Saved public
+  before/after API snapshots in ignored
+  `.pytest_tmp/release-title-audit-2026-10-19/`.
+- Maintainer closed the paper README's print-legibility item. Root README now
+  uses "Sleep Scoring App". Retained the repository URL: GitHub supports
+  renaming with redirects, but the updater reads only the first redirect and
+  expects a release-tag URL, so an additional repository-rename redirect could
+  disrupt existing update discovery. A slug migration needs separate updater
+  compatibility verification; changing the README title satisfies the present
+  branding request without a repository migration.
+- Fetched publication `ab0cf66` and retained both its 2026-10-19 work-log entry
+  and the local 2026-10-18 naming-policy entry during integration.
+- Verification: read back all releases and compared IDs, tags, targets,
+  publication dates, notes, flags, and asset identities/digests with the saved
+  snapshot; remote tag refs are unchanged. Inspected updater redirect handling
+  and GitHub's repository-renaming guidance. `git diff --check` passed after
+  resolving the documentation-only overlap. README and naming-policy changes
+  remain local on `publication`.
+
 ### Manuscript title, acknowledgments, and branch sync (Claude Code, Claude Opus 5.5; effort not reported; 15M token budget)
 
 - Retitled the paper (2026-10-18) to "Visualizing and annotating rodent
@@ -49,6 +108,27 @@ search older entries by date anchor rather than reading every archive.
   39 passed, 2 skipped); `git diff --check`; Crossref API search and the
   NeurIPS proceedings page for the PyTorch entry; `git ls-remote --heads`
   for `publication`, `dev`, and `main`.
+
+## 2026-10-18
+
+### Consistent GitHub release naming (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer requested a simple documented naming convention after recent
+  GitHub display titles drifted. Live release history confirms stable version
+  tags but three title styles: version alone, version plus summary, and app
+  name plus version with or without a summary. No project rule covered titles.
+- Adopt exact version/tag equality for GitHub release titles, e.g. `v0.17.6`;
+  put a sentence naming the app and describing the changes in release notes.
+  Document the rule in `AGENTS.md` and `packaging/windows/README.md`, including
+  explicit `--title $Version` and post-publication title/tag read-back.
+  Keep recognizable app names in downloads and preserve the frozen updater's
+  filename contract. Citation/Zenodo software titles remain descriptive.
+- Fetched and fast-forwarded the clean publication checkout to `f447167`,
+  including the maintainer's finalized manuscript revisions. Only release
+  guidance and this record are edited; published releases are unchanged.
+- Verification: authenticated `gh release list`/`gh release view`, GitHub's
+  release-management and CLI documentation, review of existing packaging names,
+  and `git diff --check`. Documentation remains local on `publication`.
 
 ## 2026-10-16
 

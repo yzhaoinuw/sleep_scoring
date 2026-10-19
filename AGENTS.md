@@ -54,6 +54,12 @@ committed, and either delivered or intentionally parked. See
 
 ## Release / Tag Checklist
 
+Use the exact version tag as the GitHub release title, for example `v0.17.6`.
+Put the app name and change summary in the release notes, not the title.
+Pass `--title $Version` explicitly when publishing with `gh`; see
+[Release Naming](packaging/windows/README.md#release-naming) for the complete
+convention and the separate download-filename rules.
+
 Treat any request combining commit, push, and tag—or asking to publish/cut a
 release—as release work. Before creating or pushing a tag:
 

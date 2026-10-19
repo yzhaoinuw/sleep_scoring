@@ -3,6 +3,35 @@
 These scripts keep the current zip-based user workflow, while making the build
 steps repeatable and easier to audit.
 
+## Release Naming
+
+Use the version alone as the GitHub release title, exactly matching its tag.
+This is the project convention for both full packages and compatible updates.
+
+| Item | Convention | Example |
+| --- | --- | --- |
+| Git tag | Exact app version, including `v` | `v0.17.6` |
+| GitHub release title | Identical to the tag | `v0.17.6` |
+| Release notes | Start with a sentence naming the app and summarizing the changes | `Sleep Scoring App v0.17.6 improves calibration stability.` |
+| Full Windows ZIP | App name, major/minor line, and `_full` suffix | `sleep_scoring_app_v0.17_full.zip` |
+| Automatic update ZIP | Existing updater-compatible name and exact version | `sleep_scoring_app_update_v0.17.6.zip` |
+
+Keep descriptive subtitles, codenames, and full/partial labels out of the release
+title. Describe changes, compatibility, and installation in the release notes.
+The download filenames retain the app name so users can identify files outside
+GitHub. Keep the current automatic-update filename pattern: it is part of the
+installed updater's discovery contract. Full-ZIP and checksum details are
+documented below.
+
+When publishing with `gh release create`, explicitly pass the same version to
+the tag argument and `--title`, using `--title $Version` even when generating
+release notes automatically. Verify `tagName` and `name` agree with
+`gh release view $Version --json tagName,name` after publishing.
+
+This naming rule concerns GitHub releases. Software titles in `CITATION.cff`
+and Zenodo remain descriptive citation metadata. Existing release-title cleanup
+is separate from creating or moving tags or renaming assets.
+
 ## Full App Zip
 
 Use this when dependencies, `_internal/`, `run_desktop_app.exe`, `models/`, the

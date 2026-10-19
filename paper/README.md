@@ -2,6 +2,11 @@
 
 **Status: active revision, not submission-ready** (updated 2026-10-18).
 
+**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-18.pdf).
+This checked-in draft is provided for collaborators to read and comment on.
+Whenever the manuscript text, bibliography, or figures change, refresh this PDF
+and its link as described under [Rendering the PDF](#rendering-the-pdf).
+
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
 for Sleep Scoring App (repository and package name: `sleep_scoring`).
 Inline `TODO` comments in `paper.md` mark claims awaiting author
@@ -46,6 +51,7 @@ section explains choices that may look unusual but are required by JOSS.
 
 ## Contents
 
+- The dated review PDF linked above — the rendered manuscript for collaborators.
 - `paper.md` — the paper body (Summary, Statement of need, State of the field,
   Software design, Research impact statement, AI usage disclosure,
   Acknowledgments, References).
@@ -171,7 +177,17 @@ draft-PDF GitHub Action or the `openjournals/inara` Docker image. The
 repository's `JOSS draft PDF` workflow (`.github/workflows/draft-pdf.yml`)
 runs on every push that touches `paper/` and can also be started by hand;
 download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
-(the date is that of the commit it was built from). The PDF is not committed.
+(the date is that of the commit it was built from).
+
+**Maintainer reminder:** after every edit to the manuscript text (`paper.md`),
+bibliography (`paper.bib`), or figures, regenerate the PDF with the JOSS
+toolchain and replace the checked-in review copy. Use the new build's dated
+filename, update the review link at the top of this README, and include the
+refreshed PDF when sharing the manuscript changes for review. Keep only the
+current review PDF in this directory; Git history retains earlier versions.
+The workflow creates a downloadable artifact but does not automatically refresh
+the checked-in copy. The Markdown, bibliography, and figure sources remain
+authoritative.
 
 ## What is done
 
@@ -248,7 +264,7 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
 
 ### Figures
 
-- [ ] Decide whether print legibility of the in-app text matters enough to
+- [x] Decide whether print legibility of the in-app text matters enough to
   retake the snapshots with a smaller window (larger relative text).
 - [ ] Publish a public example recording reviewers can open in the app.
 
@@ -276,7 +292,7 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
   section 3 cites Kjaerby et al. 2022 for the stage criteria; that paper
   defines the stages but not the app's numeric thresholds, so the citation
   stays at that level.
-- [ ] Confirm or expand the University of Rochester affiliation.
+- [x] Confirm or expand the University of Rochester affiliation.
 - [ ] Acknowledgments: add names from the Copenhagen users' poll, check
   each name's spelling and diacritics (and the assumed surnames Daniil and
   Schiøler Nielsen), and decide whether to thank anyone who supplied

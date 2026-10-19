@@ -1,7 +1,7 @@
 name: JOSS draft PDF
 
 # Renders paper/paper.md with the JOSS toolchain. The PDF is uploaded as a
-# workflow artifact, not committed.
+# workflow artifact. The maintainer refreshes the checked-in review PDF separately.
 on:
   push:
     paths:
