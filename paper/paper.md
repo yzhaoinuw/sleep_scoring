@@ -1,5 +1,5 @@
 ---
-title: 'Sleep Scoring App: Interactive review and correction of rodent sleep annotations with synchronized electrophysiology, photometry, and behavior video'
+title: 'Sleep Scoring App: Visualizing and annotating rodent sleep recordings with synchronized electrophysiology, photometry, and behavior video'
 tags:
   - Python
   - sleep
@@ -17,8 +17,6 @@ authors:
     orcid: 0000-0002-0819-5012
     corresponding: true
     affiliation: 1
-  # TODO: add co-authors only if they meet the JOSS authorship bar (code, or
-  # active project direction); supplying data alone goes in Acknowledgments.
 affiliations:
   - name: University of Rochester, Rochester, NY, USA   # TODO: confirm/expand
     index: 1
@@ -170,19 +168,20 @@ multi-hour recording, so the application decimates long signals on demand
 with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
 [@vanderdonckt2022plotlyresampler]: the server keeps the full-resolution
 signals and sends the interface only enough points to draw the visible
-range, so zooming in or panning needs new data from the server. {% Yue comment: I suggest we reassess the cause and effect here and possibly rearrange the order of the sentences. My understanding is that there are two problems/solutions here. one is decimation of data points to reduce burden on server and server-interface communication load. the second is to wait for rapid, consecutive interactions to settle before requesting server-interface communication. We need to make it clear rather than mixing the two. For example, I'd suggest rearranging like so: "Given that the communications between the interface and the server add delay, our principle for responsiveness is to keep everything on the interface, unless the interaction absolutely requires data that's only on the server. However, Plotly Resampler's stock update path requests that data on every zoom or pan event, which can fall behind continuous movement. And users of earlier versions indeed reported that, during navigation, experiencing lags of one to two seconds, which disrupted scoring. Out solution is to replace that path: while the user zooms or pans continuously, the application waits for the movement to pause before requesting new traces, drops requests already overtaken by newer movement, and swaps in only the changed trace data rather than redrawing the figure. Applying a label needs no server round trip." So mostly rearranging sentences to group them more logically. some rewording as needed, as a result of the rearrangement.% In feedback
-sessions, users of earlier versions experienced lags of one to two seconds
-while navigating, which disrupted scoring. The library's stock update path
-requests that data on every zoom or pan event, which can fall behind
-continuous movement. We replaced that path, following one principle for
-responsiveness: anything that responds directly to the user's hand runs in
-the interface, because each round trip to the server adds delay, and the
-server is asked only for signal data the interface does not yet have.
-Zooming, panning, selecting, and labeling therefore run in the interface.
-While the user zooms or pans continuously, the application waits for the
-movement to pause before requesting new traces, drops requests already
-overtaken by newer movement, and swaps in only the changed trace data rather
-than redrawing the figure. Applying a label needs no server round trip.} 
+range, so zooming in or panning needs new data from the server.
+
+Because each round trip to the server adds delay, we followed one principle
+for responsiveness: interactions run in the interface, and the server is
+asked only for signal data the interface does not yet have. Selecting and
+labeling therefore run in the interface. Zooming and panning must involve
+the server, because the refreshed traces come from there. Plotly Resampler's
+stock update path requests refreshed traces on every zoom or pan event,
+which compounds the delay during continuous movement. Users of earlier
+versions reported lags of one to two seconds while navigating, which
+disrupted scoring. We replaced that path: while the user zooms or pans
+continuously, the application waits for the movement to pause before
+requesting new traces, drops requests already overtaken by newer movement,
+and swaps in only the changed trace data rather than redrawing the figure.
 
 In manual timing tests on a 2.86-hour recording with v0.17.4, the median time
 from a navigation request to refreshed traces on a Windows laptop was 212 ms
@@ -279,8 +278,9 @@ with the application have been presented in conference posters.
 <!-- Source: replies from five users, 2026-10-15/16: ~300 h, ~300 h, ~250 h,
 ~200 h, and 50-100 recordings at a typical ~3 h (150-300 h); about
 1,200-1,350 h in total. No publications or datasets from these scores yet, and no known users
-outside the program. TODO(authors): name studies, preprints, or datasets
-scored with the app once published. -->
+outside the program. As of 2026-10-18 there are no published studies,
+preprints, or datasets to name; add them only if one appears before
+submission. -->
 The repository provides releases, documentation, tests, demonstration
 videos, and archived versions [@sleepscoring_zenodo].
 
@@ -308,27 +308,25 @@ of Health (U19NS128613).
 We thank Mie Andersen, Natalie Linea Hauglund, Anastasia Tsopanidou, and
 Verena Untiet for helping define the sleep-stage rules that the rule-based
 model encodes. We especially thank Mie Andersen, Rebeka Kovács, Klaudia Anna
-Tokarska, and Anastasia Tsopanidou, who have used the
-application the longest and given feedback consistently throughout its
-development. We also thank the other users whose feedback and feature requests
-shaped the application: at the University of Copenhagen, Katharina Franziska
-Baumgart, Antonia Benita Beiersdorfer, Julia Johanna Berger, Zuzanna
-Bojarowska, Jaspreet Kaur Daniil, Saiyue Deng, Stefanie Gregoriades, Natalie
-Linea Hauglund, Elise Schiøler Nielsen, Laurence Vince Riesselmann, Katia
-Soud, and Yingshan Wang; and at the University of Rochester, Ziru Deng, Tianyi
-Tong, and Jianbo Wang. We thank Douglas Kelley for supervising this work, Verena Untiet for
-leading the Copenhagen group, and Maiken Nedergaard for leading the
-BrainFlowZZZ program.
+Tokarska, and Anastasia Tsopanidou, who were among the application's earliest
+users and gave extensive one-on-one feedback. We also thank the other users
+whose feedback and feature requests shaped the application: at the University
+of Copenhagen, Katharina Franziska Baumgart, Antonia Benita Beiersdorfer,
+Julia Johanna Berger, Zuzanna Bojarowska, Jaspreet Kaur Daniil, Saiyue Deng,
+Stefanie Gregoriades, Natalie Linea Hauglund, Elise Schiøler Nielsen, Laurence
+Vince Riesselmann, Katia Soud, and Yingshan Wang; and at the University of
+Rochester, Ziru Deng, Tianyi Tong, and Jianbo Wang. We thank Douglas Kelley
+for supervising this work, Verena Untiet for leading the Copenhagen group, and
+Maiken Nedergaard for leading the BrainFlowZZZ program.
 
 <!-- The funding sentence above is the PI-approved wording and should be
 kept verbatim. Names (2026-10-16) are from the user consensus so far; the
 Copenhagen users are running a poll, so the user list may grow. Names are
 alphabetical by surname within each group. The "especially thank" group
-must meet both criteria (longest-term use AND consistent feedback); several
-other users meet one, so don't add anyone on one alone (assumed surnames: Daniil,
-Schiøler Nielsen); check spelling and diacritics with each person.
-TODO(authors): confirm whether Douglas Kelley meets the JOSS authorship bar
-(active project direction) and belongs in the author list instead. -->
+must meet both criteria: among the earliest users (a matter of record; some
+have since left for other groups) AND extensive one-on-one feedback (only
+Yue can confirm this). Don't add anyone on one alone (assumed surnames: Daniil,
+Schiøler Nielsen); check spelling and diacritics with each person. -->
 
 <!-- TODO: thank data and model contributors by name, if separate from the
 people above. -->

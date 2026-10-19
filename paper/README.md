@@ -1,6 +1,6 @@
 # JOSS Paper Draft — Under Construction
 
-**Status: active revision, not submission-ready** (updated 2026-10-15).
+**Status: active revision, not submission-ready** (updated 2026-10-18).
 
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
 for Sleep Scoring App (repository and package name: `sleep_scoring`).
@@ -74,9 +74,10 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** As of 2026-10-15 the body (captions included,
-  front matter and comments excluded) is about 1,700 words of running text,
-  or about 1,750 counting headings and more with rendered citations. Treat
+- **750–1,750 words.** As of 2026-10-18 the body (captions included,
+  front matter, comments, and Acknowledgments excluded) is about 1,730 words
+  of running text, and more with headings and rendered citations;
+  Acknowledgments add about 150 if counted. Treat
   the stricter count as binding: the draft is at the limit, so new material
   has to replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
@@ -214,11 +215,34 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
   2026-10-15/16: about 1,200 hours of recordings in total, from a channel of
   about 30 members, with results presented in conference posters. The
   per-user breakdown is in a comment in `paper.md`.
-- **Zenodo title.** Zenodo v0.17.6 uses the paper's title, and
-  `sleepscoring_zenodo` in `paper.bib` matches the archived title and year
-  (verified 2026-10-15,
+- **Zenodo title.** `sleepscoring_zenodo` in `paper.bib` matches the title
+  and year archived in Zenodo v0.17.6 (verified 2026-10-15,
   [version DOI](https://doi.org/10.5281/zenodo.23385811)). The bibliography
   keeps the concept DOI so it resolves to the latest archived release.
+- **Paper title.** Changed on 2026-10-18 to "Visualizing and annotating
+  rodent sleep recordings with synchronized electrophysiology, photometry, and
+  behavior video", matching the Software design wording, in `paper.md` and
+  `CITATION.cff`. The bib entry keeps the archived (old) title until the next
+  release.
+- **Calibrator release.** The change-penalized calibrator is released in
+  v0.17.6 and archived by Zenodo (DOI `10.5281/zenodo.23385811`, verified
+  2026-10-15).
+- **Research impact publications.** Checked 2026-10-18: no studies,
+  preprints, or datasets scored with the app are published yet, so the
+  section cites conference posters only. Add any that appear before
+  submission.
+- **PyTorch reference.** `paszke2019pytorch` has no DOI (Crossref has none,
+  as usual for NeurIPS proceedings). On 2026-10-18 it was checked against the
+  [NeurIPS proceedings page](https://proceedings.neurips.cc/paper/2019/hash/bdbca288fee7f92f2bfa9f7012727740-Abstract.html)
+  instead, and that URL was added to the entry.
+- **Acknowledgments (first pass, 2026-10-18).** Names the four researchers
+  who helped define the sleep-stage rules; especially thanks four of the
+  earliest users, who gave extensive one-on-one feedback; lists the other
+  users at Copenhagen and Rochester alphabetically; and thanks the
+  supervisor, the Copenhagen group leader, and the program PI. The funding
+  sentence is unchanged.
+- **Authorship.** After reviewing the JOSS criteria, Yue Zhao remains the
+  sole person qualified as an author.
 
 ## What is still open
 
@@ -237,41 +261,34 @@ download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
   SPINDLE, Somnotate, and Visbrain against the cited papers and current
   documentation, including epoch-length options. Add commercial packages only
   with a citable source.
-- [ ] **Research impact publications.** Name studies, preprints, or datasets
-  scored with the app once published (none yet; results so far are
-  conference posters, without titles on hand).
 - [ ] **AI usage disclosure.** Confirm that author review of the manuscript
   is complete.
 
 ### Authors and metadata
 
-- [ ] **Credit for the scoring rules (resolve before submission).** The
+- [ ] **Credit for the scoring rules (resolve before submission).** Confirm
+  that the list of people thanked for the sleep-stage rules is complete. The
   default scorer's rules (Wake from 1–7 Hz EEG power, REM from an NE dip,
   minimum bout lengths) were agreed by Project 2 researchers as a group and
-  passed on through a few people. The maintainer designed and built the
-  adaptive parameter fitting and the rest of the software. Decide with the PI
-  and those researchers whether anyone is a co-author; users have suggested
-  names. The paper now says where the rules came from: Software design,
-  section 3 says they encode the stage criteria used in Project 2, citing
-  Kjaerby et al. 2022, which a user suggested. That paper defines the stages
-  but not the app's numeric thresholds, so the citation stays at that level.
-- [ ] Co-authors: the maintainer developed the software largely
-  independently, so the paper is currently single-author. Add someone only if
-  they meet the JOSS bar above (code, or active project direction), with
-  their affiliation and ORCID. Confirm or expand the University of Rochester
-  affiliation.
-- [ ] Acknowledgments: thank the PI, the users who supplied recordings and
-  feedback, and the sDREAMER developers by name. Keep the approved funding
-  sentence verbatim.
+  passed on through a few people; the maintainer designed and built the
+  adaptive parameter fitting and the rest of the software. Acknowledgments
+  currently names the four researchers users identified. Software design,
+  section 3 cites Kjaerby et al. 2022 for the stage criteria; that paper
+  defines the stages but not the app's numeric thresholds, so the citation
+  stays at that level.
+- [ ] Confirm or expand the University of Rochester affiliation.
+- [ ] Acknowledgments: add names from the Copenhagen users' poll, check
+  each name's spelling and diacritics (and the assumed surnames Daniil and
+  Schiøler Nielsen), and decide whether to thank anyone who supplied
+  recordings or the sDREAMER developers (already cited) by name. Keep the
+  approved funding sentence verbatim.
 - [ ] Update the manuscript date when the revision is finalized (set to
   14 October 2026 during the text review).
 
 ### Release and final checks
 
-- [x] Release the change-penalized calibrator and confirm Zenodo archived it:
-  v0.17.6, DOI `10.5281/zenodo.23385811`, verified 2026-10-15.
-- [ ] `paszke2019pytorch` has no DOI. NeurIPS proceedings papers often lack
-  one, so this may be acceptable, but Crossref cannot confirm it.
+- [ ] After the next release, confirm Zenodo shows the new title, then
+  update the `sleepscoring_zenodo` title in `paper.bib` to match.
 - [ ] Review the final rendered PDF in full, including the generated
   references.
 
