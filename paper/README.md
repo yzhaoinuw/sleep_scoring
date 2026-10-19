@@ -3,9 +3,9 @@
 **Status: active revision, not submission-ready** (updated 2026-10-18).
 
 **Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-18.pdf).
-This checked-in draft is provided for collaborators to read and comment on.
-Whenever the manuscript text, bibliography, or figures change, refresh this PDF
-and its link as described under [Rendering the PDF](#rendering-the-pdf).
+The JOSS manuscript PDF is already included in `paper/` for collaborators to
+read and comment on. Open the link above to review it. Yue maintains this copy;
+the download and refresh steps below are for the maintainer only.
 
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
 for Sleep Scoring App (repository and package name: `sleep_scoring`).
@@ -22,7 +22,8 @@ calibrator released in v0.17.6 and archived by Zenodo
 ([version DOI](https://doi.org/10.5281/zenodo.23385811), verified 2026-10-15).
 The software citation now resolves to a release containing this behavior.
 
-**Collaborators reviewing the manuscript:** start with
+**Collaborators reviewing the manuscript:** read the included PDF linked above,
+then start with
 [What is still open](#what-is-still-open), especially
 [Claims the authors said they would verify](#claims-the-authors-said-they-would-verify)
 and [Authors and metadata](#authors-and-metadata). Those items need your
@@ -51,7 +52,8 @@ section explains choices that may look unusual but are required by JOSS.
 
 ## Contents
 
-- The dated review PDF linked above — the rendered manuscript for collaborators.
+- The dated review PDF linked above — the JOSS manuscript already included in
+  this directory for collaborators.
 - `paper.md` — the paper body (Summary, Statement of need, State of the field,
   Software design, Research impact statement, AI usage disclosure,
   Acknowledgments, References).
@@ -148,7 +150,7 @@ and leaves out general-purpose ones such as NumPy and pandas.
 - **The References heading is intentionally empty in `paper.md`.** JOSS
   builds the reference list automatically from `paper.bib`, using the
   `[@key]` citations in the text. Only cited entries appear. To see the
-  formatted references, render the PDF (see the next section).
+  formatted references, open the included review PDF linked above.
 - **Hyperlinks are encouraged** by JOSS for websites and external resources.
   Software tools are linked at first mention. A tool can have both a link (to
   the software) and a citation (to its paper).
@@ -171,23 +173,21 @@ and leaves out general-purpose ones such as NumPy and pandas.
 
 ### Rendering the PDF
 
-JOSS renders `paper.md` with its own toolchain, so a plain Markdown preview
-does not show the final layout or references. Preview it with the JOSS
-draft-PDF GitHub Action or the `openjournals/inara` Docker image. The
-repository's `JOSS draft PDF` workflow (`.github/workflows/draft-pdf.yml`)
-runs on every push that touches `paper/` and can also be started by hand;
-download the `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact from the run
-(the date is that of the commit it was built from).
+The PDF already included in `paper/` is rendered with the JOSS toolchain and
+shows the manuscript's layout and formatted references. Collaborators can
+open it directly using the link at the top of this README.
 
-**Maintainer reminder:** after every edit to the manuscript text (`paper.md`),
-bibliography (`paper.bib`), or figures, regenerate the PDF with the JOSS
-toolchain and replace the checked-in review copy. Use the new build's dated
-filename, update the review link at the top of this README, and include the
-refreshed PDF when sharing the manuscript changes for review. Keep only the
-current review PDF in this directory; Git history retains earlier versions.
-The workflow creates a downloadable artifact but does not automatically refresh
-the checked-in copy. The Markdown, bibliography, and figure sources remain
-authoritative.
+**Maintainer only (Yue):** after editing the manuscript text (`paper.md`),
+bibliography (`paper.bib`), or figures, refresh the included PDF. The
+`JOSS draft PDF` workflow (`.github/workflows/draft-pdf.yml`) runs on every
+push that touches `paper/` and can also be started by hand. Download and
+unpack its `Sleep_Scoring_App_JOSS_Manuscript_<date>` artifact, then place the
+PDF in `paper/`, replacing the previous review copy. The date is that of the
+commit used for the build. Update the review link at the top of this README
+and include the refreshed PDF when sharing the manuscript changes for review.
+Keep only the current review PDF in this directory; Git history retains
+earlier versions. The workflow does not automatically update the included
+PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ## What is done
 
