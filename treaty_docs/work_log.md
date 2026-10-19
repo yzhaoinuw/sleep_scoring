@@ -17,6 +17,16 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-19
 
+### Acknowledgment name corrections (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer corrected the user name to Jaspreet Kaur and added Shadi Sartipi
+  and Yuan Yao to the sleep-stage-rule credits. Preserve surname ordering and
+  update the current contributor counts and unresolved-name notes accordingly.
+- Verification: reviewed the scoped source/documentation diff and ran
+  `git diff --check`. The maintainer handles downloading the new JOSS artifact
+  and replacing the checked-in review PDF; this source update leaves that
+  supplied PDF unchanged. Deliver through publication, dev, and main.
+
 ### Review-copy delivery and affiliation confirmation (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer confirmed the University of Rochester affiliation. Checked it

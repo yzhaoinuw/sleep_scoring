@@ -305,15 +305,16 @@ the software and cited sources.
 This work was supported by the BRAIN Initiative of the US National Institutes
 of Health (U19NS128613).
 
-We thank Mie Andersen, Natalie Linea Hauglund, Anastasia Tsopanidou, and
-Verena Untiet for helping define the sleep-stage rules that the rule-based
-model encodes. We especially thank Mie Andersen, Rebeka Kovács, Klaudia Anna
-Tokarska, and Anastasia Tsopanidou, who were among the application's earliest
-users and gave extensive one-on-one feedback. We also thank the other users
-whose feedback and feature requests shaped the application: at the University
+We thank Mie Andersen, Natalie Linea Hauglund, Shadi Sartipi, Anastasia
+Tsopanidou, Verena Untiet, and Yuan Yao for helping define the sleep-stage
+rules that the rule-based model encodes. We especially thank Mie Andersen,
+Rebeka Kovács, Klaudia Anna Tokarska, and Anastasia Tsopanidou, who were among
+the application's earliest users and gave extensive one-on-one feedback.
+We also thank the other users whose feedback and feature requests shaped
+the application: at the University
 of Copenhagen, Katharina Franziska Baumgart, Antonia Benita Beiersdorfer,
-Julia Johanna Berger, Zuzanna Bojarowska, Jaspreet Kaur Daniil, Saiyue Deng,
-Stefanie Gregoriades, Natalie Linea Hauglund, Elise Schiøler Nielsen, Laurence
+Julia Johanna Berger, Zuzanna Bojarowska, Saiyue Deng, Stefanie Gregoriades,
+Natalie Linea Hauglund, Jaspreet Kaur, Elise Schiøler Nielsen, Laurence
 Vince Riesselmann, Katia Soud, and Yingshan Wang; and at the University of
 Rochester, Ziru Deng, Tianyi Tong, and Jianbo Wang. We thank Douglas Kelley
 for supervising this work, Verena Untiet for leading the Copenhagen group, and
@@ -325,7 +326,7 @@ Copenhagen users are running a poll, so the user list may grow. Names are
 alphabetical by surname within each group. The "especially thank" group
 must meet both criteria: among the earliest users (a matter of record; some
 have since left for other groups) AND extensive one-on-one feedback (only
-Yue can confirm this). Don't add anyone on one alone (assumed surnames: Daniil,
+Yue can confirm this). Don't add anyone on one alone (assumed surname:
 Schiøler Nielsen); check spelling and diacritics with each person. -->
 
 <!-- TODO: thank data and model contributors by name, if separate from the
