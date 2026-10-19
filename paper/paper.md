@@ -314,8 +314,8 @@ We also thank the other users whose feedback and feature requests shaped
 the application: at the University
 of Copenhagen, Katharina Franziska Baumgart, Antonia Benita Beiersdorfer,
 Julia Johanna Berger, Zuzanna Bojarowska, Saiyue Deng, Stefanie Gregoriades,
-Natalie Linea Hauglund, Jaspreet Kaur, Elise Schiøler Nielsen, Laurence
-Vince Riesselmann, Katia Soud, and Yingshan Wang; and at the University of
+Natalie Linea Hauglund, Jaspreet Kaur, Elise Schiøler Nielsen, Tessa Radovanovic,
+Laurence Vince Riesselmann, Katia Soud, and Yingshan Wang; and at the University of
 Rochester, Ziru Deng, Tianyi Tong, and Jianbo Wang. We thank Douglas Kelley
 for supervising this work, Verena Untiet for leading the Copenhagen group, and
 Maiken Nedergaard for leading the BrainFlowZZZ program.
