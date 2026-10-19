@@ -170,7 +170,7 @@ multi-hour recording, so the application decimates long signals on demand
 with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
 [@vanderdonckt2022plotlyresampler]: the server keeps the full-resolution
 signals and sends the interface only enough points to draw the visible
-range, so zooming in or panning needs new data from the server. In feedback
+range, so zooming in or panning needs new data from the server. {% Yue comment: I suggest we reassess the cause and effect here and possibly rearrange the order of the sentences. My understanding is that there are two problems/solutions here. one is decimation of data points to reduce burden on server and server-interface communication load. the second is to wait for rapid, consecutive interactions to settle before requesting server-interface communication. We need to make it clear rather than mixing the two. For example, I'd suggest rearranging like so: "Given that the communications between the interface and the server add delay, our principle for responsiveness is to keep everything on the interface, unless the interaction absolutely requires data that's only on the server. However, Plotly Resampler's stock update path requests that data on every zoom or pan event, which can fall behind continuous movement. And users of earlier versions indeed reported that, during navigation, experiencing lags of one to two seconds, which disrupted scoring. Out solution is to replace that path: while the user zooms or pans continuously, the application waits for the movement to pause before requesting new traces, drops requests already overtaken by newer movement, and swaps in only the changed trace data rather than redrawing the figure. Applying a label needs no server round trip." So mostly rearranging sentences to group them more logically. some rewording as needed, as a result of the rearrangement.% In feedback
 sessions, users of earlier versions experienced lags of one to two seconds
 while navigating, which disrupted scoring. The library's stock update path
 requests that data on every zoom or pan event, which can fall behind
@@ -182,8 +182,9 @@ Zooming, panning, selecting, and labeling therefore run in the interface.
 While the user zooms or pans continuously, the application waits for the
 movement to pause before requesting new traces, drops requests already
 overtaken by newer movement, and swaps in only the changed trace data rather
-than redrawing the figure. Applying a label needs no server round trip. In
-manual timing tests on a 2.86-hour recording with v0.17.4, the median time
+than redrawing the figure. Applying a label needs no server round trip.} 
+
+In manual timing tests on a 2.86-hour recording with v0.17.4, the median time
 from a navigation request to refreshed traces on a Windows laptop was 212 ms
 for mouse panning and 329 ms for keyboard navigation, down roughly 65–75%
 from about 935 ms in an earlier version; on an Apple M4 laptop it was 64 and
