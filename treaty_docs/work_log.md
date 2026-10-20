@@ -23,12 +23,9 @@ search older entries by date anchor rather than reading every archive.
   README, not this repository. The README's Example Data section is now a
   link to the dataset concept DOI `10.5281/zenodo.23489641`, so it follows
   future dataset versions.
-- Drafted a shorter replacement Zenodo README (file table, three-step
-  try-it, timing, label encoding, credit) and a regenerated SHA256SUMS.txt
-  with only the README hash changed. The app tutorial and verification notes
-  (frame checksums, decoder probes, 0.1 s MP4 start) were dropped from it;
-  the evidence stays in the entry below. The maintainer uploads them as a new
-  Zenodo version.
+- The published Zenodo README already documents the files, timing, and
+  labels. A shorter replacement was drafted, but the maintainer kept the
+  published v1.0.0 README; no new dataset version is planned.
 
 ### SPINDLE mentioned once in State of the field (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 

@@ -6,9 +6,6 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- Publish a new Zenodo version of the example dataset with the shorter
-  README and regenerated SHA256SUMS.txt (2026-10-20 work log). Data files
-  are unchanged; the concept DOI cited by the paper stays the same.
 - The public Zenodo example is published and verified: dataset v1.0.0,
   DOI `10.5281/zenodo.23489642` (concept DOI `10.5281/zenodo.23489641`).
   All six files match the prepared copies; both READMEs link to the dataset.
