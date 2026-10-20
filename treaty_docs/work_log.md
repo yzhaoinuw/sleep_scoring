@@ -17,6 +17,17 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### SPINDLE mentioned once in State of the field (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Maintainer judged three SPINDLE mentions too prominent. The setup sentence
+  now says every open tool above requires either setup in a programming
+  environment or uploading recordings to a web service; "open" excludes the
+  commercial SleepScore named just before it. The first mention adds "now as
+  a web service" so readers can tell which tool uploads. Not "paid": rodent
+  scoring is free up to a weekly quota (see the State-of-the-field comment).
+- Replaced the review PDF with the `1cb7b57` JOSS draft artifact (7 pages,
+  checked). Body word count went down slightly.
+
 ### Example dataset cited in the manuscript (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - Fast-forwarded `publication` to the dataset-link commit on `dev`.
