@@ -11,8 +11,7 @@ implementation and release details are recorded in
   that a short example drives an extreme recording-wide change. Manual labels
   remain unchanged after prediction.
 
-Calibration still needs broader evaluation across difficult recordings; this
-release does not establish general accuracy across recordings.
+Calibration still needs broader evaluation on difficult recordings.
 
 ## v0.17.5
 
