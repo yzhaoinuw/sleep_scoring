@@ -154,9 +154,8 @@ own source code outside the packaged runtime. We further built and
 integrated into the application an updater, released as the reusable,
 dependency-free package
 [`desktop_app_source_updater`](https://github.com/yzhaoinuw/desktop_app_source_updater)
-[@desktop_app_source_updater], which automatically fetches and applies
-updates, including bug fixes, new features, and other improvements, at
-startup.[^deps]
+[@desktop_app_source_updater], which automatically fetches and applies bug
+fixes, new features, and other improvements at startup.[^deps]
 
 [^deps]: Updates that change the packaged dependencies still require
 downloading a new release.
@@ -181,13 +180,13 @@ multi-hour recording, so the application decimates long signals on demand
 with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
 [@vanderdonckt2022plotlyresampler]: the server keeps the full-resolution
 signals and sends the interface only enough points to draw the visible
-range, so zooming in or panning needs new data from the server.
+range.
 
 Because each round trip to the server adds delay, we followed one principle
 for responsiveness: keep interactions in the interface wherever possible,
 and ask the server only for signal data the interface does not yet have. Selecting and
-labeling therefore run in the interface. Zooming and panning must involve
-the server, because the refreshed traces come from there. Plotly Resampler's
+labeling therefore run in the interface, while zooming and panning need new
+data from the server. Plotly Resampler's
 stock update path requests refreshed traces on every zoom or pan event,
 which compounds the delay during continuous movement. Users of earlier
 versions reported lags of one to two seconds while navigating, which
@@ -223,7 +222,7 @@ runnable template for general multichannel time series
 We implemented the default scoring model as a rule-based algorithm that
 encodes the stage criteria used by Project 2 researchers
 [@kjaerby2022norepinephrine]: it identifies Wake from EEG spectral power and
-REM from sustained low NE, and without usable NE it identifies only Wake and
+REM from deep NE valleys, and without usable NE it identifies only Wake and
 NREM. Its thresholds adapt to each recording. Each run treats the user's
 labels (a single labeled interval is enough) as ground truth and chooses the
 settings that best fit them while changing the rest of the predictions as
@@ -237,7 +236,10 @@ as wake bouts under 15 s, and note NE is lowest in REM; the app's numeric
 thresholds are not in that paper, so keep the citation at the level of
 stage criteria. Detail deliberately left to the README (2026-10-15): Wake
 uses a normalized 1-7 Hz EEG feature; REM needs bouts of at least 30 s
-below recording-wide and within-bout NE percentiles; five settings are
+whose within-bout low NE percentile reaches a recording-wide one (shape gating is
+disabled in code), and each REM bout ends where NE recovers from its trough,
+the rebound being relabeled Wake (maintainer, 2026-10-20: the defining
+feature is a large valley that bounces back, not merely sustained low NE); five settings are
 fitted (Wake threshold, minimum Wake and REM durations, two NE percentiles),
 scored by average per-stage error plus a penalty for changing unlabeled
 predictions; MA labels are kept but not fitted. -->
@@ -246,7 +248,7 @@ Alternatively, the deep-learning model sDREAMER [@chen2023sdreamer], in a
 version adapted by the author
 ([`sdreamer_flow`](https://github.com/yzhaoinuw/sdreamer_flow)), runs when
 the optional [PyTorch](https://pytorch.org) [@paszke2019pytorch]
-dependencies are installed; it does not adapt to user labels. With either
+dependencies are installed. With either
 model, the application keeps user labels separate from the predictions and
 places them on top, so a prediction never overwrites a label.
 

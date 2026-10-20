@@ -83,7 +83,7 @@ checked on 2026-10-07.
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
 - **750–1,750 words.** As of 2026-10-20 the body (captions included,
-  front matter, comments, and Acknowledgments excluded) is about 1,740 words
+  front matter, comments, and Acknowledgments excluded) is about 1,730 words
   of running text, and more with headings and rendered citations;
   Acknowledgments add about 150 if counted. Treat
   the stricter count as binding: the draft is at the limit, so new material
