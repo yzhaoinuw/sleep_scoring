@@ -293,9 +293,9 @@ with the application have appeared in conference posters.
 outside the program. As of 2026-10-18 there are no published studies,
 preprints, or datasets to name; add them only if one appears before
 submission. -->
-The repository provides releases, documentation, tests, demonstration
-videos, archived versions [@sleepscoring_zenodo], and an example dataset
-[@sleepscoring_example_data].
+The repository provides releases, documentation, tests, and demonstration
+videos, and links to archived versions [@sleepscoring_zenodo] and an example
+dataset [@sleepscoring_example_data].
 
 # AI usage disclosure
 
