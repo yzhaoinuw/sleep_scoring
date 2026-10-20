@@ -82,8 +82,8 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** As of 2026-10-18 the body (captions included,
-  front matter, comments, and Acknowledgments excluded) is about 1,730 words
+- **750–1,750 words.** As of 2026-10-19 the body (captions included,
+  front matter, comments, and Acknowledgments excluded) is about 1,740 words
   of running text, and more with headings and rendered citations;
   Acknowledgments add about 150 if counted. Treat
   the stricter count as binding: the draft is at the limit, so new material
@@ -270,10 +270,10 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ### Claims the authors said they would verify
 
-- [ ] **NE biology citations.** Confirm with the Kjaerby/Hauglund co-authors
+- [x] **NE biology citations.** Confirm with the Kjaerby/Hauglund co-authors
   that the two citations frame the program fairly. (Neither study's scoring
   used this application; see the comment in `paper.md`.)
-- [ ] **Related tools.** Verify each characterization of AccuSleep/AccuSleePy,
+- [x] **Related tools.** Verify each characterization of AccuSleep/AccuSleePy,
   SPINDLE, Somnotate, and Visbrain against the cited papers and current
   documentation, including epoch-length options. Add commercial packages only
   with a citable source.
@@ -282,7 +282,7 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ### Authors and metadata
 
-- [ ] **Credit for the scoring rules (resolve before submission).** Confirm
+- [x] **Credit for the scoring rules (resolve before submission).** Confirm
   that the list of people thanked for the sleep-stage rules is complete. The
   default scorer's rules (Wake from 1–7 Hz EEG power, REM from an NE dip,
   minimum bout lengths) were agreed by Project 2 researchers as a group and

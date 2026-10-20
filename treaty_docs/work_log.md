@@ -17,6 +17,25 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-19
 
+### SPINDLE link, setup motivation, and resolved paper checks (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- SPINDLE's sleeplearning.ethz.ch now redirects to sleepyrat.ai (same
+  method per its FAQ; free weekly quota plus optional paid lab
+  subscription). Updated the link; citation unchanged. Sources noted in the
+  State-of-the-field comment.
+- Added the distribution motivation to State of the field: every listed
+  tool except SPINDLE needs a MATLAB or Python environment (READMEs checked);
+  SPINDLE needs uploads to its web service. Removed the duplicate
+  non-programmer line from Software design section 1. Demo videos were not
+  claimed as a distinction because AccuSleep links a video walkthrough.
+- Offset the added words by trimming the keyboard key-repeat sentence in the
+  latency paragraph. Body is about 1,740 words by the paper README rule.
+- Maintainer confirmed the NE biology citations, related-tool
+  characterizations, and scoring-rule credits; checked them off in the
+  paper README, replaced the two inline TODOs with dated notes, and updated
+  next steps.
+- Verification: scoped diff review and `git diff --check`; no code changed.
+
 ### Additional sleep-stage-rule contributor (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer identified Jingyuan Chen as another contributor to the sleep-stage

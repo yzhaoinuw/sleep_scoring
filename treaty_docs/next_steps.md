@@ -172,8 +172,9 @@ author confirmation. See `paper/README.md` for its status. Open items:
   `paper.md` and `CITATION.cff`; the `sleepscoring_zenodo` bib entry keeps
   the archived title. After the next release, confirm Zenodo shows the new
   title and update that bib entry.
-- Resolve the inline `TODO`s: Kjaerby/Hauglund framing, competitor
-  characterizations, and final author review for the AI disclosure.
+- Resolve the remaining inline `TODO`: final author review for the AI
+  disclosure. Kjaerby/Hauglund framing and competitor characterizations were
+  confirmed by the maintainer on 2026-10-19.
   Publications were checked on 2026-10-18: none to name yet, so the impact
   section cites posters only; add any that appear before submission. Users' total hours (~1,200 h from five
   users) and the build-vs-contribute rationale were resolved on 2026-10-14/15.
@@ -217,11 +218,6 @@ author confirmation. See `paper/README.md` for its status. Open items:
   approved funding sentence verbatim.
 - Authorship settled on 2026-10-18: after reviewing the JOSS criteria, the
   maintainer remains the sole person qualified as an author.
-- Before submission, confirm the credit list for the default scorer's rules
-  is complete: Project 2 researchers agreed them as a group (relayed through
-  a few people). Acknowledgments names the seven researchers users
-  identified; the paper text cites Kjaerby et al. 2022 for the stage
-  criteria.
 - Verify every claim in the paper against the current shipped app.
 - Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
   reviewers: name one or two external adopters (in Acknowledgments or a

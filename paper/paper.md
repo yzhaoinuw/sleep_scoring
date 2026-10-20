@@ -54,8 +54,8 @@ BrainFlowZZZ program at the University of Rochester. That work
 relates sleep states to cortical NE dynamics, which oscillate during NREM
 sleep and shape sleep architecture [@kjaerby2022norepinephrine] and may drive
 the vasomotion underlying glymphatic clearance [@hauglund2025norepinephrine].
-<!-- TODO(authors): confirm with the Kjaerby/Hauglund co-authors that these
-two citations frame the program fairly. Neither study's scoring used this
+<!-- Maintainer confirmed (2026-10-19) that these two citations frame the
+program fairly. Neither study's scoring used this
 application: Kjaerby et al. scored in Viewpoint's SleepScore (Methods), and
 users report no publications from the app's scores yet (2026-10-15). -->
 Such questions depend on brief events, such as microarousals and state
@@ -80,7 +80,7 @@ Several open tools support rodent sleep scoring.
 [AccuSleep](https://github.com/zekebarger/AccuSleep) and its Python
 successor [AccuSleePy](https://github.com/zekebarger/AccuSleePy)
 [@barger2019accusleep] pair a manual-labeling interface with a
-neural-network scoring model. [SPINDLE](https://sleeplearning.ethz.ch)
+neural-network scoring model. [SPINDLE](https://sleepyrat.ai)
 [@miladinovic2019spindle] provides end-to-end learned scoring across
 laboratories and species.
 [Somnotate](https://github.com/paulbrodersen/somnotate)
@@ -88,9 +88,9 @@ laboratories and species.
 hidden Markov model. [Visbrain Sleep](https://github.com/EtienneCmb/visbrain)
 [@combrisson2019visbrain] is a general polysomnography viewer and hypnogram
 editor.
-<!-- TODO(verify): confirm each characterization against the cited paper and
-current documentation, including epoch-length options, and add commercial
-packages only with a citable source. As of 2026-10-07 the AccuSleep,
+<!-- Maintainer verified each characterization against the cited papers and
+current documentation on 2026-10-19. Add commercial packages only with a
+citable source. As of 2026-10-07 the AccuSleep,
 AccuSleePy, and somnotate documentation describe EEG/EMG(/LFP) inputs and do
 not mention photometry or video. Scoring methods checked 2026-10-14:
 AccuSleep CNN on EEG/EMG (PLOS ONE 2019); SPINDLE CNN+HMM on 2 EEG + 1 EMG,
@@ -99,7 +99,17 @@ spectrograms (repo README); Visbrain detects spindles/K-complexes/slow
 waves/REMs but does not stage. Viewpoint SleepScore uses an undisclosed
 "probability method" on EEG/EMG (product page); check its manual before
 extending the NE claim to it. sDREAMER's NE-aware variant does use NE, so
-keep the claim scoped to the tools listed here. -->
+keep the claim scoped to the tools listed here. SPINDLE's server moved
+(checked 2026-10-19): sleeplearning.ethz.ch redirects to sleepyrat.ai,
+whose FAQ says the scoring method is unchanged from SleepLearning and still
+described by the 2019 paper. Rodent scoring is free up to a weekly quota,
+with an optional paid annual lab subscription for unlimited use; the
+operator is not named on the pages checked. Installation (READMEs, checked
+2026-10-19): AccuSleep needs MATLAB 2017b+ and toolboxes; AccuSleePy is
+`pip install accusleepy`; Somnotate is a conda environment plus
+command-line pipeline scripts; Visbrain is `pip install visbrain`; none
+ships a standalone executable. AccuSleep links a YouTube video
+walkthrough, so do not claim demonstration videos as a distinction. -->
 
 These tools center on electrophysiology and, for most, on automatic sleep
 scoring, which draws on EEG, EMG, or LFP features alone. None of their
@@ -109,7 +119,10 @@ as markers for distinguishing wake, microarousals, NREM, and REM sleep
 workspace for labeling and correcting scores, in which NE photometry and
 video checks inform scoring. Project 2 previously used Viewpoint's commercial
 [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore), which did not integrate NE
-photometry well; that gap motivated a dedicated application.
+photometry well; that gap motivated a dedicated application. It also had
+to suit a large group of mostly non-programmer experimenters, yet every tool
+above except SPINDLE requires installing a programming environment (MATLAB
+or Python), and SPINDLE requires uploading recordings to its web service.
 <!-- History from the Project 2 users (2026-10-14); they confirm the wording
 in the full-draft review. SleepScore supports synchronized video, so the
 stated gap is NE photometry integration only. -->
@@ -129,10 +142,10 @@ Python server on the same computer.
 
 ## 1. Zero-setup installation and automatic updates
 
-Many experimenters do not program, so we packaged the Windows application
-with [PyInstaller](https://pyinstaller.org) to install like conventional
-desktop software: users download a release, extract it, and double-click to
-open it, with no Python installation, environment setup, or command line.
+To make distribution easy, we packaged the Windows application with
+[PyInstaller](https://pyinstaller.org) to install like conventional desktop
+software: users download a release, extract it, and double-click to open
+it.
 Our first users ran Windows; macOS support came later, and because a
 comparable package would need Apple's code signing and notarization, macOS
 users currently install from source. Packaging alone would have required a
@@ -187,8 +200,7 @@ In manual timing tests on a 2.86-hour recording with v0.17.4, the median time
 from a navigation request to refreshed traces on a Windows laptop was 212 ms
 for mouse panning and 329 ms for keyboard navigation, down roughly 65–75%
 from about 935 ms in an earlier version; on an Apple M4 laptop it was 64 and
-181 ms. Much of the keyboard time is deliberate waiting for key repeats to
-settle. None of these is a controlled benchmark.
+181 ms. None of these is a controlled benchmark.
 <!-- Source: paper/latency_measurements.md (v0.17.4, 2026-10-08/09; same
 recording at Sampling Level x1; first three updates per task excluded;
 34–69 updates per task at 256- to 380-second views; 95th percentiles
