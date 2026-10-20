@@ -17,6 +17,19 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### JOSS paper marked submission-ready (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Maintainer reviewed the full rendered PDF and declared Acknowledgments
+  final (no poll additions; sDREAMER developers cited, not thanked by name).
+  This closes the AI-disclosure review TODO. Manuscript date set to
+  20 October 2026; the JOSS draft template does not render it (it shows
+  placeholder submission dates).
+- `paper/README.md` now says submission-ready; open items are submitting and,
+  at acceptance, archiving a release whose Zenodo title matches the paper
+  and updating the `sleepscoring_zenodo` bib title. Replaced the stale
+  draft-era JOSS checklist in `next_steps.md` with the current state.
+- Review PDF replaced with the `615f949` artifact (7 pages).
+
 ### Word trims and REM wording (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - REM is now "deep NE valleys" instead of "sustained low NE" (maintainer:
