@@ -31,6 +31,9 @@ search older entries by date anchor rather than reading every archive.
   citation and reference render checked).
 - Verification: local pandoc citeproc render, JOSS draft workflow passed,
   `git diff --check`.
+- Maintainer confirmed the files downloaded from Zenodo work in the app,
+  closing the desktop-walkthrough gap noted below. Independent event
+  alignment remains unverified.
 
 ### Public example dataset verified and linked (Codex, GPT-6; effort/token budget not reported)
 
