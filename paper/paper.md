@@ -82,7 +82,7 @@ successor [AccuSleePy](https://github.com/zekebarger/AccuSleePy)
 [@barger2019accusleep] pair a manual-labeling interface with a
 neural-network scoring model. [SPINDLE](https://sleepyrat.ai)
 [@miladinovic2019spindle] provides end-to-end learned scoring across
-laboratories and species.
+laboratories and species, now as a web service.
 [Somnotate](https://github.com/paulbrodersen/somnotate)
 [@brodersen2024somnotate] scores with linear discriminant analysis and a
 hidden Markov model. [Visbrain Sleep](https://github.com/EtienneCmb/visbrain)
@@ -120,9 +120,9 @@ workspace for labeling and correcting scores, in which NE photometry and
 video checks inform scoring. Project 2 previously used Viewpoint's commercial
 [SleepScore](https://www.viewpoint.fr/product/rodent/sleep-monitoring/sleepscore), which did not integrate NE
 photometry well; that gap motivated a dedicated application. It also had
-to suit a large group of mostly non-programmer experimenters, yet every tool
-above except SPINDLE requires installing a programming environment (MATLAB
-or Python), and SPINDLE requires uploading recordings to its web service.
+to suit a large group of mostly non-programmer experimenters, yet every open
+tool above requires either setup in a programming environment or uploading
+recordings to a web service.
 <!-- History from the Project 2 users (2026-10-14); they confirm the wording
 in the full-draft review. SleepScore supports synchronized video, so the
 stated gap is NE photometry integration only. -->
