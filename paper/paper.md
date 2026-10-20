@@ -174,8 +174,8 @@ keeps panning, so a selection can extend arbitrarily far without losing
 detail. A selection is then labeled with a single key press.
 
 In a Dash application, the interface (the embedded web page) draws the
-figures while the data and computation stay on the server: each interaction
-is sent to the server, which returns updated figure data. Plotly alone
+figures while the data and computation stay on the server: by default, each
+interaction is sent to the server, which returns updated figure data. Plotly alone
 becomes unresponsive when asked to draw the millions of samples in a
 multi-hour recording, so the application decimates long signals on demand
 with [Plotly Resampler](https://github.com/predict-idlab/plotly-resampler)
@@ -184,8 +184,8 @@ signals and sends the interface only enough points to draw the visible
 range, so zooming in or panning needs new data from the server.
 
 Because each round trip to the server adds delay, we followed one principle
-for responsiveness: interactions run in the interface, and the server is
-asked only for signal data the interface does not yet have. Selecting and
+for responsiveness: keep interactions in the interface wherever possible,
+and ask the server only for signal data the interface does not yet have. Selecting and
 labeling therefore run in the interface. Zooming and panning must involve
 the server, because the refreshed traces come from there. Plotly Resampler's
 stock update path requests refreshed traces on every zoom or pan event,
