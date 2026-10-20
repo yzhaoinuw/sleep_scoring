@@ -87,17 +87,9 @@ conda env update -f environment.yml
 
 ## Example Data
 
-Try the app with the public
-[example dataset](https://doi.org/10.5281/zenodo.23489642) (CC BY 4.0).
-Download `35_app13.mat` and, for video review, `35_ymaze_ymaze_Cam2.mp4`
-into a local folder. Open the MAT file when the app starts; select the MP4
-when **Check Video** asks for the matching video.
-
-The optional `35_app13_groundtruth.mat` contains the same signals with
-reference annotations illustrating the manuscript's scoring rules. They may
-differ from another expert's interpretation. Work on copies: saving
-annotations updates the selected MAT file. The dataset README includes
-instructions and timing details.
+To try the app, download the public
+[example recording](https://doi.org/10.5281/zenodo.23489641) (CC BY 4.0).
+Its README lists the files and how to open them.
 
 ## Use The App
 
