@@ -17,6 +17,21 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### Example dataset cited in the manuscript (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Fast-forwarded `publication` to the dataset-link commit on `dev`.
+- Cited the dataset in the Research impact statement through its concept
+  DOI `10.5281/zenodo.23489641` (`@dataset` entry, matching how the software
+  archive is cited by concept DOI). Offset the added words in the same
+  paragraph, so the body count is unchanged.
+- Maintainer confirmed all four "especially thank" users shared recordings
+  for testing; added that to their sentence. The dataset provider is among
+  them, so she is not named a second time.
+- Replaced the review PDF with the `567929d` JOSS draft artifact (7 pages;
+  citation and reference render checked).
+- Verification: local pandoc citeproc render, JOSS draft workflow passed,
+  `git diff --check`.
+
 ### Public example dataset verified and linked (Codex, GPT-6; effort/token budget not reported)
 
 - Maintainer published Zenodo dataset v1.0.0, record 23489642, version DOI

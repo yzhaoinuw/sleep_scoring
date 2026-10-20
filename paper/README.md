@@ -1,8 +1,8 @@
 # JOSS Paper Draft — Under Construction
 
-**Status: active revision, not submission-ready** (updated 2026-10-19).
+**Status: active revision, not submission-ready** (updated 2026-10-20).
 
-**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-19.pdf).
+**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-20.pdf).
 The JOSS manuscript PDF is already included in `paper/` for collaborators to
 read and comment on. Open the link above to review it. Yue maintains this copy;
 the download and refresh steps below are for the maintainer only.
@@ -82,7 +82,7 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** As of 2026-10-19 the body (captions included,
+- **750–1,750 words.** As of 2026-10-20 the body (captions included,
   front matter, comments, and Acknowledgments excluded) is about 1,740 words
   of running text, and more with headings and rendered citations;
   Acknowledgments add about 150 if counted. Treat
@@ -259,9 +259,10 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
   as usual for NeurIPS proceedings). On 2026-10-18 it was checked against the
   [NeurIPS proceedings page](https://proceedings.neurips.cc/paper/2019/hash/bdbca288fee7f92f2bfa9f7012727740-Abstract.html)
   instead, and that URL was added to the entry.
-- **Acknowledgments (updated 2026-10-19).** Names the seven researchers
+- **Acknowledgments (updated 2026-10-20).** Names the seven researchers
   who helped define the sleep-stage rules; especially thanks four of the
-  earliest users, who gave extensive one-on-one feedback; lists the other
+  earliest users, who gave extensive one-on-one feedback and shared
+  recordings for testing; lists the other
   users at Copenhagen and Rochester alphabetically; and thanks the
   supervisor, the Copenhagen group leader, and the program PI. The funding
   sentence is unchanged.
