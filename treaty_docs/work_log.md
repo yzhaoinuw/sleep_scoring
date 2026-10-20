@@ -17,6 +17,16 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### NE wording in Summary (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- A user found "fiber-photometry norepinephrine (NE) signal" awkward. Summary
+  now says "an optional norepinephrine (NE) signal measured by fiber
+  photometry". Kept "NE" rather than a generic biosensor channel: the input
+  field is `ne` and the default model's REM rule depends on NE.
+- Reviewed every other NE/photometry mention; "NE photometry" (method lacking
+  in other tools) and plain "NE" (the signal) are kept as consistent usage.
+- Replaced the review PDF with the `7708f59` JOSS draft artifact (7 pages).
+
 ### Example dataset details moved to the Zenodo README (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - Maintainer direction: file and usage details belong in the dataset's own
