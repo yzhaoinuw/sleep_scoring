@@ -191,6 +191,14 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ## What is done
 
+- **Public example data (published 2026-10-20).**
+  [Example EEG/EMG/NE recording and behavior video](https://doi.org/10.5281/zenodo.23489642),
+  dataset v1.0.0, is openly available under CC BY 4.0. It includes the
+  unscored MAT, an optional reference-scored copy, matching MP4, and usage
+  instructions. Klaudia Anna Tokarska provided the recording/video; the
+  reference labels illustrate the manuscript's rules and may differ from
+  another expert's interpretation. The record, DOI, and all six published
+  file checksums were verified against the prepared copies.
 - The draft body is written to the JOSS structure and scoped to Project 2 of
   the U19 BrainFlowZZZ program.
 - sDREAMER is framed throughout as an externally developed model the app
@@ -276,10 +284,6 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 - **Affiliation.** The University of Rochester affiliation is confirmed.
 
 ## What is still open
-
-### Figures
-
-- [ ] Publish a public example recording reviewers can open in the app.
 
 ### Claims the authors said they would verify
 

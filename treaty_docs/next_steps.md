@@ -6,6 +6,10 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- The public Zenodo example is published and verified: dataset v1.0.0,
+  DOI `10.5281/zenodo.23489642` (concept DOI `10.5281/zenodo.23489641`).
+  All six files match the prepared copies; both READMEs link to the dataset.
+  Deliver the documentation update from `dev` through the normal branch handoff.
 - Direct Windows downloads and generated release notes are reviewed and on
   `dev`, `publication`, and `main`. See
   `packaging/windows/README.md#release-documentation`. Still to do: tighten
@@ -212,8 +216,8 @@ author confirmation. See `paper/README.md` for its status. Open items:
   150 more if counted). The `JOSS draft PDF` workflow renders the paper as a run
   artifact. Keep the checked-in review PDF and its paper README link current
   after every manuscript, bibliography, or figure edit. The maintainer closed
-  the print-legibility item on 2026-10-19. A public example recording remains
-  open.
+  the print-legibility item on 2026-10-19. The public example dataset was
+  published and verified on 2026-10-20: DOI `10.5281/zenodo.23489642`.
 - Affiliation confirmed by the maintainer on 2026-10-19. Fill the remaining
   `paper.md` TODOs and finish Acknowledgments. Its first pass (2026-10-18)
   names the rule contributors, the users, the supervisor, the Copenhagen group
