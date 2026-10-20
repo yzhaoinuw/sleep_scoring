@@ -17,6 +17,15 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### Default versus chosen interaction path in Software design 2 (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Maintainer noticed "each interaction is sent to the server" and
+  "interactions run in the interface" read as a contradiction. The first now
+  says Dash does this "by default"; the principle is now phrased as the
+  app's choice ("keep interactions in the interface wherever possible, and
+  ask the server only for..."). About +4 body words.
+- Replaced the review PDF with the `c3b286f` JOSS draft artifact (7 pages).
+
 ### NE wording in Summary (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - A user found "fiber-photometry norepinephrine (NE) signal" awkward. Summary
