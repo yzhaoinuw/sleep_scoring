@@ -17,6 +17,18 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### JOSS submission (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Maintainer submitted the paper to JOSS with software version v0.17.6
+  (latest release; no app code changes since the tag) and received the
+  receipt email. Paper compliance was checked against the JOSS paper
+  documentation first: official draft action, required sections, length,
+  front matter, bibliography, figures, and AI disclosure.
+- The editor note states nothing was published or submitted elsewhere,
+  discloses sDREAMER as separately published by its developers, and says
+  the updater and cookbook packages may be submitted separately later.
+- No pre-review issue in `openjournals/joss-reviews` yet (checked same day).
+
 ### JOSS paper marked submission-ready (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - Maintainer reviewed the full rendered PDF and declared Acknowledgments

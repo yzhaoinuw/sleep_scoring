@@ -1,6 +1,6 @@
 # JOSS Paper
 
-**Status: submission-ready** (maintainer reviewed the full PDF on 2026-10-20).
+**Status: submitted to JOSS on 2026-10-20** (software version v0.17.6).
 
 **Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-20.pdf).
 The JOSS manuscript PDF is already included in `paper/` for collaborators to
@@ -291,7 +291,8 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ## What is still open
 
-- [ ] Submit to JOSS.
+- [ ] Respond to the JOSS pre-review and review issues in
+  `openjournals/joss-reviews`.
 - [ ] At acceptance, archive the final release on Zenodo, confirm it shows
   the paper's title, and update the `sleepscoring_zenodo` title in
   `paper.bib` to match.

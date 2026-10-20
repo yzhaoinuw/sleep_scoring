@@ -29,8 +29,9 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
-- JOSS paper is submission-ready (maintainer reviewed the full PDF on
-  2026-10-20); `publication`, `dev`, and `main` are in sync. Next: submit.
+- JOSS paper submitted on 2026-10-20 (software version v0.17.6; receipt
+  email received). Watch `openjournals/joss-reviews` for the pre-review
+  issue and respond to editor/reviewer comments on `publication`.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
@@ -161,7 +162,7 @@ setup and need no repository DOI metadata changes, but each published release
 still requires Zenodo record verification. Zenodo record 21748495 also carries
 the NIH grant `U19NS128613`.
 
-### JOSS Paper (submission-ready)
+### JOSS Paper (submitted 2026-10-20)
 
 `paper/` is final as of 2026-10-20: the maintainer reviewed the full rendered
 PDF, Acknowledgments are final, and no inline TODOs remain. The body is about
@@ -169,7 +170,11 @@ PDF, Acknowledgments are final, and no inline TODOs remain. The body is about
 current after any further manuscript, bibliography, or figure edit. Drafting
 history is in the work log and its archive.
 
-- Submit to JOSS: the repository is public, MIT-licensed, and documented.
+- Submitted 2026-10-20 as v0.17.6, main subject "Neuroscience: sleep scoring
+  of rodent electrophysiology recordings". The editor note disclosed sDREAMER
+  as separately published and that the companion packages may be submitted
+  separately in the future; no conflicts of interest. Pre-review issue not yet
+  open when checked the same day.
 - At acceptance, archive the final release on Zenodo, confirm it shows the
   paper's title, and update the `sleepscoring_zenodo` title in `paper.bib`.
 - After acceptance, add a `preferred-citation:` block with the JOSS DOI to
