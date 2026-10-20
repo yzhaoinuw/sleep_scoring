@@ -6,10 +6,13 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
-- The public Zenodo example is published and verified: dataset v1.0.0,
-  DOI `10.5281/zenodo.23489642` (concept DOI `10.5281/zenodo.23489641`).
-  All six files match the prepared copies; both READMEs link to the dataset.
-  Deliver the documentation update from `dev` through the normal branch handoff.
+- The updated Zenodo example is published and verified: DOI
+  `10.5281/zenodo.23506274` (concept DOI `10.5281/zenodo.23489641`). All six
+  files match the prepared copies, including Klaudia's reference and the
+  matched unscored MAT. The root README's concept DOI resolves to this record,
+  so no download-link update is needed. The description formatting is fixed.
+  Optional metadata touchup: the public version field is blank (the prepared
+  draft used 1.1.0); it can be filled without another dataset version.
 - Direct Windows downloads and generated release notes are reviewed and on
   `dev`, `publication`, and `main`. See
   `packaging/windows/README.md#release-documentation`. Still to do: tighten

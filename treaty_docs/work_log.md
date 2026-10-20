@@ -17,6 +17,91 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### Publication-topic Treaty handoff (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer requested committing only the Treaty documentation and delivering
+  it to `publication`, `dev`, and `main`. The submitted manuscript and PDF
+  remain unchanged; the separate paper README patch stays local and unstaged.
+- Rechecked the dataset concept DOI: HTTP 200 resolves to record 23506274,
+  so retain the root README's existing download link. Public description
+  formatting is now corrected. The version field remains blank; filling it
+  is an optional metadata edit, not another dataset release.
+- All three fetched target branches share `ccfc7cb`, allowing the same
+  documentation commit to be fast-forwarded to each branch.
+- Verification: refreshed remote refs, concept-DOI redirect and public
+  metadata checks, and `git diff --check`; delivery refs are checked after
+  pushing. Installed `treaty validate` assumes root-level Treaty files and
+  cannot validate this split layout; targeting `treaty_docs` instead reports
+  the root-level files missing and flags existing verification formatting.
+  No unrelated documentation conventions were changed to satisfy that tool.
+
+### Submitted manuscript pulled with local dataset work preserved (Codex, GPT-6; effort/token budget not reported)
+
+- Fetched all remotes and fast-forwarded local `dev` by 19 commits to
+  `ccfc7cb`, matching `origin/dev`, `origin/main`, and `origin/publication`.
+  The submitted manuscript sources and 2026-10-20 PDF are now present. The
+  PDF's Git object hash exactly matches the fetched version; the old
+  2026-10-19 PDF is absent as intended by both the local deletion and remote
+  replacement.
+- Reconciled the temporary stash with overlapping remote documentation:
+  retain the remote's concise root README and concept DOI, the submitted
+  JOSS checklist, and both work-log histories. Keep the local new-dataset
+  record/credit update in the paper README and the current dataset follow-up.
+  The earlier remote note that no dataset version was planned is superseded
+  by the verified publication of record 23506274 below. No submitted paper
+  source or PDF was edited locally. Remaining dataset changes are unstaged.
+- Verification: `git fetch --all --prune`, `git pull --ff-only origin dev`,
+  ref comparisons, PDF Git object hashes, conflict-marker/unmerged-index
+  checks, and `git diff --check`.
+
+### Updated example dataset published and verified (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer published the replacement example files as record 23506274,
+  DOI `10.5281/zenodo.23506274`, under the existing concept record 23489641.
+  All six public file sizes and MD5 checksums match the staged upload files;
+  the DOI resolves to the record with HTTP 200. API snapshots and the
+  comparison report remain inside the ignored staging folder.
+- Both README dataset links now select this version, crediting Klaudia Anna
+  Tokarska for the reference annotations as well as the recording/video.
+  Dataset documentation describes the files; app instructions remain in the
+  app README. These repository changes are local on `dev`, not yet committed
+  or pushed. Preserve the maintainer's unrelated review-PDF deletion.
+- The public metadata omits the version value (prepared as 1.1.0) and retains
+  literal Markdown in the HTML description. Report these metadata-only
+  touchups to the maintainer; no public metadata was edited by the agent.
+- Verification: public records API concept-version query and individual-record
+  retrieval, all six local MD5/size comparisons, DOI redirect/HTTP check,
+  metadata inspection, and `git diff --check`.
+
+### Concise dataset README and Klaudia-scored replacement (Codex, GPT-6; effort/token budget not reported)
+
+- Maintainer requested dataset-only documentation: remove app operation and
+  installation steps, detailed playback diagnostics, and preparation notes.
+  The staged README now describes files, signal/label fields, timing, credit,
+  and CC BY 4.0, with one link to the app's usage documentation.
+- The replacement is the file already placed by the maintainer in
+  `zenodo_example_staging/files/35_app13_groundtruth.mat`, not the older
+  same-named file in the user_test_files root. Maintainer confirms Klaudia
+  Anna Tokarska manually scored it; update README, license credit, and draft
+  deposit description accordingly. The draft version is 1.1.0; no new
+  version has been published or assigned a DOI in this session.
+- Replacement labels number 10,300: Wake 2,811, NREM 6,594, REM 895;
+  1,384 labels differ from the previous reference. EEG/EMG initially matched
+  the unscored copy, but NE did not. Maintainer explicitly requested an
+  unscored copy derived from Klaudia's reference with only sleep_scores
+  cleared. Verified every other field's dtype, shape, and values against
+  the reference before atomically replacing the staged unscored MAT.
+- Reference SHA-256: 2fbf0144e5485e5e8c66968cc1608e351f22446ac2a75d83348e6cf120d4f399;
+  matched unscored SHA-256: 6b4ade3018cf323bc02b9e5226c200bed6970623883ad4cf3c8a5f8f4a7bb3a1.
+  The reference and video are unchanged by these edits. Keep published
+  v1.0.0 README links and historical verification evidence until a new
+  public record is available. Preserve the maintainer's local PDF deletion.
+- Verification: read-only SciPy field/rate/label inspection; complete
+  field equality and reference-hash checks after writing the unscored
+  sibling stage (flush/fsync/load/hash before os.replace); refreshed
+  upload checksums; metadata JSON parse; `git diff --check`. All local
+  preparation scripts and reports remain inside the staging folder.
+
 ### JOSS submission (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - Maintainer submitted the paper to JOSS with software version v0.17.6
