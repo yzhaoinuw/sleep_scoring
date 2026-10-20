@@ -14,6 +14,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Repo = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
 $FullReleaseHelper = Join-Path $ScriptDir "full_release.py"
 $PackageNamingHelper = Join-Path $ScriptDir "package_naming.py"
+$ReleaseDocsHelper = Join-Path $ScriptDir "release_docs.py"
 $BuildScript = Join-Path $ScriptDir "make_full_app_zip.ps1"
 
 Set-Location $Repo
@@ -123,6 +124,13 @@ $ReleaseLine = Invoke-CondaCapture -EnvName $TestEnv -CommandArgs @(
     $Version
 )
 $ExpectedZip = Join-Path $Repo "release_artifacts\sleep_scoring_app_$($ReleaseLine)_full.zip"
+$ReleaseNotesPath = Join-Path $Repo "release_artifacts\release_notes_$Version.md"
+if (Test-Path -LiteralPath $ReleaseNotesPath) {
+    Remove-Item -LiteralPath $ReleaseNotesPath
+}
+Invoke-Conda -EnvName $TestEnv -CommandArgs @(
+    "python", $ReleaseDocsHelper, "check", "--repo", $Repo, "--kind", "full"
+)
 
 Write-Host "Full-release candidate: $Version"
 Write-Host "Full-package release line: $ReleaseLine"
@@ -203,6 +211,11 @@ if (-not $SkipQualityChecks) {
 }
 
 if ($ValidateOnly) {
+    $NotesVerification = if ($SkipQualityChecks) { "partial" } else { "preflight" }
+    Invoke-Conda -EnvName $TestEnv -CommandArgs @(
+        "python", $ReleaseDocsHelper, "notes", "--repo", $Repo, "--kind", "full",
+        "--verification", $NotesVerification, "--output", $ReleaseNotesPath
+    )
     Write-Host "Full-release validation passed. Packaging was not run."
     exit 0
 }
@@ -244,5 +257,15 @@ if ($Manifest.version -ne $Version -or $Manifest.release_line -ne $ReleaseLine) 
 }
 
 Write-Host "Full-release candidate is ready: $ExpectedZip"
-Write-Host "All candidate checks ran once through the standard full-release gate."
+$NotesVerification = if ($SkipQualityChecks) { "partial" } else { "complete" }
+Invoke-Conda -EnvName $TestEnv -CommandArgs @(
+    "python", $ReleaseDocsHelper, "notes", "--repo", $Repo, "--kind", "full",
+    "--verification", $NotesVerification, "--output", $ReleaseNotesPath
+)
+Write-Host "Release notes: $ReleaseNotesPath"
+if ($SkipQualityChecks) {
+    Write-Host "Development build only: quality checks were skipped."
+} else {
+    Write-Host "All candidate checks ran once through the standard full-release gate."
+}
 Write-Host "Tagging and publication remain explicit maintainer actions."

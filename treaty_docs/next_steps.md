@@ -6,6 +6,13 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 
 ## Currently Hot
 
+- Direct Windows downloads and generated release notes are being delivered
+  on `dev` first. See `packaging/windows/README.md#release-documentation`.
+  After review, propagate the workflow to the publication/release branches
+  and tighten the existing v0.17.6 GitHub notes from the changelog, retaining
+  its calibration limitation. No published release body has been edited yet.
+  Next submission task: publish the public example recording listed in
+  `paper/README.md`.
 - Annotation save protection is implemented: verified sibling staging before replacement,
   cleanup on success, and a complete local recovery MAT on destination
   failure. Test native saving and overwriting on the affected shared drive;

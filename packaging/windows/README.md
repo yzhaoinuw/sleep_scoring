@@ -12,7 +12,7 @@ This is the project convention for both full packages and compatible updates.
 | --- | --- | --- |
 | Git tag | Exact app version, including `v` | `v0.17.6` |
 | GitHub release title | Identical to the tag | `v0.17.6` |
-| Release notes | Start with a sentence naming the app and summarizing the changes | `Sleep Scoring App v0.17.6 improves calibration stability.` |
+| Release notes | App name/version, then the matching changelog entry | `Sleep Scoring App v0.17.6` followed by its user-facing changes |
 | Full Windows ZIP | App name, major/minor line, and `_full` suffix | `sleep_scoring_app_v0.17_full.zip` |
 | Automatic update ZIP | Existing updater-compatible name and exact version | `sleep_scoring_app_update_v0.17.6.zip` |
 
@@ -31,6 +31,70 @@ release notes automatically. Verify `tagName` and `name` agree with
 This naming rule concerns GitHub releases. Software titles in `CITATION.cff`
 and Zenodo remain descriptive citation metadata. Existing release-title cleanup
 is separate from creating or moving tags or renaming assets.
+
+## Release Documentation
+
+`CHANGELOG.md` is the authority for user-facing release changes, including
+material limitations. Copy the matching version's entry into the GitHub notes;
+do not add manuscript revisions, internal refactoring, branch history, or a
+second summary that repeats the same changes. Maintainer evidence belongs in
+`treaty_docs/work_log.md`.
+
+Keep the notes short: app name/version and changelog text, then **Installation**
+(existing users and new users) and **Verification** (one sentence stating the
+gate and important packaged-app checks). Link directly to the full Windows ZIP.
+Keep meaningful limitations; leave test counts, commands, and detailed evidence
+in the work log. Do not use GitHub's automatically generated commit list.
+
+### Prepare the Windows download
+
+The README has one actual full-package download URL. Its prominent top link
+points to the installation section. `release_metadata.json` records the current
+full-package tag; the ZIP name is derived using `package_naming.py`.
+
+For a **new full release**, first align version/citation metadata and add the
+user-facing changelog entry, then activate the test environment and run:
+
+```powershell
+conda activate sleep_scoring_dash3.0
+python packaging/windows/release_docs.py prepare-full
+```
+
+This updates the README link and full-package metadata together. Review and
+commit them with the candidate before the full gate. The gate rejects stale
+metadata or a stale/duplicate README download link, even with quality checks
+skipped. The URL need not exist before publication; this check is local.
+
+For a **compatible update**, leave the full-package tag/link unchanged. The
+lightweight gate checks that the advertised full base is among the supported
+versions. Continue maintaining the installed baselines and fixtures required by
+the packaging gate when changing the full base.
+
+### Generate and publish notes
+
+Both gates generate `release_artifacts/release_notes_vX.Y.Z.md` after their
+checks. This is ignored local output beside the ZIPs, not committed content.
+The lightweight gate reads documentation from `-ToRef`, matching the code being
+shipped. Full validation-only runs produce preflight notes; skipped checks
+produce development notes, never a claim that the complete release gate passed.
+A gate removes an older same-version notes file before its documentation check.
+
+Review the generated file, then pass it explicitly when publishing:
+
+```powershell
+gh release create $Version --title $Version --notes-file "release_artifacts/release_notes_$Version.md" <assets>
+```
+
+`<assets>` stands for the appropriate full-package or compatible-update assets.
+Publishing/tagging remains an explicit maintainer action. After publication,
+verify the title/tag, expected assets, and the README's full-package download
+with an HTTP HEAD request that follows redirects. Continue the Zenodo/ref checks
+in the project release checklist.
+
+To preview notes without running a release gate, use `release_docs.py notes
+--kind full` (after preparing a full candidate), or `notes --kind update
+--from-ref <supported-tag>` repeated for every supported version. Preview notes
+are marked unverified by default. Only the gates should supply `--verification`.
 
 ## Full App Zip
 

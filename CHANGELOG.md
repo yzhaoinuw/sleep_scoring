@@ -11,6 +11,9 @@ implementation and release details are recorded in
   that a short example drives an extreme recording-wide change. Manual labels
   remain unchanged after prediction.
 
+Calibration still needs broader evaluation across difficult recordings; this
+release does not establish general accuracy across recordings.
+
 ## v0.17.5
 
 - Statistical-model calibration favors settings near the defaults when they

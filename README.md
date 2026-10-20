@@ -13,6 +13,8 @@ A desktop app for viewing EEG, EMG, and optional norepinephrine (NE) signals,
 manually annotating sleep scores (also known as sleep stages), checking
 aligned video, and optionally generating automatic sleep scores.
 
+**[Download for Windows](#packaged-windows-app)**
+
 ## Contents
 
 - [Install](#install)
@@ -35,13 +37,11 @@ aligned video, and optionally generating automatic sleep scores.
 
 ### Packaged Windows App
 
-1. From the latest
-   [release](https://github.com/yzhaoinuw/sleep_scoring/releases), download the
-   ZIP whose name ends in `_full.zip`. Not the **Source code** archives —
-   those are not the app.
-2. Extract it and move the app folder wherever you want to keep it.
-3. Double-click `unblock_app.cmd`. It unblocks the downloaded files and starts
-   the app.
+1. [Download the Windows app](https://github.com/yzhaoinuw/sleep_scoring/releases/download/v0.17.1/sleep_scoring_app_v0.17_full.zip).
+2. Extract the ZIP to a local folder.
+3. Double-click `unblock_app.cmd` to start.
+
+The app checks for compatible updates when opened.
 
 <details>
 <summary>Troubleshoot the extracted folder layout</summary>
@@ -213,13 +213,8 @@ day and applies compatible updates before the window opens. If it cannot — no
 network, or a local edit in the way — it says so in the terminal and opens
 normally.
 
-v0.17.6 is a compatible source update for v0.17.1–v0.17.5 installations.
-It balances calibration fit against changes to unlabelled default predictions,
-reducing extreme recording-wide changes from short examples. New
-installations use the v0.17.1 `_full.zip` and receive the latest patch at startup.
-
 Some releases replace the whole package and cannot be applied automatically.
-When the terminal reports one, download the new `_full.zip` and repeat the
+When the terminal reports one, repeat the
 [installation steps](#packaged-windows-app).
 
 To check which version you are on, look at the startup terminal or the app

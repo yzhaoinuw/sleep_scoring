@@ -17,6 +17,31 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-19
 
+### Direct Windows download and generated release notes (Codex, GPT-6; effort/token budget not reported)
+
+- Develop on `dev` first, per maintainer direction. The Windows README now
+  links directly to the v0.17.1 full ZIP; the top download link targets that
+  installation section so only one actual asset URL needs maintenance.
+- Keep the full-package tag in `packaging/windows/release_metadata.json`.
+  `release_docs.py prepare-full` updates it and the README together before
+  committing a new full candidate. Both release gates enforce the link;
+  compatible updates must still support the advertised full base.
+- Put the release-specific convention in `packaging/windows/README.md`,
+  leaving AGENTS.md lean. Generate concise notes from the exact changelog
+  entry and candidate compatibility; maintainer/manuscript changes stay out.
+  Keep the existing v0.17.6 calibration limitation in the changelog so it
+  survives generation. Notes are ignored local artifacts, not tracked files.
+- Only completed gates generate passing verification wording. Preview,
+  validation-only, and skipped-check runs are marked incomplete. Lightweight
+  notes read from the same Git ref as the shipped code. No version bump,
+  package rebuild, tag, or published release-body change is part of this work.
+- Verification: focused release/packaging pytest run: 65 passed; pinned
+  pre-commit Black hook passed for the two new Python files; both modified
+  PowerShell scripts parsed successfully; the full-ZIP URL returned HTTP 200
+  after redirects; generated and inspected an unverified v0.17.6 notes preview;
+  `git diff --check`. Local `dev` delivery only; preserve the untracked review
+  PDF backup. Full release gates were not run because no release is being cut.
+
 ### Review PDF refresh and open-list cleanup (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - Replaced the review copy with the maintainer-downloaded

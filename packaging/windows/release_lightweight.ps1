@@ -18,6 +18,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Repo = (Resolve-Path (Join-Path $ScriptDir "..\..")).Path
 $ReleaseHelper = Join-Path $ScriptDir "lightweight_release.py"
+$ReleaseDocsHelper = Join-Path $ScriptDir "release_docs.py"
 $BuildScript = Join-Path $ScriptDir "make_source_update_asset.ps1"
 $BaselineDir = Join-Path $ScriptDir "installed_baselines"
 
@@ -163,6 +164,15 @@ $Version = Invoke-CondaCapture -CommandArgs @(
 )
 $Version = $Version.Trim()
 $OutputZip = Join-Path $ArtifactDir "sleep_scoring_app_update_$Version.zip"
+$ReleaseNotesPath = Join-Path $ArtifactDir "release_notes_$Version.md"
+if (Test-Path -LiteralPath $ReleaseNotesPath) {
+    Remove-Item -LiteralPath $ReleaseNotesPath
+}
+$ReleaseDocsArgs = @("--repo", $Repo, "--kind", "update", "--ref", $ToRef)
+foreach ($Ref in $FromRef) {
+    $ReleaseDocsArgs += @("--from-ref", $Ref)
+}
+Invoke-Conda -CommandArgs (@("python", $ReleaseDocsHelper, "check") + $ReleaseDocsArgs)
 
 Write-Host "Preparing lightweight release $Version"
 Write-Host "Compatible refs: $($FromRef -join ', ')"
@@ -290,4 +300,10 @@ if (-not $SkipInstalledAppTests) {
 $Hash = Get-FileHash -LiteralPath $OutputZip -Algorithm SHA256
 Write-Host "Lightweight release candidate is ready: $OutputZip"
 Write-Host "SHA256: $($Hash.Hash)"
+$NotesVerification = if ($SkipQualityChecks -or $SkipInstalledAppTests) { "partial" } else { "complete" }
+Invoke-Conda -CommandArgs (
+    @("python", $ReleaseDocsHelper, "notes") + $ReleaseDocsArgs +
+    @("--verification", $NotesVerification, "--output", $ReleaseNotesPath)
+)
+Write-Host "Release notes: $ReleaseNotesPath"
 Write-Host "Publication remains an explicit maintainer step."
