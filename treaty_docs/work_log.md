@@ -17,6 +17,18 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-19
 
+### Review PDF refresh and open-list cleanup (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Replaced the review copy with the maintainer-downloaded
+  `Sleep_Scoring_App_JOSS_Manuscript_2026-10-19.pdf` from the `40e0d7a`
+  JOSS draft run (7 pages; PDF creation time matches the run) and removed
+  the 2026-10-18 copy. Updated the README link and status date.
+- Moved the five checked items out of the paper README's open list into
+  What is done.
+- Maintainer authorized commit, push, and fast-forwarding `dev` and `main`
+  to `publication`.
+- Verification: `git diff --check`; no remaining links to the old PDF.
+
 ### SPINDLE link, setup motivation, and resolved paper checks (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - SPINDLE's sleeplearning.ethz.ch now redirects to sleepyrat.ai (same

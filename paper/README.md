@@ -1,8 +1,8 @@
 # JOSS Paper Draft — Under Construction
 
-**Status: active revision, not submission-ready** (updated 2026-10-18).
+**Status: active revision, not submission-ready** (updated 2026-10-19).
 
-**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-18.pdf).
+**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-19.pdf).
 The JOSS manuscript PDF is already included in `paper/` for collaborators to
 read and comment on. Open the link above to review it. Yue maintains this copy;
 the download and refresh steps below are for the maintainer only.
@@ -260,39 +260,34 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 - **Authorship.** After reviewing the JOSS criteria, Yue Zhao remains the
   sole person qualified as an author.
 
+- **Figure print legibility.** Closed by the maintainer on 2026-10-19; the
+  application's tick labels still need zoom, as noted above.
+- **NE biology citations.** The maintainer confirmed on 2026-10-19 that the
+  Kjaerby and Hauglund citations frame the program fairly.
+- **Related tools.** The maintainer verified the characterizations of
+  AccuSleep/AccuSleePy, SPINDLE, Somnotate, and Visbrain against the cited
+  papers and current documentation on 2026-10-19. SPINDLE's server now
+  redirects to sleepyrat.ai, and State of the field notes that every listed
+  tool except SPINDLE needs a MATLAB or Python environment.
+- **Credit for the scoring rules.** Confirmed complete on 2026-10-19:
+  Acknowledgments names the seven researchers who helped define the rules,
+  and Software design, section 3 cites Kjaerby et al. 2022 for the stage
+  criteria only.
+- **Affiliation.** The University of Rochester affiliation is confirmed.
+
 ## What is still open
 
 ### Figures
 
-- [x] Decide whether print legibility of the in-app text matters enough to
-  retake the snapshots with a smaller window (larger relative text).
 - [ ] Publish a public example recording reviewers can open in the app.
 
 ### Claims the authors said they would verify
 
-- [x] **NE biology citations.** Confirm with the Kjaerby/Hauglund co-authors
-  that the two citations frame the program fairly. (Neither study's scoring
-  used this application; see the comment in `paper.md`.)
-- [x] **Related tools.** Verify each characterization of AccuSleep/AccuSleePy,
-  SPINDLE, Somnotate, and Visbrain against the cited papers and current
-  documentation, including epoch-length options. Add commercial packages only
-  with a citable source.
 - [ ] **AI usage disclosure.** Confirm that author review of the manuscript
   is complete.
 
 ### Authors and metadata
 
-- [x] **Credit for the scoring rules (resolve before submission).** Confirm
-  that the list of people thanked for the sleep-stage rules is complete. The
-  default scorer's rules (Wake from 1–7 Hz EEG power, REM from an NE dip,
-  minimum bout lengths) were agreed by Project 2 researchers as a group and
-  passed on through a few people; the maintainer designed and built the
-  adaptive parameter fitting and the rest of the software. Acknowledgments
-  currently names the seven researchers users identified. Software design,
-  section 3 cites Kjaerby et al. 2022 for the stage criteria; that paper
-  defines the stages but not the app's numeric thresholds, so the citation
-  stays at that level.
-- [x] Confirm or expand the University of Rochester affiliation.
 - [ ] Acknowledgments: add names from the Copenhagen users' poll, check
   each name's spelling and diacritics (including the assumed surname
   Schiøler Nielsen), and decide whether to thank anyone who supplied
