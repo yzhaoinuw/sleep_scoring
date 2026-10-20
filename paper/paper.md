@@ -285,8 +285,8 @@ Researchers in Project 2 of the University of Rochester BrainFlowZZZ program
 have been the application's main users since 2023, using it to score their
 rodent EEG/EMG/NE recordings. The program's channel for the application has
 about 30 members; five users who reported their use have together scored
-about 1,200 hours of recordings, a lower bound on total use. Results scored
-with the application have been presented in conference posters.
+about 1,200 hours, a lower bound on total use. Results scored
+with the application have appeared in conference posters.
 <!-- Source: replies from five users, 2026-10-15/16: ~300 h, ~300 h, ~250 h,
 ~200 h, and 50-100 recordings at a typical ~3 h (150-300 h); about
 1,200-1,350 h in total. No publications or datasets from these scores yet, and no known users
@@ -294,7 +294,8 @@ outside the program. As of 2026-10-18 there are no published studies,
 preprints, or datasets to name; add them only if one appears before
 submission. -->
 The repository provides releases, documentation, tests, demonstration
-videos, and archived versions [@sleepscoring_zenodo].
+videos, archived versions [@sleepscoring_zenodo], and an example dataset
+[@sleepscoring_example_data].
 
 # AI usage disclosure
 
@@ -321,7 +322,8 @@ We thank Mie Andersen, Jingyuan Chen, Natalie Linea Hauglund, Shadi Sartipi,
 Anastasia Tsopanidou, Verena Untiet, and Yuan Yao for helping define the sleep-stage
 rules that the rule-based model encodes. We especially thank Mie Andersen,
 Rebeka Kovács, Klaudia Anna Tokarska, and Anastasia Tsopanidou, who were among
-the application's earliest users and gave extensive one-on-one feedback.
+the application's earliest users, gave extensive one-on-one feedback, and
+shared recordings for testing.
 We also thank the other users whose feedback and feature requests shaped
 the application: at the University
 of Copenhagen, Katharina Franziska Baumgart, Antonia Benita Beiersdorfer,
@@ -341,7 +343,9 @@ have since left for other groups) AND extensive one-on-one feedback (only
 Yue can confirm this). Don't add anyone on one alone (assumed surname:
 Schiøler Nielsen); check spelling and diacritics with each person. -->
 
-<!-- TODO: thank data and model contributors by name, if separate from the
-people above. -->
+<!-- Recording contributors are credited through the "especially thank"
+group (maintainer, 2026-10-20); the public example dataset's provider is among
+them, so she is not named twice. TODO: decide whether to thank the sDREAMER
+developers (already cited) by name. -->
 
 # References

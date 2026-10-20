@@ -294,8 +294,9 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 - [ ] Acknowledgments: add names from the Copenhagen users' poll, check
   each name's spelling and diacritics (including the assumed surname
-  Schiøler Nielsen), and decide whether to thank anyone who supplied
-  recordings or the sDREAMER developers (already cited) by name. Keep the
+  Schiøler Nielsen), and decide whether to thank the sDREAMER developers
+  (already cited) by name. Recording contributors are credited through the
+  four "especially thank" users (2026-10-20). Keep the
   approved funding sentence verbatim.
 - [ ] Update the manuscript date when the revision is finalized (set to
   14 October 2026 during the text review).
