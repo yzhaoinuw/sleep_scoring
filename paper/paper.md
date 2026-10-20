@@ -32,8 +32,8 @@ desktop application for sleep scoring rodent recordings: labeling each
 second as wakefulness (Wake), non-rapid-eye-movement (NREM) sleep, REM
 sleep, or a brief microarousal (MA), from brain electrical activity (EEG)
 and muscle activity (EMG). It
-brings EEG, EMG, an EEG spectrogram, an optional fiber-photometry
-norepinephrine (NE) signal, and behavior-video clips of a selected interval
+brings EEG, EMG, an EEG spectrogram, an optional norepinephrine (NE) signal
+measured by fiber photometry, and behavior-video clips of a selected interval
 into one shared scoring workflow. Users can label intervals manually or
 start from sleep scores predicted by an automatic scoring model, then revise
 individual seconds or whole bouts; predicted sleep scores never overwrite
