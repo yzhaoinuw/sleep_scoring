@@ -25,8 +25,11 @@ search older entries by date anchor rather than reading every archive.
   commercial SleepScore named just before it. The first mention adds "now as
   a web service" so readers can tell which tool uploads. Not "paid": rodent
   scoring is free up to a weekly quota (see the State-of-the-field comment).
-- Replaced the review PDF with the `1cb7b57` JOSS draft artifact (7 pages,
-  checked). Body word count went down slightly.
+- Research impact statement: the repository "links to" the Zenodo archive
+  and example dataset rather than "provides" them, since neither lives in
+  the repository; the README's Example Data section is the link.
+- Replaced the review PDF with the `cbf893e` JOSS draft artifact (7 pages,
+  checked). Net body word count is about unchanged.
 
 ### Example dataset cited in the manuscript (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
