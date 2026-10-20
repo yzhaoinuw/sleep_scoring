@@ -38,10 +38,10 @@ aligned video, and optionally generating automatic sleep scores.
 ### Packaged Windows App
 
 1. [Download the Windows app](https://github.com/yzhaoinuw/sleep_scoring/releases/download/v0.17.1/sleep_scoring_app_v0.17_full.zip).
+   This is the latest full package. Newer releases may contain only updates,
+   which the app applies automatically when opened.
 2. Extract the ZIP to a local folder.
 3. Double-click `unblock_app.cmd` to start.
-
-The app checks for compatible updates when opened.
 
 <details>
 <summary>Troubleshoot the extracted folder layout</summary>
