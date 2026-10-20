@@ -29,12 +29,8 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
-- JOSS revision is active on `publication`, synchronized with `dev` and `main`
-  through v0.17.6, and again on 2026-10-19 after the title, acknowledgments,
-  and design-text revisions. Zenodo archival is verified.
-  Replacement workflow snapshots and composed panels are integrated; the
-  maintainer closed the figure print-legibility item on 2026-10-19.
-  See `paper/README.md` for the remaining author checks and submission tasks.
+- JOSS paper is submission-ready (maintainer reviewed the full PDF on
+  2026-10-20); `publication`, `dev`, and `main` are in sync. Next: submit.
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.
@@ -165,83 +161,22 @@ setup and need no repository DOI metadata changes, but each published release
 still requires Zenodo record verification. Zenodo record 21748495 also carries
 the NIH grant `U19NS128613`.
 
-### JOSS Paper (active revision)
+### JOSS Paper (submission-ready)
 
-The draft in `paper/` is not submission-ready. `paper.md` was rewritten on
-2026-10-07 to the current JOSS structure, following
-`paper/manuscript_layout.md`; inline `TODO` comments mark claims that need
-author confirmation. See `paper/README.md` for its status. Open items:
+`paper/` is final as of 2026-10-20: the maintainer reviewed the full rendered
+PDF, Acknowledgments are final, and no inline TODOs remain. The body is about
+1,730 words by the `paper/README.md` rule. Keep the checked-in review PDF
+current after any further manuscript, bibliography, or figure edit. Drafting
+history is in the work log and its archive.
 
-- Software name settled on 2026-10-07: "Sleep Scoring App" in the paper
-  title and `CITATION.cff` (repository and package stay `sleep_scoring`).
-  The `CITATION.cff` abstract follows the paper's Summary. The v0.17.5
-  Zenodo archive uses the updated software title. On 2026-10-18 the paper
-  subtitle changed to "Visualizing and annotating rodent sleep recordings
-  with synchronized electrophysiology, photometry, and behavior video" in
-  `paper.md` and `CITATION.cff`; the `sleepscoring_zenodo` bib entry keeps
-  the archived title. After the next release, confirm Zenodo shows the new
-  title and update that bib entry.
-- Resolve the remaining inline `TODO`: final author review for the AI
-  disclosure. Kjaerby/Hauglund framing and competitor characterizations were
-  confirmed by the maintainer on 2026-10-19.
-  Publications were checked on 2026-10-18: none to name yet, so the impact
-  section cites posters only; add any that appear before submission. Users' total hours (~1,200 h from five
-  users) and the build-vs-contribute rationale were resolved on 2026-10-14/15.
-- First current-release latency session captured on 2026-10-08; keyboard
-  navigation has 34 retained updates (median 329.3 ms, p95 371.2 ms) at a
-  379.9-second viewport. Recording duration/rates verified from MAT metadata
-  (~2.86 hours, EEG/EMG 610.3515625 Hz, NE 10.172526245117188 Hz); maintainer
-  reported default Sampling Level, verified as x1. Complete machine display
-  context in the run notes before finalizing the manuscript claim.
-  Mouse follow-up now has 48 retained updates at 311 seconds (median
-  212.2 ms, p95 238.7 ms); no further repetitions needed for the first pass.
-  Its recording/Sampling Level context follows the requested same-recording
-  x1 protocol but is not independently captured by the logger. Auto-pan
-  refreshes are correlated within drags and have a different completion
-  boundary. Use [`paper/latency_measurements.md`](../paper/latency_measurements.md)
-  for the selected results and proposed wording; final machine context and
-  manuscript integration remain open.
-- macOS session captured on 2026-10-09 (Apple M4, same recording, x1):
-  keyboard median 181.0 ms (p95 190.6 ms, 69 retained, 331.9 s), mouse drag
-  64.0 ms (p95 69.2 ms, 58 retained, 255.9 s). Reviewed in
-  `paper/latency_measurements.md` and appended to
-  `ui_response_time_optimization_progress.txt`; the May M4 section stays as
-  dated history and is not pooled with it.
-- Both workflow figures are composed by `paper/figures/build_figures.py` and
-  placed in `paper.md` (body about 1,725 words with captions; about 25 words
-  of headroom in the earlier draft). After the 2026-10-14 text review the body
-  is about 1,665 words of running text, or about 1,740 counting headings and
-  rendered citations; treat the stricter count as binding. As of 2026-10-18
-  it is about 1,730 words of running text excluding Acknowledgments (about
-  150 more if counted). The `JOSS draft PDF` workflow renders the paper as a run
-  artifact. Keep the checked-in review PDF and its paper README link current
-  after every manuscript, bibliography, or figure edit. The maintainer closed
-  the print-legibility item on 2026-10-19. The public example dataset was
-  published and verified on 2026-10-20: DOI `10.5281/zenodo.23489642`.
-- Affiliation confirmed by the maintainer on 2026-10-19. Fill the remaining
-  `paper.md` TODOs and finish Acknowledgments. Its first pass (2026-10-18)
-  names the rule contributors, the users, the supervisor, the Copenhagen group
-  leader, and the program PI. Still open: names from the Copenhagen users' poll,
-  spelling and diacritics checks, and whether to thank the sDREAMER
-  developers (already cited) or recording suppliers by name. Keep the
-  approved funding sentence verbatim.
-- Authorship settled on 2026-10-18: after reviewing the JOSS criteria, the
-  maintainer remains the sole person qualified as an author.
-- Verify every claim in the paper against the current shipped app.
-- Strengthen the "useful beyond the BrainFlowZZZ program" angle for JOSS
-  reviewers: name one or two external adopters (in Acknowledgments or a
-  short Statement-of-need sentence) once such use exists, even at sandbox
-  scale. JOSS reviewers commonly ask "who outside the author's group uses
-  this?" and a concrete answer is the easiest mitigation.
-- Add an "Adapting input data" subsection to `README.md` documenting the
-  `.mat` field contract precisely enough for a non-BrainFlowZZZ lab to write
-  a thin (~50-line) converter. This neutralizes the most likely
-  "internal infrastructure" objection without forcing the ingestion code
-  itself to be generalized.
-- Set up the JOSS submission (fork of the `joss-reviews` process): confirm the
-  repo is public, has an OSI license (MIT, present), and a clear README/docs.
+- Submit to JOSS: the repository is public, MIT-licensed, and documented.
+- At acceptance, archive the final release on Zenodo, confirm it shows the
+  paper's title, and update the `sleepscoring_zenodo` title in `paper.bib`.
 - After acceptance, add a `preferred-citation:` block with the JOSS DOI to
   `CITATION.cff`.
+- Likely reviewer questions: use outside the BrainFlowZZZ program (name
+  external adopters once they exist) and adapting other labs' data (the
+  README's Input Files section documents the `.mat` contract).
 
 ## Later Ideas
 

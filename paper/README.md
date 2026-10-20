@@ -1,6 +1,6 @@
-# JOSS Paper Draft — Under Construction
+# JOSS Paper
 
-**Status: active revision, not submission-ready** (updated 2026-10-20).
+**Status: submission-ready** (maintainer reviewed the full PDF on 2026-10-20).
 
 **Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-20.pdf).
 The JOSS manuscript PDF is already included in `paper/` for collaborators to
@@ -191,6 +191,11 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ## What is done
 
+- **Final author review (2026-10-20).** The maintainer reviewed the full
+  rendered PDF, including references, which also closes the AI usage
+  disclosure check. Acknowledgments are final: no poll additions, and the
+  sDREAMER developers are cited rather than thanked by name. Manuscript date
+  set to 20 October 2026.
 - **Public example data (published 2026-10-20).**
   [Example EEG/EMG/NE recording and behavior video](https://doi.org/10.5281/zenodo.23489642),
   dataset v1.0.0, is openly available under CC BY 4.0. It includes the
@@ -286,28 +291,10 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ## What is still open
 
-### Claims the authors said they would verify
-
-- [ ] **AI usage disclosure.** Confirm that author review of the manuscript
-  is complete.
-
-### Authors and metadata
-
-- [ ] Acknowledgments: add names from the Copenhagen users' poll, check
-  each name's spelling and diacritics (including the assumed surname
-  Schiøler Nielsen), and decide whether to thank the sDREAMER developers
-  (already cited) by name. Recording contributors are credited through the
-  four "especially thank" users (2026-10-20). Keep the
-  approved funding sentence verbatim.
-- [ ] Update the manuscript date when the revision is finalized (set to
-  14 October 2026 during the text review).
-
-### Release and final checks
-
-- [ ] After the next release, confirm Zenodo shows the new title, then
-  update the `sleepscoring_zenodo` title in `paper.bib` to match.
-- [ ] Review the final rendered PDF in full, including the generated
-  references.
+- [ ] Submit to JOSS.
+- [ ] At acceptance, archive the final release on Zenodo, confirm it shows
+  the paper's title, and update the `sleepscoring_zenodo` title in
+  `paper.bib` to match.
 
 See the "Citation And Publication" section of
 [`treaty_docs/next_steps.md`](../treaty_docs/next_steps.md) for the full checklist

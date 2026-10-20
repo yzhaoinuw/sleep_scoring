@@ -20,7 +20,7 @@ authors:
 affiliations:
   - name: University of Rochester, Rochester, NY, USA
     index: 1
-date: 14 October 2026
+date: 20 October 2026
 bibliography: paper.bib
 ---
 
@@ -313,7 +313,6 @@ also helped plan, draft, and review this manuscript. The author made the
 architectural and design decisions, reviewed and tested all AI-assisted code
 before release, and reviewed, revised, and verified the manuscript against
 the software and cited sources.
-<!-- TODO(author): confirm review is complete before submission. -->
 
 # Acknowledgments
 
@@ -347,7 +346,7 @@ Schiøler Nielsen); check spelling and diacritics with each person. -->
 
 <!-- Recording contributors are credited through the "especially thank"
 group (maintainer, 2026-10-20); the public example dataset's provider is among
-them, so she is not named twice. TODO: decide whether to thank the sDREAMER
-developers (already cited) by name. -->
+them, so she is not named twice. The sDREAMER developers are cited, not
+thanked separately. Acknowledgments final (maintainer, 2026-10-20). -->
 
 # References
