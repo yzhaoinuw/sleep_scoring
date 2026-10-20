@@ -17,6 +17,21 @@ search older entries by date anchor rather than reading every archive.
 
 ## 2026-10-20
 
+### Word trims and REM wording (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- REM is now "deep NE valleys" instead of "sustained low NE" (maintainer:
+  the defining feature is a large valley that bounces back). Matches code:
+  a bout reaching a recording-wide low NE percentile starts REM, and the
+  post-trough recovery is split off as Wake. Valley-shape gating is
+  disabled in `classify_rem_bouts_from_wake_bouts`, so the paper does not
+  claim the rebound is required for detection. Source comment updated.
+- Removed "it does not adapt to user labels" from the sDREAMER sentence;
+  dropped "updates, including" from the updater list; moved the
+  zooming/panning-needs-the-server point into the responsiveness paragraph
+  and deleted the duplicate sentence there. Impact statement opener kept.
+- Body is 13 words shorter than at the start of 2026-10-20 (about 1,730 by
+  the paper README rule). Review PDF replaced with the `f754d04` artifact.
+
 ### Default versus chosen interaction path in Software design 2 (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
 - Maintainer noticed "each interaction is sent to the server" and
