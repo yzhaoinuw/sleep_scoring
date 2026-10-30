@@ -305,7 +305,7 @@ From 2023 through 2025, the author asked web-based ChatGPT and Claude
 coding questions (model versions not recorded). Since 2026, coding agents
 have assisted with code, tests, documentation, and release checks: Claude
 Code (Claude Opus 4.5–5.5 and Fable 5) and OpenAI Codex (GPT-5 and GPT-6),
-with sessions recorded in the repository's work log (`treaty_docs/`), kept
+with sessions recorded in the repository's work log (`agent_worklog/`), kept
 under the author's
 [Agent Collab Treaty](https://github.com/yzhaoinuw/agent_collab_treaty)
 conventions for human–agent collaboration. Claude Code and Codex

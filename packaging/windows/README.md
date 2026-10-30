@@ -38,7 +38,7 @@ is separate from creating or moving tags or renaming assets.
 material limitations. Copy the matching version's entry into the GitHub notes;
 do not add manuscript revisions, internal refactoring, branch history, or a
 second summary that repeats the same changes. Maintainer evidence belongs in
-`treaty_docs/work_log.md`.
+`agent_worklog/work_log.md`.
 
 Keep the notes short: app name/version and changelog text, then **Installation**
 (existing users and new users) and **Verification** (one sentence stating the

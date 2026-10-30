@@ -2,7 +2,7 @@
 
 This is the first file to read in a session. Keep it lean and project-specific;
 generic mechanics live in
-[`treaty_docs/treaty_conventions.md`](treaty_docs/treaty_conventions.md).
+[`agent_worklog/treaty_conventions.md`](agent_worklog/treaty_conventions.md).
 
 ## Startup Rule
 
@@ -40,9 +40,9 @@ the touched surface and `git diff --check`.
 ## When To Update Treaty Docs
 
 At the end of substantive work, prepend the decisions and reusable evidence to
-`treaty_docs/work_log.md` and keep `treaty_docs/next_steps.md` accurate. Routine
+`agent_worklog/work_log.md` and keep `agent_worklog/next_steps.md` accurate. Routine
 changes already clear from the diff do not need narration. See
-[Work Log Discipline](treaty_docs/treaty_conventions.md#work-log-discipline)
+[Work Log Discipline](agent_worklog/treaty_conventions.md#work-log-discipline)
 for the exact criteria and entry structure.
 
 ## Branch Handoff Discipline
@@ -50,7 +50,7 @@ for the exact criteria and entry structure.
 Pull requests normally target `dev`; `main` is the published integration point
 for releases. Before leaving an experimental branch, ensure its work is tested,
 committed, and either delivered or intentionally parked. See
-[Branch Handoff](treaty_docs/treaty_conventions.md#branch-handoff).
+[Branch Handoff](agent_worklog/treaty_conventions.md#branch-handoff).
 
 ## Release / Tag Checklist
 
@@ -67,7 +67,7 @@ release—as release work. Before creating or pushing a tag:
 - align `app_src/__init__.py`, `setup.py`, and the `version` and
   `date-released` fields in `CITATION.cff`;
 - update release notes/changelog and user-facing docs when behavior changed;
-- update `treaty_docs/work_log.md` with verification and branch/tag state;
+- update `agent_worklog/work_log.md` with verification and branch/tag state;
 - run the applicable tests, smoke checks, and package gate;
 - only then tag, push, and verify pushed refs.
 
@@ -86,25 +86,25 @@ when a release is published; later repository corrections do not propagate to
 an existing Zenodo record. Use `release_full.ps1` or `release_lightweight.ps1`
 as the candidate gate, and do not rerun individual checks after a passing gate
 unless the candidate commit changes. Never write future-dated work-log entries.
-The full procedure is in [Release Gate](treaty_docs/treaty_conventions.md#release-gate).
+The full procedure is in [Release Gate](agent_worklog/treaty_conventions.md#release-gate).
 
 ## Updating The Treaty
 
 Treaty updates are a maintainer decision, distinct from work-log maintenance.
 Use `treaty diff`, then `treaty update --dry-run`, then `treaty update`.
 Preserve project guidance and resolve every unmerged file before committing;
-see [Updating The Treaty](treaty_docs/treaty_conventions.md#updating-the-treaty).
+see [Updating The Treaty](agent_worklog/treaty_conventions.md#updating-the-treaty).
 
 ## Documentation
 
-- `treaty_docs/treaty_conventions.md`: upstream-maintained work-log, branch,
+- `agent_worklog/treaty_conventions.md`: upstream-maintained work-log, branch,
   release, and update mechanics; avoid local edits.
-- `treaty_docs/work_log.md` / `treaty_docs/work_log_archive/`: decisions,
+- `agent_worklog/work_log.md` / `agent_worklog/work_log_archive/`: decisions,
   evidence, and delivery state.
   The live log holds at most five unique dates; find date anchors with
-  `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' treaty_docs/work_log.md`
-  `treaty_docs/work_log_archive/`.
-- `treaty_docs/next_steps.md`: unfinished work; `Currently Hot` names active threads.
+  `rg -n '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' agent_worklog/work_log.md`
+  `agent_worklog/work_log_archive/`.
+- `agent_worklog/next_steps.md`: unfinished work; `Currently Hot` names active threads.
 - `project_overview.md`: codebase map and active-versus-legacy boundaries.
 - `README.md`: user-facing installation, usage, and input-file contracts.
 - `CONTRIBUTING.md`: collaboration and verification workflow.

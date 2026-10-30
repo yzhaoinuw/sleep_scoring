@@ -167,11 +167,13 @@ the NIH grant `U19NS128613`.
 
 ### JOSS Paper (submitted 2026-10-20)
 
-`paper/` is final as of 2026-10-20: the maintainer reviewed the full rendered
-PDF, Acknowledgments are final, and no inline TODOs remain. The body is about
-1,730 words by the `paper/README.md` rule. Keep the checked-in review PDF
-current after any further manuscript, bibliography, or figure edit. Drafting
-history is in the work log and its archive.
+The manuscript was finalized for submission on 2026-10-20: the maintainer
+reviewed the full rendered PDF, Acknowledgments are final, and no inline
+TODOs remain. On 2026-10-29, its work-log path was updated to `agent_worklog/`
+and the review PDF rebuilt with that date; scientific text, references, and
+figures are unchanged. The body is about 1,730 words by the `paper/README.md`
+rule. Keep the checked-in review PDF current after any further manuscript,
+bibliography, or figure edit. Drafting history is in the work log and archive.
 
 - Submitted 2026-10-20 as v0.17.6, main subject "Neuroscience: sleep scoring
   of rodent electrophysiology recordings". The editor note disclosed sDREAMER

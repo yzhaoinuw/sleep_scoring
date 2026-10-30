@@ -15,6 +15,141 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-10-29
+
+### Scoped Treaty and manuscript delivery (Codex, GPT-6; effort/token budget not reported)
+
+- Prepared the requested Treaty v0.11.0 update, `agent_worklog/` relocation,
+  process assessments, and manuscript/README/PDF refresh for delivery to
+  `origin/dev`. The earlier entries' uncommitted states describe those steps
+  before this delivery. No release, tag, or PR is part of this request.
+- Preserved the pre-existing voice-command proposal, roadmap bullet, session
+  notes, and paper README dataset-credit hunk as local edits. Selected index
+  versions omit those unrelated additions while keeping the reviewed files
+  intact in the working tree. The relocated companion plan remains untracked.
+- Verification:
+  Refreshed `origin/dev`; reviewed exact staged paths and diffs; Treaty
+  validation, staged/unstaged whitespace checks, and staged-document link
+  checks before commit. The earlier seven-page PDF, identical-image/text,
+  and 79-link verification remains applicable. Commit hooks run on delivery;
+  local, tracking, and remote `dev` refs are compared after pushing.
+
+### Manuscript and review PDF aligned with relocated work log (Codex, GPT-6; effort/token budget not reported)
+
+- Corrected the manuscript's AI disclosure from `treaty_docs/` to
+  `agent_worklog/`. This is the only manuscript-source change. Cleaned up
+  draft-era paper README wording and six references to removed headings,
+  preserving its existing dataset-credit edits and relocated checklist link.
+- Rebuilt the seven-page review PDF from the current Markdown with Inara
+  commit `88ee5d656f147d801448ce77ad8375619d383df6`, Pandoc 3.10, and LuaLaTeX
+  (TeX Live 2026). The official defaults, citation filters, and template were
+  used; local adaptations only resolve Hack's font file, the Windows path-list
+  separator in the self-citation subprocess, and the 2026 draft metadata year.
+  Portable TeX packages and build evidence stay in ignored
+  `test-artifacts/joss-treaty-review-20261029/`; no app dependencies changed.
+- Replaced the 2026-10-20 review copy with the verified 2026-10-29 PDF and
+  updated its README link. Normalized extracted PDF text is identical to the
+  previous copy except for the requested folder name; all three unique
+  embedded images have identical decoded pixels. Visually checked the full
+  page contact sheet and the title/disclosure/continuation pages. References,
+  scientific content, figures, and the submission date are unchanged.
+- Source, PDF, and documentation changes remain local and uncommitted on
+  `dev`; the earlier Treaty staging and unrelated work are preserved. No
+  GitHub build, publication, PR, or release was triggered.
+- Verification:
+  Three successful LuaLaTeX passes; seven-page PDF, path, extracted-text,
+  image-pixel, and visual checks; Markdown relative-link/anchor audit;
+  `treaty validate .`; staged/unstaged `git diff --check`; narrow manuscript
+  diff and bibliography/figure preservation checks. JOSS template's existing
+  head-height warning has no visible clipping; no missing glyphs or unresolved
+  references remain in the final build.
+
+### Working-docs relocation and process assessment (Codex, GPT-6; effort/token budget not reported)
+
+- Moved the working docs from `treaty_docs/` to `agent_worklog/` with released
+  Treaty 0.11.0. Root `AGENTS.md`, `project_overview.md`, and Copier answers
+  remain in place. Used `--force` because the immediately preceding template
+  update and the maintainer's local work were intentionally uncommitted.
+- Assessment: predictable, with clearly disclosed manual follow-up. Preview
+  and apply exited 0 and agreed on five move groups covering 19 files,
+  15 references in AGENTS, one in the overview, and one outbound planning
+  link. Preview left all 164 baseline files byte-identical. Immediately
+  after apply, 160 files retained their bytes at the expected locations;
+  only the two root docs, answers, and next-steps link were rewritten.
+  Existing archive contents and prior session narratives were preserved.
+- The companion `voice_commands_plan.md` is adopter-owned and correctly stayed
+  outside the managed move. Treaty retargeted its link to the old location,
+  preserving resolution; moved the plan alongside the docs afterward and
+  restored the same-folder link. Removed the old folder only once empty.
+- Updated the four project-reference files explicitly reported by the tool:
+  CHANGELOG, CONTRIBUTING, Windows packaging README, and paper README. Kept
+  the paper README's pre-existing dataset edits. The submitted manuscript
+  source/PDF retain their historical folder reference, as do past log entries.
+- The command stages Git moves and root rewrites, while earlier uncommitted
+  edits remain partly unstaged. Its suggested additional staging list also
+  included the unrelated paper README; no broad staging command was followed.
+  No new Treaty defect warranted an issue. This checks a same-depth folder
+  rename with a companion document, not flattening or collision recovery.
+- The relocation and preceding update remain uncommitted on `dev`; no push,
+  PR, tag, or release. Raw plans, snapshots, and preservation/link-check
+  evidence are in ignored `test-artifacts/treaty-relocate-20261029/`.
+- Verification:
+  `treaty relocate . --to agent_worklog --dry-run --force`;
+  `treaty relocate . --to agent_worklog --force`; `treaty validate .`;
+  `treaty diff .`; staged/unstaged `git diff --check`; Git rename inspection;
+  SHA-256 and historical-text comparisons; 100 relative Markdown link/anchor
+  checks found no newly broken links. Six pre-existing paper README anchor
+  references remain outside this relocation's scope. Final validation and
+  whitespace checks pass; maintained docs have zero template drift.
+  Stale-reference and conflict/reject scans are clean outside historical
+  records. Application code and dependencies did not change, so app tests
+  were not rerun.
+
+### Treaty v0.11.0 update and process assessment (Codex, GPT-6; effort/token budget not reported)
+
+- Updated the adopted template from v0.9.0 to v0.11.0 using released CLI
+  0.11.0, Copier 9.19.1, and Python 3.11.14. GitHub and PyPI agreed on the
+  latest release. The tool lives in the ignored
+  `test-artifacts/treaty-update-20261029/venv`; the app environment's Treaty
+  0.3.2 installation and application dependencies were left untouched.
+- Assessment: predictable and reviewable on this customized nested adopter.
+  `treaty diff .` correctly excluded the adopter-owned planning/log content
+  from conflict exposure. Full preview and apply both exited 0 and named
+  exactly four content updates: the answers file, folder README, maintained
+  conventions, and archive README. All recorded answers were retained,
+  including `docs_dir: treaty_docs`; no relocation or manual merge was needed.
+  The new guidance ties logging to pushes/merges, explains heading anchors,
+  and checks for upstream updates when rotating logs.
+- Temporarily stashed the four existing local files for a clean preview/apply
+  baseline, then restored them. Before bookkeeping, SHA-256 checks confirmed
+  all 160 baseline files outside the three updated existing files were
+  byte-identical, including the local paper/voice/planning work and archives.
+  Git's restored voice-plan newline conversion was reversed to its original
+  bytes. The fourth updated path is the newly added folder README.
+- Current validation exposed 15 pre-existing live-log findings: reformatted
+  eight inline Verification labels without changing their evidence, and
+  explicitly marked seven entries' missing verification as unrecorded.
+  A canonical-text comparison confirmed every historical narrative survived;
+  no historical commands or results were reconstructed. The roadmap needs
+  no new Treaty follow-up and its existing local edits remain intact.
+- CLI bootstrap, pip temp access, Copier cache/clone access, and Git metadata
+  writes hit local Windows sandbox restrictions; focused host retries worked.
+  These are environment friction, not demonstrated Treaty defects. Reviewed
+  upstream issue history, including #23, #30, #31, #32, and #35; no distinct
+  new defect justified another issue. This migration does not test relocation,
+  a pre-existing folder README collision, or conflicted merge recovery.
+- Changes remain local and uncommitted on `dev`; no push, PR, tag, or release.
+  Raw preview/apply/validation output, baseline hashes, and preservation
+  scripts are retained in the ignored assessment folder above.
+- Verification:
+  `treaty --version`; `treaty diff .`; `treaty update . --dry-run --diff`;
+  `treaty update .`; `treaty validate .`; SHA-256 preservation and historical
+  narrative comparisons; 62 passing relative Markdown link/anchor checks;
+  `git diff --check`; unmerged-index and reject/conflict-marker scans.
+  Validation passed, and the conventions plus both maintained READMEs have
+  zero template drift. Application tests are not applicable to these
+  documentation-only changes.
+
 ## 2026-10-20
 
 ### Publication-topic Treaty handoff (Codex, GPT-6; effort/token budget not reported)
@@ -28,7 +163,8 @@ search older entries by date anchor rather than reading every archive.
   is an optional metadata edit, not another dataset release.
 - All three fetched target branches share `ccfc7cb`, allowing the same
   documentation commit to be fast-forwarded to each branch.
-- Verification: refreshed remote refs, concept-DOI redirect and public
+- Verification:
+  refreshed remote refs, concept-DOI redirect and public
   metadata checks, and `git diff --check`; delivery refs are checked after
   pushing. Installed `treaty validate` assumes root-level Treaty files and
   cannot validate this split layout; targeting `treaty_docs` instead reports
@@ -50,7 +186,8 @@ search older entries by date anchor rather than reading every archive.
   The earlier remote note that no dataset version was planned is superseded
   by the verified publication of record 23506274 below. No submitted paper
   source or PDF was edited locally. Remaining dataset changes are unstaged.
-- Verification: `git fetch --all --prune`, `git pull --ff-only origin dev`,
+- Verification:
+  `git fetch --all --prune`, `git pull --ff-only origin dev`,
   ref comparisons, PDF Git object hashes, conflict-marker/unmerged-index
   checks, and `git diff --check`.
 
@@ -69,7 +206,8 @@ search older entries by date anchor rather than reading every archive.
 - The public metadata omits the version value (prepared as 1.1.0) and retains
   literal Markdown in the HTML description. Report these metadata-only
   touchups to the maintainer; no public metadata was edited by the agent.
-- Verification: public records API concept-version query and individual-record
+- Verification:
+  public records API concept-version query and individual-record
   retrieval, all six local MD5/size comparisons, DOI redirect/HTTP check,
   metadata inspection, and `git diff --check`.
 
@@ -96,7 +234,8 @@ search older entries by date anchor rather than reading every archive.
   The reference and video are unchanged by these edits. Keep published
   v1.0.0 README links and historical verification evidence until a new
   public record is available. Preserve the maintainer's local PDF deletion.
-- Verification: read-only SciPy field/rate/label inspection; complete
+- Verification:
+  read-only SciPy field/rate/label inspection; complete
   field equality and reference-hash checks after writing the unscored
   sibling stage (flush/fsync/load/hash before os.replace); refreshed
   upload checksums; metadata JSON parse; `git diff --check`. All local
@@ -113,6 +252,9 @@ search older entries by date anchor rather than reading every archive.
   discloses sDREAMER as separately published by its developers, and says
   the updater and cookbook packages may be submitted separately later.
 - No pre-review issue in `openjournals/joss-reviews` yet (checked same day).
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### JOSS paper marked submission-ready (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -126,6 +268,9 @@ search older entries by date anchor rather than reading every archive.
   and updating the `sleepscoring_zenodo` bib title. Replaced the stale
   draft-era JOSS checklist in `next_steps.md` with the current state.
 - Review PDF replaced with the `615f949` artifact (7 pages).
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### Word trims and REM wording (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -141,6 +286,9 @@ search older entries by date anchor rather than reading every archive.
   and deleted the duplicate sentence there. Impact statement opener kept.
 - Body is 13 words shorter than at the start of 2026-10-20 (about 1,730 by
   the paper README rule). Review PDF replaced with the `f754d04` artifact.
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### Default versus chosen interaction path in Software design 2 (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -150,6 +298,9 @@ search older entries by date anchor rather than reading every archive.
   app's choice ("keep interactions in the interface wherever possible, and
   ask the server only for..."). About +4 body words.
 - Replaced the review PDF with the `c3b286f` JOSS draft artifact (7 pages).
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### NE wording in Summary (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -160,6 +311,9 @@ search older entries by date anchor rather than reading every archive.
 - Reviewed every other NE/photometry mention; "NE photometry" (method lacking
   in other tools) and plain "NE" (the signal) are kept as consistent usage.
 - Replaced the review PDF with the `7708f59` JOSS draft artifact (7 pages).
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### Example dataset details moved to the Zenodo README (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -170,6 +324,9 @@ search older entries by date anchor rather than reading every archive.
 - The published Zenodo README already documents the files, timing, and
   labels. A shorter replacement was drafted, but the maintainer kept the
   published v1.0.0 README; no new dataset version is planned.
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### SPINDLE mentioned once in State of the field (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -184,6 +341,9 @@ search older entries by date anchor rather than reading every archive.
   the repository; the README's Example Data section is the link.
 - Replaced the review PDF with the `cbf893e` JOSS draft artifact (7 pages,
   checked). Net body word count is about unchanged.
+- Verification:
+  Commands and verification results were not separately recorded in this
+  historical entry; no retrospective verification is claimed.
 
 ### Example dataset cited in the manuscript (Claude Code, Claude Opus 5.5; effort/token budget not reported)
 
@@ -197,7 +357,8 @@ search older entries by date anchor rather than reading every archive.
   them, so she is not named a second time.
 - Replaced the review PDF with the `567929d` JOSS draft artifact (7 pages;
   citation and reference render checked).
-- Verification: local pandoc citeproc render, JOSS draft workflow passed,
+- Verification:
+  local pandoc citeproc render, JOSS draft workflow passed,
   `git diff --check`.
 - Maintainer confirmed the files downloaded from Zenodo work in the app,
   closing the desktop-walkthrough gap noted below. Independent event
@@ -220,7 +381,8 @@ search older entries by date anchor rather than reading every archive.
   moved the paper's public-example item into What is done. No manuscript-body,
   app-version, package, tag, or software-archive metadata changes are needed.
   Full desktop walkthrough and independent event alignment remain unverified.
-- Verification: public Zenodo records API, local MD5 comparison for all six
+- Verification:
+  public Zenodo records API, local MD5 comparison for all six
   files, DOI HTTP HEAD/redirect check, documentation diff review, and
   `git diff --check`. Dataset publication was performed by the maintainer.
 
@@ -256,7 +418,8 @@ search older entries by date anchor rather than reading every archive.
   based on the normalized probe difference. MP4 reports 10,296.40 s.
 - Rotated the previous five unique dates into the 2026-10-14_to_2026-10-19
   archive when starting this date, per the work-log convention.
-- Verification: SciPy loadmat/whosmat plus array equality/nonfinite checks;
+- Verification:
+  SciPy loadmat/whosmat plus array equality/nonfinite checks;
   original AVI full FFmpeg decode; all-frame content comparison;
   Windows Media Foundation source-reader/decoder probes of AVI and MP4;
   source/copy SHA-256 checks; app video/dialog code inspection;

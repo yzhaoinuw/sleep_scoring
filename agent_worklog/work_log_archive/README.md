@@ -6,6 +6,8 @@ Older session notes rotated out of [`../work_log.md`](../work_log.md). Same stru
 
 The live `work_log.md` holds at most the 5 most recent unique calendar dates. When a new date would push it past 5, move the oldest 5 dates as a chunk into a new file in this directory.
 
+After a rotation, check for a treaty update with `treaty update --dry-run` and tell the user if a newer version is out. Updating is their call; see `treaty_conventions.md` § Updating The Treaty.
+
 ## File Naming
 
 Each archive file is named for the date range it covers:
