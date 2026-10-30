@@ -40,6 +40,15 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Continue the REM-within-Wake statistical-model experiment.
 - Correct the v0.17.1 release notes, which claim the NIH BRAIN acknowledgment
   reached `CITATION.cff` when CFF 1.2.0 has no funding field.
+- Clean up overlapping work-log archive chunks (found 2026-10-29 while
+  reviewing the Treaty v0.11.0 relocation). `work_log_2026-09-09_to_2026-10-07.md`
+  and `work_log_2026-09-09_to_2026-10-09.md` share 2026-09-09, 09-10, 10-02,
+  and 10-06 with different content (304 vs 185 lines), and 2026-10-09 is also
+  in `work_log_2026-10-08_to_2026-10-13.md`. Likely two branches rotated
+  separately before a merge. Merge each date into one chunk without dropping
+  entries, then rename the chunks to their real ranges.
+  `work_log_2026-06-20_to_2026-06-20.md` holds a single date, against the
+  five-per-chunk rule; fold it in or leave it as historical.
 
 ## Lightweight Source Releases
 
