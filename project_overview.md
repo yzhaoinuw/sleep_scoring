@@ -277,6 +277,6 @@ and verification.
 
 ## Questions Worth Clarifying Later
 
-`treaty_docs/next_steps.md` is the source of truth for open decisions. Current
+`agent_worklog/next_steps.md` is the source of truth for open decisions. Current
 questions include confirmation of sDREAMER checkpoint redistribution terms and
 the remaining JOSS authorship, affiliation, acknowledgment, and funding details.

@@ -101,10 +101,10 @@ preserve user work, document handoffs, and make verification easy to repeat.
 - Respect branch handoff discipline. Do not switch away from branches with
   unresolved local work, and generally aim PR/publish work through `dev` unless
   the maintainer asks otherwise.
-- Update `treaty_docs/work_log.md` for material implementation, verification,
+- Update `agent_worklog/work_log.md` for material implementation, verification,
   release, or workflow changes; follow the rotation rules in `AGENTS.md`.
 - Use `project_overview.md` when the active runtime path or active-vs-legacy map
-  matters, and `treaty_docs/next_steps.md` for concrete unfinished follow-ups.
+  matters, and `agent_worklog/next_steps.md` for concrete unfinished follow-ups.
 - Run focused checks for touched code paths and record any checks that could not
   be run.
 - Follow the Windows Git friction guidance in `AGENTS.md` when credential-helper

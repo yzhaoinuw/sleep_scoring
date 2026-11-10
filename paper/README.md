@@ -7,16 +7,15 @@ The JOSS manuscript PDF is already included in `paper/` for collaborators to
 read and comment on. Open the link above to review it. Yue maintains this copy;
 the download and refresh steps below are for the maintainer only.
 
-This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
-for Sleep Scoring App (repository and package name: `sleep_scoring`).
+This directory holds the submitted [JOSS](https://joss.theoj.org/) manuscript
+and subsequent revisions for Sleep Scoring App (repository and package name:
+`sleep_scoring`).
 Sources for the manuscript's claims are in `claim_sources.md`; keep
 `paper.md` free of HTML comments, because the JOSS bot counts them toward
-the word limit. Nothing here should be treated as a citable or finished
-artifact.
+the word limit.
 
 To cite the software today, use `CITATION.cff` at the repository root, or
-GitHub's "Cite this repository" button. That file is current and validated;
-this draft is not.
+GitHub's "Cite this repository" button.
 
 The calibration wording in `paper.md` describes the change-penalized
 calibrator released in v0.17.6 and archived by Zenodo
@@ -24,11 +23,8 @@ calibrator released in v0.17.6 and archived by Zenodo
 The software citation now resolves to a release containing this behavior.
 
 **Collaborators reviewing the manuscript:** read the included PDF linked above,
-then start with
-[What is still open](#what-is-still-open), especially
-[Claims the authors said they would verify](#claims-the-authors-said-they-would-verify)
-and [Authors and metadata](#authors-and-metadata). Those items need your
-knowledge, not the maintainer's. The
+then see [What is still open](#what-is-still-open) for the remaining
+publication follow-ups. The
 [JOSS requirements](#for-reviewers-joss-requirements-that-shape-this-paper)
 section explains choices that may look unusual but are required by JOSS.
 
@@ -46,10 +42,6 @@ section explains choices that may look unusual but are required by JOSS.
   - [Rendering the PDF](#rendering-the-pdf)
 - [What is done](#what-is-done)
 - [What is still open](#what-is-still-open)
-  - [Figures](#figures)
-  - [Claims the authors said they would verify](#claims-the-authors-said-they-would-verify)
-  - [Authors and metadata](#authors-and-metadata)
-  - [Release and final checks](#release-and-final-checks)
 
 ## Contents
 
@@ -190,6 +182,8 @@ and include the refreshed PDF when sharing the manuscript changes for review.
 Keep only the current review PDF in this directory; Git history retains
 earlier versions. The workflow does not automatically update the included
 PDF. The Markdown, bibliography, and figure sources remain authoritative.
+For a local rebuild with the JOSS toolchain, date the review copy by its
+rebuild date.
 
 ## What is done
 
@@ -304,5 +298,5 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
   `paper.bib` to match.
 
 See the "Citation And Publication" section of
-[`treaty_docs/next_steps.md`](../treaty_docs/next_steps.md) for the full checklist
+[`agent_worklog/next_steps.md`](../agent_worklog/next_steps.md) for the full checklist
 and the software archive status.

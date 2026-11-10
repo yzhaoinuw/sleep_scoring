@@ -19,16 +19,23 @@ A session is worth logging when it produced any of:
 
 Skip: casual Q&A, explanation-only exchanges that leave no lasting project state, routine changes the diff already explains, and one-off commands with no future coordination value.
 
+Decisions made while editing content still count as decisions: a title chosen, authorship or credit settled, wording picked for a stated reason. The edit is content the diff explains; the reason for it is not.
+
+**Check the log before you push, not only when the session ends.** A long chat has no clear end, so "end of session" may never arrive. A push or merge into `dev` or the release branch always does: before either, make sure `work_log.md` covers the work going out, or say in your reply why it needs no entry.
+
 Log experiments even when the change is reverted, as long as they leave reusable evidence, a decision, or a warning. Skip pure scratch work, and skip anything the user asks to keep off the book.
 
 Each session entry records the model + version, effort/thinking mode, and token budget if known, and ends with a `- Verification:` subsection naming the commands actually run.
 
 When a session creates or changes future work, update `next_steps.md` in the same pass: add concrete follow-ups, remove completed items, and keep "Currently Hot" accurate.
 
+`next_steps.md` is laid out by heading level. An active thread is a `##` section between "Currently Hot" and "Background / Paused"; a paused one is a `###` under "Background / Paused". Moving a thread between the two means changing its heading level, not just where it sits. Keep the file to follow-ups: once a feature ships, its design detail belongs in `../project_overview.md`. A Currently Hot link uses the heading's GitHub anchor, which drops punctuation other than `-` and `_`: `## Fit the model (gpt-5.5)` is `#fit-the-model-gpt-55`. `treaty validate` checks every such link and names the anchor it most likely meant.
+
 ## Work Log Rotation And Dating
 
 - The live `work_log.md` holds at most the 5 most recent unique calendar dates. Each file under `work_log_archive/` holds exactly 5.
 - When prepending a new date would push the live log past 5 unique dates, move the oldest 5 dates as a chunk into `work_log_archive/work_log_<earliest>_to_<latest>.md`.
+- **Each rotation is also the reminder to check for a treaty update.** Run `treaty update --dry-run`: it writes nothing and works with uncommitted changes, and its `Template version:` line shows whether the template would move (`v0.10.3 -> v0.11.0`) or not (`(unchanged)`). If a newer version is out, tell the user in your reply and leave the update itself to them — see [Updating The Treaty](#updating-the-treaty). If `treaty` isn't installed or the check can't reach GitHub, say that instead of skipping it silently.
 - If today's date already has a `## YYYY-MM-DD` header at the top, add a new `###` session subsection under it. Never open a second `## YYYY-MM-DD` header for the same date.
 - Before writing any dated entry, verify the local date (`date +%F` on macOS/Linux, `Get-Date -Format yyyy-MM-dd` on Windows) and use that. When the model-context date and the local environment disagree — which happens across a UTC midnight boundary — trust the local date. Never write a future-dated entry; `treaty validate` fails with `work-log-future-date`.
 
@@ -45,6 +52,8 @@ grep -n '^## ' <any-structured-doc>
 ## Branch Handoff
 
 Before switching away from an experimental or feature branch, confirm the branch holds all intended changes, that they are committed, and whether the user expects them merged, pushed, or intentionally parked.
+
+Before pushing or merging into `dev`, check that `work_log.md` covers the work going out (see [Work Log Discipline](#work-log-discipline)).
 
 Useful checks before switching or merging (portable git commands; run in any shell):
 
@@ -81,11 +90,15 @@ If a ref is missing or points at the wrong commit after the push, fix it before 
 
 Pulling upstream treaty refinements into this project is a maintainer's call — only do it when asked. This is distinct from updating `work_log.md` / `next_steps.md` content.
 
-1. Commit or stash local changes first. `treaty update` requires a clean, git-tracked working tree and refuses to run on a dirty one.
-2. `treaty diff` shows, section by section, how far this project has drifted from the template version it is pinned to — that is the conflict exposure before you touch anything.
-3. `treaty update --dry-run` previews the merge without writing.
-4. `treaty update` performs a **three-way merge**, so edits that do not overlap upstream changes are kept automatically. Where a local edit overlaps a changed region, it leaves conflict markers (`<<<<<<< before updating` / `=======` / `>>>>>>> after updating`) and an unmerged file, exactly like `git merge`. Resolve each one — keep your content, fold in the new template material — then `git add` the file.
-5. Review `git diff`, confirm no conflict markers survive, then commit.
+All of it runs off `.copier-answers.yml` at the repo root — Copier's record of the answers this project was installed with and the template version it is pinned to. It stays at the root whatever layout the docs use, because it is the file that records the layout. Keep it committed: if git ignores it, `treaty update` and `treaty diff` have nothing to read and cannot run.
+
+1. Upgrade the CLI first: `python -m pip install -U agent-collab-treaty`, then check `treaty --version`. Template fixes often depend on CLI checks, and an older CLI runs without complaint, so its `treaty validate` passes without knowing what the new template expects.
+2. Commit or stash local changes. `treaty update` requires a clean, git-tracked working tree and refuses to run on a dirty one.
+3. `treaty diff` shows, section by section, how far this project has drifted from the template version it is pinned to — that is the conflict exposure before you touch anything.
+4. `treaty update --dry-run` previews the merge without writing.
+5. `treaty update` performs a **three-way merge**, so edits that do not overlap upstream changes are kept automatically. Where a local edit overlaps a changed region, it leaves conflict markers (`<<<<<<< before updating` / `=======` / `>>>>>>> after updating`) and an unmerged file, exactly like `git merge`. Resolve each one — keep your content, fold in the new template material — then `git add` the file.
+6. Review `git diff`, confirm no conflict markers survive, then commit.
+7. Run `treaty validate`. Its warnings name template text that only your copy can fix: placeholders a new section brought in, or first-run text that no longer applies. Upstream can't remove that text from `work_log.md` or `next_steps.md` without conflicting with every adopter, so delete it yourself.
 
 ## Customizing These Docs
 
