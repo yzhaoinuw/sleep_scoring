@@ -32,9 +32,10 @@ in `../project_overview.md` and `dash_app_cookbook.md`.
 - Next feature work belongs on `active-quiet-wake`: permanent Active/Quiet Wake
   annotations (keys 5/6) and optional EMG detection after stats-model scoring.
   Keep the experiment separate from the official branches.
-- JOSS paper submitted on 2026-10-20 (software version v0.17.6; receipt
-  email received). Watch `openjournals/joss-reviews` for the pre-review
-  issue and respond to editor/reviewer comments on `publication`.
+- JOSS pre-review is open at `openjournals/joss-reviews#11574`. The track
+  editor's length and poster-citation requests are addressed on
+  `publication`; deliver to `dev` and `main`, then reply on the issue with
+  `@editorialbot generate pdf` (the bot builds from `main`).
 - Keep the full-path video-association fix for a later app-source-only update
   based on the published v0.17.1 package.
 - Continue the REM-within-Wake statistical-model experiment.

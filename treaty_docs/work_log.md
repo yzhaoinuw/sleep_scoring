@@ -15,6 +15,30 @@ keep the `sleep_scoring` folder and `sleep_scoring_dash3.0` environment names
 but adapt the user prefix and clone location. Default to the two newest dates;
 search older entries by date anchor rather than reading every archive.
 
+## 2026-11-10
+
+### JOSS pre-review: length cut and poster claim removed (Claude Code, Claude Opus 5.5; effort/token budget not reported)
+
+- Pre-review issue opened 2026-11-10 as
+  [openjournals/joss-reviews#11574](https://github.com/openjournals/joss-reviews/issues/11574)
+  (managing track EiC Rachel Kurchin; editor not yet assigned). She asked
+  for citations for the conference posters named in the Research impact
+  statement and for a cut to about 1,750 words.
+- The bot's 2,772-word count equals `wc -w paper/paper.md`: it includes
+  front matter, Acknowledgments, and HTML comments (779 words). The source
+  comments moved verbatim to `paper/claim_sources.md`; keep `paper.md`
+  comment-free. Visible text was trimmed mainly in Summary and Software
+  design (dropped the Apple M4 timings and the 65-75% figure; the latter
+  remains derivable in `claim_sources.md`). Now 1,734 words.
+- Maintainer chose to delete the poster sentence rather than ask users for
+  poster details. Posters usually lack DOIs, and no titles are on record.
+  The section now rests on the usage figures.
+- The issue's paper branch is blank, so the bot builds from `main`: the
+  change must reach `main` before `@editorialbot generate pdf`.
+- Verification: `gh issue view 11574 --repo openjournals/joss-reviews`,
+  `wc -w`-equivalent word counts before and after, and `git diff --check`.
+  The PDF was not re-rendered locally.
+
 ## 2026-10-20
 
 ### Publication-topic Treaty handoff (Codex, GPT-6; effort/token budget not reported)

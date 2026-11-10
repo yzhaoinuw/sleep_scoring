@@ -9,8 +9,9 @@ the download and refresh steps below are for the maintainer only.
 
 This directory holds an in-progress [JOSS](https://joss.theoj.org/) submission
 for Sleep Scoring App (repository and package name: `sleep_scoring`).
-Inline `TODO` comments in `paper.md` mark claims awaiting author
-confirmation. Nothing here should be treated as a citable or finished
+Sources for the manuscript's claims are in `claim_sources.md`; keep
+`paper.md` free of HTML comments, because the JOSS bot counts them toward
+the word limit. Nothing here should be treated as a citable or finished
 artifact.
 
 To cite the software today, use `CITATION.cff` at the repository root, or
@@ -82,12 +83,13 @@ checked on 2026-10-07.
   disclosure, plus Acknowledgments (including funding) and References. There
   are no Introduction, Methods, Results, or Discussion sections. The section
   names in `paper.md` are the JOSS names.
-- **750–1,750 words.** As of 2026-10-20 the body (captions included,
-  front matter, comments, and Acknowledgments excluded) is about 1,730 words
-  of running text, and more with headings and rendered citations;
-  Acknowledgments add about 150 if counted. Treat
-  the stricter count as binding: the draft is at the limit, so new material
-  has to replace existing text.
+- **750–1,750 words, counted by the bot over the whole file.** The JOSS
+  bot's count matches `wc -w paper/paper.md`: front matter, headings,
+  captions, Acknowledgments, and any HTML comments all count. The submitted
+  file scored 2,772 (779 of them in comments), and the track editor asked
+  for a cut on 2026-11-10. After moving the comments to `claim_sources.md`
+  and trimming, the file is about 1,730 words, so new material has to
+  replace existing text.
 - **Summary is for non-specialists.** That is why it explains sleep scoring,
   EEG, and EMG from scratch.
 - **No user manual or API documentation.** JOSS says that belongs in the
@@ -242,8 +244,8 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
   summarized in Software design, section 2.
 - **Research impact evidence.** Five users reported their use on
   2026-10-15/16: about 1,200 hours of recordings in total, from a channel of
-  about 30 members, with results presented in conference posters. The
-  per-user breakdown is in a comment in `paper.md`.
+  about 30 members. The
+  per-user breakdown is in `claim_sources.md`.
 - **Zenodo title.** `sleepscoring_zenodo` in `paper.bib` matches the title
   and year archived in Zenodo v0.17.6 (verified 2026-10-15,
   [version DOI](https://doi.org/10.5281/zenodo.23385811)). The bibliography
@@ -257,9 +259,9 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
   v0.17.6 and archived by Zenodo (DOI `10.5281/zenodo.23385811`, verified
   2026-10-15).
 - **Research impact publications.** Checked 2026-10-18: no studies,
-  preprints, or datasets scored with the app are published yet, so the
-  section cites conference posters only. Add any that appear before
-  submission.
+  preprints, or datasets scored with the app are published yet. The
+  uncited poster mention was removed on 2026-11-10, so the section rests on
+  usage figures. Add publications here if any appear during review.
 - **PyTorch reference.** `paszke2019pytorch` has no DOI (Crossref has none,
   as usual for NeurIPS proceedings). On 2026-10-18 it was checked against the
   [NeurIPS proceedings page](https://proceedings.neurips.cc/paper/2019/hash/bdbca288fee7f92f2bfa9f7012727740-Abstract.html)
@@ -291,8 +293,12 @@ PDF. The Markdown, bibliography, and figure sources remain authoritative.
 
 ## What is still open
 
-- [ ] Respond to the JOSS pre-review and review issues in
-  `openjournals/joss-reviews`.
+- [ ] Respond to the JOSS pre-review
+  ([openjournals/joss-reviews#11574](https://github.com/openjournals/joss-reviews/issues/11574))
+  and, later, the review issue. Track editor requests (2026-11-10): cite the
+  conference posters mentioned in the Research impact statement, and cut the
+  paper to about 1,750 words. Both done: the poster sentence was removed
+  because no poster details are on record, and the paper was trimmed.
 - [ ] At acceptance, archive the final release on Zenodo, confirm it shows
   the paper's title, and update the `sleepscoring_zenodo` title in
   `paper.bib` to match.
