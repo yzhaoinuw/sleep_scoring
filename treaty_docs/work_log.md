@@ -38,6 +38,9 @@ search older entries by date anchor rather than reading every archive.
 - Verification: `gh issue view 11574 --repo openjournals/joss-reviews`,
   `wc -w`-equivalent word counts before and after, and `git diff --check`.
   The PDF was not re-rendered locally.
+- Review PDF refreshed from the `JOSS draft PDF` run 42854878313 (success)
+  on `03fc1cc`; the 2026-10-20 copy was removed. Its pages were not
+  inspected locally: this Mac has no poppler/pdftoppm or Python PDF reader.
 
 ## 2026-10-20
 

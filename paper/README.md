@@ -2,7 +2,7 @@
 
 **Status: submitted to JOSS on 2026-10-20** (software version v0.17.6).
 
-**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-10-20.pdf).
+**Review PDF:** [Read the current manuscript](Sleep_Scoring_App_JOSS_Manuscript_2026-11-10.pdf).
 The JOSS manuscript PDF is already included in `paper/` for collaborators to
 read and comment on. Open the link above to review it. Yue maintains this copy;
 the download and refresh steps below are for the maintainer only.
