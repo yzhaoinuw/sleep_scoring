@@ -44,7 +44,8 @@ search older entries by date anchor rather than reading every archive.
 - Merged `dev` into `publication` to pick up `ae41dd1` (Treaty v0.11.0,
   `treaty_docs/` -> `agent_worklog/`, AI-disclosure path in `paper.md`).
   Kept both sides of the paper README and work log; the 2026-10-29 review
-  PDF was superseded by a rebuild from the merge, and `dev` and `main` were
+  PDF was superseded by a rebuild from the merge (run 42856365928 on
+  `b65b16e`), and `dev` and `main` were
   fast-forwarded to `publication`.
 
 ## 2026-10-29
